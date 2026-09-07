@@ -2,181 +2,124 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#080b12">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#212121">
 <title>Zed AI</title>
 
 <style>
 *{box-sizing:border-box}
 
-:root{
-  --bg:#080b12;
-  --panel:#0e131d;
-  --panel2:#111824;
-  --border:#202938;
-  --text:#f4f7fb;
-  --muted:#8994a6;
-  --accent:#72e6a4;
-  --accent2:#42c77e;
-  --user:#173b2a;
-  --danger:#ff6b6b;
-}
-
 html,body{
   margin:0;
-  padding:0;
   width:100%;
   height:100%;
-  background:var(--bg);
-  color:var(--text);
-  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#212121;
+  color:#ececec;
 }
 
-button,input,textarea{
-  font:inherit;
-}
+button,textarea{font:inherit}
 
-button{
-  cursor:pointer;
-}
+button{cursor:pointer}
+
+/* APP */
 
 .app{
-  display:flex;
-  width:100%;
   height:100vh;
+  display:flex;
   overflow:hidden;
 }
 
 /* SIDEBAR */
 
 .sidebar{
-  width:270px;
-  flex-shrink:0;
-  background:#0b0f17;
-  border-right:1px solid var(--border);
+  width:260px;
+  background:#171717;
   display:flex;
   flex-direction:column;
-  padding:18px;
+  padding:10px;
+  flex-shrink:0;
+  border-right:1px solid #292929;
 }
 
 .brand{
+  height:48px;
   display:flex;
   align-items:center;
-  gap:11px;
-  padding:5px 5px 20px;
+  gap:10px;
+  padding:0 10px;
+  margin-bottom:5px;
 }
 
-.brand-logo{
-  width:38px;
-  height:38px;
-  border-radius:12px;
-  background:linear-gradient(135deg,var(--accent),#36b875);
-  color:#07120b;
+.logo{
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  background:#7ee2a8;
+  color:#111;
   display:flex;
   align-items:center;
   justify-content:center;
   font-weight:900;
-  font-size:19px;
 }
 
-.brand-name{
-  font-weight:850;
-  font-size:20px;
-  letter-spacing:-.5px;
+.brand strong{
+  font-size:17px;
 }
 
-.brand-name span{
-  color:var(--accent);
+.brand span{
+  color:#7ee2a8;
 }
 
 .new-chat{
   width:100%;
-  border:1px solid #2c394b;
-  background:#111722;
-  color:white;
-  border-radius:12px;
-  padding:12px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  font-weight:700;
-  margin-bottom:22px;
-}
-
-.new-chat:hover{
-  background:#17202d;
-}
-
-.side-title{
-  color:#667286;
-  font-size:11px;
-  font-weight:800;
-  text-transform:uppercase;
-  letter-spacing:1px;
-  padding:0 7px 9px;
-}
-
-.tool-link{
-  border:0;
-  background:transparent;
-  color:#cbd3df;
-  width:100%;
-  text-align:left;
-  padding:11px 9px;
+  height:46px;
+  border:1px solid #3a3a3a;
+  background:#212121;
+  color:#eee;
   border-radius:10px;
   display:flex;
   align-items:center;
-  gap:11px;
-  margin-bottom:3px;
+  gap:10px;
+  padding:0 13px;
+  margin-bottom:18px;
 }
 
-.tool-link:hover{
-  background:#141b26;
-  color:white;
+.new-chat:hover{
+  background:#2a2a2a;
 }
 
-.tool-icon{
-  width:30px;
-  height:30px;
-  border-radius:8px;
-  background:#151e2b;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+.new-icon{
+  font-size:21px;
+}
+
+/* HISTORY */
+
+.history-label{
+  color:#8e8e8e;
+  font-size:12px;
+  padding:8px 10px;
 }
 
 .history{
-  margin-top:20px;
   flex:1;
-  overflow:auto;
-}
-
-.history-list{
-  display:flex;
-  flex-direction:column;
-  gap:3px;
-}
-
-.history-empty{
-  color:#586477;
-  font-size:12px;
-  padding:10px 8px;
+  overflow-y:auto;
 }
 
 .history-item{
   display:flex;
   align-items:center;
-  gap:5px;
-  color:#9aa6b7;
-  font-size:13px;
-  padding:8px;
-  border-radius:9px;
+  width:100%;
+  min-height:40px;
+  border-radius:8px;
+  padding:0 8px 0 11px;
+  color:#c9c9c9;
+  margin-bottom:2px;
 }
 
 .history-item:hover,
 .history-item.active{
-  background:#121923;
-  color:#e6ebf2;
+  background:#2a2a2a;
 }
 
 .history-title{
@@ -185,43 +128,50 @@ button{
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+  font-size:13px;
 }
 
 .history-delete{
   border:0;
   background:transparent;
-  color:#596577;
-  width:25px;
-  height:25px;
-  border-radius:7px;
-  flex-shrink:0;
+  color:#777;
+  width:28px;
+  height:28px;
+  border-radius:6px;
 }
 
 .history-delete:hover{
-  background:#202a38;
-  color:#ff7777;
+  background:#3a3a3a;
+  color:#ff7070;
 }
 
-.side-bottom{
-  border-top:1px solid var(--border);
-  padding-top:14px;
+.empty{
+  color:#777;
+  font-size:12px;
+  padding:12px 10px;
+}
+
+/* SIDEBAR BOTTOM */
+
+.sidebar-bottom{
+  border-top:1px solid #303030;
+  padding-top:10px;
 }
 
 .status{
   display:flex;
   align-items:center;
-  gap:9px;
-  padding:9px;
-  color:#a8b2c1;
-  font-size:13px;
+  gap:8px;
+  color:#aaa;
+  font-size:12px;
+  padding:10px;
 }
 
-.status-dot{
+.dot{
   width:8px;
   height:8px;
   border-radius:50%;
-  background:var(--accent);
-  box-shadow:0 0 10px #72e6a4;
+  background:#65d98d;
 }
 
 /* MAIN */
@@ -231,54 +181,40 @@ button{
   min-width:0;
   display:flex;
   flex-direction:column;
-  background:
-    radial-gradient(circle at 50% -20%,#183b2a 0,transparent 35%),
-    var(--bg);
+  position:relative;
 }
+
+/* TOPBAR */
 
 .topbar{
-  height:65px;
-  flex-shrink:0;
-  border-bottom:1px solid var(--border);
+  height:58px;
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  padding:0 22px;
-  background:rgba(8,11,18,.78);
-  backdrop-filter:blur(15px);
+  padding:0 18px;
+  border-bottom:1px solid #292929;
+  background:#212121;
+  flex-shrink:0;
 }
 
-.top-title{
-  display:flex;
-  flex-direction:column;
+.menu{
+  display:none;
+  width:38px;
+  height:38px;
+  border:0;
+  background:transparent;
+  color:#ddd;
+  font-size:21px;
+  border-radius:8px;
+  margin-right:7px;
 }
 
-.top-title strong{
-  font-size:14px;
+.menu:hover{
+  background:#303030;
 }
 
-.top-title span{
-  font-size:11px;
-  color:var(--muted);
-  margin-top:2px;
-}
-
-.top-actions{
-  display:flex;
-  gap:8px;
-}
-
-.icon-btn{
-  width:36px;
-  height:36px;
-  border:1px solid var(--border);
-  background:#101621;
-  color:#cbd3df;
-  border-radius:10px;
-}
-
-.icon-btn:hover{
-  background:#18212e;
+.title{
+  font-size:15px;
+  font-weight:600;
 }
 
 /* CHAT */
@@ -286,218 +222,135 @@ button{
 .chat-area{
   flex:1;
   overflow-y:auto;
-  padding:40px 20px 20px;
+  scroll-behavior:smooth;
 }
 
 .chat-inner{
-  width:min(850px,100%);
+  width:min(820px,100%);
   margin:auto;
+  padding:35px 20px 150px;
 }
 
 /* WELCOME */
 
 .welcome{
-  min-height:55vh;
+  min-height:65vh;
   display:flex;
   flex-direction:column;
   justify-content:center;
   align-items:center;
   text-align:center;
-  padding:30px 10px;
 }
 
 .welcome-logo{
-  width:64px;
-  height:64px;
-  border-radius:20px;
-  background:linear-gradient(135deg,var(--accent),#39bd79);
-  color:#06130b;
+  width:58px;
+  height:58px;
+  border-radius:17px;
+  background:#7ee2a8;
+  color:#111;
   display:flex;
   align-items:center;
   justify-content:center;
+  font-size:27px;
   font-weight:900;
-  font-size:28px;
-  box-shadow:0 15px 50px #72e6a426;
   margin-bottom:22px;
 }
 
 .welcome h1{
-  font-size:clamp(34px,6vw,58px);
   margin:0;
-  letter-spacing:-2px;
+  font-size:34px;
+  font-weight:600;
 }
 
 .welcome h1 span{
-  color:var(--accent);
+  color:#7ee2a8;
 }
 
 .welcome p{
-  color:var(--muted);
-  max-width:580px;
+  color:#999;
+  max-width:520px;
   line-height:1.6;
-  margin:13px auto 30px;
+  margin:12px 0 30px;
 }
 
-.suggestions{
+.prompts{
   display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:11px;
-  width:min(680px,100%);
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  width:min(650px,100%);
 }
 
-.suggestion{
-  text-align:left;
-  background:#0e141e;
-  border:1px solid var(--border);
-  color:#d8e0ea;
-  border-radius:14px;
+.prompt{
+  border:1px solid #3a3a3a;
+  background:#292929;
+  color:#ddd;
   padding:15px;
-  transition:.2s;
+  border-radius:10px;
+  text-align:left;
 }
 
-.suggestion:hover{
-  transform:translateY(-2px);
-  border-color:#365844;
-  background:#121a24;
+.prompt:hover{
+  background:#323232;
 }
 
-.suggestion strong{
+.prompt strong{
   display:block;
   font-size:13px;
   margin-bottom:5px;
 }
 
-.suggestion span{
-  color:#748094;
+.prompt span{
+  color:#888;
   font-size:12px;
 }
 
-/* MESSAGES */
+/* MESSAGE */
 
 .message{
   display:flex;
-  margin:22px 0;
-  gap:12px;
+  gap:15px;
+  margin:25px 0;
 }
 
 .avatar{
-  width:34px;
-  height:34px;
+  width:32px;
+  height:32px;
   flex-shrink:0;
-  border-radius:10px;
+  border-radius:9px;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:14px;
-  font-weight:800;
+  font-size:13px;
+  font-weight:bold;
 }
 
 .avatar.ai{
-  background:var(--accent);
-  color:#07130b;
+  background:#7ee2a8;
+  color:#111;
 }
 
 .avatar.user{
-  background:#263142;
-  color:#dbe3ed;
+  background:#444;
+  color:#eee;
 }
 
-.message-content{
+.message-body{
+  flex:1;
   min-width:0;
-  max-width:calc(100% - 50px);
 }
 
-.message-name{
-  color:#8e9bad;
-  font-size:11px;
-  font-weight:700;
-  margin-bottom:5px;
+.name{
+  font-size:13px;
+  font-weight:600;
+  margin:2px 0 7px;
 }
 
-.message-text{
-  color:#e2e7ee;
-  line-height:1.65;
+.text{
   white-space:pre-wrap;
   overflow-wrap:anywhere;
-}
-
-.user-message .message-text{
-  background:var(--user);
-  border-radius:4px 15px 15px 15px;
-  padding:12px 14px;
-}
-
-/* COMPOSER */
-
-.composer-wrap{
-  flex-shrink:0;
-  padding:12px 20px 18px;
-  background:linear-gradient(transparent,var(--bg) 25%);
-}
-
-.composer{
-  width:min(850px,100%);
-  margin:auto;
-  background:#101620;
-  border:1px solid #293443;
-  border-radius:18px;
-  padding:10px;
-  box-shadow:0 12px 50px #0007;
-}
-
-.input{
-  width:100%;
-  min-height:48px;
-  max-height:130px;
-  resize:none;
-  border:0;
-  outline:0;
-  background:transparent;
-  color:white;
-  padding:10px 10px 5px;
-}
-
-.input::placeholder{
-  color:#657185;
-}
-
-.composer-bottom{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:5px 3px 2px;
-}
-
-.hint{
-  color:#5f6b7d;
-  font-size:11px;
-}
-
-.send{
-  width:42px;
-  height:42px;
-  border:0;
-  border-radius:12px;
-  background:var(--accent);
-  color:#06120b;
-  font-size:18px;
-  font-weight:900;
-}
-
-.send:hover{
-  background:#8af0b5;
-}
-
-.send:disabled{
-  opacity:.4;
-  cursor:not-allowed;
-}
-
-.disclaimer{
-  text-align:center;
-  color:#4f5a6b;
-  font-size:10px;
-  margin-top:9px;
+  line-height:1.7;
+  color:#e5e5e5;
+  font-size:15px;
 }
 
 /* THINKING */
@@ -505,93 +358,167 @@ button{
 .thinking{
   display:flex;
   gap:5px;
-  padding:5px 0;
+  padding:8px 0;
 }
 
-.thinking span{
-  width:6px;
-  height:6px;
+.thinking i{
+  width:7px;
+  height:7px;
   border-radius:50%;
-  background:#8491a3;
+  background:#999;
   animation:bounce 1.2s infinite;
 }
 
-.thinking span:nth-child(2){
-  animation-delay:.15s;
-}
-
-.thinking span:nth-child(3){
-  animation-delay:.3s;
-}
+.thinking i:nth-child(2){animation-delay:.15s}
+.thinking i:nth-child(3){animation-delay:.3s}
 
 @keyframes bounce{
-  0%,60%,100%{transform:translateY(0);opacity:.4}
-  30%{transform:translateY(-5px);opacity:1}
+  0%,60%,100%{
+    transform:translateY(0);
+    opacity:.35;
+  }
+  30%{
+    transform:translateY(-5px);
+    opacity:1;
+  }
+}
+
+/* COMPOSER */
+
+.composer-area{
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  padding:20px;
+  background:linear-gradient(
+    transparent,
+    #212121 28%
+  );
+}
+
+.composer{
+  width:min(820px,100%);
+  margin:auto;
+  background:#2f2f2f;
+  border:1px solid #444;
+  border-radius:17px;
+  padding:9px 10px 9px 14px;
+  display:flex;
+  align-items:flex-end;
+  box-shadow:0 5px 30px #0005;
+}
+
+.input{
+  flex:1;
+  min-width:0;
+  max-height:180px;
+  min-height:42px;
+  resize:none;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:#fff;
+  padding:10px 5px;
+  line-height:1.5;
+}
+
+.input::placeholder{
+  color:#888;
+}
+
+.send{
+  width:38px;
+  height:38px;
+  border:0;
+  border-radius:10px;
+  background:#7ee2a8;
+  color:#111;
+  font-size:20px;
+  font-weight:bold;
+  flex-shrink:0;
+}
+
+.send:hover{
+  background:#9aefbd;
+}
+
+.send:disabled{
+  opacity:.4;
+}
+
+.disclaimer{
+  text-align:center;
+  color:#666;
+  font-size:10px;
+  margin-top:7px;
 }
 
 /* MOBILE */
 
-.mobile-menu{
-  display:none;
-}
-
-@media(max-width:800px){
+@media(max-width:700px){
 
   .sidebar{
     position:fixed;
-    z-index:20;
-    left:-290px;
+    left:-270px;
     top:0;
     bottom:0;
-    transition:.25s;
-    box-shadow:20px 0 50px #0009;
+    z-index:100;
+    transition:.2s;
+    box-shadow:10px 0 40px #0008;
   }
 
   .sidebar.open{
     left:0;
   }
 
-  .mobile-menu{
+  .menu{
     display:block;
   }
 
   .topbar{
-    padding:0 13px;
+    padding:0 10px;
   }
 
-  .chat-area{
-    padding:20px 12px;
+  .chat-inner{
+    padding:20px 13px 145px;
   }
 
-  .composer-wrap{
-    padding:8px 10px 12px;
+  .composer-area{
+    padding:10px;
   }
 
-  .suggestions{
+  .prompts{
     grid-template-columns:1fr;
   }
 
-  .welcome{
-    min-height:60vh;
-  }
-
   .welcome h1{
-    font-size:38px;
-  }
-}
-
-@media(max-width:480px){
-
-  .hint{
-    display:none;
+    font-size:29px;
   }
 
-  .composer{
-    border-radius:15px;
+  .welcome p{
+    font-size:14px;
   }
 
   .message{
-    margin:17px 0;
+    gap:10px;
+    margin:21px 0;
+  }
+
+  .text{
+    font-size:14px;
+  }
+}
+
+@media(max-width:400px){
+
+  .welcome-logo{
+    width:50px;
+    height:50px;
+  }
+
+  .welcome h1{
+    font-size:26px;
   }
 }
 </style>
@@ -601,75 +528,48 @@ button{
 
 <div class="app">
 
+  <!-- SIDEBAR -->
+
   <aside class="sidebar" id="sidebar">
 
     <div class="brand">
-      <div class="brand-logo">Z</div>
-      <div class="brand-name">Zed <span>AI</span></div>
+      <div class="logo">Z</div>
+      <strong>Zed <span>AI</span></strong>
     </div>
 
-    <button class="new-chat" onclick="newChat()">
-      <span>＋</span>
-      New chat
+    <button class="new-chat" id="newChat">
+      <span class="new-icon">＋</span>
+      <span>New chat</span>
     </button>
 
-    <div class="side-title">Tools</div>
+    <div class="history-label">Recent chats</div>
 
-    <button class="tool-link" onclick="useTool('Help me create a professional CV.')">
-      <span class="tool-icon">📄</span>
-      <span>CV Maker</span>
-    </button>
+    <div class="history" id="history"></div>
 
-    <button class="tool-link" onclick="useTool('Give me realistic business ideas I can start in Zambia with a small budget.')">
-      <span class="tool-icon">💼</span>
-      <span>Business</span>
-    </button>
-
-    <button class="tool-link" onclick="useTool('Help me write a professional message.')">
-      <span class="tool-icon">✍️</span>
-      <span>Writing</span>
-    </button>
-
-    <button class="tool-link" onclick="useTool('Explain this topic to me in a simple way.')">
-      <span class="tool-icon">📚</span>
-      <span>Study</span>
-    </button>
-
-    <div class="history">
-      <div class="side-title">Recent chats</div>
-      <div id="historyList" class="history-list"></div>
-    </div>
-
-    <div class="side-bottom">
+    <div class="sidebar-bottom">
       <div class="status">
-        <span class="status-dot"></span>
+        <span class="dot"></span>
         Zed AI is online
       </div>
     </div>
 
   </aside>
 
+
+  <!-- MAIN -->
+
   <main class="main">
 
     <header class="topbar">
 
-      <div style="display:flex;align-items:center;gap:10px">
+      <button class="menu" id="menu">☰</button>
 
-        <button class="icon-btn mobile-menu" onclick="toggleSidebar()">☰</button>
-
-        <div class="top-title">
-          <strong id="topTitle">Zed AI</strong>
-          <span>Intelligent assistant</span>
-        </div>
-
-      </div>
-
-      <div class="top-actions">
-        <button class="icon-btn" onclick="newChat()" title="New chat">＋</button>
-        <button class="icon-btn" onclick="clearChat()" title="Clear chat">⌫</button>
+      <div class="title" id="title">
+        Zed AI
       </div>
 
     </header>
+
 
     <section class="chat-area" id="chatArea">
 
@@ -677,28 +577,24 @@ button{
 
     </section>
 
-    <div class="composer-wrap">
+
+    <div class="composer-area">
 
       <div class="composer">
 
         <textarea
           id="input"
           class="input"
-          rows="1"
           placeholder="Message Zed AI..."
+          rows="1"
         ></textarea>
 
-        <div class="composer-bottom">
-
-          <div class="hint">
-            Enter to send • Shift + Enter for new line
-          </div>
-
-          <button id="send" class="send" onclick="sendMessage()">
-            ↑
-          </button>
-
-        </div>
+        <button
+          id="send"
+          class="send"
+          type="button"
+          aria-label="Send"
+        >↑</button>
 
       </div>
 
@@ -712,21 +608,35 @@ button{
 
 </div>
 
+
 <script>
+"use strict";
+
+/* =========================
+   ELEMENTS
+========================= */
 
 const input = document.getElementById("input");
 const send = document.getElementById("send");
 const chatInner = document.getElementById("chatInner");
 const chatArea = document.getElementById("chatArea");
-const historyList = document.getElementById("historyList");
+const history = document.getElementById("history");
+const newChatButton = document.getElementById("newChat");
+const menu = document.getElementById("menu");
 const sidebar = document.getElementById("sidebar");
-const topTitle = document.getElementById("topTitle");
+const title = document.getElementById("title");
 
-const STORAGE_KEY = "zed_ai_chats_v1";
+
+/* =========================
+   STATE
+========================= */
+
+const STORAGE_KEY = "zed_ai_chats_v2";
 
 let chats = [];
 let currentChatId = null;
 let messages = [];
+let sending = false;
 
 
 /* =========================
@@ -734,89 +644,32 @@ let messages = [];
 ========================= */
 
 function saveChats(){
-  try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
-  }catch(error){
-    console.error("Could not save chats:",error);
-  }
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(chats)
+  );
 }
 
 function loadChats(){
 
   try{
-    const saved = localStorage.getItem(STORAGE_KEY);
 
-    if(saved){
-      chats = JSON.parse(saved);
+    const saved =
+      localStorage.getItem(STORAGE_KEY);
+
+    chats =
+      saved ? JSON.parse(saved) : [];
+
+    if(!Array.isArray(chats)){
+      chats = [];
     }
 
   }catch(error){
 
-    console.error("Could not load chats:",error);
+    console.error(error);
     chats = [];
 
   }
-}
-
-
-/* =========================
-   SIDEBAR
-========================= */
-
-function toggleSidebar(){
-  sidebar.classList.toggle("open");
-}
-
-function closeSidebar(){
-  sidebar.classList.remove("open");
-}
-
-function renderHistory(){
-
-  historyList.innerHTML = "";
-
-  if(!chats.length){
-
-    const empty = document.createElement("div");
-    empty.className = "history-empty";
-    empty.textContent = "No conversations yet.";
-    historyList.appendChild(empty);
-
-    return;
-  }
-
-  chats
-    .slice()
-    .sort((a,b) => b.updatedAt - a.updatedAt)
-    .forEach(chat => {
-
-      const item = document.createElement("div");
-      item.className =
-        "history-item" +
-        (chat.id === currentChatId ? " active" : "");
-
-      const title = document.createElement("div");
-      title.className = "history-title";
-      title.textContent = chat.title || "New chat";
-
-      title.onclick = () => loadChat(chat.id);
-
-      const del = document.createElement("button");
-      del.className = "history-delete";
-      del.textContent = "×";
-      del.title = "Delete chat";
-
-      del.onclick = (event) => {
-        event.stopPropagation();
-        deleteChat(chat.id);
-      };
-
-      item.appendChild(title);
-      item.appendChild(del);
-
-      historyList.appendChild(item);
-
-    });
 }
 
 
@@ -827,130 +680,377 @@ function renderHistory(){
 function showWelcome(){
 
   chatInner.innerHTML = `
-
     <div class="welcome">
 
       <div class="welcome-logo">Z</div>
 
-      <h1>Meet <span>Zed AI</span></h1>
+      <h1>How can <span>Zed AI</span> help?</h1>
 
       <p>
-        Your intelligent assistant for ideas, business,
-        writing, studying, CVs and everyday questions.
+        Ask questions, learn new things, write,
+        plan your business or get help with everyday tasks.
       </p>
 
-      <div class="suggestions">
+      <div class="prompts">
 
-        <button class="suggestion"
-          onclick="useTool('Help me create a professional CV from my education, skills and work experience.')">
+        <button class="prompt" data-prompt="Help me create a professional CV.">
           <strong>📄 Create a CV</strong>
           <span>Build a professional CV step by step.</span>
         </button>
 
-        <button class="suggestion"
-          onclick="useTool('Give me 5 realistic businesses I can start in Zambia with a small budget.')">
+        <button class="prompt" data-prompt="Give me realistic business ideas I can start in Zambia with a small budget.">
           <strong>💼 Business ideas</strong>
-          <span>Find practical ideas and strategies.</span>
+          <span>Find practical business opportunities.</span>
         </button>
 
-        <button class="suggestion"
-          onclick="useTool('Help me write a professional message.')">
-          <strong>✍️ Improve my writing</strong>
-          <span>Write clearer and more professional messages.</span>
-        </button>
-
-        <button class="suggestion"
-          onclick="useTool('Teach me something interesting in a simple way.')">
+        <button class="prompt" data-prompt="Teach me something interesting in a simple way.">
           <strong>📚 Learn something</strong>
-          <span>Understand difficult topics more easily.</span>
+          <span>Understand difficult topics easily.</span>
+        </button>
+
+        <button class="prompt" data-prompt="Help me write a professional message.">
+          <strong>✍️ Help me write</strong>
+          <span>Improve your messages and writing.</span>
         </button>
 
       </div>
 
     </div>
-
   `;
+
+  document
+    .querySelectorAll(".prompt")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          input.value =
+            button.dataset.prompt;
+
+          resizeInput();
+          input.focus();
+
+        }
+      );
+
+    });
+
 }
 
 
 /* =========================
-   TOOLS
+   HISTORY
 ========================= */
 
-function useTool(text){
+function renderHistory(){
 
-  input.value = text;
+  history.innerHTML = "";
+
+  if(!chats.length){
+
+    history.innerHTML =
+      `<div class="empty">No conversations yet.</div>`;
+
+    return;
+  }
+
+  chats
+    .slice()
+    .sort(
+      (a,b) =>
+        (b.updatedAt || 0) -
+        (a.updatedAt || 0)
+    )
+    .forEach(chat => {
+
+      const item =
+        document.createElement("div");
+
+      item.className =
+        "history-item" +
+        (chat.id === currentChatId
+          ? " active"
+          : "");
+
+      const chatTitle =
+        document.createElement("div");
+
+      chatTitle.className =
+        "history-title";
+
+      chatTitle.textContent =
+        chat.title || "New chat";
+
+      chatTitle.addEventListener(
+        "click",
+        () => loadChat(chat.id)
+      );
+
+      const deleteButton =
+        document.createElement("button");
+
+      deleteButton.className =
+        "history-delete";
+
+      deleteButton.textContent =
+        "×";
+
+      deleteButton.addEventListener(
+        "click",
+        event => {
+
+          event.stopPropagation();
+
+          deleteChat(chat.id);
+
+        }
+      );
+
+      item.appendChild(chatTitle);
+      item.appendChild(deleteButton);
+
+      history.appendChild(item);
+
+    });
+
+}
+
+
+/* =========================
+   CHAT
+========================= */
+
+function createChat(){
+
+  const now = Date.now();
+
+  const chat = {
+    id:String(now),
+    title:"New chat",
+    messages:[],
+    createdAt:now,
+    updatedAt:now
+  };
+
+  chats.unshift(chat);
+
+  currentChatId =
+    chat.id;
+
+  messages = [];
+
+  saveChats();
+  renderHistory();
+  updateTitle();
+
+  showWelcome();
+
+  return chat;
+}
+
+
+function currentChat(){
+
+  return chats.find(
+    chat => chat.id === currentChatId
+  );
+
+}
+
+
+function ensureChat(){
+
+  let chat = currentChat();
+
+  if(!chat){
+    chat = createChat();
+  }
+
+  return chat;
+
+}
+
+
+function makeTitle(text){
+
+  const clean =
+    text
+      .replace(/\s+/g," ")
+      .trim();
+
+  if(clean.length <= 40){
+    return clean;
+  }
+
+  return clean.substring(0,40) + "...";
+
+}
+
+
+function saveCurrentChat(){
+
+  const chat =
+    currentChat();
+
+  if(!chat){
+    return;
+  }
+
+  chat.messages =
+    messages.map(
+      message => ({
+        role:message.role,
+        text:message.text
+      })
+    );
+
+  chat.updatedAt =
+    Date.now();
+
+  const firstUser =
+    messages.find(
+      message =>
+        message.role === "user"
+    );
+
+  if(firstUser){
+    chat.title =
+      makeTitle(firstUser.text);
+  }
+
+  saveChats();
+  renderHistory();
+  updateTitle();
+
+}
+
+
+function updateTitle(){
+
+  const chat =
+    currentChat();
+
+  title.textContent =
+    chat?.title || "Zed AI";
+
+}
+
+
+/* =========================
+   LOAD CHAT
+========================= */
+
+function loadChat(id){
+
+  const chat =
+    chats.find(
+      item => item.id === id
+    );
+
+  if(!chat){
+    return;
+  }
+
+  currentChatId =
+    chat.id;
+
+  messages =
+    Array.isArray(chat.messages)
+      ? chat.messages
+      : [];
+
+  updateTitle();
+  renderHistory();
+  renderMessages();
+
+  sidebar.classList.remove("open");
+
+}
+
+
+/* =========================
+   DELETE CHAT
+========================= */
+
+function deleteChat(id){
+
+  if(!confirm("Delete this conversation?")){
+    return;
+  }
+
+  chats =
+    chats.filter(
+      chat => chat.id !== id
+    );
+
+  if(currentChatId === id){
+
+    currentChatId = null;
+    messages = [];
+
+    if(chats.length){
+
+      const latest =
+        chats
+          .slice()
+          .sort(
+            (a,b) =>
+              (b.updatedAt || 0) -
+              (a.updatedAt || 0)
+          )[0];
+
+      currentChatId =
+        latest.id;
+
+      messages =
+        latest.messages || [];
+
+      updateTitle();
+      renderMessages();
+
+    }else{
+
+      title.textContent =
+        "Zed AI";
+
+      showWelcome();
+
+    }
+
+  }
+
+  saveChats();
+  renderHistory();
+
+}
+
+
+/* =========================
+   NEW CHAT
+========================= */
+
+function newChat(){
+
+  createChat();
+
+  input.value = "";
+
+  resizeInput();
+
   input.focus();
-  autoResize();
-  closeSidebar();
+
+  sidebar.classList.remove("open");
 
 }
 
 
 /* =========================
-   CHAT RENDERING
+   RENDER MESSAGES
 ========================= */
 
-function addMessage(text,type){
-
-  const wrapper = document.createElement("div");
-
-  wrapper.className =
-    "message " +
-    (type === "user"
-      ? "user-message"
-      : "ai-message");
-
-  const avatar = document.createElement("div");
-
-  avatar.className =
-    "avatar " + type;
-
-  avatar.textContent =
-    type === "user"
-      ? "You"
-      : "Z";
-
-  const content =
-    document.createElement("div");
-
-  content.className =
-    "message-content";
-
-  const name =
-    document.createElement("div");
-
-  name.className =
-    "message-name";
-
-  name.textContent =
-    type === "user"
-      ? "You"
-      : "Zed AI";
-
-  const messageText =
-    document.createElement("div");
-
-  messageText.className =
-    "message-text";
-
-  messageText.textContent = text;
-
-  content.appendChild(name);
-  content.appendChild(messageText);
-
-  wrapper.appendChild(avatar);
-  wrapper.appendChild(content);
-
-  chatInner.appendChild(wrapper);
-
-  chatArea.scrollTop =
-    chatArea.scrollHeight;
-
-}
-
-
-function renderCurrentChat(){
+function renderMessages(){
 
   chatInner.innerHTML = "";
 
@@ -972,8 +1072,63 @@ function renderCurrentChat(){
 
   });
 
-  chatArea.scrollTop =
-    chatArea.scrollHeight;
+  scrollBottom();
+
+}
+
+
+function addMessage(text,role){
+
+  const message =
+    document.createElement("div");
+
+  message.className =
+    "message";
+
+  const avatar =
+    document.createElement("div");
+
+  avatar.className =
+    "avatar " + role;
+
+  avatar.textContent =
+    role === "user"
+      ? "You"
+      : "Z";
+
+  const body =
+    document.createElement("div");
+
+  body.className =
+    "message-body";
+
+  const name =
+    document.createElement("div");
+
+  name.className =
+    "name";
+
+  name.textContent =
+    role === "user"
+      ? "You"
+      : "Zed AI";
+
+  const textElement =
+    document.createElement("div");
+
+  textElement.className =
+    "text";
+
+  textElement.textContent =
+    text;
+
+  body.appendChild(name);
+  body.appendChild(textElement);
+
+  message.appendChild(avatar);
+  message.appendChild(body);
+
+  chatInner.appendChild(message);
 
 }
 
@@ -982,362 +1137,88 @@ function renderCurrentChat(){
    THINKING
 ========================= */
 
-function addThinking(){
+function showThinking(){
 
-  const wrapper =
+  const message =
     document.createElement("div");
 
-  wrapper.className =
-    "message ai-message";
+  message.className =
+    "message";
 
-  wrapper.id =
+  message.id =
     "thinking";
 
-  const avatar =
-    document.createElement("div");
+  message.innerHTML = `
+    <div class="avatar ai">Z</div>
 
-  avatar.className =
-    "avatar ai";
+    <div class="message-body">
 
-  avatar.textContent =
-    "Z";
+      <div class="name">Zed AI</div>
 
-  const content =
-    document.createElement("div");
+      <div class="thinking">
+        <i></i>
+        <i></i>
+        <i></i>
+      </div>
 
-  content.className =
-    "message-content";
+    </div>
+  `;
 
-  const name =
-    document.createElement("div");
+  chatInner.appendChild(message);
 
-  name.className =
-    "message-name";
-
-  name.textContent =
-    "Zed AI";
-
-  const dots =
-    document.createElement("div");
-
-  dots.className =
-    "thinking";
-
-  dots.innerHTML =
-    "<span></span><span></span><span></span>";
-
-  content.appendChild(name);
-  content.appendChild(dots);
-
-  wrapper.appendChild(avatar);
-  wrapper.appendChild(content);
-
-  chatInner.appendChild(wrapper);
-
-  chatArea.scrollTop =
-    chatArea.scrollHeight;
+  scrollBottom();
 
 }
 
 
 function removeThinking(){
 
-  const el =
+  const thinking =
     document.getElementById("thinking");
 
-  if(el){
-    el.remove();
+  if(thinking){
+    thinking.remove();
   }
 
 }
 
 
 /* =========================
-   CHAT MANAGEMENT
-========================= */
-
-function createChat(){
-
-  const id =
-    Date.now().toString();
-
-  const chat = {
-
-    id,
-
-    title:"New chat",
-
-    messages:[],
-
-    createdAt:Date.now(),
-
-    updatedAt:Date.now()
-
-  };
-
-  chats.unshift(chat);
-
-  currentChatId =
-    id;
-
-  messages = [];
-
-  saveChats();
-
-  renderHistory();
-
-  topTitle.textContent =
-    "New chat";
-
-  showWelcome();
-
-  return chat;
-
-}
-
-
-function newChat(){
-
-  createChat();
-
-  closeSidebar();
-
-  input.focus();
-
-}
-
-
-function getCurrentChat(){
-
-  return chats.find(
-    chat => chat.id === currentChatId
-  );
-
-}
-
-
-function ensureCurrentChat(){
-
-  if(currentChatId){
-
-    const existing =
-      getCurrentChat();
-
-    if(existing){
-      return existing;
-    }
-
-  }
-
-  return createChat();
-
-}
-
-
-function generateTitle(text){
-
-  const clean =
-    text
-      .replace(/\s+/g," ")
-      .trim();
-
-  if(!clean){
-    return "New chat";
-  }
-
-  if(clean.length <= 32){
-    return clean;
-  }
-
-  return clean.slice(0,32).trim() + "...";
-
-}
-
-
-function saveCurrentChat(){
-
-  const chat =
-    getCurrentChat();
-
-  if(!chat){
-    return;
-  }
-
-  chat.messages =
-    messages.map(message => ({
-      role:message.role,
-      text:message.text
-    }));
-
-  chat.updatedAt =
-    Date.now();
-
-  if(messages.length){
-
-    const firstUserMessage =
-      messages.find(
-        message => message.role === "user"
-      );
-
-    if(firstUserMessage){
-
-      chat.title =
-        generateTitle(
-          firstUserMessage.text
-        );
-
-    }
-
-  }
-
-  saveChats();
-  renderHistory();
-
-  topTitle.textContent =
-    chat.title;
-
-}
-
-
-function loadChat(id){
-
-  const chat =
-    chats.find(
-      item => item.id === id
-    );
-
-  if(!chat){
-    return;
-  }
-
-  currentChatId =
-    chat.id;
-
-  messages =
-    Array.isArray(chat.messages)
-      ? chat.messages
-      : [];
-
-  topTitle.textContent =
-    chat.title || "New chat";
-
-  renderHistory();
-  renderCurrentChat();
-
-  closeSidebar();
-
-  input.focus();
-
-}
-
-
-function deleteChat(id){
-
-  const confirmed =
-    confirm(
-      "Delete this conversation?"
-    );
-
-  if(!confirmed){
-    return;
-  }
-
-  chats =
-    chats.filter(
-      chat => chat.id !== id
-    );
-
-  if(currentChatId === id){
-
-    currentChatId = null;
-    messages = [];
-
-    topTitle.textContent =
-      "Zed AI";
-
-    showWelcome();
-
-  }
-
-  saveChats();
-  renderHistory();
-
-}
-
-
-function clearChat(){
-
-  if(!messages.length){
-    return;
-  }
-
-  const confirmed =
-    confirm(
-      "Clear this conversation?"
-    );
-
-  if(!confirmed){
-    return;
-  }
-
-  messages = [];
-
-  const chat =
-    getCurrentChat();
-
-  if(chat){
-
-    chat.messages = [];
-    chat.title = "New chat";
-    chat.updatedAt = Date.now();
-
-  }
-
-  saveChats();
-  renderHistory();
-
-  topTitle.textContent =
-    "New chat";
-
-  showWelcome();
-
-}
-
-
-/* =========================
-   SEND MESSAGE
+   SEND
 ========================= */
 
 async function sendMessage(){
 
-  const text =
-    input.value.trim();
-
-  if(!text || send.disabled){
+  if(sending){
     return;
   }
 
-  ensureCurrentChat();
+  const text =
+    input.value.trim();
+
+  if(!text){
+    return;
+  }
+
+  ensureChat();
+
+  sending = true;
+  send.disabled = true;
 
   input.value = "";
 
-  autoResize();
+  resizeInput();
 
   messages.push({
     role:"user",
     text:text
   });
 
-  addMessage(
-    text,
-    "user"
-  );
+  renderMessages();
 
   saveCurrentChat();
 
-  send.disabled = true;
-
-  addThinking();
+  showThinking();
 
   try{
 
@@ -1346,16 +1227,12 @@ async function sendMessage(){
         "/api/chat",
         {
           method:"POST",
-
           headers:{
-            "Content-Type":
-              "application/json"
+            "Content-Type":"application/json"
           },
-
           body:JSON.stringify({
             message:text
           })
-
         }
       );
 
@@ -1369,13 +1246,15 @@ async function sendMessage(){
       data =
         JSON.parse(raw);
 
-    }catch{
+    }catch(error){
 
       throw new Error(
-        "The server returned an invalid response."
+        "Server returned an invalid response."
       );
 
     }
+
+    removeThinking();
 
     if(!response.ok){
 
@@ -1386,42 +1265,46 @@ async function sendMessage(){
 
     }
 
-    removeThinking();
-
     const reply =
-      data.reply ||
-      "I didn't receive a response.";
+      typeof data.reply === "string"
+        ? data.reply.trim()
+        : "";
 
-    addMessage(
-      reply,
-      "ai"
-    );
+    if(!reply){
+
+      throw new Error(
+        "Zed AI returned an empty response."
+      );
+
+    }
 
     messages.push({
       role:"assistant",
       text:reply
     });
 
+    renderMessages();
     saveCurrentChat();
 
   }catch(error){
 
     removeThinking();
 
-    const errorText =
-      "Sorry, I couldn't complete that request. " +
-      (error.message ||
-       "Please try again.");
-
     addMessage(
-      errorText,
+      "Sorry, I couldn't complete that request. " +
+      error.message,
       "ai"
+    );
+
+    console.error(
+      "Zed AI error:",
+      error
     );
 
   }finally{
 
-    send.disabled =
-      false;
+    sending = false;
+    send.disabled = false;
 
     input.focus();
 
@@ -1434,7 +1317,7 @@ async function sendMessage(){
    INPUT
 ========================= */
 
-function autoResize(){
+function resizeInput(){
 
   input.style.height =
     "auto";
@@ -1442,7 +1325,7 @@ function autoResize(){
   input.style.height =
     Math.min(
       input.scrollHeight,
-      130
+      180
     ) + "px";
 
 }
@@ -1450,13 +1333,13 @@ function autoResize(){
 
 input.addEventListener(
   "input",
-  autoResize
+  resizeInput
 );
 
 
 input.addEventListener(
   "keydown",
-  function(event){
+  event => {
 
     if(
       event.key === "Enter" &&
@@ -1474,12 +1357,32 @@ input.addEventListener(
 
 
 /* =========================
-   STARTUP
+   BUTTONS
+========================= */
+
+send.addEventListener(
+  "click",
+  sendMessage
+);
+
+newChatButton.addEventListener(
+  "click",
+  newChat
+);
+
+menu.addEventListener(
+  "click",
+  () => {
+    sidebar.classList.toggle("open");
+  }
+);
+
+
+/* =========================
+   START
 ========================= */
 
 loadChats();
-
-renderHistory();
 
 if(chats.length){
 
@@ -1488,8 +1391,8 @@ if(chats.length){
       .slice()
       .sort(
         (a,b) =>
-          b.updatedAt -
-          a.updatedAt
+          (b.updatedAt || 0) -
+          (a.updatedAt || 0)
       )[0];
 
   currentChatId =
@@ -1500,14 +1403,13 @@ if(chats.length){
       ? latest.messages
       : [];
 
-  topTitle.textContent =
-    latest.title ||
-    "New chat";
-
-  renderCurrentChat();
+  updateTitle();
+  renderHistory();
+  renderMessages();
 
 }else{
 
+  renderHistory();
   showWelcome();
 
 }

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zed AI — Your Intelligent Assistant</title>
+<style>
+:root{--bg:#07090d;--panel:#0d1118;--text:#f5f7fa;--muted:#8d98a8;--line:#202938;--accent:#72e6a4}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#143a2a 0,#07090d 38%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+header{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:rgba(7,9,13,.82);backdrop-filter:blur(14px)}
+.logo{font-weight:800;font-size:22px}.logo span{color:var(--accent)}.badge{font-size:12px;color:var(--accent);border:1px solid #24563d;border-radius:20px;padding:7px 10px}
+main{max-width:900px;margin:auto;padding:70px 20px 35px}.hero{text-align:center}.hero h1{font-size:clamp(38px,8vw,70px);margin:0 0 12px;letter-spacing:-2.5px}.hero h1 span{color:var(--accent)}.hero p{color:var(--muted);font-size:17px;margin:0 auto 34px;max-width:620px}
+.chat{background:rgba(13,17,24,.88);border:1px solid var(--line);border-radius:24px;padding:16px;box-shadow:0 20px 70px #0008}.messages{min-height:120px;max-height:310px;overflow:auto;padding:6px 4px}.empty{text-align:center;color:#667181;padding:35px 10px}.msg{padding:13px 15px;border-radius:16px;margin:10px 0;max-width:82%;line-height:1.5;white-space:pre-wrap}.user{margin-left:auto;background:#173b2a}.ai{background:#151c27;color:#dbe2ea}.inputrow{display:flex;gap:10px;border-top:1px solid var(--line);padding-top:14px}.inputrow input{flex:1;background:#080b10;border:1px solid var(--line);border-radius:15px;padding:15px;color:white;outline:none;font-size:15px}.send{border:0;border-radius:15px;background:var(--accent);color:#06120b;font-weight:800;padding:0 20px;cursor:pointer}.send:disabled{opacity:.5}.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}.tool{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:17px 10px;text-align:center;color:#d9e0e8;cursor:pointer}.icon{font-size:23px;display:block;margin-bottom:7px}.tool small{color:var(--muted)}footer{text-align:center;color:#596373;font-size:12px;padding:20px}
+@media(max-width:650px){.tools{grid-template-columns:repeat(2,1fr)}main{padding-top:45px}.send{padding:0 15px}}
+</style>
+</head>
+<body>
+<header><div class="logo">Zed <span>AI</span></div><div class="badge">● Online</div></header>
+<main>
+<section class="hero"><h1>Meet <span>Zed AI</span></h1><p>Your intelligent assistant for ideas, writing, business, learning and everyday questions.</p></section>
+<section class="chat">
+<div class="messages" id="messages"><div class="empty" id="empty">Ask Zed AI anything to get started.</div></div>
+<div class="inputrow"><input id="input" placeholder="Ask Zed AI anything..." autocomplete="off"><button class="send" id="send">Send</button></div>
+</section>
+<div class="tools">
+<div class="tool" data-prompt="Help me create a professional CV."><span class="icon">📄</span>CV Maker<small>Create a CV</small></div>
+<div class="tool" data-prompt="Give me 5 realistic business ideas I can start in Zambia with a small budget."><span class="icon">💼</span>Business<small>Business ideas</small></div>
+<div class="tool" data-prompt="Help me write a professional message."><span class="icon">✍️</span>Writing<small>Write better</small></div>
+<div class="tool" data-prompt="Explain this topic to me in a simple way."><span class="icon">📚</span>Study<small>Learn anything</small></div>
+</div>
+</main>
+<footer>Zed AI • Powered by Gemini • Zed AI</footer>
+<script>
+const input=document.getElementById('input'),send=document.getElementById('send'),messages=document.getElementById('messages'),empty=document.getElementById('empty');
+function add(text,who){if(empty)empty.remove();const d=document.createElement('div');d.className='msg '+who;d.textContent=text;messages.appendChild(d);messages.scrollTop=messages.scrollHeight}
+async function submit(text){text=(text||input.value).trim();if(!text)return;input.value='';add(text,'user');send.disabled=true;send.textContent='...';
+try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});const raw=await r.text();let data;try{data=JSON.parse(raw)}catch{throw new Error(`Server error (${r.status}). Please try again.`)}if(!r.ok)throw new Error(data.error||'Request failed');add(data.reply||'No response received.','ai')}
+catch(e){add(e.message||'Something went wrong.','ai')}finally{send.disabled=false;send.textContent='Send';input.focus()}}
+send.onclick=()=>submit();input.addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
+document.querySelectorAll('.tool').forEach(t=>t.onclick=()=>{input.value=t.dataset.prompt;input.focus()});
+</script>
+</body>
+</html>

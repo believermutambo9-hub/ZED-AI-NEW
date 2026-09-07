@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#212121">
 <title>Zed AI</title>
 
@@ -11,94 +11,87 @@
 
 html,body{
   margin:0;
+  padding:0;
   width:100%;
   height:100%;
-  font-family:Arial,Helvetica,sans-serif;
   background:#212121;
   color:#ececec;
+  font-family:Arial,Helvetica,sans-serif;
 }
 
-button,textarea{font:inherit}
+button,textarea{
+  font:inherit;
+}
 
-button{cursor:pointer}
-
-/* APP */
+button{
+  cursor:pointer;
+}
 
 .app{
-  height:100vh;
   display:flex;
+  height:100vh;
   overflow:hidden;
 }
 
 /* SIDEBAR */
 
 .sidebar{
-  width:260px;
+  width:270px;
   background:#171717;
+  border-right:1px solid #303030;
+  padding:12px;
   display:flex;
   flex-direction:column;
-  padding:10px;
   flex-shrink:0;
-  border-right:1px solid #292929;
 }
 
-.brand{
+.logo-row{
   height:48px;
   display:flex;
   align-items:center;
   gap:10px;
-  padding:0 10px;
-  margin-bottom:5px;
+  padding:0 8px;
 }
 
 .logo{
-  width:30px;
-  height:30px;
+  width:32px;
+  height:32px;
   border-radius:9px;
-  background:#7ee2a8;
+  background:#79dda3;
   color:#111;
   display:flex;
-  align-items:center;
   justify-content:center;
+  align-items:center;
   font-weight:900;
 }
 
-.brand strong{
-  font-size:17px;
+.logo-row strong{
+  font-size:18px;
 }
 
-.brand span{
-  color:#7ee2a8;
+.logo-row span{
+  color:#79dda3;
 }
 
 .new-chat{
-  width:100%;
-  height:46px;
-  border:1px solid #3a3a3a;
+  margin:10px 0 18px;
+  height:45px;
+  border:1px solid #444;
+  border-radius:9px;
   background:#212121;
   color:#eee;
-  border-radius:10px;
-  display:flex;
-  align-items:center;
-  gap:10px;
+  text-align:left;
   padding:0 13px;
-  margin-bottom:18px;
 }
 
 .new-chat:hover{
-  background:#2a2a2a;
+  background:#2b2b2b;
 }
 
-.new-icon{
-  font-size:21px;
-}
-
-/* HISTORY */
-
-.history-label{
-  color:#8e8e8e;
+.history-title{
+  color:#888;
   font-size:12px;
-  padding:8px 10px;
+  padding:7px 9px;
 }
 
 .history{
@@ -106,72 +99,68 @@ button{cursor:pointer}
   overflow-y:auto;
 }
 
-.history-item{
+.chat-row{
+  width:100%;
+  min-height:42px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#ccc;
   display:flex;
   align-items:center;
-  width:100%;
-  min-height:40px;
-  border-radius:8px;
-  padding:0 8px 0 11px;
-  color:#c9c9c9;
+  padding:0 8px;
   margin-bottom:2px;
+  text-align:left;
 }
 
-.history-item:hover,
-.history-item.active{
-  background:#2a2a2a;
+.chat-row:hover,
+.chat-row.active{
+  background:#2b2b2b;
 }
 
-.history-title{
+.chat-name{
   flex:1;
   min-width:0;
-  white-space:nowrap;
   overflow:hidden;
+  white-space:nowrap;
   text-overflow:ellipsis;
   font-size:13px;
 }
 
-.history-delete{
+.delete-chat{
+  width:28px;
+  height:28px;
   border:0;
   background:transparent;
   color:#777;
-  width:28px;
-  height:28px;
   border-radius:6px;
 }
 
-.history-delete:hover{
-  background:#3a3a3a;
-  color:#ff7070;
+.delete-chat:hover{
+  background:#3b3b3b;
+  color:#ff7777;
 }
 
 .empty{
   color:#777;
   font-size:12px;
-  padding:12px 10px;
-}
-
-/* SIDEBAR BOTTOM */
-
-.sidebar-bottom{
-  border-top:1px solid #303030;
-  padding-top:10px;
-}
-
-.status{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  color:#aaa;
-  font-size:12px;
   padding:10px;
 }
 
-.dot{
+.online{
+  border-top:1px solid #303030;
+  padding:14px 8px 5px;
+  color:#999;
+  font-size:12px;
+}
+
+.online-dot{
+  display:inline-block;
   width:8px;
   height:8px;
   border-radius:50%;
-  background:#65d98d;
+  background:#62d78b;
+  margin-right:7px;
 }
 
 /* MAIN */
@@ -181,52 +170,35 @@ button{cursor:pointer}
   min-width:0;
   display:flex;
   flex-direction:column;
-  position:relative;
 }
 
-/* TOPBAR */
-
-.topbar{
+.header{
   height:58px;
+  border-bottom:1px solid #303030;
   display:flex;
   align-items:center;
   padding:0 18px;
-  border-bottom:1px solid #292929;
-  background:#212121;
   flex-shrink:0;
 }
 
 .menu{
   display:none;
-  width:38px;
-  height:38px;
   border:0;
   background:transparent;
   color:#ddd;
-  font-size:21px;
-  border-radius:8px;
-  margin-right:7px;
-}
-
-.menu:hover{
-  background:#303030;
-}
-
-.title{
-  font-size:15px;
-  font-weight:600;
+  font-size:22px;
+  margin-right:8px;
 }
 
 /* CHAT */
 
-.chat-area{
+.chat{
   flex:1;
   overflow-y:auto;
-  scroll-behavior:smooth;
 }
 
-.chat-inner{
-  width:min(820px,100%);
+.chat-content{
+  width:min(850px,100%);
   margin:auto;
   padding:35px 20px 150px;
 }
@@ -243,17 +215,17 @@ button{cursor:pointer}
 }
 
 .welcome-logo{
-  width:58px;
-  height:58px;
-  border-radius:17px;
-  background:#7ee2a8;
+  width:62px;
+  height:62px;
+  border-radius:18px;
+  background:#79dda3;
   color:#111;
   display:flex;
-  align-items:center;
   justify-content:center;
-  font-size:27px;
+  align-items:center;
+  font-size:28px;
   font-weight:900;
-  margin-bottom:22px;
+  margin-bottom:20px;
 }
 
 .welcome h1{
@@ -263,69 +235,68 @@ button{cursor:pointer}
 }
 
 .welcome h1 span{
-  color:#7ee2a8;
+  color:#79dda3;
 }
 
 .welcome p{
+  max-width:550px;
   color:#999;
-  max-width:520px;
   line-height:1.6;
-  margin:12px 0 30px;
+  margin:12px 0 28px;
 }
 
-.prompts{
+.cards{
+  width:min(650px,100%);
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:10px;
-  width:min(650px,100%);
 }
 
-.prompt{
+.card{
   border:1px solid #3a3a3a;
   background:#292929;
   color:#ddd;
-  padding:15px;
   border-radius:10px;
+  padding:15px;
   text-align:left;
 }
 
-.prompt:hover{
-  background:#323232;
+.card:hover{
+  background:#333;
 }
 
-.prompt strong{
+.card strong{
   display:block;
-  font-size:13px;
   margin-bottom:5px;
+  font-size:13px;
 }
 
-.prompt span{
+.card small{
   color:#888;
-  font-size:12px;
 }
 
-/* MESSAGE */
+/* MESSAGES */
 
 .message{
   display:flex;
-  gap:15px;
+  gap:14px;
   margin:25px 0;
 }
 
 .avatar{
   width:32px;
   height:32px;
-  flex-shrink:0;
   border-radius:9px;
   display:flex;
-  align-items:center;
   justify-content:center;
-  font-size:13px;
+  align-items:center;
+  flex-shrink:0;
+  font-size:12px;
   font-weight:bold;
 }
 
 .avatar.ai{
-  background:#7ee2a8;
+  background:#79dda3;
   color:#111;
 }
 
@@ -339,17 +310,16 @@ button{cursor:pointer}
   min-width:0;
 }
 
-.name{
+.message-name{
   font-size:13px;
-  font-weight:600;
+  font-weight:bold;
   margin:2px 0 7px;
 }
 
-.text{
+.message-text{
   white-space:pre-wrap;
   overflow-wrap:anywhere;
   line-height:1.7;
-  color:#e5e5e5;
   font-size:15px;
 }
 
@@ -358,28 +328,33 @@ button{cursor:pointer}
 .thinking{
   display:flex;
   gap:5px;
-  padding:8px 0;
+  padding:7px 0;
 }
 
-.thinking i{
+.thinking span{
   width:7px;
   height:7px;
   border-radius:50%;
-  background:#999;
-  animation:bounce 1.2s infinite;
+  background:#aaa;
+  animation:pulse 1.2s infinite;
 }
 
-.thinking i:nth-child(2){animation-delay:.15s}
-.thinking i:nth-child(3){animation-delay:.3s}
+.thinking span:nth-child(2){
+  animation-delay:.15s;
+}
 
-@keyframes bounce{
+.thinking span:nth-child(3){
+  animation-delay:.3s;
+}
+
+@keyframes pulse{
   0%,60%,100%{
+    opacity:.3;
     transform:translateY(0);
-    opacity:.35;
   }
   30%{
-    transform:translateY(-5px);
     opacity:1;
+    transform:translateY(-4px);
   }
 }
 
@@ -387,33 +362,32 @@ button{cursor:pointer}
 
 .composer-area{
   position:absolute;
-  bottom:0;
-  left:0;
+  left:270px;
   right:0;
-  padding:20px;
+  bottom:0;
+  padding:18px 20px 12px;
   background:linear-gradient(
     transparent,
-    #212121 28%
+    #212121 30%
   );
 }
 
 .composer{
-  width:min(820px,100%);
+  width:min(850px,100%);
   margin:auto;
-  background:#2f2f2f;
   border:1px solid #444;
+  background:#2f2f2f;
   border-radius:17px;
-  padding:9px 10px 9px 14px;
+  padding:8px 9px 8px 14px;
   display:flex;
   align-items:flex-end;
-  box-shadow:0 5px 30px #0005;
 }
 
 .input{
   flex:1;
   min-width:0;
+  min-height:44px;
   max-height:180px;
-  min-height:42px;
   resize:none;
   border:0;
   outline:0;
@@ -428,23 +402,23 @@ button{cursor:pointer}
 }
 
 .send{
-  width:38px;
-  height:38px;
+  width:40px;
+  height:40px;
   border:0;
   border-radius:10px;
-  background:#7ee2a8;
+  background:#79dda3;
   color:#111;
   font-size:20px;
   font-weight:bold;
-  flex-shrink:0;
 }
 
 .send:hover{
-  background:#9aefbd;
+  background:#94edb6;
 }
 
 .send:disabled{
   opacity:.4;
+  cursor:not-allowed;
 }
 
 .disclaimer{
@@ -456,15 +430,15 @@ button{cursor:pointer}
 
 /* MOBILE */
 
-@media(max-width:700px){
+@media(max-width:750px){
 
   .sidebar{
     position:fixed;
-    left:-270px;
     top:0;
     bottom:0;
+    left:-280px;
     z-index:100;
-    transition:.2s;
+    transition:left .2s;
     box-shadow:10px 0 40px #0008;
   }
 
@@ -476,49 +450,29 @@ button{cursor:pointer}
     display:block;
   }
 
-  .topbar{
-    padding:0 10px;
-  }
-
-  .chat-inner{
-    padding:20px 13px 145px;
-  }
-
   .composer-area{
+    left:0;
     padding:10px;
   }
 
-  .prompts{
+  .chat-content{
+    padding:20px 13px 145px;
+  }
+
+  .cards{
     grid-template-columns:1fr;
   }
 
   .welcome h1{
-    font-size:29px;
-  }
-
-  .welcome p{
-    font-size:14px;
+    font-size:28px;
   }
 
   .message{
     gap:10px;
-    margin:21px 0;
   }
 
-  .text{
+  .message-text{
     font-size:14px;
-  }
-}
-
-@media(max-width:400px){
-
-  .welcome-logo{
-    width:50px;
-    height:50px;
-  }
-
-  .welcome h1{
-    font-size:26px;
   }
 }
 </style>
@@ -528,55 +482,42 @@ button{cursor:pointer}
 
 <div class="app">
 
-  <!-- SIDEBAR -->
-
   <aside class="sidebar" id="sidebar">
 
-    <div class="brand">
+    <div class="logo-row">
       <div class="logo">Z</div>
       <strong>Zed <span>AI</span></strong>
     </div>
 
     <button class="new-chat" id="newChat">
-      <span class="new-icon">＋</span>
-      <span>New chat</span>
+      ＋ New chat
     </button>
 
-    <div class="history-label">Recent chats</div>
+    <div class="history-title">
+      Recent chats
+    </div>
 
     <div class="history" id="history"></div>
 
-    <div class="sidebar-bottom">
-      <div class="status">
-        <span class="dot"></span>
-        Zed AI is online
-      </div>
+    <div class="online">
+      <span class="online-dot"></span>
+      Zed AI is online
     </div>
 
   </aside>
 
-
-  <!-- MAIN -->
-
   <main class="main">
 
-    <header class="topbar">
-
+    <header class="header">
       <button class="menu" id="menu">☰</button>
-
-      <div class="title" id="title">
-        Zed AI
-      </div>
-
+      <strong id="headerTitle">Zed AI</strong>
     </header>
 
+    <section class="chat" id="chat">
 
-    <section class="chat-area" id="chatArea">
-
-      <div class="chat-inner" id="chatInner"></div>
+      <div class="chat-content" id="chatContent"></div>
 
     </section>
-
 
     <div class="composer-area">
 
@@ -585,15 +526,14 @@ button{cursor:pointer}
         <textarea
           id="input"
           class="input"
-          placeholder="Message Zed AI..."
           rows="1"
+          placeholder="Message Zed AI..."
         ></textarea>
 
         <button
           id="send"
           class="send"
           type="button"
-          aria-label="Send"
         >↑</button>
 
       </div>
@@ -608,150 +548,136 @@ button{cursor:pointer}
 
 </div>
 
-
 <script>
 "use strict";
 
-/* =========================
-   ELEMENTS
-========================= */
-
 const input = document.getElementById("input");
 const send = document.getElementById("send");
-const chatInner = document.getElementById("chatInner");
-const chatArea = document.getElementById("chatArea");
+const chatContent = document.getElementById("chatContent");
+const chat = document.getElementById("chat");
 const history = document.getElementById("history");
 const newChatButton = document.getElementById("newChat");
 const menu = document.getElementById("menu");
 const sidebar = document.getElementById("sidebar");
-const title = document.getElementById("title");
+const headerTitle = document.getElementById("headerTitle");
 
-
-/* =========================
-   STATE
-========================= */
-
-const STORAGE_KEY = "zed_ai_chats_v2";
+const STORAGE = "zed_ai_chats_final";
 
 let chats = [];
-let currentChatId = null;
+let currentId = null;
 let messages = [];
-let sending = false;
+let busy = false;
 
 
-/* =========================
-   STORAGE
-========================= */
+/* STORAGE */
 
-function saveChats(){
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(chats)
-  );
+function save(){
+  try{
+    localStorage.setItem(
+      STORAGE,
+      JSON.stringify(chats)
+    );
+  }catch(e){
+    console.log("Storage error:",e);
+  }
 }
 
-function loadChats(){
+function load(){
 
   try{
+    const data =
+      localStorage.getItem(STORAGE);
 
-    const saved =
-      localStorage.getItem(STORAGE_KEY);
-
-    chats =
-      saved ? JSON.parse(saved) : [];
+    if(data){
+      chats = JSON.parse(data);
+    }
 
     if(!Array.isArray(chats)){
       chats = [];
     }
 
-  }catch(error){
-
-    console.error(error);
+  }catch(e){
     chats = [];
-
   }
 }
 
 
-/* =========================
-   WELCOME
-========================= */
+/* TITLE */
 
-function showWelcome(){
+function makeTitle(text){
 
-  chatInner.innerHTML = `
-    <div class="welcome">
+  const clean =
+    text.replace(/\s+/g," ").trim();
 
-      <div class="welcome-logo">Z</div>
-
-      <h1>How can <span>Zed AI</span> help?</h1>
-
-      <p>
-        Ask questions, learn new things, write,
-        plan your business or get help with everyday tasks.
-      </p>
-
-      <div class="prompts">
-
-        <button class="prompt" data-prompt="Help me create a professional CV.">
-          <strong>📄 Create a CV</strong>
-          <span>Build a professional CV step by step.</span>
-        </button>
-
-        <button class="prompt" data-prompt="Give me realistic business ideas I can start in Zambia with a small budget.">
-          <strong>💼 Business ideas</strong>
-          <span>Find practical business opportunities.</span>
-        </button>
-
-        <button class="prompt" data-prompt="Teach me something interesting in a simple way.">
-          <strong>📚 Learn something</strong>
-          <span>Understand difficult topics easily.</span>
-        </button>
-
-        <button class="prompt" data-prompt="Help me write a professional message.">
-          <strong>✍️ Help me write</strong>
-          <span>Improve your messages and writing.</span>
-        </button>
-
-      </div>
-
-    </div>
-  `;
-
-  document
-    .querySelectorAll(".prompt")
-    .forEach(button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          input.value =
-            button.dataset.prompt;
-
-          resizeInput();
-          input.focus();
-
-        }
-      );
-
-    });
+  return clean.length > 35
+    ? clean.substring(0,35) + "..."
+    : clean;
 
 }
 
 
-/* =========================
-   HISTORY
-========================= */
+/* CHAT CREATION */
+
+function createChat(){
+
+  const now = Date.now();
+
+  const chatObject = {
+    id:String(now),
+    title:"New chat",
+    messages:[],
+    createdAt:now,
+    updatedAt:now
+  };
+
+  chats.unshift(chatObject);
+
+  currentId =
+    chatObject.id;
+
+  messages = [];
+
+  save();
+  renderHistory();
+  updateHeader();
+  render();
+
+}
+
+
+function getChat(){
+
+  return chats.find(
+    item => item.id === currentId
+  );
+
+}
+
+
+function ensureChat(){
+
+  let item = getChat();
+
+  if(!item){
+    createChat();
+    item = getChat();
+  }
+
+  return item;
+
+}
+
+
+/* HISTORY */
 
 function renderHistory(){
 
   history.innerHTML = "";
 
-  if(!chats.length){
+  if(chats.length === 0){
 
     history.innerHTML =
-      `<div class="empty">No conversations yet.</div>`;
+      '<div class="empty">No conversations yet.</div>';
 
     return;
   }
@@ -763,218 +689,93 @@ function renderHistory(){
         (b.updatedAt || 0) -
         (a.updatedAt || 0)
     )
-    .forEach(chat => {
+    .forEach(item => {
 
-      const item =
+      const row =
         document.createElement("div");
 
-      item.className =
-        "history-item" +
-        (chat.id === currentChatId
+      row.className =
+        "chat-row" +
+        (item.id === currentId
           ? " active"
           : "");
 
-      const chatTitle =
+      const name =
         document.createElement("div");
 
-      chatTitle.className =
-        "history-title";
+      name.className =
+        "chat-name";
 
-      chatTitle.textContent =
-        chat.title || "New chat";
+      name.textContent =
+        item.title || "New chat";
 
-      chatTitle.addEventListener(
+      name.addEventListener(
         "click",
-        () => loadChat(chat.id)
+        () => openChat(item.id)
       );
 
-      const deleteButton =
+      const del =
         document.createElement("button");
 
-      deleteButton.className =
-        "history-delete";
+      del.className =
+        "delete-chat";
 
-      deleteButton.textContent =
+      del.textContent =
         "×";
 
-      deleteButton.addEventListener(
+      del.addEventListener(
         "click",
         event => {
 
           event.stopPropagation();
 
-          deleteChat(chat.id);
+          removeChat(item.id);
 
         }
       );
 
-      item.appendChild(chatTitle);
-      item.appendChild(deleteButton);
+      row.appendChild(name);
+      row.appendChild(del);
 
-      history.appendChild(item);
+      history.appendChild(row);
 
     });
 
 }
 
 
-/* =========================
-   CHAT
-========================= */
+/* OPEN */
 
-function createChat(){
+function openChat(id){
 
-  const now = Date.now();
-
-  const chat = {
-    id:String(now),
-    title:"New chat",
-    messages:[],
-    createdAt:now,
-    updatedAt:now
-  };
-
-  chats.unshift(chat);
-
-  currentChatId =
-    chat.id;
-
-  messages = [];
-
-  saveChats();
-  renderHistory();
-  updateTitle();
-
-  showWelcome();
-
-  return chat;
-}
-
-
-function currentChat(){
-
-  return chats.find(
-    chat => chat.id === currentChatId
-  );
-
-}
-
-
-function ensureChat(){
-
-  let chat = currentChat();
-
-  if(!chat){
-    chat = createChat();
-  }
-
-  return chat;
-
-}
-
-
-function makeTitle(text){
-
-  const clean =
-    text
-      .replace(/\s+/g," ")
-      .trim();
-
-  if(clean.length <= 40){
-    return clean;
-  }
-
-  return clean.substring(0,40) + "...";
-
-}
-
-
-function saveCurrentChat(){
-
-  const chat =
-    currentChat();
-
-  if(!chat){
-    return;
-  }
-
-  chat.messages =
-    messages.map(
-      message => ({
-        role:message.role,
-        text:message.text
-      })
-    );
-
-  chat.updatedAt =
-    Date.now();
-
-  const firstUser =
-    messages.find(
-      message =>
-        message.role === "user"
-    );
-
-  if(firstUser){
-    chat.title =
-      makeTitle(firstUser.text);
-  }
-
-  saveChats();
-  renderHistory();
-  updateTitle();
-
-}
-
-
-function updateTitle(){
-
-  const chat =
-    currentChat();
-
-  title.textContent =
-    chat?.title || "Zed AI";
-
-}
-
-
-/* =========================
-   LOAD CHAT
-========================= */
-
-function loadChat(id){
-
-  const chat =
+  const item =
     chats.find(
-      item => item.id === id
+      chat => chat.id === id
     );
 
-  if(!chat){
+  if(!item){
     return;
   }
 
-  currentChatId =
-    chat.id;
+  currentId = item.id;
 
   messages =
-    Array.isArray(chat.messages)
-      ? chat.messages
+    Array.isArray(item.messages)
+      ? item.messages
       : [];
 
-  updateTitle();
+  updateHeader();
   renderHistory();
-  renderMessages();
+  render();
 
   sidebar.classList.remove("open");
 
 }
 
 
-/* =========================
-   DELETE CHAT
-========================= */
+/* DELETE */
 
-function deleteChat(id){
+function removeChat(id){
 
   if(!confirm("Delete this conversation?")){
     return;
@@ -982,12 +783,12 @@ function deleteChat(id){
 
   chats =
     chats.filter(
-      chat => chat.id !== id
+      item => item.id !== id
     );
 
-  if(currentChatId === id){
+  if(currentId === id){
 
-    currentChatId = null;
+    currentId = null;
     messages = [];
 
     if(chats.length){
@@ -1001,95 +802,194 @@ function deleteChat(id){
               (a.updatedAt || 0)
           )[0];
 
-      currentChatId =
+      currentId =
         latest.id;
 
       messages =
         latest.messages || [];
 
-      updateTitle();
-      renderMessages();
-
-    }else{
-
-      title.textContent =
-        "Zed AI";
-
-      showWelcome();
-
     }
 
   }
 
-  saveChats();
+  save();
   renderHistory();
+  updateHeader();
+  render();
 
 }
 
 
-/* =========================
-   NEW CHAT
-========================= */
+/* SAVE CURRENT */
 
-function newChat(){
+function saveCurrent(){
 
-  createChat();
+  const item =
+    getChat();
 
-  input.value = "";
-
-  resizeInput();
-
-  input.focus();
-
-  sidebar.classList.remove("open");
-
-}
-
-
-/* =========================
-   RENDER MESSAGES
-========================= */
-
-function renderMessages(){
-
-  chatInner.innerHTML = "";
-
-  if(!messages.length){
-
-    showWelcome();
+  if(!item){
     return;
-
   }
 
-  messages.forEach(message => {
-
-    addMessage(
-      message.text,
-      message.role === "user"
-        ? "user"
-        : "ai"
+  item.messages =
+    messages.map(
+      message => ({
+        role:message.role,
+        text:message.text
+      })
     );
 
-  });
+  item.updatedAt =
+    Date.now();
 
-  scrollBottom();
+  const first =
+    messages.find(
+      message =>
+        message.role === "user"
+    );
+
+  if(first){
+    item.title =
+      makeTitle(first.text);
+  }
+
+  save();
+  renderHistory();
+  updateHeader();
 
 }
 
+
+/* HEADER */
+
+function updateHeader(){
+
+  const item =
+    getChat();
+
+  headerTitle.textContent =
+    item?.title || "Zed AI";
+
+}
+
+
+/* WELCOME */
+
+function welcome(){
+
+  chatContent.innerHTML = `
+    <div class="welcome">
+
+      <div class="welcome-logo">Z</div>
+
+      <h1>How can <span>Zed AI</span> help?</h1>
+
+      <p>
+        Ask me anything. I can help with business,
+        writing, studying, ideas, CVs and everyday questions.
+      </p>
+
+      <div class="cards">
+
+        <button class="card"
+          data-text="Help me create a professional CV.">
+          <strong>📄 Create a CV</strong>
+          <small>Build a professional CV.</small>
+        </button>
+
+        <button class="card"
+          data-text="Give me realistic business ideas I can start in Zambia with a small budget.">
+          <strong>💼 Business ideas</strong>
+          <small>Find practical business opportunities.</small>
+        </button>
+
+        <button class="card"
+          data-text="Teach me something interesting in a simple way.">
+          <strong>📚 Learn something</strong>
+          <small>Understand difficult topics easily.</small>
+        </button>
+
+        <button class="card"
+          data-text="Help me write a professional message.">
+          <strong>✍️ Writing</strong>
+          <small>Improve your writing.</small>
+        </button>
+
+      </div>
+
+    </div>
+  `;
+
+  document
+    .querySelectorAll(".card")
+    .forEach(card => {
+
+      card.addEventListener(
+        "click",
+        () => {
+
+          input.value =
+            card.dataset.text;
+
+          resize();
+
+          input.focus();
+
+        }
+      );
+
+    });
+
+}
+
+
+/* RENDER */
+
+function render(){
+
+  chatContent.innerHTML = "";
+
+  if(messages.length === 0){
+
+    welcome();
+
+    return;
+  }
+
+  messages.forEach(
+    message => {
+
+      addMessage(
+        message.text,
+        message.role
+      );
+
+    }
+  );
+
+  scroll();
+
+}
+
+
+/* ADD MESSAGE */
 
 function addMessage(text,role){
 
-  const message =
+  const wrapper =
     document.createElement("div");
 
-  message.className =
+  wrapper.className =
     "message";
 
   const avatar =
     document.createElement("div");
 
   avatar.className =
-    "avatar " + role;
+    "avatar " +
+    (role === "user"
+      ? "user"
+      : "ai");
 
   avatar.textContent =
     role === "user"
@@ -1106,7 +1006,7 @@ function addMessage(text,role){
     document.createElement("div");
 
   name.className =
-    "name";
+    "message-name";
 
   name.textContent =
     role === "user"
@@ -1117,7 +1017,7 @@ function addMessage(text,role){
     document.createElement("div");
 
   textElement.className =
-    "text";
+    "message-text";
 
   textElement.textContent =
     text;
@@ -1125,71 +1025,67 @@ function addMessage(text,role){
   body.appendChild(name);
   body.appendChild(textElement);
 
-  message.appendChild(avatar);
-  message.appendChild(body);
+  wrapper.appendChild(avatar);
+  wrapper.appendChild(body);
 
-  chatInner.appendChild(message);
+  chatContent.appendChild(wrapper);
 
 }
 
 
-/* =========================
-   THINKING
-========================= */
+/* THINKING */
 
-function showThinking(){
+function thinking(){
 
-  const message =
+  const element =
     document.createElement("div");
 
-  message.className =
+  element.className =
     "message";
 
-  message.id =
+  element.id =
     "thinking";
 
-  message.innerHTML = `
+  element.innerHTML = `
     <div class="avatar ai">Z</div>
 
     <div class="message-body">
 
-      <div class="name">Zed AI</div>
+      <div class="message-name">Zed AI</div>
 
       <div class="thinking">
-        <i></i>
-        <i></i>
-        <i></i>
+        <span></span>
+        <span></span>
+        <span></span>
       </div>
 
     </div>
   `;
 
-  chatInner.appendChild(message);
+  chatContent.appendChild(element);
 
-  scrollBottom();
+  scroll();
 
 }
 
 
 function removeThinking(){
 
-  const thinking =
+  const element =
     document.getElementById("thinking");
 
-  if(thinking){
-    thinking.remove();
+  if(element){
+    element.remove();
   }
 
 }
 
 
-/* =========================
-   SEND
-========================= */
+/* SEND */
 
 async function sendMessage(){
 
-  if(sending){
+  if(busy){
     return;
   }
 
@@ -1202,23 +1098,23 @@ async function sendMessage(){
 
   ensureChat();
 
-  sending = true;
+  busy = true;
   send.disabled = true;
 
   input.value = "";
 
-  resizeInput();
+  resize();
 
   messages.push({
     role:"user",
     text:text
   });
 
-  renderMessages();
+  render();
 
-  saveCurrentChat();
+  saveCurrent();
 
-  showThinking();
+  thinking();
 
   try{
 
@@ -1227,9 +1123,11 @@ async function sendMessage(){
         "/api/chat",
         {
           method:"POST",
+
           headers:{
             "Content-Type":"application/json"
           },
+
           body:JSON.stringify({
             message:text
           })
@@ -1242,16 +1140,11 @@ async function sendMessage(){
     let data;
 
     try{
-
-      data =
-        JSON.parse(raw);
-
-    }catch(error){
-
+      data = JSON.parse(raw);
+    }catch{
       throw new Error(
-        "Server returned an invalid response."
+        "Invalid response from server."
       );
-
     }
 
     removeThinking();
@@ -1260,20 +1153,18 @@ async function sendMessage(){
 
       throw new Error(
         data.error ||
-        "Zed AI could not answer."
+        "AI service unavailable."
       );
 
     }
 
     const reply =
-      typeof data.reply === "string"
-        ? data.reply.trim()
-        : "";
+      String(data.reply || "").trim();
 
     if(!reply){
 
       throw new Error(
-        "Zed AI returned an empty response."
+        "Zed AI returned no answer."
       );
 
     }
@@ -1283,27 +1174,28 @@ async function sendMessage(){
       text:reply
     });
 
-    renderMessages();
-    saveCurrentChat();
+    render();
+
+    saveCurrent();
 
   }catch(error){
 
     removeThinking();
 
     addMessage(
-      "Sorry, I couldn't complete that request. " +
+      "Sorry, I couldn't get a response. " +
       error.message,
-      "ai"
+      "assistant"
     );
 
     console.error(
-      "Zed AI error:",
+      "Zed AI request error:",
       error
     );
 
   }finally{
 
-    sending = false;
+    busy = false;
     send.disabled = false;
 
     input.focus();
@@ -1313,11 +1205,9 @@ async function sendMessage(){
 }
 
 
-/* =========================
-   INPUT
-========================= */
+/* INPUT */
 
-function resizeInput(){
+function resize(){
 
   input.style.height =
     "auto";
@@ -1333,9 +1223,8 @@ function resizeInput(){
 
 input.addEventListener(
   "input",
-  resizeInput
+  resize
 );
-
 
 input.addEventListener(
   "keydown",
@@ -1356,9 +1245,7 @@ input.addEventListener(
 );
 
 
-/* =========================
-   BUTTONS
-========================= */
+/* BUTTONS */
 
 send.addEventListener(
   "click",
@@ -1367,22 +1254,34 @@ send.addEventListener(
 
 newChatButton.addEventListener(
   "click",
-  newChat
+  () => {
+
+    createChat();
+
+    input.value = "";
+
+    resize();
+
+    input.focus();
+
+  }
 );
 
 menu.addEventListener(
   "click",
   () => {
-    sidebar.classList.toggle("open");
+
+    sidebar.classList.toggle(
+      "open"
+    );
+
   }
 );
 
 
-/* =========================
-   START
-========================= */
+/* START */
 
-loadChats();
+load();
 
 if(chats.length){
 
@@ -1395,7 +1294,7 @@ if(chats.length){
           (a.updatedAt || 0)
       )[0];
 
-  currentChatId =
+  currentId =
     latest.id;
 
   messages =
@@ -1403,16 +1302,16 @@ if(chats.length){
       ? latest.messages
       : [];
 
-  updateTitle();
-  renderHistory();
-  renderMessages();
-
 }else{
 
-  renderHistory();
-  showWelcome();
+  currentId = null;
+  messages = [];
 
 }
+
+renderHistory();
+updateHeader();
+render();
 
 input.focus();
 

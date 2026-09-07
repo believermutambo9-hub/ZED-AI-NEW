@@ -273,7 +273,56 @@ app.post("/api/chat", async (req, res) => {
       reply,
       provider: "groq"
     });
+/* -------------------------
+       FALL BACK TO OPENROUTER
+    ------------------------- */
 
+    const openRouterKey = process.env.OPENROUTER_API_KEY;
+
+    if (!openRouterKey) {
+      return res.status(500).json({
+        error:
+          "Zed AI has no OpenRouter backup configured."
+      });
+    }
+
+    console.log(
+      "Using OpenRouter backup because Gemini and Groq were unavailable."
+    );
+
+    const openRouter = await askOpenRouter(
+      message,
+      openRouterKey
+    );
+
+    if (!openRouter.response.ok) {
+      console.error(
+        "OpenRouter API error:",
+        openRouter.response.status,
+        openRouter.data
+      );
+
+      return res.status(502).json({
+        error:
+          "All AI services are currently unavailable. Please try again."
+      });
+    }
+
+    const openRouterReply =
+      openRouter.data?.choices?.[0]?.message?.content
+        ?.trim();
+
+    if (!openRouterReply) {
+      return res.status(502).json({
+        error:
+          "OpenRouter returned no response."
+      });
+    }
+
+    return res.json({
+      reply: openRouterReply,
+      provider: "openrouter"
+    });
   } catch (error) {
     console.error(
       "Zed AI server error:",

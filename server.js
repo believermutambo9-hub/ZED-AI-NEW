@@ -161,11 +161,97 @@ async function askGroq(message, apiKey) {
   };
 }
 
+/* =========================
+   GEMINI IMAGE GENERATION
+========================= */
 
+async function generateGeminiImage(prompt, apiKey) {
+  const response = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/interactions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
+      body: JSON.stringify({
+        model: process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image",
+        input: prompt,
+        response_modalities: ["IMAGE"]
+      })
+    }
+  );
+
+  const data = await response.json();
+
+  return {
+    response,
+    data
+  };
+              }
 /* =========================
    CHAT
 ========================= */
+/* =========================
+   IMAGE GENERATION API
+========================= */
 
+app.post("/api/generate-image", async (req, res) => {
+  try {
+    const prompt =
+      typeof req.body?.prompt === "string"
+        ? req.body.prompt.trim()
+        : "";
+
+    if (!prompt) {
+      return res.status(400).json({
+        error: "Please enter an image description."
+      });
+    }
+
+    const geminiKey = process.env.GEMINI_API_KEY;
+
+    if (!geminiKey) {
+      return res.status(500).json({
+        error: "Gemini API key is not configured."
+      });
+    }
+
+    const result = await generateGeminiImage(
+      prompt,
+      geminiKey
+    );
+
+    if (!result.response.ok) {
+      console.error(
+        "Gemini image API error:",
+        result.response.status,
+        result.data
+      );
+
+      return res.status(502).json({
+        error:
+          result.data?.error?.message ||
+          "Image generation failed."
+      });
+    }
+
+    return res.json({
+      ok: true,
+      data: result.data
+    });
+
+  } catch (error) {
+    console.error(
+      "Image generation error:",
+      error
+    );
+
+    return res.status(500).json({
+      error: "Zed AI could not generate the image."
+    });
+  }
+});
 app.post("/api/chat", async (req, res) => {
   try {
     const message =

@@ -151,19 +151,55 @@ button{
   overflow:auto;
 }
 
+.history-list{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.history-empty{
+  color:#586477;
+  font-size:12px;
+  padding:10px 8px;
+}
+
 .history-item{
-  color:#8c98aa;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  color:#9aa6b7;
   font-size:13px;
-  padding:9px;
+  padding:8px;
   border-radius:9px;
+}
+
+.history-item:hover,
+.history-item.active{
+  background:#121923;
+  color:#e6ebf2;
+}
+
+.history-title{
+  flex:1;
+  min-width:0;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
 
-.history-item:hover{
-  background:#121923;
-  color:#dce3ec;
+.history-delete{
+  border:0;
+  background:transparent;
+  color:#596577;
+  width:25px;
+  height:25px;
+  border-radius:7px;
+  flex-shrink:0;
+}
+
+.history-delete:hover{
+  background:#202a38;
+  color:#ff7777;
 }
 
 .side-bottom{
@@ -244,6 +280,8 @@ button{
 .icon-btn:hover{
   background:#18212e;
 }
+
+/* CHAT */
 
 .chat-area{
   flex:1;
@@ -599,7 +637,7 @@ button{
 
     <div class="history">
       <div class="side-title">Recent chats</div>
-      <div id="historyList"></div>
+      <div id="historyList" class="history-list"></div>
     </div>
 
     <div class="side-bottom">
@@ -620,7 +658,7 @@ button{
         <button class="icon-btn mobile-menu" onclick="toggleSidebar()">☰</button>
 
         <div class="top-title">
-          <strong>Zed AI</strong>
+          <strong id="topTitle">Zed AI</strong>
           <span>Intelligent assistant</span>
         </div>
 
@@ -635,50 +673,7 @@ button{
 
     <section class="chat-area" id="chatArea">
 
-      <div class="chat-inner" id="chatInner">
-
-        <div class="welcome" id="welcome">
-
-          <div class="welcome-logo">Z</div>
-
-          <h1>Meet <span>Zed AI</span></h1>
-
-          <p>
-            Your intelligent assistant for ideas, business,
-            writing, studying, CVs and everyday questions.
-          </p>
-
-          <div class="suggestions">
-
-            <button class="suggestion"
-              onclick="useTool('Help me create a professional CV from my education, skills and work experience.')">
-              <strong>📄 Create a CV</strong>
-              <span>Build a professional CV step by step.</span>
-            </button>
-
-            <button class="suggestion"
-              onclick="useTool('Give me 5 realistic businesses I can start in Zambia with a small budget.')">
-              <strong>💼 Business ideas</strong>
-              <span>Find practical ideas and strategies.</span>
-            </button>
-
-            <button class="suggestion"
-              onclick="useTool('Help me write a professional message.')">
-              <strong>✍️ Improve my writing</strong>
-              <span>Write clearer and more professional messages.</span>
-            </button>
-
-            <button class="suggestion"
-              onclick="useTool('Teach me something interesting in a simple way.')">
-              <strong>📚 Learn something</strong>
-              <span>Understand difficult topics more easily.</span>
-            </button>
-
-          </div>
-
-        </div>
-
-      </div>
+      <div class="chat-inner" id="chatInner"></div>
 
     </section>
 
@@ -723,12 +718,50 @@ const input = document.getElementById("input");
 const send = document.getElementById("send");
 const chatInner = document.getElementById("chatInner");
 const chatArea = document.getElementById("chatArea");
-const welcome = document.getElementById("welcome");
 const historyList = document.getElementById("historyList");
 const sidebar = document.getElementById("sidebar");
+const topTitle = document.getElementById("topTitle");
 
+const STORAGE_KEY = "zed_ai_chats_v1";
+
+let chats = [];
+let currentChatId = null;
 let messages = [];
-let chatHistory = [];
+
+
+/* =========================
+   STORAGE
+========================= */
+
+function saveChats(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+  }catch(error){
+    console.error("Could not save chats:",error);
+  }
+}
+
+function loadChats(){
+
+  try{
+    const saved = localStorage.getItem(STORAGE_KEY);
+
+    if(saved){
+      chats = JSON.parse(saved);
+    }
+
+  }catch(error){
+
+    console.error("Could not load chats:",error);
+    chats = [];
+
+  }
+}
+
+
+/* =========================
+   SIDEBAR
+========================= */
 
 function toggleSidebar(){
   sidebar.classList.toggle("open");
@@ -738,178 +771,64 @@ function closeSidebar(){
   sidebar.classList.remove("open");
 }
 
-function useTool(text){
-  input.value = text;
-  input.focus();
-  autoResize();
-  closeSidebar();
-}
+function renderHistory(){
 
-function addMessage(text, type){
+  historyList.innerHTML = "";
 
-  if(welcome){
-    welcome.remove();
+  if(!chats.length){
+
+    const empty = document.createElement("div");
+    empty.className = "history-empty";
+    empty.textContent = "No conversations yet.";
+    historyList.appendChild(empty);
+
+    return;
   }
 
-  const wrapper = document.createElement("div");
-  wrapper.className = "message " + (type === "user" ? "user-message" : "ai-message");
+  chats
+    .slice()
+    .sort((a,b) => b.updatedAt - a.updatedAt)
+    .forEach(chat => {
 
-  const avatar = document.createElement("div");
-  avatar.className = "avatar " + type;
-  avatar.textContent = type === "user" ? "You" : "Z";
+      const item = document.createElement("div");
+      item.className =
+        "history-item" +
+        (chat.id === currentChatId ? " active" : "");
 
-  const content = document.createElement("div");
-  content.className = "message-content";
+      const title = document.createElement("div");
+      title.className = "history-title";
+      title.textContent = chat.title || "New chat";
 
-  const name = document.createElement("div");
-  name.className = "message-name";
-  name.textContent = type === "user" ? "You" : "Zed AI";
+      title.onclick = () => loadChat(chat.id);
 
-  const messageText = document.createElement("div");
-  messageText.className = "message-text";
-  messageText.textContent = text;
+      const del = document.createElement("button");
+      del.className = "history-delete";
+      del.textContent = "×";
+      del.title = "Delete chat";
 
-  content.appendChild(name);
-  content.appendChild(messageText);
+      del.onclick = (event) => {
+        event.stopPropagation();
+        deleteChat(chat.id);
+      };
 
-  wrapper.appendChild(avatar);
-  wrapper.appendChild(content);
+      item.appendChild(title);
+      item.appendChild(del);
 
-  chatInner.appendChild(wrapper);
+      historyList.appendChild(item);
 
-  chatArea.scrollTop = chatArea.scrollHeight;
-}
-
-function addThinking(){
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "message ai-message";
-  wrapper.id = "thinking";
-
-  const avatar = document.createElement("div");
-  avatar.className = "avatar ai";
-  avatar.textContent = "Z";
-
-  const content = document.createElement("div");
-  content.className = "message-content";
-
-  const name = document.createElement("div");
-  name.className = "message-name";
-  name.textContent = "Zed AI";
-
-  const dots = document.createElement("div");
-  dots.className = "thinking";
-  dots.innerHTML = "<span></span><span></span><span></span>";
-
-  content.appendChild(name);
-  content.appendChild(dots);
-
-  wrapper.appendChild(avatar);
-  wrapper.appendChild(content);
-
-  chatInner.appendChild(wrapper);
-
-  chatArea.scrollTop = chatArea.scrollHeight;
-}
-
-function removeThinking(){
-  const el = document.getElementById("thinking");
-  if(el) el.remove();
-}
-
-function addHistory(text){
-
-  const item = document.createElement("div");
-  item.className = "history-item";
-  item.textContent = text;
-
-  historyList.prepend(item);
-
-  while(historyList.children.length > 8){
-    historyList.lastChild.remove();
-  }
-}
-
-async function sendMessage(){
-
-  const text = input.value.trim();
-
-  if(!text || send.disabled) return;
-
-  input.value = "";
-  autoResize();
-
-  addMessage(text,"user");
-
-  messages.push({
-    role:"user",
-    text:text
-  });
-
-  addHistory(text);
-
-  send.disabled = true;
-  addThinking();
-
-  try{
-
-    const response = await fetch("/api/chat",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        message:text
-      })
     });
-
-    const raw = await response.text();
-
-    let data;
-
-    try{
-      data = JSON.parse(raw);
-    }catch{
-      throw new Error("The server returned an invalid response.");
-    }
-
-    if(!response.ok){
-      throw new Error(data.error || "Zed AI could not answer.");
-    }
-
-    removeThinking();
-
-    const reply = data.reply || "I didn't receive a response.";
-
-    addMessage(reply,"ai");
-
-    messages.push({
-      role:"assistant",
-      text:reply
-    });
-
-  }catch(error){
-
-    removeThinking();
-
-    addMessage(
-      "Sorry, I couldn't complete that request. " +
-      (error.message || "Please try again."),
-      "ai"
-    );
-
-  }finally{
-
-    send.disabled = false;
-    input.focus();
-
-  }
 }
 
-function newChat(){
+
+/* =========================
+   WELCOME
+========================= */
+
+function showWelcome(){
 
   chatInner.innerHTML = `
-    <div class="welcome" id="welcome">
+
+    <div class="welcome">
 
       <div class="welcome-logo">Z</div>
 
@@ -923,7 +842,7 @@ function newChat(){
       <div class="suggestions">
 
         <button class="suggestion"
-          onclick="useTool('Help me create a professional CV.')">
+          onclick="useTool('Help me create a professional CV from my education, skills and work experience.')">
           <strong>📄 Create a CV</strong>
           <span>Build a professional CV step by step.</span>
         </button>
@@ -949,39 +868,423 @@ function newChat(){
       </div>
 
     </div>
+
   `;
+}
 
-  messages = [];
-  closeSidebar();
+
+/* =========================
+   TOOLS
+========================= */
+
+function useTool(text){
+
+  input.value = text;
   input.focus();
+  autoResize();
+  closeSidebar();
+
 }
 
-function clearChat(){
-  newChat();
+
+/* =========================
+   CHAT RENDERING
+========================= */
+
+function addMessage(text,type){
+
+  const wrapper = document.createElement("div");
+
+  wrapper.className =
+    "message " +
+    (type === "user"
+      ? "user-message"
+      : "ai-message");
+
+  const avatar = document.createElement("div");
+
+  avatar.className =
+    "avatar " + type;
+
+  avatar.textContent =
+    type === "user"
+      ? "You"
+      : "Z";
+
+  const content =
+    document.createElement("div");
+
+  content.className =
+    "message-content";
+
+  const name =
+    document.createElement("div");
+
+  name.className =
+    "message-name";
+
+  name.textContent =
+    type === "user"
+      ? "You"
+      : "Zed AI";
+
+  const messageText =
+    document.createElement("div");
+
+  messageText.className =
+    "message-text";
+
+  messageText.textContent = text;
+
+  content.appendChild(name);
+  content.appendChild(messageText);
+
+  wrapper.appendChild(avatar);
+  wrapper.appendChild(content);
+
+  chatInner.appendChild(wrapper);
+
+  chatArea.scrollTop =
+    chatArea.scrollHeight;
+
 }
 
-function autoResize(){
 
-  input.style.height = "auto";
+function renderCurrentChat(){
 
-  input.style.height =
-    Math.min(input.scrollHeight,130) + "px";
-}
+  chatInner.innerHTML = "";
 
-input.addEventListener("input",autoResize);
+  if(!messages.length){
 
-input.addEventListener("keydown",function(event){
-
-  if(event.key === "Enter" && !event.shiftKey){
-
-    event.preventDefault();
-    sendMessage();
+    showWelcome();
+    return;
 
   }
 
-});
+  messages.forEach(message => {
 
-</script>
+    addMessage(
+      message.text,
+      message.role === "user"
+        ? "user"
+        : "ai"
+    );
 
-</body>
-</html>
+  });
+
+  chatArea.scrollTop =
+    chatArea.scrollHeight;
+
+}
+
+
+/* =========================
+   THINKING
+========================= */
+
+function addThinking(){
+
+  const wrapper =
+    document.createElement("div");
+
+  wrapper.className =
+    "message ai-message";
+
+  wrapper.id =
+    "thinking";
+
+  const avatar =
+    document.createElement("div");
+
+  avatar.className =
+    "avatar ai";
+
+  avatar.textContent =
+    "Z";
+
+  const content =
+    document.createElement("div");
+
+  content.className =
+    "message-content";
+
+  const name =
+    document.createElement("div");
+
+  name.className =
+    "message-name";
+
+  name.textContent =
+    "Zed AI";
+
+  const dots =
+    document.createElement("div");
+
+  dots.className =
+    "thinking";
+
+  dots.innerHTML =
+    "<span></span><span></span><span></span>";
+
+  content.appendChild(name);
+  content.appendChild(dots);
+
+  wrapper.appendChild(avatar);
+  wrapper.appendChild(content);
+
+  chatInner.appendChild(wrapper);
+
+  chatArea.scrollTop =
+    chatArea.scrollHeight;
+
+}
+
+
+function removeThinking(){
+
+  const el =
+    document.getElementById("thinking");
+
+  if(el){
+    el.remove();
+  }
+
+}
+
+
+/* =========================
+   CHAT MANAGEMENT
+========================= */
+
+function createChat(){
+
+  const id =
+    Date.now().toString();
+
+  const chat = {
+
+    id,
+
+    title:"New chat",
+
+    messages:[],
+
+    createdAt:Date.now(),
+
+    updatedAt:Date.now()
+
+  };
+
+  chats.unshift(chat);
+
+  currentChatId =
+    id;
+
+  messages = [];
+
+  saveChats();
+
+  renderHistory();
+
+  topTitle.textContent =
+    "New chat";
+
+  showWelcome();
+
+  return chat;
+
+}
+
+
+function newChat(){
+
+  createChat();
+
+  closeSidebar();
+
+  input.focus();
+
+}
+
+
+function getCurrentChat(){
+
+  return chats.find(
+    chat => chat.id === currentChatId
+  );
+
+}
+
+
+function ensureCurrentChat(){
+
+  if(currentChatId){
+
+    const existing =
+      getCurrentChat();
+
+    if(existing){
+      return existing;
+    }
+
+  }
+
+  return createChat();
+
+}
+
+
+function generateTitle(text){
+
+  const clean =
+    text
+      .replace(/\s+/g," ")
+      .trim();
+
+  if(!clean){
+    return "New chat";
+  }
+
+  if(clean.length <= 32){
+    return clean;
+  }
+
+  return clean.slice(0,32).trim() + "...";
+
+}
+
+
+function saveCurrentChat(){
+
+  const chat =
+    getCurrentChat();
+
+  if(!chat){
+    return;
+  }
+
+  chat.messages =
+    messages.map(message => ({
+      role:message.role,
+      text:message.text
+    }));
+
+  chat.updatedAt =
+    Date.now();
+
+  if(messages.length){
+
+    const firstUserMessage =
+      messages.find(
+        message => message.role === "user"
+      );
+
+    if(firstUserMessage){
+
+      chat.title =
+        generateTitle(
+          firstUserMessage.text
+        );
+
+    }
+
+  }
+
+  saveChats();
+  renderHistory();
+
+  topTitle.textContent =
+    chat.title;
+
+}
+
+
+function loadChat(id){
+
+  const chat =
+    chats.find(
+      item => item.id === id
+    );
+
+  if(!chat){
+    return;
+  }
+
+  currentChatId =
+    chat.id;
+
+  messages =
+    Array.isArray(chat.messages)
+      ? chat.messages
+      : [];
+
+  topTitle.textContent =
+    chat.title || "New chat";
+
+  renderHistory();
+  renderCurrentChat();
+
+  closeSidebar();
+
+  input.focus();
+
+}
+
+
+function deleteChat(id){
+
+  const confirmed =
+    confirm(
+      "Delete this conversation?"
+    );
+
+  if(!confirmed){
+    return;
+  }
+
+  chats =
+    chats.filter(
+      chat => chat.id !== id
+    );
+
+  if(currentChatId === id){
+
+    currentChatId = null;
+    messages = [];
+
+    topTitle.textContent =
+      "Zed AI";
+
+    showWelcome();
+
+  }
+
+  saveChats();
+  renderHistory();
+
+}
+
+
+function clearChat(){
+
+  if(!messages.length){
+    return;
+  }
+
+  const confirmed =
+    confirm(
+      "Clear this conversation?"
+    );
+
+  if(!confirmed){
+    return;
+  }
+
+  messages = [];
+
+  const chat =
+    getCurrentChat();
+
+  if(chat){
+
+    chat.messages = [

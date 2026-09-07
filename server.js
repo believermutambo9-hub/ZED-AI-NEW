@@ -27,7 +27,49 @@ app.get("/health", (_req, res) => {
   });
 });
 
+/* =========================
+   OPENROUTER BACKUP
+========================= */
 
+async function askOpenRouter(message, apiKey) {
+  const response = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://zed-ai-h7h4.onrender.com",
+        "X-Title": "Zed AI"
+      },
+      body: JSON.stringify({
+        model: "openrouter/free",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
+              "Give clear, practical and accurate answers. " +
+              "When relevant, understand that the user may be in Zambia and use " +
+              "Zambian context, currency (ZMW/Kwacha), and everyday examples. " +
+              "Do not claim to be human."
+          },
+          {
+            role: "user",
+            content: message
+          }
+        ]
+      })
+    }
+  );
+
+  const data = await response.json();
+
+  return {
+    response,
+    data
+  };
+}
 /* =========================
    GEMINI
 ========================= */

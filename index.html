@@ -1,744 +1,211 @@
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Zed AI — Your Intelligent Assistant</title>
-
-<style>
-:root{
-  --bg:#06080c;
-  --panel:#0d1219;
-  --panel2:#111821;
-  --text:#f5f7fa;
-  --muted:#8d98a8;
-  --line:#202a38;
-  --accent:#72e6a4;
-  --accent2:#4fd88c;
-}
-
-*{
-  box-sizing:border-box;
-}
-
-html{
-  scroll-behavior:smooth;
-}
-
-body{
-  margin:0;
-  min-height:100vh;
-  color:var(--text);
-  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  background:
-    radial-gradient(circle at 50% -15%,#16442f 0,transparent 38%),
-    radial-gradient(circle at 10% 80%,#0b2419 0,transparent 30%),
-    var(--bg);
-}
-
-/* HEADER */
-
-header{
-  height:68px;
-  border-bottom:1px solid var(--line);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 24px;
-  background:rgba(6,8,12,.78);
-  backdrop-filter:blur(18px);
-  position:sticky;
-  top:0;
-  z-index:10;
-}
-
-.logo{
-  font-weight:900;
-  font-size:22px;
-  letter-spacing:-.5px;
-}
-
-.logo span{
-  color:var(--accent);
-}
-
-.header-actions{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-.badge{
-  font-size:12px;
-  color:var(--accent);
-  border:1px solid #24563d;
-  border-radius:20px;
-  padding:7px 11px;
-  background:rgba(114,230,164,.05);
-}
-
-.clear{
-  background:transparent;
-  border:1px solid var(--line);
-  color:var(--muted);
-  border-radius:10px;
-  padding:7px 10px;
-  cursor:pointer;
-  font-size:12px;
-}
-
-.clear:hover{
-  color:white;
-  border-color:#3b4859;
-}
-
-/* MAIN */
-
-main{
-  width:100%;
-  max-width:920px;
-  margin:auto;
-  padding:70px 20px 30px;
-}
-
-/* HERO */
-
-.hero{
-  text-align:center;
-  margin-bottom:32px;
-}
-
-.hero h1{
-  font-size:clamp(40px,8vw,72px);
-  line-height:1;
-  margin:0 0 18px;
-  letter-spacing:-3px;
-}
-
-.hero h1 span{
-  color:var(--accent);
-}
-
-.hero p{
-  color:var(--muted);
-  font-size:17px;
-  line-height:1.6;
-  margin:0 auto;
-  max-width:650px;
-}
-
-/* CHAT */
-
-.chat{
-  background:rgba(13,18,25,.9);
-  border:1px solid var(--line);
-  border-radius:24px;
-  padding:16px;
-  box-shadow:
-    0 25px 80px rgba(0,0,0,.45),
-    inset 0 1px rgba(255,255,255,.02);
-}
-
-.messages{
-  min-height:170px;
-  max-height:420px;
-  overflow-y:auto;
-  padding:8px 5px;
-  scroll-behavior:smooth;
-}
-
-.messages::-webkit-scrollbar{
-  width:6px;
-}
-
-.messages::-webkit-scrollbar-thumb{
-  background:#263140;
-  border-radius:20px;
-}
-
-.empty{
-  text-align:center;
-  color:#687486;
-  padding:55px 10px;
-}
-
-.msg-wrap{
-  margin:13px 0;
-  display:flex;
-  flex-direction:column;
-}
-
-.msg-wrap.user-wrap{
-  align-items:flex-end;
-}
-
-.msg-wrap.ai-wrap{
-  align-items:flex-start;
-}
-
-.msg{
-  padding:13px 16px;
-  border-radius:17px;
-  max-width:84%;
-  line-height:1.6;
-  white-space:pre-wrap;
-  word-wrap:break-word;
-  font-size:15px;
-}
-
-.user{
-  background:#173b2a;
-  border-bottom-right-radius:5px;
-}
-
-.ai{
-  background:var(--panel2);
-  color:#dbe2ea;
-  border-bottom-left-radius:5px;
-}
-
-.time{
-  font-size:10px;
-  color:#596575;
-  margin:5px 5px 0;
-}
-
-/* THINKING */
-
-.thinking{
-  display:flex;
-  align-items:center;
-  gap:5px;
-  padding:14px 16px;
-  background:var(--panel2);
-  border-radius:17px;
-  border-bottom-left-radius:5px;
-}
-
-.dot{
-  width:7px;
-  height:7px;
-  background:#738092;
-  border-radius:50%;
-  animation:bounce 1.2s infinite;
-}
-
-.dot:nth-child(2){
-  animation-delay:.15s;
-}
-
-.dot:nth-child(3){
-  animation-delay:.3s;
-}
-
-@keyframes bounce{
-  0%,60%,100%{
-    transform:translateY(0);
-    opacity:.45;
-  }
-  30%{
-    transform:translateY(-5px);
-    opacity:1;
-  }
-}
-
-/* INPUT */
-
-.inputrow{
-  display:flex;
-  gap:10px;
-  border-top:1px solid var(--line);
-  padding-top:14px;
-}
-
-.inputrow input{
-  flex:1;
-  min-width:0;
-  background:#080b10;
-  border:1px solid var(--line);
-  border-radius:15px;
-  padding:15px;
-  color:white;
-  outline:none;
-  font-size:15px;
-  transition:.2s;
-}
-
-.inputrow input:focus{
-  border-color:#35634a;
-  box-shadow:0 0 0 3px rgba(114,230,164,.06);
-}
-
-.inputrow input::placeholder{
-  color:#5e6978;
-}
-
-.send{
-  border:0;
-  border-radius:15px;
-  background:var(--accent);
-  color:#06120b;
-  font-weight:900;
-  padding:0 21px;
-  cursor:pointer;
-  transition:.2s;
-}
-
-.send:hover{
-  background:var(--accent2);
-  transform:translateY(-1px);
-}
-
-.send:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-  transform:none;
-}
-
-/* TOOLS */
-
-.tools{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:12px;
-  margin-top:18px;
-}
-
-.tool{
-  background:rgba(13,18,25,.92);
-  border:1px solid var(--line);
-  border-radius:18px;
-  padding:19px 10px;
-  text-align:center;
-  color:#d9e0e8;
-  cursor:pointer;
-  transition:.2s;
-}
-
-.tool:hover{
-  transform:translateY(-3px);
-  border-color:#365844;
-  background:#101821;
-}
-
-.icon{
-  font-size:25px;
-  display:block;
-  margin-bottom:8px;
-}
-
-.tool strong{
-  display:block;
-  font-size:14px;
-  margin-bottom:5px;
-}
-
-.tool small{
-  color:var(--muted);
-  font-size:11px;
-}
-
-/* FOOTER */
-
-footer{
-  text-align:center;
-  color:#596373;
-  font-size:12px;
-  padding:25px 20px 35px;
-}
-
-footer span{
-  color:var(--accent);
-}
-
-/* MOBILE */
-
-@media(max-width:700px){
-
-  header{
-    padding:0 15px;
-  }
-
-  main{
-    padding:48px 12px 25px;
-  }
-
-  .hero h1{
-    letter-spacing:-2px;
-  }
-
-  .hero p{
-    font-size:15px;
-  }
-
-  .chat{
-    border-radius:20px;
-    padding:12px;
-  }
-
-  .messages{
-    max-height:430px;
-  }
-
-  .msg{
-    max-width:91%;
-  }
-
-  .inputrow{
-    gap:7px;
-  }
-
-  .inputrow input{
-    padding:14px 12px;
-  }
-
-  .send{
-    padding:0 16px;
-  }
-
-  .tools{
-    grid-template-columns:repeat(2,1fr);
-    gap:10px;
-  }
-
-  .badge{
-    padding:6px 9px;
-  }
-
-  .clear{
-    padding:6px 8px;
-  }
-}
-
-@media(max-width:420px){
-
-  .logo{
-    font-size:19px;
-  }
-
-  .hero h1{
-    font-size:43px;
-  }
-
-  .inputrow input{
-    font-size:14px;
-  }
-
-  .send{
-    font-size:13px;
-  }
-}
-</style>
-</head>
-
-<body>
-
-<header>
-
-  <div class="logo">
-    Zed <span>AI</span>
-  </div>
-
-  <div class="header-actions">
-    <button class="clear" id="clear">Clear chat</button>
-    <div class="badge">● Online</div>
-  </div>
-
-</header>
-
-<main>
-
-<section class="hero">
-
-  <h1>
-    Meet <span>Zed AI</span>
-  </h1>
-
-  <p>
-    Your intelligent assistant for ideas, writing, business,
-    learning and everyday questions.
-  </p>
-
-</section>
-
-<section class="chat">
-
-  <div class="messages" id="messages">
-
-    <div class="empty" id="empty">
-      Ask Zed AI anything to get started.
-    </div>
-
-  </div>
-
-  <div class="inputrow">
-
-    <input
-      id="input"
-      placeholder="Ask Zed AI anything..."
-      autocomplete="off"
-      maxlength="4000"
-    >
-
-    <button class="send" id="send">
-      Send
-    </button>
-
-  </div>
-
-</section>
-
-<div class="tools">
-
-  <div
-    class="tool"
-    data-prompt="Help me create a professional CV. Ask me for the information you need."
-  >
-    <span class="icon">📄</span>
-    <strong>CV Maker</strong>
-    <small>Create a CV</small>
-  </div>
-
-  <div
-    class="tool"
-    data-prompt="Give me 5 realistic business ideas I can start in Zambia with a small budget."
-  >
-    <span class="icon">💼</span>
-    <strong>Business</strong>
-    <small>Business ideas</small>
-  </div>
-
-  <div
-    class="tool"
-    data-prompt="Help me write a professional message. Ask me what I want to communicate."
-  >
-    <span class="icon">✍️</span>
-    <strong>Writing</strong>
-    <small>Write better</small>
-  </div>
-
-  <div
-    class="tool"
-    data-prompt="Help me understand a topic. Explain it simply and give me examples."
-  >
-    <span class="icon">📚</span>
-    <strong>Study</strong>
-    <small>Learn anything</small>
-  </div>
-
-</div>
-
-</main>
-
-<footer>
-  Zed AI • Powered by <span>Gemini</span>
-</footer>
-
-<script>
-
-const input = document.getElementById("input");
-const send = document.getElementById("send");
-const messages = document.getElementById("messages");
-const empty = document.getElementById("empty");
-const clear = document.getElementById("clear");
-
-function getTime(){
-
-  return new Date().toLocaleTimeString([],{
-    hour:"2-digit",
-    minute:"2-digit"
+```javascript
+import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const port = process.env.PORT || 10000;
+
+const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+
+app.use(express.json({ limit: "1mb" }));
+app.use(express.static(__dirname));
+
+app.get("/health", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "zed-ai",
+    provider: "gemini",
+    model
+  });
+});
+
+async function askGemini(message, apiKey) {
+
+  const endpoint =
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey
+    },
+
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [
+          {
+            text:
+              "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
+              "Give clear, practical and accurate answers. " +
+              "When relevant, understand that the user may be in Zambia and use " +
+              "Zambian context, currency (ZMW/Kwacha), and everyday examples. " +
+              "Do not claim to be human."
+          }
+        ]
+      },
+
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: message
+            }
+          ]
+        }
+      ]
+    })
   });
 
+  const data = await response.json();
+
+  return {
+    response,
+    data
+  };
 }
 
-function addMessage(text,who){
+async function askWithRetry(message, apiKey) {
 
-  if(empty){
-    empty.remove();
+  const maxAttempts = 4;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+
+    const result = await askGemini(message, apiKey);
+
+    if (result.response.ok) {
+      return result;
+    }
+
+    const status = result.response.status;
+
+    // Retry temporary Gemini problems.
+    if (
+      (status === 429 ||
+       status === 500 ||
+       status === 502 ||
+       status === 503 ||
+       status === 504)
+      &&
+      attempt < maxAttempts
+    ) {
+
+      const delay =
+        Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+
+      console.log(
+        `Gemini returned ${status}. Retrying in ${delay}ms...`
+      );
+
+      await new Promise(resolve =>
+        setTimeout(resolve, delay)
+      );
+
+      continue;
+    }
+
+    return result;
   }
 
-  const wrap = document.createElement("div");
-
-  wrap.className =
-    "msg-wrap " +
-    (who === "user" ? "user-wrap" : "ai-wrap");
-
-  const message = document.createElement("div");
-
-  message.className = "msg " + who;
-
-  message.textContent = text;
-
-  const time = document.createElement("div");
-
-  time.className = "time";
-
-  time.textContent = getTime();
-
-  wrap.appendChild(message);
-  wrap.appendChild(time);
-
-  messages.appendChild(wrap);
-
-  messages.scrollTop = messages.scrollHeight;
-
+  throw new Error("Gemini request failed after several attempts.");
 }
 
-function showThinking(){
+app.post("/api/chat", async (req, res) => {
 
-  const wrap = document.createElement("div");
+  try {
 
-  wrap.className = "msg-wrap ai-wrap";
+    const message =
+      typeof req.body?.message === "string"
+        ? req.body.message.trim()
+        : "";
 
-  wrap.id = "thinking";
+    if (!message) {
 
-  const box = document.createElement("div");
+      return res.status(400).json({
+        error: "Please enter a message."
+      });
 
-  box.className = "thinking";
+    }
 
-  box.innerHTML =
-    '<span class="dot"></span>' +
-    '<span class="dot"></span>' +
-    '<span class="dot"></span>';
+    const apiKey = process.env.GEMINI_API_KEY;
 
-  wrap.appendChild(box);
+    if (!apiKey) {
 
-  messages.appendChild(wrap);
+      return res.status(500).json({
+        error:
+          "Zed AI is not configured yet. Add GEMINI_API_KEY in Render."
+      });
 
-  messages.scrollTop = messages.scrollHeight;
+    }
 
-}
+    const { response, data } =
+      await askWithRetry(message, apiKey);
 
-function removeThinking(){
+    if (!response.ok) {
 
-  const thinking = document.getElementById("thinking");
+      console.error("Gemini API error:", data);
 
-  if(thinking){
-    thinking.remove();
-  }
+      const googleMessage =
+        data?.error?.message ||
+        "Gemini API request failed.";
 
-}
+      return res.status(response.status).json({
+        error: googleMessage
+      });
 
-async function submit(text){
+    }
 
-  text = (text || input.value).trim();
+    const reply =
+      data?.candidates?.[0]?.content?.parts
+        ?.map(part => part.text || "")
+        .join("")
+        .trim();
 
-  if(!text) return;
+    if (!reply) {
 
-  input.value = "";
+      console.error(
+        "Gemini returned no text:",
+        data
+      );
 
-  addMessage(text,"user");
+      return res.status(502).json({
+        error:
+          "Gemini returned no text response. Please try again."
+      });
 
-  send.disabled = true;
-  send.textContent = "Thinking...";
+    }
 
-  showThinking();
-
-  try{
-
-    const response = await fetch("/api/chat",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        message:text
-      })
+    res.json({
+      reply
     });
 
-    const raw = await response.text();
+  } catch (error) {
 
-    let data;
-
-    try{
-      data = JSON.parse(raw);
-    }
-    catch{
-      throw new Error(
-        `Server error (${response.status}). Please try again.`
-      );
-    }
-
-    if(!response.ok){
-
-      throw new Error(
-        data.error || "Request failed."
-      );
-
-    }
-
-    removeThinking();
-
-    addMessage(
-      data.reply || "No response received.",
-      "ai"
+    console.error(
+      "Zed AI server error:",
+      error
     );
 
-  }
-  catch(error){
-
-    removeThinking();
-
-    addMessage(
-      error.message || "Something went wrong.",
-      "ai"
-    );
-
-  }
-  finally{
-
-    send.disabled = false;
-    send.textContent = "Send";
-
-    input.focus();
-
-  }
-
-}
-
-send.addEventListener("click",()=>{
-  submit();
-});
-
-input.addEventListener("keydown",(event)=>{
-
-  if(event.key === "Enter"){
-
-    event.preventDefault();
-
-    submit();
+    res.status(500).json({
+      error:
+        "Zed AI could not complete the request. Please try again."
+    });
 
   }
 
 });
 
-document.querySelectorAll(".tool").forEach(tool=>{
+app.listen(port, "0.0.0.0", () => {
 
-  tool.addEventListener("click",()=>{
-
-    input.value = tool.dataset.prompt;
-
-    input.focus();
-
-  });
+  console.log(
+    `Zed AI running on port ${port}`
+  );
 
 });
-
-clear.addEventListener("click",()=>{
-
-  messages.innerHTML =
-    '<div class="empty" id="empty">' +
-    'Ask Zed AI anything to get started.' +
-    '</div>';
-
-  input.focus();
-
-});
-
-</script>
-
-</body>
-</html>
 ```

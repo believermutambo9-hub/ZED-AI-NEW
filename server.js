@@ -27,31 +27,12 @@ app.get("/health", (_req, res) => {
     provider: "gemini-with-groq-fallback",
     geminiModel
   });
-});
-app.post("/api/memory", (req, res) => {
+ app.post("/api/memory", (req, res) => {
   const userId =
     typeof req.body?.userId === "string"
       ? req.body.userId.trim()
       : "";
-if (
-  userId &&
-  /^remember\b/i.test(message)
-) {
-  const memoryText =
-    message.replace(
-      /^remember\b\s*(that)?\s*/i,
-      ""
-    ).trim();
 
-  if (memoryText) {
-    const memories =
-      memory.get(userId) || [];
-
-    memories.push(memoryText);
-
-    memory.set(userId, memories);
-  }
-}
   const text =
     typeof req.body?.text === "string"
       ? req.body.text.trim()
@@ -74,7 +55,8 @@ if (
     ok: true,
     memories
   });
-});
+}); 
+
 /* =========================
    OPENROUTER BACKUP
 ========================= */

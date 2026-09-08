@@ -105,6 +105,13 @@ async function askOpenRouter(message, apiKey) {
 ========================= */
 
 async function askGemini(messages, apiKey) {
+
+  const memoryText =
+  messages
+    .filter(message => message.role === "memory")
+    .map(message => message.text)
+    .join("\n");
+  
   const endpoint =
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`;
 

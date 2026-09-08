@@ -174,16 +174,17 @@ async function generateGeminiImage(prompt, apiKey) {
         "Content-Type": "application/json",
         "x-goog-api-key": apiKey
       },
-     body: JSON.stringify({
-  model: process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image",
-  input: prompt,
-  response_format: {
-    type: "image",
-    mime_type: "image/png",
-    aspect_ratio: "1:1",
-    image_size: "1K"
-  }
-})
+      body: JSON.stringify({
+        model:
+          process.env.GEMINI_IMAGE_MODEL ||
+          "gemini-3.1-flash-image",
+        input: prompt,
+        response_format: {
+          type: "image",
+          mime_type: "image/png",
+          aspect_ratio: "1:1",
+          image_size: "1K"
+        }
       })
     }
   );
@@ -194,7 +195,7 @@ async function generateGeminiImage(prompt, apiKey) {
     response,
     data
   };
-              }
+}
 /* =========================
    CHAT
 ========================= */

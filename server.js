@@ -263,7 +263,10 @@ app.post("/api/chat", async (req, res) => {
       typeof req.body?.message === "string"
         ? req.body.message.trim()
         : "";
-
+const conversation =
+  Array.isArray(req.body?.conversation)
+    ? req.body.conversation
+    : [];
     if (!message) {
       return res.status(400).json({
         error: "Please enter a message."

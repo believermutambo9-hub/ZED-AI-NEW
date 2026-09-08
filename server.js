@@ -331,8 +331,17 @@ const conversation =
 
     if (geminiKey) {
       try {
-    const gemini = await askGemini(
+    const savedMemories =
+  userId
+    ? memory.get(userId) || []
+    : [];
+
+const gemini = await askGemini(
   [
+    ...savedMemories.map(text => ({
+      role: "memory",
+      text
+    })),
     ...conversation,
     {
       role: "user",
@@ -340,7 +349,7 @@ const conversation =
     }
   ],
   geminiKey
-);    
+);
 
         if (gemini.response.ok) {
           const reply =

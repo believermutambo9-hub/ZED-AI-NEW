@@ -1295,7 +1295,30 @@ async function sendMessage(){
     role:"user",
     text:text
   });
+if(/^remember\b/i.test(text)){
 
+  const memoryText =
+    text
+      .replace(/^remember\b\s*(that)?\s*/i,"")
+      .trim();
+
+  if(memoryText){
+
+    memories.push(memoryText);
+
+    localStorage.setItem(
+      MEMORY_KEY,
+      JSON.stringify(memories)
+    );
+
+    console.log(
+      "Browser memory saved:",
+      memoryText
+    );
+
+  }
+
+}
   render();
 
   saveCurrent();

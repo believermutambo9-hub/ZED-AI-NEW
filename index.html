@@ -7,472 +7,583 @@
 <title>Zed AI</title>
 
 <style>
-*{box-sizing:border-box}
-
-html,body{
-  margin:0;
-  padding:0;
-  width:100%;
-  height:100%;
-  background:#212121;
-  color:#ececec;
-  font-family:Arial,Helvetica,sans-serif;
+* {
+  box-sizing: border-box;
 }
 
-button,textarea{
-  font:inherit;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #212121;
+  color: #ececec;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-button{
-  cursor:pointer;
+button,
+textarea,
+input {
+  font: inherit;
 }
 
-.app{
-  display:flex;
-  height:100vh;
-  overflow:hidden;
+button {
+  cursor: pointer;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* SIDEBAR */
 
-.sidebar{
-  width:270px;
-  background:#171717;
-  border-right:1px solid #303030;
-  padding:12px;
-  display:flex;
-  flex-direction:column;
-  flex-shrink:0;
+.sidebar {
+  width: 270px;
+  background: #171717;
+  border-right: 1px solid #303030;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 
-.logo-row{
-  height:48px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:0 8px;
+.logo-row {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
 }
 
-.logo{
-  width:32px;
-  height:32px;
-  border-radius:9px;
-  background:#79dda3;
-  color:#111;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  font-weight:900;
+.logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: #79dda3;
+  color: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 900;
 }
 
-.logo-row strong{
-  font-size:18px;
+.logo-row strong {
+  font-size: 18px;
 }
 
-.logo-row span{
-  color:#79dda3;
+.logo-row span {
+  color: #79dda3;
 }
 
-.new-chat{
-  margin:10px 0 18px;
-  height:45px;
-  border:1px solid #444;
-  border-radius:9px;
-  background:#212121;
-  color:#eee;
-  text-align:left;
-  padding:0 13px;
+.new-chat {
+  margin: 10px 0 18px;
+  height: 45px;
+  border: 1px solid #444;
+  border-radius: 9px;
+  background: #212121;
+  color: #eee;
+  text-align: left;
+  padding: 0 13px;
 }
 
-.new-chat:hover{
-  background:#2b2b2b;
+.new-chat:hover {
+  background: #2b2b2b;
 }
 
-.history-title{
-  color:#888;
-  font-size:12px;
-  padding:7px 9px;
+.history-title {
+  color: #888;
+  font-size: 12px;
+  padding: 7px 9px;
 }
 
-.history{
-  flex:1;
-  overflow-y:auto;
+.history {
+  flex: 1;
+  overflow-y: auto;
 }
 
-.chat-row{
-  width:100%;
-  min-height:42px;
-  border:0;
-  border-radius:8px;
-  background:transparent;
-  color:#ccc;
-  display:flex;
-  align-items:center;
-  padding:0 8px;
-  margin-bottom:2px;
-  text-align:left;
+.chat-row {
+  width: 100%;
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  margin-bottom: 2px;
+  text-align: left;
 }
 
 .chat-row:hover,
-.chat-row.active{
-  background:#2b2b2b;
+.chat-row.active {
+  background: #2b2b2b;
 }
 
-.chat-name{
-  flex:1;
-  min-width:0;
-  overflow:hidden;
-  white-space:nowrap;
-  text-overflow:ellipsis;
-  font-size:13px;
+.chat-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  cursor: pointer;
 }
 
-.delete-chat{
-  width:28px;
-  height:28px;
-  border:0;
-  background:transparent;
-  color:#777;
-  border-radius:6px;
+.delete-chat {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: #777;
+  border-radius: 6px;
 }
 
-.delete-chat:hover{
-  background:#3b3b3b;
-  color:#ff7777;
+.delete-chat:hover {
+  background: #3b3b3b;
+  color: #ff7777;
 }
 
-.empty{
-  color:#777;
-  font-size:12px;
-  padding:10px;
+.empty {
+  color: #777;
+  font-size: 12px;
+  padding: 10px;
 }
 
-.online{
-  border-top:1px solid #303030;
-  padding:14px 8px 5px;
-  color:#999;
-  font-size:12px;
+.online {
+  border-top: 1px solid #303030;
+  padding: 14px 8px 5px;
+  color: #999;
+  font-size: 12px;
 }
 
-.online-dot{
-  display:inline-block;
-  width:8px;
-  height:8px;
-  border-radius:50%;
-  background:#62d78b;
-  margin-right:7px;
+.online-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #62d78b;
+  margin-right: 7px;
 }
 
 /* MAIN */
 
-.main{
-  flex:1;
-  min-width:0;
-  display:flex;
-  flex-direction:column;
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.header{
-  height:58px;
-  border-bottom:1px solid #303030;
-  display:flex;
-  align-items:center;
-  padding:0 18px;
-  flex-shrink:0;
+.header {
+  height: 58px;
+  border-bottom: 1px solid #303030;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  flex-shrink: 0;
 }
 
-.menu{
-  display:none;
-  border:0;
-  background:transparent;
-  color:#ddd;
-  font-size:22px;
-  margin-right:8px;
+.menu {
+  display: none;
+  border: 0;
+  background: transparent;
+  color: #ddd;
+  font-size: 22px;
+  margin-right: 8px;
 }
 
 /* CHAT */
 
-.chat{
-  flex:1;
-  overflow-y:auto;
+.chat {
+  flex: 1;
+  overflow-y: auto;
 }
 
-.chat-content{
-  width:min(850px,100%);
-  margin:auto;
-  padding:35px 20px 150px;
+.chat-content {
+  width: min(850px, 100%);
+  margin: auto;
+  padding: 35px 20px 150px;
 }
 
 /* WELCOME */
 
-.welcome{
-  min-height:65vh;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  text-align:center;
+.welcome {
+  min-height: 65vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
-.welcome-logo{
-  width:62px;
-  height:62px;
-  border-radius:18px;
-  background:#79dda3;
-  color:#111;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  font-size:28px;
-  font-weight:900;
-  margin-bottom:20px;
+.welcome-logo {
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
+  background: #79dda3;
+  color: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 28px;
+  font-weight: 900;
+  margin-bottom: 20px;
 }
 
-.welcome h1{
-  margin:0;
-  font-size:34px;
-  font-weight:600;
+.welcome h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 600;
 }
 
-.welcome h1 span{
-  color:#79dda3;
+.welcome h1 span {
+  color: #79dda3;
 }
 
-.welcome p{
-  max-width:550px;
-  color:#999;
-  line-height:1.6;
-  margin:12px 0 28px;
+.welcome p {
+  max-width: 550px;
+  color: #999;
+  line-height: 1.6;
+  margin: 12px 0 28px;
 }
 
-.cards{
-  width:min(650px,100%);
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
+.cards {
+  width: min(650px, 100%);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
-.card{
-  border:1px solid #3a3a3a;
-  background:#292929;
-  color:#ddd;
-  border-radius:10px;
-  padding:15px;
-  text-align:left;
+.card {
+  border: 1px solid #3a3a3a;
+  background: #292929;
+  color: #ddd;
+  border-radius: 10px;
+  padding: 15px;
+  text-align: left;
 }
 
-.card:hover{
-  background:#333;
+.card:hover {
+  background: #333;
 }
 
-.card strong{
-  display:block;
-  margin-bottom:5px;
-  font-size:13px;
+.card strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
 }
 
-.card small{
-  color:#888;
+.card small {
+  color: #888;
 }
 
 /* MESSAGES */
 
-.message{
-  display:flex;
-  gap:14px;
-  margin:25px 0;
+.message {
+  display: flex;
+  gap: 14px;
+  margin: 25px 0;
 }
 
-.avatar{
-  width:32px;
-  height:32px;
-  border-radius:9px;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  flex-shrink:0;
-  font-size:12px;
-  font-weight:bold;
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: bold;
 }
 
-.avatar.ai{
-  background:#79dda3;
-  color:#111;
+.avatar.ai {
+  background: #79dda3;
+  color: #111;
 }
 
-.avatar.user{
-  background:#444;
-  color:#eee;
+.avatar.user {
+  background: #444;
+  color: #eee;
 }
 
-.message-body{
-  flex:1;
-  min-width:0;
+.message-body {
+  flex: 1;
+  min-width: 0;
 }
 
-.message-name{
-  font-size:13px;
-  font-weight:bold;
-  margin:2px 0 7px;
+.message-name {
+  font-size: 13px;
+  font-weight: bold;
+  margin: 2px 0 7px;
 }
 
-.message-text{
-  white-space:pre-wrap;
-  overflow-wrap:anywhere;
-  line-height:1.7;
-  font-size:15px;
+.message-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  font-size: 15px;
 }
 
 /* THINKING */
 
-.thinking{
-  display:flex;
-  gap:5px;
-  padding:7px 0;
+.thinking {
+  display: flex;
+  gap: 5px;
+  padding: 7px 0;
 }
 
-.thinking span{
-  width:7px;
-  height:7px;
-  border-radius:50%;
-  background:#aaa;
-  animation:pulse 1.2s infinite;
+.thinking span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #aaa;
+  animation: pulse 1.2s infinite;
 }
 
-.thinking span:nth-child(2){
-  animation-delay:.15s;
+.thinking span:nth-child(2) {
+  animation-delay: .15s;
 }
 
-.thinking span:nth-child(3){
-  animation-delay:.3s;
+.thinking span:nth-child(3) {
+  animation-delay: .3s;
 }
 
-@keyframes pulse{
-  0%,60%,100%{
-    opacity:.3;
-    transform:translateY(0);
+@keyframes pulse {
+  0%, 60%, 100% {
+    opacity: .3;
+    transform: translateY(0);
   }
-  30%{
-    opacity:1;
-    transform:translateY(-4px);
+
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
   }
 }
 
 /* COMPOSER */
 
-.composer-area{
-  position:absolute;
-  left:270px;
-  right:0;
-  bottom:0;
-  padding:18px 20px 12px;
-  background:linear-gradient(
+.composer-area {
+  position: absolute;
+  left: 270px;
+  right: 0;
+  bottom: 0;
+  padding: 18px 20px 12px;
+  background: linear-gradient(
     transparent,
     #212121 30%
   );
 }
 
-.composer{
-  width:min(850px,100%);
-  margin:auto;
-  border:1px solid #444;
-  background:#2f2f2f;
-  border-radius:17px;
-  padding:8px 9px 8px 14px;
-  display:flex;
-  align-items:flex-end;
+.composer {
+  width: min(850px, 100%);
+  margin: auto;
+  border: 1px solid #444;
+  background: #2f2f2f;
+  border-radius: 17px;
+  padding: 8px 9px 8px 14px;
+  display: flex;
+  align-items: flex-end;
 }
 
-.input{
-  flex:1;
-  min-width:0;
-  min-height:44px;
-  max-height:180px;
-  resize:none;
-  border:0;
-  outline:0;
-  background:transparent;
-  color:#fff;
-  padding:10px 5px;
-  line-height:1.5;
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 180px;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  padding: 10px 5px;
+  line-height: 1.5;
 }
 
-.input::placeholder{
-  color:#888;
+.input::placeholder {
+  color: #888;
 }
 
-.send{
-  width:40px;
-  height:40px;
-  border:0;
-  border-radius:10px;
-  background:#79dda3;
-  color:#111;
-  font-size:20px;
-  font-weight:bold;
+.send {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: #79dda3;
+  color: #111;
+  font-size: 20px;
+  font-weight: bold;
+  margin-left: 6px;
 }
 
-.send:hover{
-  background:#94edb6;
+.send:hover {
+  background: #94edb6;
 }
 
-.send:disabled{
-  opacity:.4;
-  cursor:not-allowed;
+.send:disabled {
+  opacity: .4;
+  cursor: not-allowed;
 }
 
-.disclaimer{
-  text-align:center;
-  color:#666;
-  font-size:10px;
-  margin-top:7px;
+.disclaimer {
+  text-align: center;
+  color: #666;
+  font-size: 10px;
+  margin-top: 7px;
+}
+
+/* AUTH SCREEN */
+
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: #0b0b0f;
+  padding: 20px;
+}
+
+.auth-box {
+  width: min(420px, 100%);
+  padding: 32px;
+  border-radius: 20px;
+  background: #15151c;
+  border: 1px solid #292933;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+}
+
+.auth-box h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.auth-box > p {
+  color: #999;
+  margin: 0 0 24px;
+}
+
+.auth-box input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid #333;
+  background: #0f0f14;
+  color: white;
+  outline: none;
+}
+
+.auth-box input:focus {
+  border-color: #79dda3;
+}
+
+.google-login,
+.auth-button {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.google-login {
+  background: white;
+  color: #111;
+}
+
+.google-login:hover {
+  background: #eee;
+}
+
+.auth-button {
+  background: #79dda3;
+  color: #111;
+  font-weight: bold;
+}
+
+.auth-button:hover {
+  background: #94edb6;
+}
+
+.auth-button.secondary {
+  background: #292933;
+  color: white;
+}
+
+.auth-button.secondary:hover {
+  background: #383844;
+}
+
+.auth-divider {
+  margin: 18px 0;
+  color: #777;
+}
+
+#authMessage {
+  color: #ff7070;
+  font-size: 13px;
+  margin-top: 10px;
+  margin-bottom: 0;
 }
 
 /* MOBILE */
 
-@media(max-width:750px){
+@media (max-width: 750px) {
 
-  .sidebar{
-    position:fixed;
-    top:0;
-    bottom:0;
-    left:-280px;
-    z-index:100;
-    transition:left .2s;
-    box-shadow:10px 0 40px #0008;
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -280px;
+    z-index: 100;
+    transition: left .2s;
+    box-shadow: 10px 0 40px #0008;
   }
 
-  .sidebar.open{
-    left:0;
+  .sidebar.open {
+    left: 0;
   }
 
-  .menu{
-    display:block;
+  .menu {
+    display: block;
   }
 
-  .composer-area{
-    left:0;
-    padding:10px;
+  .composer-area {
+    left: 0;
+    padding: 10px;
   }
 
-  .chat-content{
-    padding:20px 13px 145px;
+  .chat-content {
+    padding: 20px 13px 145px;
   }
 
-  .cards{
-    grid-template-columns:1fr;
+  .cards {
+    grid-template-columns: 1fr;
   }
 
-  .welcome h1{
-    font-size:28px;
+  .welcome h1 {
+    font-size: 28px;
   }
 
-  .message{
-    gap:10px;
+  .message {
+    gap: 10px;
   }
 
-  .message-text{
-    font-size:14px;
+  .message-text {
+    font-size: 14px;
+  }
+
+  .auth-box {
+    padding: 25px 20px;
   }
 }
 </style>
@@ -514,9 +625,7 @@ button{
     </header>
 
     <section class="chat" id="chat">
-
       <div class="chat-content" id="chatContent"></div>
-
     </section>
 
     <div class="composer-area">
@@ -530,19 +639,19 @@ button{
           placeholder="Message Zed AI..."
         ></textarea>
 
-       <button
-  id="imageButton"
-  class="send"
-  type="button"
-  title="Create image"
->🎨</button>
+        <button
+          id="imageButton"
+          class="send"
+          type="button"
+          title="Create image"
+        >🎨</button>
 
-<button
-  id="send"
-  class="send"
-  type="button"
-  title="Send message"
->↑</button>
+        <button
+          id="send"
+          class="send"
+          type="button"
+          title="Send message"
+        >↑</button>
 
       </div>
 
@@ -556,12 +665,72 @@ button{
 
 </div>
 
+<!-- ZED AI LOGIN -->
+
+<div id="authScreen" class="auth-screen">
+
+  <div class="auth-box">
+
+    <h1>Welcome to Zed AI</h1>
+
+    <p>Sign in to continue</p>
+
+    <button
+      id="googleLogin"
+      class="google-login"
+      type="button"
+    >
+      🔵 Continue with Google
+    </button>
+
+    <div class="auth-divider">
+      or
+    </div>
+
+    <input
+      id="emailInput"
+      type="email"
+      placeholder="Email address"
+      autocomplete="email"
+    />
+
+    <input
+      id="passwordInput"
+      type="password"
+      placeholder="Password"
+      autocomplete="current-password"
+    />
+
+    <button
+      id="emailLogin"
+      class="auth-button"
+      type="button"
+    >
+      Sign in
+    </button>
+
+    <button
+      id="createAccount"
+      class="auth-button secondary"
+      type="button"
+    >
+      Create account
+    </button>
+
+    <p id="authMessage"></p>
+
+  </div>
+
+</div>
+
+<!-- MAIN ZED AI JAVASCRIPT -->
+
 <script>
 "use strict";
 
 const input = document.getElementById("input");
 const send = document.getElementById("send");
-const imageButton = document.getElementById("imageButton"); 
+const imageButton = document.getElementById("imageButton");
 const chatContent = document.getElementById("chatContent");
 const chat = document.getElementById("chat");
 const history = document.getElementById("history");
@@ -572,15 +741,24 @@ const headerTitle = document.getElementById("headerTitle");
 
 const STORAGE = "zed_ai_chats_final";
 const USER_ID_KEY = "zed_ai_user_id";
-
-let userId =
-  localStorage.getItem(USER_ID_KEY);
 const MEMORY_KEY = "zed_ai_memories";
 
-let memories =
-  JSON.parse(
+let userId = localStorage.getItem(USER_ID_KEY);
+
+let memories = [];
+
+try {
+  memories = JSON.parse(
     localStorage.getItem(MEMORY_KEY) || "[]"
   );
+
+  if (!Array.isArray(memories)) {
+    memories = [];
+  }
+} catch {
+  memories = [];
+}
+
 if (!userId) {
   userId =
     "user_" +
@@ -595,118 +773,106 @@ if (!userId) {
     userId
   );
 }
+
 let chats = [];
 let currentId = null;
 let messages = [];
 let busy = false;
 
-
 /* STORAGE */
 
-function save(){
-  try{
+function save() {
+  try {
     localStorage.setItem(
       STORAGE,
       JSON.stringify(chats)
     );
-  }catch(e){
-    console.log("Storage error:",e);
+  } catch (error) {
+    console.log("Storage error:", error);
   }
 }
 
-function load(){
-
-  try{
+function load() {
+  try {
     const data =
       localStorage.getItem(STORAGE);
 
-    if(data){
+    if (data) {
       chats = JSON.parse(data);
     }
 
-    if(!Array.isArray(chats)){
+    if (!Array.isArray(chats)) {
       chats = [];
     }
 
-  }catch(e){
+  } catch {
     chats = [];
   }
 }
 
-
 /* TITLE */
 
-function makeTitle(text){
+function makeTitle(text) {
 
   const clean =
-    text.replace(/\s+/g," ").trim();
+    text.replace(/\s+/g, " ").trim();
 
   return clean.length > 35
-    ? clean.substring(0,35) + "..."
+    ? clean.substring(0, 35) + "..."
     : clean;
-
 }
-
 
 /* CHAT CREATION */
 
-function createChat(){
+function createChat() {
 
   const now = Date.now();
 
   const chatObject = {
-    id:String(now),
-    title:"New chat",
-    messages:[],
-    createdAt:now,
-    updatedAt:now
+    id: String(now),
+    title: "New chat",
+    messages: [],
+    createdAt: now,
+    updatedAt: now
   };
 
   chats.unshift(chatObject);
 
-  currentId =
-    chatObject.id;
-
+  currentId = chatObject.id;
   messages = [];
 
   save();
   renderHistory();
   updateHeader();
   render();
-
 }
 
-
-function getChat(){
+function getChat() {
 
   return chats.find(
     item => item.id === currentId
   );
-
 }
 
-
-function ensureChat(){
+function ensureChat() {
 
   let item = getChat();
 
-  if(!item){
+  if (!item) {
     createChat();
     item = getChat();
   }
 
   return item;
-
 }
-
 
 /* HISTORY */
 
-function renderHistory(){
+function renderHistory() {
 
   history.innerHTML = "";
 
-  if(chats.length === 0){
+  if (chats.length === 0) {
 
     history.innerHTML =
       '<div class="empty">No conversations yet.</div>';
@@ -717,7 +883,7 @@ function renderHistory(){
   chats
     .slice()
     .sort(
-      (a,b) =>
+      (a, b) =>
         (b.updatedAt || 0) -
         (a.updatedAt || 0)
     )
@@ -752,8 +918,8 @@ function renderHistory(){
       del.className =
         "delete-chat";
 
-      del.textContent =
-        "×";
+      del.textContent = "×";
+      del.title = "Delete chat";
 
       del.addEventListener(
         "click",
@@ -772,20 +938,18 @@ function renderHistory(){
       history.appendChild(row);
 
     });
-
 }
-
 
 /* OPEN */
 
-function openChat(id){
+function openChat(id) {
 
   const item =
     chats.find(
       chat => chat.id === id
     );
 
-  if(!item){
+  if (!item) {
     return;
   }
 
@@ -801,15 +965,13 @@ function openChat(id){
   render();
 
   sidebar.classList.remove("open");
-
 }
-
 
 /* DELETE */
 
-function removeChat(id){
+function removeChat(id) {
 
-  if(!confirm("Delete this conversation?")){
+  if (!confirm("Delete this conversation?")) {
     return;
   }
 
@@ -818,61 +980,56 @@ function removeChat(id){
       item => item.id !== id
     );
 
-  if(currentId === id){
+  if (currentId === id) {
 
     currentId = null;
     messages = [];
 
-    if(chats.length){
+    if (chats.length) {
 
       const latest =
         chats
           .slice()
           .sort(
-            (a,b) =>
+            (a, b) =>
               (b.updatedAt || 0) -
               (a.updatedAt || 0)
           )[0];
 
-      currentId =
-        latest.id;
+      currentId = latest.id;
 
       messages =
-        latest.messages || [];
-
+        Array.isArray(latest.messages)
+          ? latest.messages
+          : [];
     }
-
   }
 
   save();
   renderHistory();
   updateHeader();
   render();
-
 }
-
 
 /* SAVE CURRENT */
 
-function saveCurrent(){
+function saveCurrent() {
 
-  const item =
-    getChat();
+  const item = getChat();
 
-  if(!item){
+  if (!item) {
     return;
   }
 
   item.messages =
     messages.map(
       message => ({
-        role:message.role,
-        text:message.text
+        role: message.role,
+        text: message.text
       })
     );
 
-  item.updatedAt =
-    Date.now();
+  item.updatedAt = Date.now();
 
   const first =
     messages.find(
@@ -880,7 +1037,7 @@ function saveCurrent(){
         message.role === "user"
     );
 
-  if(first){
+  if (first) {
     item.title =
       makeTitle(first.text);
   }
@@ -888,33 +1045,30 @@ function saveCurrent(){
   save();
   renderHistory();
   updateHeader();
-
 }
-
 
 /* HEADER */
 
-function updateHeader(){
+function updateHeader() {
 
-  const item =
-    getChat();
+  const item = getChat();
 
   headerTitle.textContent =
     item?.title || "Zed AI";
-
 }
-
 
 /* WELCOME */
 
-function welcome(){
+function welcome() {
 
   chatContent.innerHTML = `
     <div class="welcome">
 
       <div class="welcome-logo">Z</div>
 
-      <h1>How can <span>Zed AI</span> help?</h1>
+      <h1>
+        How can <span>Zed AI</span> help?
+      </h1>
 
       <p>
         Ask me anything. I can help with business,
@@ -923,26 +1077,34 @@ function welcome(){
 
       <div class="cards">
 
-        <button class="card"
-          data-text="Help me create a professional CV.">
+        <button
+          class="card"
+          data-text="Help me create a professional CV."
+        >
           <strong>📄 Create a CV</strong>
           <small>Build a professional CV.</small>
         </button>
 
-        <button class="card"
-          data-text="Give me realistic business ideas I can start in Zambia with a small budget.">
+        <button
+          class="card"
+          data-text="Give me realistic business ideas I can start in Zambia with a small budget."
+        >
           <strong>💼 Business ideas</strong>
           <small>Find practical business opportunities.</small>
         </button>
 
-        <button class="card"
-          data-text="Teach me something interesting in a simple way.">
+        <button
+          class="card"
+          data-text="Teach me something interesting in a simple way."
+        >
           <strong>📚 Learn something</strong>
           <small>Understand difficult topics easily.</small>
         </button>
 
-        <button class="card"
-          data-text="Help me write a professional message.">
+        <button
+          class="card"
+          data-text="Help me write a professional message."
+        >
           <strong>✍️ Writing</strong>
           <small>Improve your writing.</small>
         </button>
@@ -964,27 +1126,22 @@ function welcome(){
             card.dataset.text;
 
           resize();
-
           input.focus();
 
         }
       );
 
     });
-
 }
-
 
 /* RENDER */
 
-function render(){
+function render() {
 
   chatContent.innerHTML = "";
 
-  if(messages.length === 0){
-
+  if (messages.length === 0) {
     welcome();
-
     return;
   }
 
@@ -1000,19 +1157,16 @@ function render(){
   );
 
   scroll();
-
 }
-
 
 /* ADD MESSAGE */
 
-function addMessage(text,role){
+function addMessage(text, role) {
 
   const wrapper =
     document.createElement("div");
 
-  wrapper.className =
-    "message";
+  wrapper.className = "message";
 
   const avatar =
     document.createElement("div");
@@ -1061,29 +1215,26 @@ function addMessage(text,role){
   wrapper.appendChild(body);
 
   chatContent.appendChild(wrapper);
-
 }
-
 
 /* THINKING */
 
-function thinking(){
+function thinking() {
 
   const element =
     document.createElement("div");
 
-  element.className =
-    "message";
-
-  element.id =
-    "thinking";
+  element.className = "message";
+  element.id = "thinking";
 
   element.innerHTML = `
     <div class="avatar ai">Z</div>
 
     <div class="message-body">
 
-      <div class="message-name">Zed AI</div>
+      <div class="message-name">
+        Zed AI
+      </div>
 
       <div class="thinking">
         <span></span>
@@ -1097,34 +1248,42 @@ function thinking(){
   chatContent.appendChild(element);
 
   scroll();
-
 }
 
-
-function removeThinking(){
+function removeThinking() {
 
   const element =
     document.getElementById("thinking");
 
-  if(element){
+  if (element) {
     element.remove();
   }
+}
 
+/* SCROLL */
+
+function scroll() {
+
+  chat.scrollTop =
+    chat.scrollHeight;
 }
 
 /* IMAGE GENERATION */
 
-async function generateImage(){
+async function generateImage() {
 
-  if(busy){
+  if (busy) {
     return;
   }
 
   const prompt =
     input.value.trim();
 
-  if(!prompt){
-    alert("Describe the image you want me to create.");
+  if (!prompt) {
+    alert(
+      "Describe the image you want me to create."
+    );
+
     input.focus();
     return;
   }
@@ -1132,6 +1291,7 @@ async function generateImage(){
   ensureChat();
 
   busy = true;
+
   send.disabled = true;
   imageButton.disabled = true;
 
@@ -1139,28 +1299,29 @@ async function generateImage(){
   resize();
 
   messages.push({
-    role:"user",
-    text:"🎨 Create an image: " + prompt
+    role: "user",
+    text: "🎨 Create an image: " + prompt
   });
 
   render();
   saveCurrent();
   thinking();
 
-  try{
+  try {
 
     const response =
       await fetch(
         "/api/generate-image",
         {
-          method:"POST",
+          method: "POST",
 
-          headers:{
-            "Content-Type":"application/json"
+          headers: {
+            "Content-Type":
+              "application/json"
           },
 
-          body:JSON.stringify({
-            prompt:prompt
+          body: JSON.stringify({
+            prompt: prompt
           })
         }
       );
@@ -1170,9 +1331,9 @@ async function generateImage(){
 
     let data;
 
-    try{
+    try {
       data = JSON.parse(raw);
-    }catch{
+    } catch {
       throw new Error(
         "Invalid response from image server."
       );
@@ -1180,13 +1341,12 @@ async function generateImage(){
 
     removeThinking();
 
-    if(!response.ok){
+    if (!response.ok) {
 
       throw new Error(
         data.error ||
         "Image generation failed."
       );
-
     }
 
     const imageData =
@@ -1194,46 +1354,69 @@ async function generateImage(){
         item => item.type === "image"
       )?.data;
 
-    if(!imageData){
+    if (!imageData) {
 
       throw new Error(
         "No image was returned."
       );
-
     }
 
     const wrapper =
       document.createElement("div");
 
-    wrapper.className =
-      "message";
+    wrapper.className = "message";
 
-    wrapper.innerHTML = `
-      <div class="avatar ai">Z</div>
+    const avatar =
+      document.createElement("div");
 
-      <div class="message-body">
+    avatar.className = "avatar ai";
+    avatar.textContent = "Z";
 
-        <div class="message-name">
-          Zed AI
-        </div>
+    const body =
+      document.createElement("div");
 
-        <div class="message-text">
-          <p>Here is your image:</p>
+    body.className = "message-body";
 
-          <img
-            src="data:image/png;base64,${imageData}"
-            alt="${prompt.replace(/"/g,"&quot;")}"
-            style="
-              max-width:100%;
-              border-radius:14px;
-              display:block;
-              margin-top:10px;
-            "
-          >
-        </div>
+    const name =
+      document.createElement("div");
 
-      </div>
-    `;
+    name.className = "message-name";
+    name.textContent = "Zed AI";
+
+    const messageText =
+      document.createElement("div");
+
+    messageText.className =
+      "message-text";
+
+    const paragraph =
+      document.createElement("p");
+
+    paragraph.textContent =
+      "Here is your image:";
+
+    const image =
+      document.createElement("img");
+
+    image.src =
+      "data:image/png;base64," +
+      imageData;
+
+    image.alt = prompt;
+
+    image.style.maxWidth = "100%";
+    image.style.borderRadius = "14px";
+    image.style.display = "block";
+    image.style.marginTop = "10px";
+
+    messageText.appendChild(paragraph);
+    messageText.appendChild(image);
+
+    body.appendChild(name);
+    body.appendChild(messageText);
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(body);
 
     chatContent.appendChild(wrapper);
 
@@ -1241,7 +1424,7 @@ async function generateImage(){
 
     saveCurrent();
 
-  }catch(error){
+  } catch (error) {
 
     removeThinking();
 
@@ -1256,93 +1439,98 @@ async function generateImage(){
       error
     );
 
-  }finally{
+  } finally {
 
     busy = false;
+
     send.disabled = false;
     imageButton.disabled = false;
 
     input.focus();
-
   }
-
 }
+
 /* SEND */
 
-async function sendMessage(){
+async function sendMessage() {
 
-  if(busy){
+  if (busy) {
     return;
   }
 
   const text =
     input.value.trim();
 
-  if(!text){
+  if (!text) {
     return;
   }
 
   ensureChat();
 
   busy = true;
+
   send.disabled = true;
+  imageButton.disabled = true;
 
   input.value = "";
-
   resize();
 
   messages.push({
-    role:"user",
-    text:text
+    role: "user",
+    text: text
   });
-if(/^remember\b/i.test(text)){
 
-  const memoryText =
-    text
-      .replace(/^remember\b\s*(that)?\s*/i,"")
-      .trim();
+  /* MEMORY */
 
-  if(memoryText){
+  if (/^remember\b/i.test(text)) {
 
-    memories.push(memoryText);
+    const memoryText =
+      text
+        .replace(
+          /^remember\b\s*(that)?\s*/i,
+          ""
+        )
+        .trim();
 
-    localStorage.setItem(
-      MEMORY_KEY,
-      JSON.stringify(memories)
-    );
+    if (memoryText) {
 
-    console.log(
-      "Browser memory saved:",
-      memoryText
-    );
+      memories.push(memoryText);
 
+      localStorage.setItem(
+        MEMORY_KEY,
+        JSON.stringify(memories)
+      );
+
+      console.log(
+        "Browser memory saved:",
+        memoryText
+      );
+    }
   }
 
-}
   render();
-
   saveCurrent();
-
   thinking();
 
-  try{
+  try {
 
     const response =
       await fetch(
         "/api/chat",
         {
-          method:"POST",
+          method: "POST",
 
-          headers:{
-            "Content-Type":"application/json"
+          headers: {
+            "Content-Type":
+              "application/json"
           },
 
- body:JSON.stringify({
-  message:text,
-  conversation:messages,
-  userId:userId,
-  memories:memories
-})
+          body: JSON.stringify({
+            message: text,
+            conversation: messages,
+            userId: userId,
+            memories: memories
+          })
         }
       );
 
@@ -1351,9 +1539,9 @@ if(/^remember\b/i.test(text)){
 
     let data;
 
-    try{
+    try {
       data = JSON.parse(raw);
-    }catch{
+    } catch {
       throw new Error(
         "Invalid response from server."
       );
@@ -1361,36 +1549,33 @@ if(/^remember\b/i.test(text)){
 
     removeThinking();
 
-    if(!response.ok){
+    if (!response.ok) {
 
       throw new Error(
         data.error ||
         "AI service unavailable."
       );
-
     }
 
     const reply =
       String(data.reply || "").trim();
 
-    if(!reply){
+    if (!reply) {
 
       throw new Error(
         "Zed AI returned no answer."
       );
-
     }
 
     messages.push({
-      role:"assistant",
-      text:reply
+      role: "assistant",
+      text: reply
     });
 
     render();
-
     saveCurrent();
 
-  }catch(error){
+  } catch (error) {
 
     removeThinking();
 
@@ -1405,33 +1590,29 @@ if(/^remember\b/i.test(text)){
       error
     );
 
-  }finally{
+  } finally {
 
     busy = false;
+
     send.disabled = false;
+    imageButton.disabled = false;
 
     input.focus();
-
   }
-
 }
-
 
 /* INPUT */
 
-function resize(){
+function resize() {
 
-  input.style.height =
-    "auto";
+  input.style.height = "auto";
 
   input.style.height =
     Math.min(
       input.scrollHeight,
       180
     ) + "px";
-
 }
-
 
 input.addEventListener(
   "input",
@@ -1442,20 +1623,17 @@ input.addEventListener(
   "keydown",
   event => {
 
-    if(
+    if (
       event.key === "Enter" &&
       !event.shiftKey
-    ){
+    ) {
 
       event.preventDefault();
 
       sendMessage();
-
     }
-
   }
 );
-
 
 /* BUTTONS */
 
@@ -1463,10 +1641,12 @@ send.addEventListener(
   "click",
   sendMessage
 );
+
 imageButton.addEventListener(
   "click",
   generateImage
 );
+
 newChatButton.addEventListener(
   "click",
   () => {
@@ -1476,9 +1656,7 @@ newChatButton.addEventListener(
     input.value = "";
 
     resize();
-
     input.focus();
-
   }
 );
 
@@ -1489,83 +1667,44 @@ menu.addEventListener(
     sidebar.classList.toggle(
       "open"
     );
-
   }
 );
-
 
 /* START */
 
 load();
 
-if(chats.length){
+if (chats.length) {
 
   const latest =
     chats
       .slice()
       .sort(
-        (a,b) =>
+        (a, b) =>
           (b.updatedAt || 0) -
           (a.updatedAt || 0)
       )[0];
 
-  currentId =
-    latest.id;
+  currentId = latest.id;
 
   messages =
     Array.isArray(latest.messages)
       ? latest.messages
       : [];
-
 }
 
 renderHistory();
 updateHeader();
 render();
-
 </script>
 
-</body>
- <!-- ZED AI LOGIN -->
-<div id="authScreen" class="auth-screen">
-  <div class="auth-box">
-    <h1>Welcome to Zed AI</h1>
-    <p>Sign in to continue</p>
+<!-- FIREBASE LOGIN -->
 
-    <button id="googleLogin" class="google-login">
-      🔵 Continue with Google
-    </button>
-
-    <div class="auth-divider">or</div>
-
-    <input
-      id="emailInput"
-      type="email"
-      placeholder="Email address"
-    />
-
-    <input
-      id="passwordInput"
-      type="password"
-      placeholder="Password"
-    />
-
-    <button id="emailLogin" class="auth-button">
-      Sign in
-    </button>
-
-    <button id="createAccount" class="auth-button secondary">
-      Create account
-    </button>
-
-    <p id="authMessage"></p>
-  </div>
-</div>
-
-<!-- Firebase -->
 <script type="module">
-  import { initializeApp }
-    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+
+  import {
+    initializeApp
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 
   import {
     getAuth,
@@ -1577,264 +1716,291 @@ render();
     signOut
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-  /* =========================
-     FIREBASE CONFIG
-  ========================= */
-
-  const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.firebasestorage.app",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-
-  const provider = new GoogleAuthProvider();
-
-  const authScreen =
-    document.getElementById("authScreen");
-
-  const authMessage =
-    document.getElementById("authMessage");
-
-  const emailInput =
-    document.getElementById("emailInput");
-
-  const passwordInput =
-    document.getElementById("passwordInput");
-
-  /* =========================
-     GOOGLE LOGIN
-  ========================= */
-
-  document
-    .getElementById("googleLogin")
-    .addEventListener("click", async () => {
-
-      try {
-        await signInWithPopup(
-          auth,
-          provider
-        );
-
-      } catch (error) {
-        console.error(error);
-
-        authMessage.textContent =
-          error.message;
-      }
-    });
-
-  /* =========================
-     EMAIL LOGIN
-  ========================= */
-
-  document
-    .getElementById("emailLogin")
-    .addEventListener("click", async () => {
-
-      const email =
-        emailInput.value.trim();
-
-      const password =
-        passwordInput.value;
-
-      if (!email || !password) {
-        authMessage.textContent =
-          "Enter your email and password.";
-        return;
-      }
-
-      try {
-        await signInWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-
-      } catch (error) {
-        console.error(error);
-
-        authMessage.textContent =
-          error.message;
-      }
-    });
-
-  /* =========================
-     CREATE ACCOUNT
-  ========================= */
-
-  document
-    .getElementById("createAccount")
-    .addEventListener("click", async () => {
-
-      const email =
-        emailInput.value.trim();
-
-      const password =
-        passwordInput.value;
-
-      if (!email || !password) {
-        authMessage.textContent =
-          "Enter an email and password.";
-        return;
-      }
-
-      if (password.length < 6) {
-        authMessage.textContent =
-          "Password must be at least 6 characters.";
-        return;
-      }
-
-      try {
-        await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-
-      } catch (error) {
-        console.error(error);
-
-        authMessage.textContent =
-          error.message;
-      }
-    });
-
-  /* =========================
-     LOGIN STATE
-  ========================= */
-
-  onAuthStateChanged(
-    auth,
-    user => {
-
-      if (user) {
-
-        console.log(
-          "Zed AI user:",
-          user.uid,
-          user.email
-        );
-
-        authScreen.style.display =
-          "none";
-
-        /*
-          Your existing Zed AI
-          application remains visible.
-        */
-
-      } else {
-
-        authScreen.style.display =
-          "flex";
-      }
-    }
-  );
-
-  /* =========================
-     MAKE LOGOUT AVAILABLE
-  ========================= */
-
-  window.zedLogout = async function () {
-    await signOut(auth);
-  };
 
   /*
-     Make the logged-in user's
-     Firebase UID available to
-     the existing Zed AI code.
+    FIREBASE CONFIG
+
+    Replace these values with the
+    Firebase configuration from your
+    Firebase project.
   */
 
-  window.getZedUser = function () {
-    return auth.currentUser;
+  const firebaseConfig = {
+
+    apiKey: "YOUR_FIREBASE_API_KEY",
+
+    authDomain:
+      "YOUR_PROJECT.firebaseapp.com",
+
+    projectId:
+      "YOUR_PROJECT_ID",
+
+    storageBucket:
+      "YOUR_PROJECT.firebasestorage.app",
+
+    messagingSenderId:
+      "YOUR_SENDER_ID",
+
+    appId:
+      "YOUR_APP_ID"
   };
+
+
+  /*
+    Do not break Zed AI if Firebase
+    has not been configured yet.
+  */
+
+  const firebaseConfigured =
+    !Object.values(firebaseConfig)
+      .some(value =>
+        String(value).startsWith("YOUR_")
+      );
+
+
+  const authScreen =
+    document.getElementById(
+      "authScreen"
+    );
+
+  const authMessage =
+    document.getElementById(
+      "authMessage"
+    );
+
+
+  if (!firebaseConfigured) {
+
+    console.log(
+      "Firebase is not configured yet. Zed AI will continue without login."
+    );
+
+    authScreen.style.display = "none";
+
+  } else {
+
+    try {
+
+      const app =
+        initializeApp(
+          firebaseConfig
+        );
+
+      const auth =
+        getAuth(app);
+
+      const provider =
+        new GoogleAuthProvider();
+
+
+      /* GOOGLE LOGIN */
+
+      document
+        .getElementById("googleLogin")
+        .addEventListener(
+          "click",
+          async () => {
+
+            try {
+
+              await signInWithPopup(
+                auth,
+                provider
+              );
+
+            } catch (error) {
+
+              console.error(error);
+
+              authMessage.textContent =
+                error.message;
+            }
+          }
+        );
+
+
+      /* EMAIL LOGIN */
+
+      document
+        .getElementById("emailLogin")
+        .addEventListener(
+          "click",
+          async () => {
+
+            const email =
+              document
+                .getElementById(
+                  "emailInput"
+                )
+                .value
+                .trim();
+
+            const password =
+              document
+                .getElementById(
+                  "passwordInput"
+                )
+                .value;
+
+
+            if (!email || !password) {
+
+              authMessage.textContent =
+                "Enter your email and password.";
+
+              return;
+            }
+
+
+            try {
+
+              await signInWithEmailAndPassword(
+                auth,
+                email,
+                password
+              );
+
+            } catch (error) {
+
+              console.error(error);
+
+              authMessage.textContent =
+                error.message;
+            }
+          }
+        );
+
+
+      /* CREATE ACCOUNT */
+
+      document
+        .getElementById("createAccount")
+        .addEventListener(
+          "click",
+          async () => {
+
+            const email =
+              document
+                .getElementById(
+                  "emailInput"
+                )
+                .value
+                .trim();
+
+            const password =
+              document
+                .getElementById(
+                  "passwordInput"
+                )
+                .value;
+
+
+            if (!email || !password) {
+
+              authMessage.textContent =
+                "Enter an email and password.";
+
+              return;
+            }
+
+
+            if (password.length < 6) {
+
+              authMessage.textContent =
+                "Password must be at least 6 characters.";
+
+              return;
+            }
+
+
+            try {
+
+              await createUserWithEmailAndPassword(
+                auth,
+                email,
+                password
+              );
+
+            } catch (error) {
+
+              console.error(error);
+
+              authMessage.textContent =
+                error.message;
+            }
+          }
+        );
+
+
+      /* LOGIN STATE */
+
+      onAuthStateChanged(
+        auth,
+        user => {
+
+          if (user) {
+
+            console.log(
+              "Zed AI user:",
+              user.uid,
+              user.email
+            );
+
+            authScreen.style.display =
+              "none";
+
+            /*
+              Use Firebase UID as the
+              Zed AI user ID.
+            */
+
+            localStorage.setItem(
+              "zed_ai_user_id",
+              user.uid
+            );
+
+          } else {
+
+            authScreen.style.display =
+              "flex";
+          }
+        }
+      );
+
+
+      /* LOGOUT */
+
+      window.zedLogout =
+        async function () {
+
+          await signOut(auth);
+
+        };
+
+
+      /* CURRENT USER */
+
+      window.getZedUser =
+        function () {
+
+          return auth.currentUser;
+
+        };
+
+
+    } catch (error) {
+
+      console.error(
+        "Firebase initialization error:",
+        error
+      );
+
+      authScreen.style.display =
+        "none";
+    }
+  }
+
 </script>
-  
-  /* =========================
-   ZED AI AUTH SCREEN
-========================= */
 
-.auth-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #0b0b0f;
-}
-
-.auth-box {
-  width: min(420px, 90%);
-  padding: 32px;
-  border-radius: 20px;
-  background: #15151c;
-  border: 1px solid #292933;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0,0,0,.45);
-}
-
-.auth-box h1 {
-  margin-bottom: 8px;
-}
-
-.auth-box p {
-  color: #999;
-  margin-bottom: 24px;
-}
-
-.auth-box input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 14px;
-  margin-bottom: 12px;
-  border-radius: 10px;
-  border: 1px solid #333;
-  background: #0f0f14;
-  color: white;
-  outline: none;
-}
-
-.google-login,
-.auth-button {
-  width: 100%;
-  padding: 14px;
-  margin-bottom: 12px;
-  border: 0;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 15px;
-}
-
-.google-login {
-  background: white;
-  color: #111;
-}
-
-.auth-button {
-  background: #ffffff;
-  color: #111;
-}
-
-.auth-button.secondary {
-  background: #292933;
-  color: white;
-}
-
-.auth-divider {
-  margin: 18px 0;
-  color: #777;
-}
-
-#authMessage {
-  color: #ff7070;
-  font-size: 13px;
-  margin-top: 10px;
-}
+</body>
 </html>

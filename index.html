@@ -1526,4 +1526,315 @@ render();
 </script>
 
 </body>
+ <!-- ZED AI LOGIN -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-box">
+    <h1>Welcome to Zed AI</h1>
+    <p>Sign in to continue</p>
+
+    <button id="googleLogin" class="google-login">
+      🔵 Continue with Google
+    </button>
+
+    <div class="auth-divider">or</div>
+
+    <input
+      id="emailInput"
+      type="email"
+      placeholder="Email address"
+    />
+
+    <input
+      id="passwordInput"
+      type="password"
+      placeholder="Password"
+    />
+
+    <button id="emailLogin" class="auth-button">
+      Sign in
+    </button>
+
+    <button id="createAccount" class="auth-button secondary">
+      Create account
+    </button>
+
+    <p id="authMessage"></p>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp }
+    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+
+  import {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    onAuthStateChanged,
+    signOut
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+  /* =========================
+     FIREBASE CONFIG
+  ========================= */
+
+  const firebaseConfig = {
+    apiKey: "YOUR_FIREBASE_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.firebasestorage.app",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const provider = new GoogleAuthProvider();
+
+  const authScreen =
+    document.getElementById("authScreen");
+
+  const authMessage =
+    document.getElementById("authMessage");
+
+  const emailInput =
+    document.getElementById("emailInput");
+
+  const passwordInput =
+    document.getElementById("passwordInput");
+
+  /* =========================
+     GOOGLE LOGIN
+  ========================= */
+
+  document
+    .getElementById("googleLogin")
+    .addEventListener("click", async () => {
+
+      try {
+        await signInWithPopup(
+          auth,
+          provider
+        );
+
+      } catch (error) {
+        console.error(error);
+
+        authMessage.textContent =
+          error.message;
+      }
+    });
+
+  /* =========================
+     EMAIL LOGIN
+  ========================= */
+
+  document
+    .getElementById("emailLogin")
+    .addEventListener("click", async () => {
+
+      const email =
+        emailInput.value.trim();
+
+      const password =
+        passwordInput.value;
+
+      if (!email || !password) {
+        authMessage.textContent =
+          "Enter your email and password.";
+        return;
+      }
+
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+      } catch (error) {
+        console.error(error);
+
+        authMessage.textContent =
+          error.message;
+      }
+    });
+
+  /* =========================
+     CREATE ACCOUNT
+  ========================= */
+
+  document
+    .getElementById("createAccount")
+    .addEventListener("click", async () => {
+
+      const email =
+        emailInput.value.trim();
+
+      const password =
+        passwordInput.value;
+
+      if (!email || !password) {
+        authMessage.textContent =
+          "Enter an email and password.";
+        return;
+      }
+
+      if (password.length < 6) {
+        authMessage.textContent =
+          "Password must be at least 6 characters.";
+        return;
+      }
+
+      try {
+        await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+      } catch (error) {
+        console.error(error);
+
+        authMessage.textContent =
+          error.message;
+      }
+    });
+
+  /* =========================
+     LOGIN STATE
+  ========================= */
+
+  onAuthStateChanged(
+    auth,
+    user => {
+
+      if (user) {
+
+        console.log(
+          "Zed AI user:",
+          user.uid,
+          user.email
+        );
+
+        authScreen.style.display =
+          "none";
+
+        /*
+          Your existing Zed AI
+          application remains visible.
+        */
+
+      } else {
+
+        authScreen.style.display =
+          "flex";
+      }
+    }
+  );
+
+  /* =========================
+     MAKE LOGOUT AVAILABLE
+  ========================= */
+
+  window.zedLogout = async function () {
+    await signOut(auth);
+  };
+
+  /*
+     Make the logged-in user's
+     Firebase UID available to
+     the existing Zed AI code.
+  */
+
+  window.getZedUser = function () {
+    return auth.currentUser;
+  };
+</script>
+  
+  /* =========================
+   ZED AI AUTH SCREEN
+========================= */
+
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b0b0f;
+}
+
+.auth-box {
+  width: min(420px, 90%);
+  padding: 32px;
+  border-radius: 20px;
+  background: #15151c;
+  border: 1px solid #292933;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+
+.auth-box h1 {
+  margin-bottom: 8px;
+}
+
+.auth-box p {
+  color: #999;
+  margin-bottom: 24px;
+}
+
+.auth-box input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid #333;
+  background: #0f0f14;
+  color: white;
+  outline: none;
+}
+
+.google-login,
+.auth-button {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.google-login {
+  background: white;
+  color: #111;
+}
+
+.auth-button {
+  background: #ffffff;
+  color: #111;
+}
+
+.auth-button.secondary {
+  background: #292933;
+  color: white;
+}
+
+.auth-divider {
+  margin: 18px 0;
+  color: #777;
+}
+
+#authMessage {
+  color: #ff7070;
+  font-size: 13px;
+  margin-top: 10px;
+}
 </html>

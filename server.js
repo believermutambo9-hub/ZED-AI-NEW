@@ -28,7 +28,35 @@ app.get("/health", (_req, res) => {
     geminiModel
   });
 });
+app.post("/api/memory", (req, res) => {
+  const userId =
+    typeof req.body?.userId === "string"
+      ? req.body.userId.trim()
+      : "";
 
+  const text =
+    typeof req.body?.text === "string"
+      ? req.body.text.trim()
+      : "";
+
+  if (!userId || !text) {
+    return res.status(400).json({
+      error: "Memory information is missing."
+    });
+  }
+
+  const memories =
+    memory.get(userId) || [];
+
+  memories.push(text);
+
+  memory.set(userId, memories);
+
+  return res.json({
+    ok: true,
+    memories
+  });
+});
 /* =========================
    OPENROUTER BACKUP
 ========================= */

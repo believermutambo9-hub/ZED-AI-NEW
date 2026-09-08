@@ -330,10 +330,18 @@ const conversation =
   Array.isArray(req.body?.conversation)
     ? req.body.conversation
     : [];
-    const userId =
+   const userId =
   typeof req.body?.userId === "string"
     ? req.body.userId.trim()
     : "";
+
+const clientMemories =
+  Array.isArray(req.body?.memories)
+    ? req.body.memories
+        .filter(item => typeof item === "string")
+        .map(item => item.trim())
+        .filter(Boolean)
+    : [];
     if (!message) {
       return res.status(400).json({
         error: "Please enter a message."

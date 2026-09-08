@@ -282,10 +282,16 @@ const conversation =
 
     if (geminiKey) {
       try {
-        const gemini = await askGemini(
-          message,
-          geminiKey
-        );
+    const gemini = await askGemini(
+  [
+    ...conversation,
+    {
+      role: "user",
+      text: message
+    }
+  ],
+  geminiKey
+);    
 
         if (gemini.response.ok) {
           const reply =

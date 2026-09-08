@@ -74,7 +74,7 @@ async function askOpenRouter(message, apiKey) {
    GEMINI
 ========================= */
 
-async function askGemini(message, apiKey) {
+async function askGemini(messages, apiKey) {
   const endpoint =
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`;
 
@@ -91,22 +91,21 @@ async function askGemini(message, apiKey) {
             text:
               "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
               "Give clear, practical and accurate answers. " +
+              "Remember and use the previous messages in the conversation. " +
               "When relevant, understand that the user may be in Zambia and use " +
               "Zambian context, currency (ZMW/Kwacha), and everyday examples. " +
               "Do not claim to be human."
           }
         ]
       },
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: message
-            }
-          ]
-        }
-      ]
+      contents: messages.map(message => ({
+        role: message.role === "assistant" ? "model" : "user",
+        parts: [
+          {
+            text: message.text
+          }
+        ]
+      }))
     })
   });
 
@@ -117,7 +116,6 @@ async function askGemini(message, apiKey) {
     data
   };
 }
-
 
 /* =========================
    GROQ BACKUP

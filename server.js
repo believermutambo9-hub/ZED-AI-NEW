@@ -340,9 +340,7 @@ const clientMemories =
     if (geminiKey) {
       try {
     const savedMemories =
-  userId
-    ? memory.get(userId) || []
-    : [];
+  clientMemories;
 
 const gemini = await askGemini(
   [

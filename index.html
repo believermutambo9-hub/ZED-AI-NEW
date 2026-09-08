@@ -575,7 +575,12 @@ const USER_ID_KEY = "zed_ai_user_id";
 
 let userId =
   localStorage.getItem(USER_ID_KEY);
+const MEMORY_KEY = "zed_ai_memories";
 
+let memories =
+  JSON.parse(
+    localStorage.getItem(MEMORY_KEY) || "[]"
+  );
 if (!userId) {
   userId =
     "user_" +

@@ -33,7 +33,25 @@ app.post("/api/memory", (req, res) => {
     typeof req.body?.userId === "string"
       ? req.body.userId.trim()
       : "";
+if (
+  userId &&
+  /^remember\b/i.test(message)
+) {
+  const memoryText =
+    message.replace(
+      /^remember\b\s*(that)?\s*/i,
+      ""
+    ).trim();
 
+  if (memoryText) {
+    const memories =
+      memory.get(userId) || [];
+
+    memories.push(memoryText);
+
+    memory.set(userId, memories);
+  }
+}
   const text =
     typeof req.body?.text === "string"
       ? req.body.text.trim()

@@ -1314,10 +1314,11 @@ async function sendMessage(){
             "Content-Type":"application/json"
           },
 
-    body:JSON.stringify({
+ body:JSON.stringify({
   message:text,
   conversation:messages,
-  userId:userId
+  userId:userId,
+  memories:memories
 })
         }
       );

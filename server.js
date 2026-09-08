@@ -312,6 +312,10 @@ const conversation =
   Array.isArray(req.body?.conversation)
     ? req.body.conversation
     : [];
+    const userId =
+  typeof req.body?.userId === "string"
+    ? req.body.userId.trim()
+    : "";
     if (!message) {
       return res.status(400).json({
         error: "Please enter a message."

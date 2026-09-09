@@ -2734,8 +2734,33 @@ if (!auth) {
   renderHistory();
 
 }
+<button onclick="testGeminiInteractions()">
+  Test Gemini
+</button>
 
+<script>
+async function testGeminiInteractions() {
+  try {
+    const response = await fetch("/api/gemini-test", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "Hello Zed AI. Reply with exactly: Gemini test successful."
+      })
+    });
+
+    const data = await response.json();
+
+    console.log("Gemini test result:", data);
+    alert(data.text || data.error || "No response");
+  } catch (error) {
+    console.error(error);
+    alert("Test failed: " + error.message);
+  }
+}
 </script>
-
+  
 </body>
 </html>

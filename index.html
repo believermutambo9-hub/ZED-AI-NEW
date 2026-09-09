@@ -2169,214 +2169,178 @@ if (SpeechRecognition) {
    SEND MESSAGE
 ========================================= */
 
-async function sendMessage() {
+async function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
 
-  const text =
-    input.value.trim();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () =>
+      reject(new Error("Could not read the selected file."));
+
+    reader.readAsDataURL(file);
+  });
+}
+
+async function sendMessage() {
+  const text = input.value.trim();
 
   if (!text && !selectedFile) {
-
     return;
-
   }
 
+  const fileToSend = selectedFile;
 
-  let displayText =
-    text;
+  let displayText = text;
 
-
-  if (selectedFile) {
-
+  if (fileToSend) {
     if (displayText) {
-
-      displayText +=
-        "\n\n📎 " +
-        selectedFile.name;
-
+      displayText += "\n\n📎 " + fileToSend.name;
     } else {
-
-      displayText =
-        "📎 " +
-        selectedFile.name;
-
+      displayText = "📎 " + fileToSend.name;
     }
-
   }
-
 
   messages.push({
-
     role: "user",
-
-    content:
-      displayText
-
+    content: displayText
   });
-
 
   addMessageToScreen(
     "user",
     displayText
   );
 
-
-  input.value =
-    "";
-
-  input.style.height =
-    "auto";
+  input.value = "";
+  input.style.height = "auto";
 
   scrollToBottom();
 
+  status.textContent = fileToSend
+    ? "Preparing your file..."
+    : "Zed AI is thinking...";
 
-  status.textContent =
-    selectedFile
-      ? "Preparing your file..."
-      : "Zed AI is thinking...";
-
-
-  send.disabled =
-    true;
-
-
-  /*
-     FILE READING WILL BE CONNECTED
-     TO server.js IN THE NEXT UPDATE.
-  */
-
-  if (selectedFile) {
-
-    status.textContent =
-      "File attached. The AI file-reading connection will be added in the next server update.";
-
-    messages.push({
-
-      role: "assistant",
-
-      content:
-        "I can see that you attached " +
-        selectedFile.name +
-        ". The file-reading connection is ready to be connected to the AI backend."
-
-    });
-
-    addMessageToScreen(
-      "assistant",
-      "I can see that you attached " +
-      selectedFile.name +
-      ". The file-reading connection is ready to be connected to the AI backend."
-    );
-
-    saveCurrentChat();
-
-    selectedFile =
-      null;
-
-    photoInput.value =
-      "";
-
-    fileInput.value =
-      "";
-
-    filePreview.classList.remove(
-      "show"
-    );
-
-    send.disabled =
-      false;
-
-    status.textContent =
-      "";
-
-    return;
-
-  }
-
+  send.disabled = true;
 
   try {
+    let filePayload = null;
 
-    const response =
-      await fetch(
-        "/api/chat",
-        {
-          method: "POST",
+    if (fileToSend) {
+      const maxFileSize = 15 * 1024 * 1024;
 
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
+      const allowedTypes = [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif"
+      ];
 
-          body: JSON.stringify({
+      if (fileToSend.size > maxFileSize) {
+        throw new Error(
+          "The file is too large. Maximum size is 15 MB."
+        );
+      }
 
-            message: text,
+      if (!allowedTypes.includes(fileToSend.type)) {
+        throw new Error(
+          "Zed AI currently supports JPG, PNG, WEBP, GIF images and PDF files."
+        );
+      }
 
-            userId,
+      status.textContent =
+        "Reading " + fileToSend.name + "...";
 
-            memories
+      const dataUrl =
+        await readFileAsDataURL(fileToSend);
 
-          })
+      filePayload = {
+        name: fileToSend.name,
+        mimeType: fileToSend.type,
+        data: dataUrl
+      };
+    }
 
-        }
-      );
+    status.textContent =
+      fileToSend
+        ? "Zed AI is analyzing your file..."
+        : "Zed AI is thinking...";
 
+    const response = await fetch(
+      "/api/chat",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          message: text,
+          userId,
+          memories,
+
+          conversation:
+            messages
+              .slice(0, -1)
+              .map(message => ({
+                role: message.role,
+                text: message.content
+              })),
+
+          file: filePayload
+        })
+      }
+    );
 
     const data =
       await response.json();
 
-
     if (!response.ok) {
-
       throw new Error(
         data.error ||
         "Request failed."
       );
-
     }
-
 
     const reply =
       data.reply ||
       data.message ||
       "I couldn't generate a response.";
 
-
     messages.push({
-
       role: "assistant",
-
-      content:
-        reply
-
+      content: reply
     });
-
 
     addMessageToScreen(
       "assistant",
       reply
     );
 
-
     saveCurrentChat();
 
+    if (fileToSend) {
+      selectedFile = null;
+
+      photoInput.value = "";
+      fileInput.value = "";
+
+      filePreview.classList.remove(
+        "show"
+      );
+    }
 
   } catch (error) {
-
     console.error(error);
 
-
     const errorMessage =
+      error.message ||
       "Sorry, something went wrong. Please try again.";
 
-
     messages.push({
-
       role: "assistant",
-
-      content:
-        errorMessage
-
+      content: errorMessage
     });
-
 
     addMessageToScreen(
       "assistant",
@@ -2384,17 +2348,12 @@ async function sendMessage() {
     );
 
   } finally {
+    status.textContent = "";
 
-    status.textContent =
-      "";
-
-    send.disabled =
-      false;
+    send.disabled = false;
 
     scrollToBottom();
-
   }
-
 }
 
 

@@ -479,14 +479,23 @@ import {
   WITH YOUR FIREBASE PROJECT VALUES.
 */
 
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyD1jcmrhZK_XitZu-9Wa9whFB7BJZn0Wa8",
+  authDomain: "zed-ai-6d201.firebaseapp.com",
+  projectId: "zed-ai-6d201",
+  storageBucket: "zed-ai-6d201.firebasestorage.app",
+  messagingSenderId: "538225665227",
+  appId: "1:538225665227:web:d61483c3cafa8e4694e74e"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
 
 const firebaseConfigured =

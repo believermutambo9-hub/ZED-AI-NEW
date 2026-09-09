@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -61,6 +62,69 @@ input {
   margin-bottom: 10px;
   color: #aaa;
   font-size: 13px;
+}
+
+/* ACCOUNT */
+.account-box {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #242424;
+  border: 1px solid #333;
+  border-radius: 10px;
+  display: none;
+}
+
+.account-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.user-photo {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #444;
+}
+
+.account-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.user-name {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  color: #999;
+  font-size: 12px;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px solid #444;
+  background: transparent;
+  color: #aaa;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #303030;
+  color: white;
 }
 
 .history {
@@ -280,16 +344,6 @@ input {
   font-size: 13px;
 }
 
-.logout-button {
-  margin-top: 10px;
-  padding: 8px 12px;
-  border: 1px solid #444;
-  background: transparent;
-  color: #aaa;
-  border-radius: 7px;
-  cursor: pointer;
-}
-
 /* MOBILE */
 @media (max-width: 700px) {
   .sidebar {
@@ -332,6 +386,52 @@ input {
     </button>
 
     <div class="sidebar-title">
+      Account
+    </div>
+
+    <!-- ACCOUNT INFORMATION -->
+    <div class="account-box" id="accountBox">
+
+      <div class="account-info">
+
+        <img
+          id="userPhoto"
+          class="user-photo"
+          src=""
+          alt="Profile"
+        >
+
+        <div class="account-details">
+
+          <div
+            id="userName"
+            class="user-name"
+          >
+            User
+          </div>
+
+          <div
+            id="userEmail"
+            class="user-email"
+          >
+            Email
+          </div>
+
+        </div>
+
+      </div>
+
+      <button
+        id="logoutButton"
+        class="logout-button"
+        type="button"
+      >
+        Log out
+      </button>
+
+    </div>
+
+    <div class="sidebar-title">
       Recent chats
     </div>
 
@@ -344,18 +444,30 @@ input {
 
     <header class="header">
 
-      <button class="menu" id="menu">
+      <button
+        class="menu"
+        id="menu"
+      >
         ☰
       </button>
 
-      <div class="header-title" id="headerTitle">
+      <div
+        class="header-title"
+        id="headerTitle"
+      >
         Zed AI
       </div>
 
     </header>
 
-    <section class="chat" id="chat">
-      <div class="chat-content" id="chatContent"></div>
+    <section
+      class="chat"
+      id="chat"
+    >
+      <div
+        class="chat-content"
+        id="chatContent"
+      ></div>
     </section>
 
   </main>
@@ -379,23 +491,34 @@ input {
       class="send"
       type="button"
       title="Create image"
-    >🎨</button>
+    >
+      🎨
+    </button>
 
     <button
       id="send"
       class="send"
       type="button"
       title="Send message"
-    >↑</button>
+    >
+      ↑
+    </button>
 
   </div>
 
-  <div class="status" id="status"></div>
+  <div
+    class="status"
+    id="status"
+  ></div>
 
 </div>
 
 <!-- LOGIN SCREEN -->
-<div id="authScreen" class="auth-screen" style="display:none;">
+<div
+  id="authScreen"
+  class="auth-screen"
+  style="display:none;"
+>
 
   <div class="auth-box">
 
@@ -449,7 +572,10 @@ input {
       Create account
     </button>
 
-    <div id="authMessage" class="auth-message"></div>
+    <div
+      id="authMessage"
+      class="auth-message"
+    ></div>
 
   </div>
 
@@ -471,7 +597,8 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  onAuthStateChanged
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 
@@ -480,7 +607,7 @@ import {
 ========================================= */
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD1jcmrhZK_XitZu-9Wa9whFB7BJZn0Wa8",
+  apiKey: "AIzaSyD1j1jcmrhZK_XitZu-9Wa9whFB7BJZn0Wa8",
   authDomain: "zed-ai-6d201.firebaseapp.com",
   projectId: "zed-ai-6d201",
   storageBucket: "zed-ai-6d201.firebasestorage.app",
@@ -574,6 +701,21 @@ const password =
 const authMessage =
   document.getElementById("authMessage");
 
+const accountBox =
+  document.getElementById("accountBox");
+
+const userPhoto =
+  document.getElementById("userPhoto");
+
+const userName =
+  document.getElementById("userName");
+
+const userEmail =
+  document.getElementById("userEmail");
+
+const logoutButton =
+  document.getElementById("logoutButton");
+
 
 /* =========================================
    STORAGE
@@ -588,10 +730,8 @@ const USER_ID_KEY =
 const MEMORY_KEY =
   "zed_ai_memories";
 
-
 let userId =
   localStorage.getItem(USER_ID_KEY);
-
 
 if (!userId) {
 
@@ -609,14 +749,65 @@ if (!userId) {
 
 }
 
-
 let memories =
   JSON.parse(
     localStorage.getItem(MEMORY_KEY) || "[]"
   );
 
-
 let messages = [];
+
+
+/* =========================================
+   ACCOUNT DISPLAY
+========================================= */
+
+function showAccount(user) {
+
+  if (!user) {
+    accountBox.style.display = "none";
+    return;
+  }
+
+  accountBox.style.display = "block";
+
+  userName.textContent =
+    user.displayName ||
+    "Zed AI User";
+
+  userEmail.textContent =
+    user.email ||
+    "";
+
+  if (user.photoURL) {
+
+    userPhoto.src =
+      user.photoURL;
+
+  } else {
+
+    userPhoto.src =
+      "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/person.svg";
+
+  }
+
+}
+
+
+function hideAccount() {
+
+  accountBox.style.display =
+    "none";
+
+  userPhoto.src =
+    "";
+
+  userName.textContent =
+    "User";
+
+  userEmail.textContent =
+    "";
+
+}
 
 
 /* =========================================
@@ -647,10 +838,14 @@ if (!firebaseConfigured) {
           user.uid
         );
 
+        showAccount(user);
+
       } else {
 
         authScreen.style.display =
           "flex";
+
+        hideAccount();
 
       }
 
@@ -658,6 +853,51 @@ if (!firebaseConfigured) {
   );
 
 }
+
+
+/* =========================================
+   LOGOUT
+========================================= */
+
+logoutButton.addEventListener(
+  "click",
+  async () => {
+
+    if (!auth) {
+      return;
+    }
+
+    try {
+
+      await signOut(auth);
+
+      messages = [];
+
+      chatContent.innerHTML = "";
+
+      input.value = "";
+
+      headerTitle.textContent =
+        "Zed AI";
+
+      sidebar.classList.remove(
+        "open"
+      );
+
+      authMessage.textContent = "";
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert(
+        "Could not log out. Please try again."
+      );
+
+    }
+
+  }
+);
 
 
 /* =========================================
@@ -723,7 +963,6 @@ loginButton.addEventListener(
     const userPassword =
       password.value;
 
-
     if (!userEmail || !userPassword) {
 
       authMessage.textContent =
@@ -732,7 +971,6 @@ loginButton.addEventListener(
       return;
 
     }
-
 
     try {
 
@@ -781,7 +1019,6 @@ createButton.addEventListener(
     const userPassword =
       password.value;
 
-
     if (!userEmail || !userPassword) {
 
       authMessage.textContent =
@@ -791,7 +1028,6 @@ createButton.addEventListener(
 
     }
 
-
     if (userPassword.length < 6) {
 
       authMessage.textContent =
@@ -800,7 +1036,6 @@ createButton.addEventListener(
       return;
 
     }
-
 
     try {
 
@@ -869,7 +1104,6 @@ function saveCurrentChat() {
       ? firstUserMessage.content
       : "New chat";
 
-
   chats.unshift({
 
     id: Date.now(),
@@ -881,7 +1115,6 @@ function saveCurrentChat() {
       messages
 
   });
-
 
   saveChats(
     chats.slice(0, 30)
@@ -903,7 +1136,6 @@ function renderHistory() {
   const chats =
     getChats();
 
-
   chats.forEach(savedChat => {
 
     const item =
@@ -914,7 +1146,6 @@ function renderHistory() {
 
     item.textContent =
       savedChat.title;
-
 
     item.addEventListener(
       "click",
@@ -931,7 +1162,6 @@ function renderHistory() {
 
       }
     );
-
 
     history.appendChild(item);
 
@@ -974,27 +1204,22 @@ function addMessageToScreen(
     "message " +
     role;
 
-
   const bubble =
     document.createElement("div");
 
   bubble.className =
     "message-bubble";
 
-
   bubble.textContent =
     text;
-
 
   wrapper.appendChild(
     bubble
   );
 
-
   chatContent.appendChild(
     wrapper
   );
-
 
   chat.scrollTop =
     chat.scrollHeight;
@@ -1015,7 +1240,6 @@ newChatButton.addEventListener(
       saveCurrentChat();
 
     }
-
 
     messages = [];
 
@@ -1043,11 +1267,9 @@ async function sendMessage() {
   const text =
     input.value.trim();
 
-
   if (!text) {
     return;
   }
-
 
   messages.push({
 
@@ -1057,12 +1279,10 @@ async function sendMessage() {
 
   });
 
-
   addMessageToScreen(
     "user",
     text
   );
-
 
   input.value = "";
 
@@ -1070,7 +1290,6 @@ async function sendMessage() {
 
   status.textContent =
     "Zed AI is thinking...";
-
 
   try {
 
@@ -1105,10 +1324,8 @@ async function sendMessage() {
 
       });
 
-
     const data =
       await response.json();
-
 
     if (!response.ok) {
 
@@ -1119,12 +1336,10 @@ async function sendMessage() {
 
     }
 
-
     const reply =
       data.reply ||
       data.message ||
       "I couldn't generate a response.";
-
 
     messages.push({
 
@@ -1134,24 +1349,19 @@ async function sendMessage() {
 
     });
 
-
     addMessageToScreen(
       "assistant",
       reply
     );
 
-
     status.textContent = "";
-
 
   } catch (error) {
 
     console.error(error);
 
-
     const errorMessage =
       "Sorry, something went wrong. Please try again.";
-
 
     messages.push({
 
@@ -1161,17 +1371,14 @@ async function sendMessage() {
 
     });
 
-
     addMessageToScreen(
       "assistant",
       errorMessage
     );
 
-
     status.textContent = "";
 
   }
-
 
   send.disabled = false;
 
@@ -1218,7 +1425,6 @@ imageButton.addEventListener(
     const prompt =
       input.value.trim();
 
-
     if (!prompt) {
 
       input.focus();
@@ -1226,7 +1432,6 @@ imageButton.addEventListener(
       return;
 
     }
-
 
     messages.push({
 
@@ -1238,13 +1443,11 @@ imageButton.addEventListener(
 
     });
 
-
     addMessageToScreen(
       "user",
       "Create an image: " +
       prompt
     );
-
 
     input.value = "";
 
@@ -1252,7 +1455,6 @@ imageButton.addEventListener(
 
     status.textContent =
       "Creating image...";
-
 
     try {
 
@@ -1284,10 +1486,8 @@ imageButton.addEventListener(
           }
         );
 
-
       const data =
         await response.json();
-
 
       if (!response.ok) {
 
@@ -1297,7 +1497,6 @@ imageButton.addEventListener(
         );
 
       }
-
 
       if (data.image) {
 
@@ -1309,7 +1508,6 @@ imageButton.addEventListener(
         wrapper.className =
           "message assistant";
 
-
         const bubble =
           document.createElement(
             "div"
@@ -1318,12 +1516,10 @@ imageButton.addEventListener(
         bubble.className =
           "message-bubble";
 
-
         const img =
           document.createElement(
             "img"
           );
-
 
         img.src =
           data.image;
@@ -1334,46 +1530,37 @@ imageButton.addEventListener(
         img.style.borderRadius =
           "12px";
 
-
         bubble.appendChild(
           img
         );
-
 
         wrapper.appendChild(
           bubble
         );
 
-
         chatContent.appendChild(
           wrapper
         );
-
 
         chat.scrollTop =
           chat.scrollHeight;
 
       }
 
-
       status.textContent = "";
-
 
     } catch (error) {
 
       console.error(error);
-
 
       addMessageToScreen(
         "assistant",
         "Sorry, I couldn't create that image."
       );
 
-
       status.textContent = "";
 
     }
-
 
     imageButton.disabled = false;
 
@@ -1407,3 +1594,4 @@ renderHistory();
 
 </body>
 </html>
+```

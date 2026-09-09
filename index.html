@@ -47,6 +47,7 @@ body {
   display: flex;
   flex-direction: column;
   border-right: 1px solid #303030;
+  z-index: 500;
 }
 
 .new-chat {
@@ -210,7 +211,7 @@ body {
 .chat-content {
   max-width: 850px;
   margin: 0 auto;
-  padding: 25px 18px 120px;
+  padding: 25px 18px 150px;
 }
 
 .message {
@@ -241,7 +242,7 @@ body {
 }
 
 /* =========================
-   COMPOSER
+   COMPOSER AREA
 ========================= */
 
 .composer-area {
@@ -252,20 +253,83 @@ body {
   padding: 12px 18px 16px;
   background: linear-gradient(
     to top,
-    #212121 70%,
+    #212121 72%,
     rgba(33, 33, 33, 0)
   );
+  z-index: 100;
 }
 
 .composer {
   max-width: 850px;
   margin: 0 auto;
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
+  position: relative;
+}
+
+/* =========================
+   FILE PREVIEW
+========================= */
+
+.file-preview {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 9px 12px;
   background: #303030;
   border: 1px solid #444;
-  border-radius: 14px;
+  border-radius: 10px;
+}
+
+.file-preview.show {
+  display: flex;
+}
+
+.file-preview-icon {
+  font-size: 20px;
+}
+
+.file-preview-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.file-preview-name {
+  font-size: 13px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-preview-type {
+  color: #888;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.remove-file {
+  border: none;
+  background: transparent;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.remove-file:hover {
+  color: #fff;
+}
+
+/* =========================
+   COMPOSER BOX
+========================= */
+
+.composer-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+  background: #303030;
+  border: 1px solid #444;
+  border-radius: 15px;
   padding: 8px;
 }
 
@@ -280,27 +344,150 @@ body {
   line-height: 1.4;
   padding: 8px;
   max-height: 150px;
+  min-height: 40px;
 }
 
 .input::placeholder {
   color: #999;
 }
 
-.send {
+/* =========================
+   COMPOSER BUTTONS
+========================= */
+
+.composer-button {
   width: 40px;
   height: 40px;
+  min-width: 40px;
   border: none;
-  border-radius: 9px;
+  border-radius: 10px;
+  background: transparent;
+  color: #ddd;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.composer-button:hover {
+  background: #444;
+}
+
+.composer-button.listening {
+  background: #555;
+  color: #fff;
+  animation: pulse 1s infinite;
+}
+
+.send {
   background: #fff;
   color: #111;
-  cursor: pointer;
-  font-size: 18px;
-  flex-shrink: 0;
+  font-size: 19px;
 }
 
 .send:hover {
-  opacity: 0.85;
+  background: #eee;
 }
+
+.send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* =========================
+   ATTACH MENU
+========================= */
+
+.attach-menu {
+  position: absolute;
+  left: 0;
+  bottom: 64px;
+  width: 215px;
+  padding: 7px;
+  background: #2b2b2b;
+  border: 1px solid #444;
+  border-radius: 13px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+  display: none;
+}
+
+.attach-menu.show {
+  display: block;
+  animation: menuIn 0.15s ease;
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.attach-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+}
+
+.attach-option:hover {
+  background: #3a3a3a;
+}
+
+.attach-icon {
+  width: 25px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.attach-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.attach-label strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.attach-label span {
+  color: #888;
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+/* =========================
+   STATUS
+========================= */
 
 .status {
   max-width: 850px;
@@ -405,7 +592,6 @@ body {
     left: -270px;
     top: 0;
     bottom: 0;
-    z-index: 500;
     transition: left 0.2s ease;
   }
 
@@ -434,6 +620,11 @@ body {
 
   .auth-box {
     padding: 24px 20px;
+  }
+
+  .attach-menu {
+    left: 0;
+    bottom: 64px;
   }
 }
 </style>
@@ -469,6 +660,7 @@ body {
         >
 
         <div class="account-details">
+
           <div id="userName" class="user-name">
             User
           </div>
@@ -476,6 +668,7 @@ body {
           <div id="userEmail" class="user-email">
             email
           </div>
+
         </div>
 
       </div>
@@ -531,32 +724,174 @@ body {
 
       <div class="composer">
 
-        <textarea
-          id="input"
-          class="input"
-          rows="1"
-          placeholder="Message Zed AI..."
-        ></textarea>
-
-        <button
-          id="imageButton"
-          class="send"
-          type="button"
-          title="Create image"
+        <!-- FILE PREVIEW -->
+        <div
+          class="file-preview"
+          id="filePreview"
         >
-          🎨
-        </button>
 
-        <button
-          id="send"
-          class="send"
-          type="button"
-          title="Send message"
+          <div
+            class="file-preview-icon"
+            id="filePreviewIcon"
+          >
+            📄
+          </div>
+
+          <div class="file-preview-info">
+
+            <div
+              class="file-preview-name"
+              id="filePreviewName"
+            >
+              File
+            </div>
+
+            <div
+              class="file-preview-type"
+              id="filePreviewType"
+            >
+              Ready to send
+            </div>
+
+          </div>
+
+          <button
+            class="remove-file"
+            id="removeFile"
+            type="button"
+            title="Remove file"
+          >
+            ×
+          </button>
+
+        </div>
+
+
+        <!-- ATTACH MENU -->
+        <div
+          class="attach-menu"
+          id="attachMenu"
         >
-          ↑
-        </button>
+
+          <button
+            class="attach-option"
+            id="photoOption"
+            type="button"
+          >
+
+            <span class="attach-icon">
+              📷
+            </span>
+
+            <span class="attach-label">
+              <strong>Upload photo</strong>
+              <span>JPG, PNG, WEBP and more</span>
+            </span>
+
+          </button>
+
+
+          <button
+            class="attach-option"
+            id="fileOption"
+            type="button"
+          >
+
+            <span class="attach-icon">
+              📄
+            </span>
+
+            <span class="attach-label">
+              <strong>Upload file</strong>
+              <span>PDF and supported files</span>
+            </span>
+
+          </button>
+
+
+          <button
+            class="attach-option"
+            id="createImageOption"
+            type="button"
+          >
+
+            <span class="attach-icon">
+              🎨
+            </span>
+
+            <span class="attach-label">
+              <strong>Create image</strong>
+              <span>Generate an image with AI</span>
+            </span>
+
+          </button>
+
+        </div>
+
+
+        <div class="composer-box">
+
+          <!-- PLUS -->
+          <button
+            id="attachButton"
+            class="composer-button"
+            type="button"
+            title="Attach"
+          >
+            ＋
+          </button>
+
+
+          <!-- INPUT -->
+          <textarea
+            id="input"
+            class="input"
+            rows="1"
+            placeholder="Message Zed AI..."
+          ></textarea>
+
+
+          <!-- MICROPHONE -->
+          <button
+            id="micButton"
+            class="composer-button"
+            type="button"
+            title="Voice input"
+          >
+            🎤
+          </button>
+
+
+          <!-- SEND -->
+          <button
+            id="send"
+            class="composer-button send"
+            type="button"
+            title="Send message"
+          >
+            ↑
+          </button>
+
+        </div>
 
       </div>
+
+
+      <!-- HIDDEN FILE INPUTS -->
+      <input
+        id="photoInput"
+        type="file"
+        accept="image/*"
+        style="display:none;"
+      >
+
+      <input
+        id="fileInput"
+        type="file"
+        accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
+        style="display:none;"
+      >
+
 
       <div
         class="status"
@@ -671,7 +1006,7 @@ import {
 
 /* =========================================
    FIREBASE CONFIG
-   DO NOT CHANGE THESE VALUES
+   DO NOT CHANGE
 ========================================= */
 
 const firebaseConfig = {
@@ -702,7 +1037,8 @@ if (firebaseConfigured) {
   const firebaseApp =
     initializeApp(firebaseConfig);
 
-  auth = getAuth(firebaseApp);
+  auth =
+    getAuth(firebaseApp);
 
   googleProvider =
     new GoogleAuthProvider();
@@ -756,8 +1092,44 @@ const input =
 const send =
   document.getElementById("send");
 
-const imageButton =
-  document.getElementById("imageButton");
+const micButton =
+  document.getElementById("micButton");
+
+const attachButton =
+  document.getElementById("attachButton");
+
+const attachMenu =
+  document.getElementById("attachMenu");
+
+const photoOption =
+  document.getElementById("photoOption");
+
+const fileOption =
+  document.getElementById("fileOption");
+
+const createImageOption =
+  document.getElementById("createImageOption");
+
+const photoInput =
+  document.getElementById("photoInput");
+
+const fileInput =
+  document.getElementById("fileInput");
+
+const filePreview =
+  document.getElementById("filePreview");
+
+const filePreviewIcon =
+  document.getElementById("filePreviewIcon");
+
+const filePreviewName =
+  document.getElementById("filePreviewName");
+
+const filePreviewType =
+  document.getElementById("filePreviewType");
+
+const removeFile =
+  document.getElementById("removeFile");
 
 const chatContent =
   document.getElementById("chatContent");
@@ -818,6 +1190,8 @@ let memories =
 
 let messages = [];
 
+let selectedFile = null;
+
 
 /* =========================================
    AUTH MESSAGE
@@ -832,7 +1206,7 @@ function showAuthMessage(message) {
 
 
 /* =========================================
-   ACCOUNT DISPLAY
+   ACCOUNT
 ========================================= */
 
 function showAccount(user) {
@@ -1233,25 +1607,6 @@ function saveCurrentChat() {
 
 function loadChats() {
 
-  const chats =
-    getStoredChats();
-
-  const userChats =
-    chats.filter(
-      chat =>
-        chat.userId === userId
-    );
-
-  if (
-    userChats.length &&
-    messages.length === 0
-  ) {
-
-    // Do not automatically open the last chat.
-    // Keep a clean new chat screen.
-
-  }
-
   renderHistory();
 
 }
@@ -1391,6 +1746,426 @@ function scrollToBottom() {
 
 
 /* =========================================
+   ATTACH MENU
+========================================= */
+
+attachButton.addEventListener(
+  "click",
+  event => {
+
+    event.stopPropagation();
+
+    attachMenu.classList.toggle(
+      "show"
+    );
+
+  }
+);
+
+
+document.addEventListener(
+  "click",
+  event => {
+
+    if (
+      !attachMenu.contains(event.target) &&
+      event.target !== attachButton
+    ) {
+
+      attachMenu.classList.remove(
+        "show"
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   PHOTO UPLOAD
+========================================= */
+
+photoOption.addEventListener(
+  "click",
+  () => {
+
+    attachMenu.classList.remove(
+      "show"
+    );
+
+    photoInput.click();
+
+  }
+);
+
+
+/* =========================================
+   FILE UPLOAD
+========================================= */
+
+fileOption.addEventListener(
+  "click",
+  () => {
+
+    attachMenu.classList.remove(
+      "show"
+    );
+
+    fileInput.click();
+
+  }
+);
+
+
+/* =========================================
+   CREATE IMAGE
+========================================= */
+
+createImageOption.addEventListener(
+  "click",
+  () => {
+
+    attachMenu.classList.remove(
+      "show"
+    );
+
+    generateImage();
+
+  }
+);
+
+
+/* =========================================
+   HANDLE FILE
+========================================= */
+
+function handleSelectedFile(file) {
+
+  if (!file) {
+    return;
+  }
+
+  selectedFile =
+    file;
+
+  filePreview.classList.add(
+    "show"
+  );
+
+  filePreviewName.textContent =
+    file.name;
+
+  filePreviewType.textContent =
+    formatFileSize(file.size) +
+    " • Ready to send";
+
+  if (
+    file.type.startsWith("image/")
+  ) {
+
+    filePreviewIcon.textContent =
+      "📷";
+
+  } else if (
+    file.type === "application/pdf"
+  ) {
+
+    filePreviewIcon.textContent =
+      "📕";
+
+  } else {
+
+    filePreviewIcon.textContent =
+      "📄";
+
+  }
+
+  status.textContent =
+    "File attached. Ask Zed AI about it.";
+
+}
+
+
+/* =========================================
+   FILE INPUT EVENTS
+========================================= */
+
+photoInput.addEventListener(
+  "change",
+  () => {
+
+    handleSelectedFile(
+      photoInput.files[0]
+    );
+
+  }
+);
+
+
+fileInput.addEventListener(
+  "change",
+  () => {
+
+    handleSelectedFile(
+      fileInput.files[0]
+    );
+
+  }
+);
+
+
+/* =========================================
+   REMOVE FILE
+========================================= */
+
+removeFile.addEventListener(
+  "click",
+  () => {
+
+    selectedFile =
+      null;
+
+    photoInput.value =
+      "";
+
+    fileInput.value =
+      "";
+
+    filePreview.classList.remove(
+      "show"
+    );
+
+    status.textContent =
+      "";
+
+  }
+);
+
+
+/* =========================================
+   FILE SIZE
+========================================= */
+
+function formatFileSize(bytes) {
+
+  if (bytes < 1024) {
+
+    return bytes + " B";
+
+  }
+
+  if (bytes < 1024 * 1024) {
+
+    return (
+      (bytes / 1024)
+        .toFixed(1) +
+      " KB"
+    );
+
+  }
+
+  return (
+    (bytes / (1024 * 1024))
+      .toFixed(1) +
+    " MB"
+  );
+
+}
+
+
+/* =========================================
+   VOICE INPUT
+========================================= */
+
+const SpeechRecognition =
+  window.SpeechRecognition ||
+  window.webkitSpeechRecognition;
+
+let recognition =
+  null;
+
+let isListening =
+  false;
+
+if (SpeechRecognition) {
+
+  recognition =
+    new SpeechRecognition();
+
+  recognition.continuous =
+    false;
+
+  recognition.interimResults =
+    true;
+
+  recognition.lang =
+    "en-US";
+
+
+  recognition.onstart =
+    () => {
+
+      isListening =
+        true;
+
+      micButton.classList.add(
+        "listening"
+      );
+
+      micButton.textContent =
+        "🔴";
+
+      status.textContent =
+        "Listening...";
+
+    };
+
+
+  recognition.onresult =
+    event => {
+
+      let finalText =
+        "";
+
+      let interimText =
+        "";
+
+      for (
+        let i = event.resultIndex;
+        i < event.results.length;
+        i++
+      ) {
+
+        const transcript =
+          event.results[i][0]
+            .transcript;
+
+        if (
+          event.results[i].isFinal
+        ) {
+
+          finalText +=
+            transcript;
+
+        } else {
+
+          interimText +=
+            transcript;
+
+        }
+
+      }
+
+      if (finalText) {
+
+        input.value =
+          (
+            input.value
+              ? input.value + " "
+              : ""
+          ) +
+          finalText;
+
+      }
+
+      input.style.height =
+        "auto";
+
+      input.style.height =
+        Math.min(
+          input.scrollHeight,
+          150
+        ) + "px";
+
+    };
+
+
+  recognition.onerror =
+    event => {
+
+      console.error(
+        "Speech recognition error:",
+        event.error
+      );
+
+      status.textContent =
+        "Voice input error. Please try again.";
+
+    };
+
+
+  recognition.onend =
+    () => {
+
+      isListening =
+        false;
+
+      micButton.classList.remove(
+        "listening"
+      );
+
+      micButton.textContent =
+        "🎤";
+
+      setTimeout(
+        () => {
+
+          if (!isListening) {
+
+            status.textContent =
+              "";
+
+          }
+
+        },
+        1500
+      );
+
+    };
+
+
+  micButton.addEventListener(
+    "click",
+    () => {
+
+      if (isListening) {
+
+        recognition.stop();
+
+        return;
+
+      }
+
+      try {
+
+        recognition.start();
+
+      } catch (error) {
+
+        console.error(error);
+
+      }
+
+    }
+  );
+
+} else {
+
+  micButton.addEventListener(
+    "click",
+    () => {
+
+      status.textContent =
+        "Voice input is not supported by this browser.";
+
+    }
+  );
+
+}
+
+
+/* =========================================
    SEND MESSAGE
 ========================================= */
 
@@ -1399,19 +2174,51 @@ async function sendMessage() {
   const text =
     input.value.trim();
 
-  if (!text) {
+  if (!text && !selectedFile) {
+
     return;
+
   }
 
+
+  let displayText =
+    text;
+
+
+  if (selectedFile) {
+
+    if (displayText) {
+
+      displayText +=
+        "\n\n📎 " +
+        selectedFile.name;
+
+    } else {
+
+      displayText =
+        "📎 " +
+        selectedFile.name;
+
+    }
+
+  }
+
+
   messages.push({
+
     role: "user",
-    content: text
+
+    content:
+      displayText
+
   });
+
 
   addMessageToScreen(
     "user",
-    text
+    displayText
   );
+
 
   input.value =
     "";
@@ -1421,11 +2228,70 @@ async function sendMessage() {
 
   scrollToBottom();
 
+
   status.textContent =
-    "Zed AI is thinking...";
+    selectedFile
+      ? "Preparing your file..."
+      : "Zed AI is thinking...";
+
 
   send.disabled =
     true;
+
+
+  /*
+     FILE READING WILL BE CONNECTED
+     TO server.js IN THE NEXT UPDATE.
+  */
+
+  if (selectedFile) {
+
+    status.textContent =
+      "File attached. The AI file-reading connection will be added in the next server update.";
+
+    messages.push({
+
+      role: "assistant",
+
+      content:
+        "I can see that you attached " +
+        selectedFile.name +
+        ". The file-reading connection is ready to be connected to the AI backend."
+
+    });
+
+    addMessageToScreen(
+      "assistant",
+      "I can see that you attached " +
+      selectedFile.name +
+      ". The file-reading connection is ready to be connected to the AI backend."
+    );
+
+    saveCurrentChat();
+
+    selectedFile =
+      null;
+
+    photoInput.value =
+      "";
+
+    fileInput.value =
+      "";
+
+    filePreview.classList.remove(
+      "show"
+    );
+
+    send.disabled =
+      false;
+
+    status.textContent =
+      "";
+
+    return;
+
+  }
+
 
   try {
 
@@ -1453,8 +2319,10 @@ async function sendMessage() {
         }
       );
 
+
     const data =
       await response.json();
+
 
     if (!response.ok) {
 
@@ -1465,32 +2333,40 @@ async function sendMessage() {
 
     }
 
+
     const reply =
       data.reply ||
       data.message ||
       "I couldn't generate a response.";
 
+
     messages.push({
 
       role: "assistant",
 
-      content: reply
+      content:
+        reply
 
     });
+
 
     addMessageToScreen(
       "assistant",
       reply
     );
 
+
     saveCurrentChat();
+
 
   } catch (error) {
 
     console.error(error);
 
+
     const errorMessage =
       "Sorry, something went wrong. Please try again.";
+
 
     messages.push({
 
@@ -1500,6 +2376,7 @@ async function sendMessage() {
         errorMessage
 
     });
+
 
     addMessageToScreen(
       "assistant",
@@ -1533,17 +2410,47 @@ async function generateImage() {
   if (!prompt) {
 
     status.textContent =
-      "Describe the image you want to create.";
+      "Describe the image you want to create first.";
+
+    input.focus();
 
     return;
 
   }
 
+
+  messages.push({
+
+    role: "user",
+
+    content:
+      "🎨 Create image: " +
+      prompt
+
+  });
+
+
+  addMessageToScreen(
+    "user",
+    "🎨 Create image: " +
+    prompt
+  );
+
+
+  input.value =
+    "";
+
+  input.style.height =
+    "auto";
+
+
   status.textContent =
     "Creating your image...";
 
-  imageButton.disabled =
+
+  send.disabled =
     true;
+
 
   try {
 
@@ -1569,8 +2476,10 @@ async function generateImage() {
         }
       );
 
+
     const data =
       await response.json();
+
 
     if (!response.ok) {
 
@@ -1581,21 +2490,26 @@ async function generateImage() {
 
     }
 
+
     const message =
       document.createElement(
         "div"
       );
 
+
     message.className =
       "message assistant";
+
 
     const bubble =
       document.createElement(
         "div"
       );
 
+
     bubble.className =
       "message-bubble";
+
 
     if (data.imageUrl) {
 
@@ -1620,12 +2534,14 @@ async function generateImage() {
         img
       );
 
+
     } else if (data.image) {
 
       const img =
         document.createElement(
           "img"
         );
+
 
       img.src =
         data.image.startsWith(
@@ -1634,6 +2550,7 @@ async function generateImage() {
           ? data.image
           : "data:image/png;base64," +
             data.image;
+
 
       img.style.maxWidth =
         "100%";
@@ -1644,9 +2561,11 @@ async function generateImage() {
       img.alt =
         "Generated image";
 
+
       bubble.appendChild(
         img
       );
+
 
     } else {
 
@@ -1655,39 +2574,56 @@ async function generateImage() {
 
     }
 
+
     message.appendChild(
       bubble
     );
+
 
     chatContent.appendChild(
       message
     );
 
-    input.value =
-      "";
+
+    saveCurrentChat();
 
     scrollToBottom();
+
 
   } catch (error) {
 
     console.error(error);
 
-    status.textContent =
+
+    const errorMessage =
       error.message ||
       "Image generation failed.";
 
+
+    messages.push({
+
+      role: "assistant",
+
+      content:
+        errorMessage
+
+    });
+
+
+    addMessageToScreen(
+      "assistant",
+      errorMessage
+    );
+
   } finally {
 
-    imageButton.disabled =
+    send.disabled =
       false;
 
-    setTimeout(
-      () => {
-        status.textContent =
-          "";
-      },
-      3000
-    );
+    status.textContent =
+      "";
+
+    scrollToBottom();
 
   }
 
@@ -1695,7 +2631,7 @@ async function generateImage() {
 
 
 /* =========================================
-   BUTTON EVENTS
+   SEND BUTTON
 ========================================= */
 
 send.addEventListener(
@@ -1704,11 +2640,9 @@ send.addEventListener(
 );
 
 
-imageButton.addEventListener(
-  "click",
-  generateImage
-);
-
+/* =========================================
+   ENTER TO SEND
+========================================= */
 
 input.addEventListener(
   "keydown",
@@ -1730,7 +2664,7 @@ input.addEventListener(
 
 
 /* =========================================
-   AUTO-RESIZE TEXTAREA
+   AUTO RESIZE
 ========================================= */
 
 input.addEventListener(
@@ -1770,6 +2704,11 @@ newChat.addEventListener(
 
     input.value =
       "";
+
+    input.style.height =
+      "auto";
+
+    removeFile.click();
 
     input.focus();
 

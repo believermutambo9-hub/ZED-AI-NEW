@@ -13,6 +13,9 @@ const port = process.env.PORT || 10000;
 const geminiModel =
   process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY
+});
 const MAX_FILE_SIZE = 15 * 1024 * 1024;
 
 const ALLOWED_FILE_TYPES = new Set([

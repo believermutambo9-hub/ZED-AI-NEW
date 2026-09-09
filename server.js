@@ -108,7 +108,14 @@ function systemPrompt(memoryText) {
     (memoryText || "No saved memories yet.")
   );
 }
+async function askGeminiNew(prompt) {
+  const response = await ai.models.generateContent({
+    model: geminiModel,
+    contents: prompt
+  });
 
+  return response.text;
+}
 /* =========================
    GEMINI CHAT + FILE ANALYSIS
 ========================= */

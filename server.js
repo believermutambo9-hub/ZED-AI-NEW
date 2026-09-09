@@ -508,7 +508,45 @@ app.post(
     }
   }
 );
+/* =========================
+   GEMINI INTERACTIONS TEST
+========================= */
 
+app.post("/api/gemini-test", async (req, res) => {
+  try {
+    const prompt =
+      typeof req.body?.message === "string"
+        ? req.body.message.trim()
+        : "";
+
+    if (!prompt) {
+      return res.status(400).json({
+        error: "Please enter a message."
+      });
+    }
+
+    const result = await ai.interactions.create({
+      model: geminiModel,
+      input: prompt
+    });
+
+    return res.json({
+      ok: true,
+      interactionId: result.id,
+      text: result.outputs
+        ?.filter(output => output.type === "text")
+        ?.map(output => output.text)
+        ?.join("") || ""
+    });
+
+  } catch (error) {
+    console.error("Gemini Interactions test error:", error);
+
+    return res.status(500).json({
+      error: error.message || "Gemini Interactions request failed."
+    });
+  }
+});
 /* =========================
    CHAT API
 ========================= */

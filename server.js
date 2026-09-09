@@ -13,7 +13,17 @@ const port = process.env.PORT || 10000;
 const geminiModel =
   process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
-app.use(express.json({ limit: "1mb" }));
+const MAX_FILE_SIZE = 15 * 1024 * 1024;
+
+const ALLOWED_FILE_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif"
+]);
+
+app.use(express.json({ limit: "20mb" }));
 app.use(express.static(__dirname));
 
 /* =========================
@@ -33,7 +43,8 @@ app.get("/health", (_req, res) => {
     ok: true,
     service: "zed-ai",
     provider: "gemini-with-groq-and-openrouter-fallback",
-    geminiModel
+    geminiModel,
+    fileAnalysis: true
   });
 });
 
@@ -58,10 +69,11 @@ app.post("/api/memory", (req, res) => {
     });
   }
 
-  const memories =
-    memory.get(userId) || [];
+  const memories = memory.get(userId) || [];
 
-  memories.push(text);
+  if (!memories.includes(text)) {
+    memories.push(text);
+  }
 
   memory.set(userId, memories);
 
@@ -72,76 +84,85 @@ app.post("/api/memory", (req, res) => {
 });
 
 /* =========================
-   OPENROUTER
+   GEMINI SYSTEM PROMPT
 ========================= */
 
-async function askOpenRouter(message, apiKey) {
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://zed-ai-h7h4.onrender.com",
-        "X-Title": "Zed AI"
-      },
-
-      body: JSON.stringify({
-        model: "openrouter/free",
-
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
-              "Always give clear, practical and accurate answers. " +
-              "Use simple English unless the user asks for technical detail. " +
-              "When relevant, understand that the user may be in Zambia and use " +
-              "Zambian context, ZMW/Kwacha, and everyday examples. " +
-              "Do not claim to be human."
-          },
-
-          {
-            role: "user",
-            content: message
-          }
-        ]
-      })
-    }
+function systemPrompt(memoryText) {
+  return (
+    "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
+    "Always explain things using simple, clear and easy-to-understand English. " +
+    "Avoid unnecessarily difficult words or technical language unless requested. " +
+    "When relevant, understand that the user may be in Zambia and use " +
+    "Zambian context, currency (ZMW/Kwacha), and everyday examples. " +
+    "You may communicate in a Zambian local language when appropriate, " +
+    "but never guess the user's local language. " +
+    "Do not claim to be human. " +
+    "When a user uploads an image or PDF, inspect the uploaded content " +
+    "carefully and answer based on the actual file. " +
+    "Do not pretend you analyzed a file if you could not process it.\n" +
+    "Saved memories:\n" +
+    (memoryText || "No saved memories yet.")
   );
-
-  const data = await response.json();
-
-  return {
-    response,
-    data
-  };
 }
 
 /* =========================
-   GEMINI
+   GEMINI CHAT + FILE ANALYSIS
 ========================= */
 
-async function askGemini(messages, apiKey) {
-  const memoryText =
-    messages
-      .filter(
-        message =>
-          message.role === "memory"
-      )
-      .map(
-        message =>
-          message.text
-      )
-      .join("\n");
+async function askGemini(
+  messages,
+  apiKey,
+  file = null
+) {
+  const memoryText = messages
+    .filter(message => message.role === "memory")
+    .map(message => message.text)
+    .join("\n");
 
-  const normalMessages =
-    messages.filter(
-      message =>
-        message.role !== "memory"
-    );
+  const normalMessages = messages.filter(
+    message => message.role !== "memory"
+  );
+
+  const contents = normalMessages.map(message => ({
+    role:
+      message.role === "assistant"
+        ? "model"
+        : "user",
+
+    parts: [
+      {
+        text: String(message.text || "")
+      }
+    ]
+  }));
+
+  /* =========================
+     ATTACH FILE
+  ========================= */
+
+  if (file) {
+    const base64Data = file.data
+      .replace(/^data:[^;]+;base64,/, "")
+      .replace(/\s/g, "");
+
+    const lastUserMessage =
+      [...contents]
+        .reverse()
+        .find(item => item.role === "user");
+
+    if (!lastUserMessage) {
+      throw new Error(
+        "Could not attach the uploaded file to the user message."
+      );
+    }
+
+    lastUserMessage.parts.push({
+      inline_data: {
+        mime_type: file.mimeType,
+        data: base64Data
+      }
+    });
+  }
 
   const endpoint =
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
@@ -162,39 +183,12 @@ async function askGemini(messages, apiKey) {
         systemInstruction: {
           parts: [
             {
-              text:
-                "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
-                "Always explain things using simple, clear and easy-to-understand English. " +
-                "Avoid unnecessarily difficult words, complicated sentences, or technical language " +
-                "unless the user asks for a detailed or technical explanation. " +
-                "When relevant, understand that the user may be in Zambia and use " +
-                "Zambian context, currency (ZMW/Kwacha), and everyday examples. " +
-                "You may communicate in a Zambian local language when appropriate, " +
-                "but never guess the user's local language. " +
-                "If the user's preferred language is not known and a local language would be useful, " +
-                "ask the user which language they prefer. " +
-                "Once the user tells you their preferred language, use it when appropriate. " +
-                "Do not claim to be human. " +
-                "Here are memories saved about the user:\n" +
-                (memoryText || "No saved memories yet.")
+              text: systemPrompt(memoryText)
             }
           ]
         },
 
-        contents: normalMessages.map(
-          message => ({
-            role:
-              message.role === "assistant"
-                ? "model"
-                : "user",
-
-            parts: [
-              {
-                text: message.text
-              }
-            ]
-          })
-        )
+        contents
       })
     }
   );
@@ -211,7 +205,10 @@ async function askGemini(messages, apiKey) {
    GROQ
 ========================= */
 
-async function askGroq(message, apiKey) {
+async function askGroq(
+  message,
+  apiKey
+) {
   const response = await fetch(
     "https://api.groq.com/openai/v1/chat/completions",
     {
@@ -231,9 +228,8 @@ async function askGroq(message, apiKey) {
             content:
               "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
               "Always give clear, practical and accurate answers. " +
-              "Use simple English unless the user asks for technical detail. " +
-              "When relevant, understand that the user may be in Zambia and use " +
-              "Zambian context, currency (ZMW/Kwacha), and everyday examples. " +
+              "Use simple English unless technical detail is requested. " +
+              "When relevant, use Zambian context, ZMW/Kwacha, and everyday examples. " +
               "Do not claim to be human."
           },
 
@@ -246,11 +242,59 @@ async function askGroq(message, apiKey) {
     }
   );
 
-  const data = await response.json();
+  return {
+    response,
+    data: await response.json()
+  };
+}
+
+/* =========================
+   OPENROUTER
+========================= */
+
+async function askOpenRouter(
+  message,
+  apiKey
+) {
+  const response = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer":
+          "https://zed-ai-h7h4.onrender.com",
+        "X-Title": "Zed AI"
+      },
+
+      body: JSON.stringify({
+        model: "openrouter/free",
+
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
+              "Always give clear, practical and accurate answers. " +
+              "Use simple English unless technical detail is requested. " +
+              "When relevant, use Zambian context, ZMW/Kwacha, and everyday examples. " +
+              "Do not claim to be human."
+          },
+
+          {
+            role: "user",
+            content: message
+          }
+        ]
+      })
+    }
+  );
 
   return {
     response,
-    data
+    data: await response.json()
   };
 }
 
@@ -289,11 +333,99 @@ async function generateGeminiImage(
     }
   );
 
-  const data = await response.json();
-
   return {
     response,
-    data
+    data: await response.json()
+  };
+}
+
+/* =========================
+   FILE VALIDATION
+========================= */
+
+function validateFile(file) {
+  if (!file || typeof file !== "object") {
+    return {
+      valid: false,
+      error:
+        "Uploaded file information is missing."
+    };
+  }
+
+  const name =
+    typeof file.name === "string"
+      ? file.name.trim()
+      : "";
+
+  const mimeType =
+    typeof file.mimeType === "string"
+      ? file.mimeType.trim().toLowerCase()
+      : "";
+
+  const data =
+    typeof file.data === "string"
+      ? file.data.trim()
+      : "";
+
+  if (!name) {
+    return {
+      valid: false,
+      error:
+        "The uploaded file has no name."
+    };
+  }
+
+  if (
+    !ALLOWED_FILE_TYPES.has(
+      mimeType
+    )
+  ) {
+    return {
+      valid: false,
+      error:
+        "Zed AI currently supports JPG, PNG, WEBP, GIF images and PDF files."
+    };
+  }
+
+  if (!data) {
+    return {
+      valid: false,
+      error:
+        "The uploaded file is empty."
+    };
+  }
+
+  const base64Data = data
+    .replace(
+      /^data:[^;]+;base64,/,
+      ""
+    )
+    .replace(/\s/g, "");
+
+  const estimatedSize =
+    Math.floor(
+      (base64Data.length * 3) / 4
+    );
+
+  if (
+    estimatedSize >
+    MAX_FILE_SIZE
+  ) {
+    return {
+      valid: false,
+      error:
+        "The uploaded file is too large. Maximum size is 15 MB."
+    };
+  }
+
+  return {
+    valid: true,
+
+    file: {
+      name,
+      mimeType,
+      data: base64Data
+    }
   };
 }
 
@@ -407,19 +539,52 @@ app.post(
               .filter(Boolean)
           : [];
 
-      if (!message) {
+      /* =========================
+         FILE
+      ========================= */
+
+      let uploadedFile = null;
+
+      if (req.body?.file) {
+        const validation =
+          validateFile(
+            req.body.file
+          );
+
+        if (!validation.valid) {
+          return res.status(400).json({
+            error:
+              validation.error
+          });
+        }
+
+        uploadedFile =
+          validation.file;
+
+        console.log(
+          "File received:",
+          uploadedFile.name,
+          uploadedFile.mimeType
+        );
+      }
+
+      if (
+        !message &&
+        !uploadedFile
+      ) {
         return res.status(400).json({
           error:
-            "Please enter a message."
+            "Please enter a message or upload a file."
         });
       }
 
       /* =========================
-         SAVE "REMEMBER" REQUEST
+         REMEMBER
       ========================= */
 
       if (
         userId &&
+        message &&
         /^remember\b/i.test(message)
       ) {
         const memoryText =
@@ -442,23 +607,17 @@ app.post(
             existing.push(
               memoryText
             );
-
-            memory.set(
-              userId,
-              existing
-            );
           }
 
-          console.log(
-            "Memory saved:",
+          memory.set(
             userId,
-            memoryText
+            existing
           );
         }
       }
 
       /* =========================
-         TRY GEMINI FIRST
+         GEMINI
       ========================= */
 
       const geminiKey =
@@ -466,13 +625,10 @@ app.post(
 
       if (geminiKey) {
         try {
-          const savedMemories =
-            clientMemories;
-
           const gemini =
             await askGemini(
               [
-                ...savedMemories.map(
+                ...clientMemories.map(
                   text => ({
                     role: "memory",
                     text
@@ -483,10 +639,15 @@ app.post(
 
                 {
                   role: "user",
-                  text: message
+                  text:
+                    message ||
+                    "Please analyze the uploaded file and tell me what you find."
                 }
               ],
-              geminiKey
+
+              geminiKey,
+
+              uploadedFile
             );
 
           if (
@@ -507,39 +668,72 @@ app.post(
               return res.json({
                 reply,
                 provider:
-                  "gemini"
+                  "gemini",
+                fileAnalyzed:
+                  Boolean(
+                    uploadedFile
+                  )
               });
             }
           }
 
-          console.log(
+          console.error(
             "Gemini unavailable:",
             gemini.response.status,
             gemini.data
               ?.error?.message
           );
 
+          /*
+           * Do not fall back to a
+           * text-only AI when a file
+           * was uploaded.
+           */
+
+          if (uploadedFile) {
+            return res.status(502).json({
+              error:
+                gemini.data?.error
+                  ?.message ||
+                "Gemini could not analyze the uploaded file. Please try again."
+            });
+          }
+
         } catch (error) {
           console.error(
             "Gemini request failed:",
             error
           );
+
+          if (uploadedFile) {
+            return res.status(502).json({
+              error:
+                error.message ||
+                "Zed AI could not analyze the uploaded file."
+            });
+          }
         }
+
+      } else if (uploadedFile) {
+        return res.status(500).json({
+          error:
+            "Gemini API key is not configured. File analysis requires Gemini."
+        });
       }
 
       /* =========================
-         FALL BACK TO GROQ
+         GROQ FALLBACK
       ========================= */
 
       const groqKey =
         process.env.GROQ_API_KEY;
 
       if (groqKey) {
-        console.log(
-          "Using Groq backup because Gemini was unavailable."
-        );
-
         try {
+          console.log(
+            "Using Groq backup."
+          );
+
           const groq =
             await askGroq(
               message,
@@ -580,18 +774,18 @@ app.post(
       }
 
       /* =========================
-         FALL BACK TO OPENROUTER
+         OPENROUTER FALLBACK
       ========================= */
 
       const openRouterKey =
         process.env.OPENROUTER_API_KEY;
 
       if (openRouterKey) {
-        console.log(
-          "Using OpenRouter backup because Gemini and Groq were unavailable."
-        );
-
         try {
+          console.log(
+            "Using OpenRouter backup."
+          );
+
           const openRouter =
             await askOpenRouter(
               message,
@@ -630,10 +824,6 @@ app.post(
           );
         }
       }
-
-      /* =========================
-         NO AI AVAILABLE
-      ========================= */
 
       return res.status(502).json({
         error:

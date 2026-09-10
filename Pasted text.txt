@@ -1,0 +1,2766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#212121">
+<title>Zed AI</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #212121;
+  color: #fff;
+}
+
+body {
+  overflow: hidden;
+}
+
+/* =========================
+   APP
+========================= */
+
+.app {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: #171717;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #303030;
+  z-index: 500;
+}
+
+.new-chat {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: #212121;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+}
+
+.new-chat:hover {
+  background: #2a2a2a;
+}
+
+.sidebar-title {
+  margin: 22px 8px 10px;
+  color: #999;
+  font-size: 12px;
+}
+
+.history {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.history-item {
+  padding: 10px;
+  margin-bottom: 4px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #ddd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item:hover {
+  background: #2a2a2a;
+}
+
+/* =========================
+   ACCOUNT
+========================= */
+
+.account-box {
+  border-top: 1px solid #333;
+  margin-top: 10px;
+  padding-top: 12px;
+}
+
+.account-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.user-photo {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #333;
+  flex-shrink: 0;
+}
+
+.account-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: bold;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  font-size: 11px;
+  color: #999;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px;
+  border: 1px solid #444;
+  border-radius: 7px;
+  background: transparent;
+  color: #ddd;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.logout-button:hover {
+  background: #2a2a2a;
+}
+
+/* =========================
+   MAIN
+========================= */
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #212121;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.header {
+  height: 58px;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid #303030;
+  background: #212121;
+}
+
+.menu {
+  display: none;
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  margin-right: 12px;
+}
+
+.header-title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* =========================
+   CHAT
+========================= */
+
+.chat {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.chat-content {
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 25px 18px 150px;
+}
+
+.message {
+  display: flex;
+  margin-bottom: 22px;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.message-bubble {
+  max-width: 80%;
+  padding: 12px 15px;
+  border-radius: 12px;
+  line-height: 1.5;
+  font-size: 15px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.message.user .message-bubble {
+  background: #303030;
+}
+
+.message.assistant .message-bubble {
+  background: transparent;
+}
+
+/* =========================
+   COMPOSER AREA
+========================= */
+
+.composer-area {
+  position: fixed;
+  left: 260px;
+  right: 0;
+  bottom: 0;
+  padding: 12px 18px 16px;
+  background: linear-gradient(
+    to top,
+    #212121 72%,
+    rgba(33, 33, 33, 0)
+  );
+  z-index: 100;
+}
+
+.composer {
+  max-width: 850px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* =========================
+   FILE PREVIEW
+========================= */
+
+.file-preview {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 9px 12px;
+  background: #303030;
+  border: 1px solid #444;
+  border-radius: 10px;
+}
+
+.file-preview.show {
+  display: flex;
+}
+
+.file-preview-icon {
+  font-size: 20px;
+}
+
+.file-preview-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.file-preview-name {
+  font-size: 13px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-preview-type {
+  color: #888;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.remove-file {
+  border: none;
+  background: transparent;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.remove-file:hover {
+  color: #fff;
+}
+
+/* =========================
+   COMPOSER BOX
+========================= */
+
+.composer-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+  background: #303030;
+  border: 1px solid #444;
+  border-radius: 15px;
+  padding: 8px;
+}
+
+.input {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: white;
+  font-size: 15px;
+  line-height: 1.4;
+  padding: 8px;
+  max-height: 150px;
+  min-height: 40px;
+}
+
+.input::placeholder {
+  color: #999;
+}
+
+/* =========================
+   COMPOSER BUTTONS
+========================= */
+
+.composer-button {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #ddd;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.composer-button:hover {
+  background: #444;
+}
+
+.composer-button.listening {
+  background: #555;
+  color: #fff;
+  animation: pulse 1s infinite;
+}
+
+.send {
+  background: #fff;
+  color: #111;
+  font-size: 19px;
+}
+
+.send:hover {
+  background: #eee;
+}
+
+.send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* =========================
+   ATTACH MENU
+========================= */
+
+.attach-menu {
+  position: absolute;
+  left: 0;
+  bottom: 64px;
+  width: 215px;
+  padding: 7px;
+  background: #2b2b2b;
+  border: 1px solid #444;
+  border-radius: 13px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+  display: none;
+}
+
+.attach-menu.show {
+  display: block;
+  animation: menuIn 0.15s ease;
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.attach-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+}
+
+.attach-option:hover {
+  background: #3a3a3a;
+}
+
+.attach-icon {
+  width: 25px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.attach-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.attach-label strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.attach-label span {
+  color: #888;
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+/* =========================
+   STATUS
+========================= */
+
+.status {
+  max-width: 850px;
+  margin: 6px auto 0;
+  padding: 0 8px;
+  color: #999;
+  font-size: 12px;
+  min-height: 16px;
+}
+
+/* =========================
+   AUTH SCREEN
+========================= */
+
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #171717;
+  padding: 20px;
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 400px;
+  background: #212121;
+  border: 1px solid #383838;
+  border-radius: 16px;
+  padding: 30px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.auth-logo {
+  font-size: 30px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.auth-subtitle {
+  color: #999;
+  margin-bottom: 25px;
+  font-size: 14px;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 13px;
+  margin-bottom: 10px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: #303030;
+  color: white;
+  outline: none;
+  font-size: 14px;
+}
+
+.auth-input:focus {
+  border-color: #777;
+}
+
+.auth-button {
+  width: 100%;
+  padding: 13px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 8px;
+  background: white;
+  color: #111;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.auth-button:hover {
+  opacity: 0.88;
+}
+
+.google-button {
+  background: #fff;
+  color: #111;
+}
+
+.auth-message {
+  min-height: 20px;
+  margin-top: 15px;
+  color: #ff8080;
+  font-size: 13px;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 700px) {
+
+  .sidebar {
+    position: fixed;
+    left: -270px;
+    top: 0;
+    bottom: 0;
+    transition: left 0.2s ease;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .menu {
+    display: block;
+  }
+
+  .composer-area {
+    left: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .chat-content {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .message-bubble {
+    max-width: 90%;
+  }
+
+  .auth-box {
+    padding: 24px 20px;
+  }
+
+  .attach-menu {
+    left: 0;
+    bottom: 64px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+
+    <button class="new-chat" id="newChat">
+      ＋ New chat
+    </button>
+
+    <div class="sidebar-title">
+      Recent chats
+    </div>
+
+    <div class="history" id="history"></div>
+
+    <!-- ACCOUNT -->
+    <div class="account-box" id="accountBox" style="display:none;">
+
+      <div class="account-info">
+
+        <img
+          id="userPhoto"
+          class="user-photo"
+          src=""
+          alt="Profile"
+        >
+
+        <div class="account-details">
+
+          <div id="userName" class="user-name">
+            User
+          </div>
+
+          <div id="userEmail" class="user-email">
+            email
+          </div>
+
+        </div>
+
+      </div>
+
+      <button
+        id="logoutButton"
+        class="logout-button"
+        type="button"
+      >
+        Log out
+      </button>
+
+    </div>
+
+  </aside>
+
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <header class="header">
+
+      <button
+        class="menu"
+        id="menu"
+        type="button"
+      >
+        ☰
+      </button>
+
+      <div
+        class="header-title"
+        id="headerTitle"
+      >
+        Zed AI
+      </div>
+
+    </header>
+
+
+    <div class="chat" id="chat">
+
+      <div
+        class="chat-content"
+        id="chatContent"
+      ></div>
+
+    </div>
+
+
+    <!-- COMPOSER -->
+    <div class="composer-area">
+
+      <div class="composer">
+
+        <!-- FILE PREVIEW -->
+        <div
+          class="file-preview"
+          id="filePreview"
+        >
+
+          <div
+            class="file-preview-icon"
+            id="filePreviewIcon"
+          >
+            📄
+          </div>
+
+          <div class="file-preview-info">
+
+            <div
+              class="file-preview-name"
+              id="filePreviewName"
+            >
+              File
+            </div>
+
+            <div
+              class="file-preview-type"
+              id="filePreviewType"
+            >
+              Ready to send
+            </div>
+
+          </div>
+
+          <button
+            class="remove-file"
+            id="removeFile"
+            type="button"
+            title="Remove file"
+          >
+            ×
+          </button>
+
+        </div>
+
+
+        <!-- ATTACH MENU -->
+        <div
+          class="attach-menu"
+          id="attachMenu"
+        >
+
+          <button
+            class="attach-option"
+            id="photoOption"
+            type="button"
+          >
+
+            <span class="attach-icon">
+              📷
+            </span>
+
+            <span class="attach-label">
+              <strong>Upload photo</strong>
+              <span>JPG, PNG, WEBP and more</span>
+            </span>
+
+          </button>
+
+
+          <button
+            class="attach-option"
+            id="fileOption"
+            type="button"
+          >
+
+            <span class="attach-icon">
+              📄
+            </span>
+
+            <span class="attach-label">
+              <strong>Upload file</strong>
+              <span>PDF and supported files</span>
+            </span>
+
+          </button>
+
+
+          <button
+            class="attach-option"
+            id="createImageOption"
+            type="button"
+          >
+
+            <span class="attach-icon">
+              🎨
+            </span>
+
+            <span class="attach-label">
+              <strong>Create image</strong>
+              <span>Generate an image with AI</span>
+            </span>
+
+          </button>
+
+        </div>
+
+
+        <div class="composer-box">
+
+          <!-- PLUS -->
+          <button
+            id="attachButton"
+            class="composer-button"
+            type="button"
+            title="Attach"
+          >
+            ＋
+          </button>
+
+
+          <!-- INPUT -->
+          <textarea
+            id="input"
+            class="input"
+            rows="1"
+            placeholder="Message Zed AI..."
+          ></textarea>
+
+
+          <!-- MICROPHONE -->
+          <button
+            id="micButton"
+            class="composer-button"
+            type="button"
+            title="Voice input"
+          >
+            🎤
+          </button>
+
+
+          <!-- SEND -->
+          <button
+            id="send"
+            class="composer-button send"
+            type="button"
+            title="Send message"
+          >
+            ↑
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- HIDDEN FILE INPUTS -->
+      <input
+        id="photoInput"
+        type="file"
+        accept="image/*"
+        style="display:none;"
+      >
+
+      <input
+        id="fileInput"
+        type="file"
+        accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
+        style="display:none;"
+      >
+
+
+      <div
+        class="status"
+        id="status"
+      ></div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<!-- LOGIN SCREEN -->
+<div
+  id="authScreen"
+  class="auth-screen"
+  style="display:none;"
+>
+
+  <div class="auth-box">
+
+    <div class="auth-logo">
+      Zed AI
+    </div>
+
+    <div class="auth-subtitle">
+      Sign in to continue
+    </div>
+
+
+    <button
+      id="googleLogin"
+      class="auth-button google-button"
+      type="button"
+    >
+      Continue with Google
+    </button>
+
+
+    <div style="margin:18px 0;color:#777;">
+      or
+    </div>
+
+
+    <input
+      id="email"
+      class="auth-input"
+      type="email"
+      placeholder="Email address"
+      autocomplete="email"
+    >
+
+
+    <input
+      id="password"
+      class="auth-input"
+      type="password"
+      placeholder="Password"
+      autocomplete="current-password"
+    >
+
+
+    <button
+      id="loginButton"
+      class="auth-button"
+      type="button"
+    >
+      Sign in
+    </button>
+
+
+    <button
+      id="createButton"
+      class="auth-button"
+      type="button"
+    >
+      Create account
+    </button>
+
+
+    <div
+      id="authMessage"
+      class="auth-message"
+    ></div>
+
+  </div>
+
+</div>
+
+
+<script type="module">
+
+/* =========================================
+   FIREBASE IMPORTS
+========================================= */
+
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+
+/* =========================================
+   FIREBASE CONFIG
+   DO NOT CHANGE
+========================================= */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD1jcmrhZK_XitZu-9Wa9whFB7BJZn0Wa8",
+  authDomain: "zed-ai-6d201.firebaseapp.com",
+  projectId: "zed-ai-6d201",
+  storageBucket: "zed-ai-6d201.firebasestorage.app",
+  messagingSenderId: "538225665227",
+  appId: "1:538225665227:web:d61483c3cafa8e4694e74e"
+};
+
+
+/* =========================================
+   FIREBASE INITIALIZATION
+========================================= */
+
+const firebaseConfigured =
+  !Object.values(firebaseConfig)
+    .some(value =>
+      String(value).startsWith("YOUR_")
+    );
+
+let auth = null;
+let googleProvider = null;
+
+if (firebaseConfigured) {
+
+  const firebaseApp =
+    initializeApp(firebaseConfig);
+
+  auth =
+    getAuth(firebaseApp);
+
+  googleProvider =
+    new GoogleAuthProvider();
+
+}
+
+
+/* =========================================
+   ELEMENTS
+========================================= */
+
+const authScreen =
+  document.getElementById("authScreen");
+
+const googleLogin =
+  document.getElementById("googleLogin");
+
+const loginButton =
+  document.getElementById("loginButton");
+
+const createButton =
+  document.getElementById("createButton");
+
+const emailInput =
+  document.getElementById("email");
+
+const passwordInput =
+  document.getElementById("password");
+
+const authMessage =
+  document.getElementById("authMessage");
+
+const accountBox =
+  document.getElementById("accountBox");
+
+const userPhoto =
+  document.getElementById("userPhoto");
+
+const userName =
+  document.getElementById("userName");
+
+const userEmail =
+  document.getElementById("userEmail");
+
+const logoutButton =
+  document.getElementById("logoutButton");
+
+const input =
+  document.getElementById("input");
+
+const send =
+  document.getElementById("send");
+
+const micButton =
+  document.getElementById("micButton");
+
+const attachButton =
+  document.getElementById("attachButton");
+
+const attachMenu =
+  document.getElementById("attachMenu");
+
+const photoOption =
+  document.getElementById("photoOption");
+
+const fileOption =
+  document.getElementById("fileOption");
+
+const createImageOption =
+  document.getElementById("createImageOption");
+
+const photoInput =
+  document.getElementById("photoInput");
+
+const fileInput =
+  document.getElementById("fileInput");
+
+const filePreview =
+  document.getElementById("filePreview");
+
+const filePreviewIcon =
+  document.getElementById("filePreviewIcon");
+
+const filePreviewName =
+  document.getElementById("filePreviewName");
+
+const filePreviewType =
+  document.getElementById("filePreviewType");
+
+const removeFile =
+  document.getElementById("removeFile");
+
+const chatContent =
+  document.getElementById("chatContent");
+
+const history =
+  document.getElementById("history");
+
+const newChat =
+  document.getElementById("newChat");
+
+const status =
+  document.getElementById("status");
+
+const sidebar =
+  document.getElementById("sidebar");
+
+const menu =
+  document.getElementById("menu");
+
+
+/* =========================================
+   STORAGE
+========================================= */
+
+const STORAGE =
+  "zed_ai_chats_final";
+
+const USER_ID_KEY =
+  "zed_ai_user_id";
+
+const MEMORY_KEY =
+  "zed_ai_memories";
+
+
+let userId =
+  localStorage.getItem(USER_ID_KEY);
+
+if (!userId) {
+
+  userId =
+    "guest_" +
+    Math.random()
+      .toString(36)
+      .slice(2);
+
+  localStorage.setItem(
+    USER_ID_KEY,
+    userId
+  );
+
+}
+
+
+let memories =
+  JSON.parse(
+    localStorage.getItem(MEMORY_KEY) || "[]"
+  );
+
+let messages = [];
+
+let selectedFile = null;
+
+
+/* =========================================
+   AUTH MESSAGE
+========================================= */
+
+function showAuthMessage(message) {
+
+  authMessage.textContent =
+    message || "";
+
+}
+
+
+/* =========================================
+   ACCOUNT
+========================================= */
+
+function showAccount(user) {
+
+  accountBox.style.display =
+    "block";
+
+  userName.textContent =
+    user.displayName ||
+    "Zed AI User";
+
+  userEmail.textContent =
+    user.email ||
+    "";
+
+  if (user.photoURL) {
+
+    userPhoto.src =
+      user.photoURL;
+
+  } else {
+
+    userPhoto.src =
+      "data:image/svg+xml;charset=UTF-8," +
+      encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="80"
+             height="80"
+             viewBox="0 0 80 80">
+          <rect width="80" height="80" fill="#333"/>
+          <circle cx="40" cy="30" r="14" fill="#aaa"/>
+          <path d="M15 70c3-18 47-18 50 0"
+                fill="#aaa"/>
+        </svg>
+      `);
+
+  }
+
+}
+
+
+function hideAccount() {
+
+  accountBox.style.display =
+    "none";
+
+}
+
+
+/* =========================================
+   AUTH STATE
+========================================= */
+
+if (auth) {
+
+  onAuthStateChanged(
+    auth,
+    user => {
+
+      if (user) {
+
+        userId =
+          user.uid;
+
+        localStorage.setItem(
+          USER_ID_KEY,
+          userId
+        );
+
+        authScreen.style.display =
+          "none";
+
+        showAccount(user);
+
+        loadChats();
+
+      } else {
+
+        authScreen.style.display =
+          "flex";
+
+        hideAccount();
+
+        messages = [];
+
+        renderMessages();
+
+      }
+
+    }
+  );
+
+} else {
+
+  authScreen.style.display =
+    "flex";
+
+}
+
+
+/* =========================================
+   GOOGLE LOGIN
+========================================= */
+
+googleLogin.addEventListener(
+  "click",
+  async () => {
+
+    if (!auth || !googleProvider) {
+
+      showAuthMessage(
+        "Firebase is not configured."
+      );
+
+      return;
+
+    }
+
+    showAuthMessage(
+      "Signing in with Google..."
+    );
+
+    try {
+
+      await signInWithPopup(
+        auth,
+        googleProvider
+      );
+
+      showAuthMessage("");
+
+    } catch (error) {
+
+      console.error(error);
+
+      showAuthMessage(
+        error.message ||
+        "Google sign-in failed."
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   EMAIL LOGIN
+========================================= */
+
+loginButton.addEventListener(
+  "click",
+  async () => {
+
+    if (!auth) {
+
+      showAuthMessage(
+        "Firebase is not configured."
+      );
+
+      return;
+
+    }
+
+    const email =
+      emailInput.value.trim();
+
+    const password =
+      passwordInput.value;
+
+    if (!email || !password) {
+
+      showAuthMessage(
+        "Please enter your email and password."
+      );
+
+      return;
+
+    }
+
+    showAuthMessage(
+      "Signing in..."
+    );
+
+    try {
+
+      await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      showAuthMessage("");
+
+    } catch (error) {
+
+      console.error(error);
+
+      showAuthMessage(
+        error.message ||
+        "Sign-in failed."
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   CREATE ACCOUNT
+========================================= */
+
+createButton.addEventListener(
+  "click",
+  async () => {
+
+    if (!auth) {
+
+      showAuthMessage(
+        "Firebase is not configured."
+      );
+
+      return;
+
+    }
+
+    const email =
+      emailInput.value.trim();
+
+    const password =
+      passwordInput.value;
+
+    if (!email || !password) {
+
+      showAuthMessage(
+        "Please enter an email and password."
+      );
+
+      return;
+
+    }
+
+    if (password.length < 6) {
+
+      showAuthMessage(
+        "Password must be at least 6 characters."
+      );
+
+      return;
+
+    }
+
+    showAuthMessage(
+      "Creating account..."
+    );
+
+    try {
+
+      await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      showAuthMessage("");
+
+    } catch (error) {
+
+      console.error(error);
+
+      showAuthMessage(
+        error.message ||
+        "Account creation failed."
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   LOGOUT
+========================================= */
+
+logoutButton.addEventListener(
+  "click",
+  async () => {
+
+    if (!auth) {
+      return;
+    }
+
+    try {
+
+      await signOut(auth);
+
+      messages = [];
+
+      renderMessages();
+
+      status.textContent =
+        "";
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert(
+        "Logout failed. Please try again."
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   CHAT STORAGE
+========================================= */
+
+function getStoredChats() {
+
+  try {
+
+    return JSON.parse(
+      localStorage.getItem(STORAGE) || "[]"
+    );
+
+  } catch {
+
+    return [];
+
+  }
+
+}
+
+
+function saveChats(chats) {
+
+  localStorage.setItem(
+    STORAGE,
+    JSON.stringify(chats)
+  );
+
+}
+
+
+function saveCurrentChat() {
+
+  if (!messages.length) {
+    return;
+  }
+
+  const chats =
+    getStoredChats();
+
+  const title =
+    messages.find(
+      m => m.role === "user"
+    )?.content
+    ?.slice(0, 50)
+    || "New chat";
+
+  chats.unshift({
+
+    id:
+      Date.now(),
+
+    userId,
+
+    title,
+
+    messages
+
+  });
+
+  const filtered =
+    chats.filter(
+      chat =>
+        chat.userId === userId
+    );
+
+  saveChats(
+    filtered.slice(0, 50)
+  );
+
+  renderHistory();
+
+}
+
+
+/* =========================================
+   LOAD CHATS
+========================================= */
+
+function loadChats() {
+
+  renderHistory();
+
+}
+
+
+/* =========================================
+   HISTORY
+========================================= */
+
+function renderHistory() {
+
+  history.innerHTML =
+    "";
+
+  const chats =
+    getStoredChats()
+      .filter(
+        chat =>
+          chat.userId === userId
+      );
+
+  chats.forEach(
+    chat => {
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+      item.className =
+        "history-item";
+
+      item.textContent =
+        chat.title ||
+        "New chat";
+
+      item.addEventListener(
+        "click",
+        () => {
+
+          messages =
+            Array.isArray(
+              chat.messages
+            )
+              ? chat.messages
+              : [];
+
+          renderMessages();
+
+          sidebar.classList.remove(
+            "open"
+          );
+
+        }
+      );
+
+      history.appendChild(item);
+
+    }
+  );
+
+}
+
+
+/* =========================================
+   RENDER MESSAGES
+========================================= */
+
+function renderMessages() {
+
+  chatContent.innerHTML =
+    "";
+
+  messages.forEach(
+    message => {
+
+      addMessageToScreen(
+        message.role,
+        message.content
+      );
+
+    }
+  );
+
+  scrollToBottom();
+
+}
+
+
+function addMessageToScreen(
+  role,
+  content
+) {
+
+  const message =
+    document.createElement(
+      "div"
+    );
+
+  message.className =
+    "message " +
+    role;
+
+  const bubble =
+    document.createElement(
+      "div"
+    );
+
+  bubble.className =
+    "message-bubble";
+
+  bubble.textContent =
+    content;
+
+  message.appendChild(
+    bubble
+  );
+
+  chatContent.appendChild(
+    message
+  );
+
+}
+
+
+function scrollToBottom() {
+
+  const chat =
+    document.getElementById(
+      "chat"
+    );
+
+  chat.scrollTop =
+    chat.scrollHeight;
+
+}
+
+
+/* =========================================
+   ATTACH MENU
+========================================= */
+
+attachButton.addEventListener(
+  "click",
+  event => {
+
+    event.stopPropagation();
+
+    attachMenu.classList.toggle(
+      "show"
+    );
+
+  }
+);
+
+
+document.addEventListener(
+  "click",
+  event => {
+
+    if (
+      !attachMenu.contains(event.target) &&
+      event.target !== attachButton
+    ) {
+
+      attachMenu.classList.remove(
+        "show"
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   PHOTO UPLOAD
+========================================= */
+
+photoOption.addEventListener(
+  "click",
+  () => {
+
+    attachMenu.classList.remove(
+      "show"
+    );
+
+    photoInput.click();
+
+  }
+);
+
+
+/* =========================================
+   FILE UPLOAD
+========================================= */
+
+fileOption.addEventListener(
+  "click",
+  () => {
+
+    attachMenu.classList.remove(
+      "show"
+    );
+
+    fileInput.click();
+
+  }
+);
+
+
+/* =========================================
+   CREATE IMAGE
+========================================= */
+
+createImageOption.addEventListener(
+  "click",
+  () => {
+
+    attachMenu.classList.remove(
+      "show"
+    );
+
+    generateImage();
+
+  }
+);
+
+
+/* =========================================
+   HANDLE FILE
+========================================= */
+
+function handleSelectedFile(file) {
+
+  if (!file) {
+    return;
+  }
+
+  selectedFile =
+    file;
+
+  filePreview.classList.add(
+    "show"
+  );
+
+  filePreviewName.textContent =
+    file.name;
+
+  filePreviewType.textContent =
+    formatFileSize(file.size) +
+    " • Ready to send";
+
+  if (
+    file.type.startsWith("image/")
+  ) {
+
+    filePreviewIcon.textContent =
+      "📷";
+
+  } else if (
+    file.type === "application/pdf"
+  ) {
+
+    filePreviewIcon.textContent =
+      "📕";
+
+  } else {
+
+    filePreviewIcon.textContent =
+      "📄";
+
+  }
+
+  status.textContent =
+    "File attached. Ask Zed AI about it.";
+
+}
+
+
+/* =========================================
+   FILE INPUT EVENTS
+========================================= */
+
+photoInput.addEventListener(
+  "change",
+  () => {
+
+    handleSelectedFile(
+      photoInput.files[0]
+    );
+
+  }
+);
+
+
+fileInput.addEventListener(
+  "change",
+  () => {
+
+    handleSelectedFile(
+      fileInput.files[0]
+    );
+
+  }
+);
+
+
+/* =========================================
+   REMOVE FILE
+========================================= */
+
+removeFile.addEventListener(
+  "click",
+  () => {
+
+    selectedFile =
+      null;
+
+    photoInput.value =
+      "";
+
+    fileInput.value =
+      "";
+
+    filePreview.classList.remove(
+      "show"
+    );
+
+    status.textContent =
+      "";
+
+  }
+);
+
+
+/* =========================================
+   FILE SIZE
+========================================= */
+
+function formatFileSize(bytes) {
+
+  if (bytes < 1024) {
+
+    return bytes + " B";
+
+  }
+
+  if (bytes < 1024 * 1024) {
+
+    return (
+      (bytes / 1024)
+        .toFixed(1) +
+      " KB"
+    );
+
+  }
+
+  return (
+    (bytes / (1024 * 1024))
+      .toFixed(1) +
+    " MB"
+  );
+
+}
+
+
+/* =========================================
+   VOICE INPUT
+========================================= */
+
+const SpeechRecognition =
+  window.SpeechRecognition ||
+  window.webkitSpeechRecognition;
+
+let recognition =
+  null;
+
+let isListening =
+  false;
+
+if (SpeechRecognition) {
+
+  recognition =
+    new SpeechRecognition();
+
+  recognition.continuous =
+    false;
+
+  recognition.interimResults =
+    true;
+
+  recognition.lang =
+    "en-US";
+
+
+  recognition.onstart =
+    () => {
+
+      isListening =
+        true;
+
+      micButton.classList.add(
+        "listening"
+      );
+
+      micButton.textContent =
+        "🔴";
+
+      status.textContent =
+        "Listening...";
+
+    };
+
+
+  recognition.onresult =
+    event => {
+
+      let finalText =
+        "";
+
+      let interimText =
+        "";
+
+      for (
+        let i = event.resultIndex;
+        i < event.results.length;
+        i++
+      ) {
+
+        const transcript =
+          event.results[i][0]
+            .transcript;
+
+        if (
+          event.results[i].isFinal
+        ) {
+
+          finalText +=
+            transcript;
+
+        } else {
+
+          interimText +=
+            transcript;
+
+        }
+
+      }
+
+      if (finalText) {
+
+        input.value =
+          (
+            input.value
+              ? input.value + " "
+              : ""
+          ) +
+          finalText;
+
+      }
+
+      input.style.height =
+        "auto";
+
+      input.style.height =
+        Math.min(
+          input.scrollHeight,
+          150
+        ) + "px";
+
+    };
+
+
+  recognition.onerror =
+    event => {
+
+      console.error(
+        "Speech recognition error:",
+        event.error
+      );
+
+      status.textContent =
+        "Voice input error. Please try again.";
+
+    };
+
+
+  recognition.onend =
+    () => {
+
+      isListening =
+        false;
+
+      micButton.classList.remove(
+        "listening"
+      );
+
+      micButton.textContent =
+        "🎤";
+
+      setTimeout(
+        () => {
+
+          if (!isListening) {
+
+            status.textContent =
+              "";
+
+          }
+
+        },
+        1500
+      );
+
+    };
+
+
+  micButton.addEventListener(
+    "click",
+    () => {
+
+      if (isListening) {
+
+        recognition.stop();
+
+        return;
+
+      }
+
+      try {
+
+        recognition.start();
+
+      } catch (error) {
+
+        console.error(error);
+
+      }
+
+    }
+  );
+
+} else {
+
+  micButton.addEventListener(
+    "click",
+    () => {
+
+      status.textContent =
+        "Voice input is not supported by this browser.";
+
+    }
+  );
+
+}
+
+
+/* =========================================
+   SEND MESSAGE
+========================================= */
+
+async function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () =>
+      reject(new Error("Could not read the selected file."));
+
+    reader.readAsDataURL(file);
+  });
+}
+
+async function sendMessage() {
+  const text = input.value.trim();
+
+  if (!text && !selectedFile) {
+    return;
+  }
+
+  const fileToSend = selectedFile;
+
+  let displayText = text;
+
+  if (fileToSend) {
+    if (displayText) {
+      displayText += "\n\n📎 " + fileToSend.name;
+    } else {
+      displayText = "📎 " + fileToSend.name;
+    }
+  }
+
+  messages.push({
+    role: "user",
+    content: displayText
+  });
+
+  addMessageToScreen(
+    "user",
+    displayText
+  );
+
+  input.value = "";
+  input.style.height = "auto";
+
+  scrollToBottom();
+
+  status.textContent = fileToSend
+    ? "Preparing your file..."
+    : "Zed AI is thinking...";
+
+  send.disabled = true;
+
+  try {
+    let filePayload = null;
+
+    if (fileToSend) {
+      const maxFileSize = 15 * 1024 * 1024;
+
+      const allowedTypes = [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif"
+      ];
+
+      if (fileToSend.size > maxFileSize) {
+        throw new Error(
+          "The file is too large. Maximum size is 15 MB."
+        );
+      }
+
+      if (!allowedTypes.includes(fileToSend.type)) {
+        throw new Error(
+          "Zed AI currently supports JPG, PNG, WEBP, GIF images and PDF files."
+        );
+      }
+
+      status.textContent =
+        "Reading " + fileToSend.name + "...";
+
+      const dataUrl =
+        await readFileAsDataURL(fileToSend);
+
+      filePayload = {
+        name: fileToSend.name,
+        mimeType: fileToSend.type,
+        data: dataUrl
+      };
+    }
+
+    status.textContent =
+      fileToSend
+        ? "Zed AI is analyzing your file..."
+        : "Zed AI is thinking...";
+
+    const response = await fetch(
+      "/api/chat",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          message: text,
+          userId,
+          memories,
+
+          conversation:
+            messages
+              .slice(0, -1)
+              .map(message => ({
+                role: message.role,
+                text: message.content
+              })),
+
+          file: filePayload
+        })
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+        "Request failed."
+      );
+    }
+
+    const reply =
+      data.reply ||
+      data.message ||
+      "I couldn't generate a response.";
+
+    messages.push({
+      role: "assistant",
+      content: reply
+    });
+
+    addMessageToScreen(
+      "assistant",
+      reply
+    );
+
+    saveCurrentChat();
+
+    if (fileToSend) {
+      selectedFile = null;
+
+      photoInput.value = "";
+      fileInput.value = "";
+
+      filePreview.classList.remove(
+        "show"
+      );
+    }
+
+  } catch (error) {
+    console.error(error);
+
+    const errorMessage =
+      error.message ||
+      "Sorry, something went wrong. Please try again.";
+
+    messages.push({
+      role: "assistant",
+      content: errorMessage
+    });
+
+    addMessageToScreen(
+      "assistant",
+      errorMessage
+    );
+
+  } finally {
+    status.textContent = "";
+
+    send.disabled = false;
+
+    scrollToBottom();
+  }
+}
+
+
+/* =========================================
+   IMAGE GENERATION
+========================================= */
+
+async function generateImage() {
+
+  const prompt =
+    input.value.trim();
+
+  if (!prompt) {
+
+    status.textContent =
+      "Describe the image you want to create first.";
+
+    input.focus();
+
+    return;
+
+  }
+
+
+  messages.push({
+
+    role: "user",
+
+    content:
+      "🎨 Create image: " +
+      prompt
+
+  });
+
+
+  addMessageToScreen(
+    "user",
+    "🎨 Create image: " +
+    prompt
+  );
+
+
+  input.value =
+    "";
+
+  input.style.height =
+    "auto";
+
+
+  status.textContent =
+    "Creating your image...";
+
+
+  send.disabled =
+    true;
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/generate-image",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+
+            prompt,
+
+            userId
+
+          })
+
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error ||
+        "Image generation failed."
+      );
+
+    }
+
+
+    const message =
+      document.createElement(
+        "div"
+      );
+
+
+    message.className =
+      "message assistant";
+
+
+    const bubble =
+      document.createElement(
+        "div"
+      );
+
+
+    bubble.className =
+      "message-bubble";
+
+
+    if (data.imageUrl) {
+
+      const img =
+        document.createElement(
+          "img"
+        );
+
+      img.src =
+        data.imageUrl;
+
+      img.style.maxWidth =
+        "100%";
+
+      img.style.borderRadius =
+        "12px";
+
+      img.alt =
+        "Generated image";
+
+      bubble.appendChild(
+        img
+      );
+
+
+    } else if (data.image) {
+
+      const img =
+        document.createElement(
+          "img"
+        );
+
+
+      img.src =
+        data.image.startsWith(
+          "data:"
+        )
+          ? data.image
+          : "data:image/png;base64," +
+            data.image;
+
+
+      img.style.maxWidth =
+        "100%";
+
+      img.style.borderRadius =
+        "12px";
+
+      img.alt =
+        "Generated image";
+
+
+      bubble.appendChild(
+        img
+      );
+
+
+    } else {
+
+      bubble.textContent =
+        "The image was generated, but no image data was returned.";
+
+    }
+
+
+    message.appendChild(
+      bubble
+    );
+
+
+    chatContent.appendChild(
+      message
+    );
+
+
+    saveCurrentChat();
+
+    scrollToBottom();
+
+
+  } catch (error) {
+
+    console.error(error);
+
+
+    const errorMessage =
+      error.message ||
+      "Image generation failed.";
+
+
+    messages.push({
+
+      role: "assistant",
+
+      content:
+        errorMessage
+
+    });
+
+
+    addMessageToScreen(
+      "assistant",
+      errorMessage
+    );
+
+  } finally {
+
+    send.disabled =
+      false;
+
+    status.textContent =
+      "";
+
+    scrollToBottom();
+
+  }
+
+}
+
+
+/* =========================================
+   SEND BUTTON
+========================================= */
+
+send.addEventListener(
+  "click",
+  sendMessage
+);
+
+
+/* =========================================
+   ENTER TO SEND
+========================================= */
+
+input.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey
+    ) {
+
+      event.preventDefault();
+
+      sendMessage();
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   AUTO RESIZE
+========================================= */
+
+input.addEventListener(
+  "input",
+  () => {
+
+    input.style.height =
+      "auto";
+
+    input.style.height =
+      Math.min(
+        input.scrollHeight,
+        150
+      ) + "px";
+
+  }
+);
+
+
+/* =========================================
+   NEW CHAT
+========================================= */
+
+newChat.addEventListener(
+  "click",
+  () => {
+
+    if (messages.length) {
+
+      saveCurrentChat();
+
+    }
+
+    messages = [];
+
+    renderMessages();
+
+    input.value =
+      "";
+
+    input.style.height =
+      "auto";
+
+    removeFile.click();
+
+    input.focus();
+
+    sidebar.classList.remove(
+      "open"
+    );
+
+  }
+);
+
+
+/* =========================================
+   MOBILE MENU
+========================================= */
+
+menu.addEventListener(
+  "click",
+  () => {
+
+    sidebar.classList.toggle(
+      "open"
+    );
+
+  }
+);
+
+
+/* =========================================
+   MEMORY
+========================================= */
+
+function saveMemory(text) {
+
+  memories.push(text);
+
+  if (memories.length > 50) {
+
+    memories =
+      memories.slice(-50);
+
+  }
+
+  localStorage.setItem(
+    MEMORY_KEY,
+    JSON.stringify(memories)
+  );
+
+}
+
+
+/* =========================================
+   STARTUP
+========================================= */
+
+renderMessages();
+
+if (!auth) {
+
+  authScreen.style.display =
+    "flex";
+
+} else {
+
+  renderHistory();
+
+}
+<button onclick="testGeminiInteractions()">
+  Test Gemini
+</button>
+
+<script>
+async function testGeminiInteractions() {
+  try {
+    const response = await fetch("/api/gemini-test", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "Hello Zed AI. Reply with exactly: Gemini test successful."
+      })
+    });
+
+    const data = await response.json();
+
+    console.log("Gemini test result:", data);
+    alert(data.text || data.error || "No response");
+  } catch (error) {
+    console.error(error);
+    alert("Test failed: " + error.message);
+  }
+}
+</script>
+  
+</body>
+</html>

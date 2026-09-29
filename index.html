@@ -84,7 +84,7 @@ button {
   background:
     radial-gradient(
       circle at 50% 25%,
-      rgba(25,138,67,.09),
+      rgba(242,140,40,.08),
       transparent 32%
     ),
     #171717;
@@ -263,7 +263,7 @@ button {
 }
 
 /* =========================================
-   MENU DRAWER
+   MENU
 ========================================= */
 
 .menuOverlay {
@@ -474,7 +474,7 @@ button {
 
 .chatContent {
   width: 100%;
-  max-width: 900px;
+  max-width: 920px;
   min-height: 100%;
   margin: 0 auto;
   padding: 40px 24px 170px;
@@ -540,8 +540,8 @@ button {
 }
 
 .messageInner {
-  max-width: 82%;
-  line-height: 1.65;
+  max-width: 84%;
+  line-height: 1.68;
   font-size: 15px;
   overflow-wrap: anywhere;
 }
@@ -551,7 +551,6 @@ button {
   border-radius: 17px;
   background: #303030;
   color: #f2f2f2;
-  white-space: pre-wrap;
 }
 
 .message.assistant .messageInner {
@@ -565,121 +564,173 @@ button {
   font-size: 11px;
 }
 
-/* =========================================
-   ZED MARKDOWN RESPONSE
-========================================= */
-
-.message.assistant .messageContent {
-  width: 100%;
+.messageBody {
+  min-width: 0;
 }
 
-.message.assistant .messageContent p {
-  margin: 0 0 16px;
+.messageBody p {
+  margin: 0 0 13px;
 }
 
-.message.assistant .messageContent p:last-child {
+.messageBody p:last-child {
   margin-bottom: 0;
 }
 
-.message.assistant .messageContent h1,
-.message.assistant .messageContent h2,
-.message.assistant .messageContent h3 {
-  margin: 22px 0 10px;
-  color: #fff;
-  line-height: 1.3;
-}
-
-.message.assistant .messageContent h1 {
-  font-size: 25px;
-}
-
-.message.assistant .messageContent h2 {
-  font-size: 21px;
-}
-
-.message.assistant .messageContent h3 {
-  font-size: 18px;
-}
-
-.message.assistant .messageContent ul,
-.message.assistant .messageContent ol {
-  margin: 8px 0 17px;
-  padding-left: 27px;
-}
-
-.message.assistant .messageContent li {
-  margin: 6px 0;
-  padding-left: 3px;
-}
-
-.message.assistant .messageContent blockquote {
-  margin: 15px 0;
-  padding: 9px 14px;
-  border-left: 3px solid #666;
-  color: #aaa;
-  background: rgba(255,255,255,.035);
-  border-radius: 4px;
-}
-
-.message.assistant .messageContent hr {
-  margin: 22px 0;
-  border: 0;
-  border-top: 1px solid #3b3b3b;
-}
-
-.message.assistant .messageContent strong {
+.messageBody strong {
   color: #fff;
   font-weight: 700;
 }
 
-.message.assistant .messageContent em {
-  color: #eee;
+.messageBody em {
+  font-style: italic;
 }
 
-.message.assistant .messageContent a {
-  color: #8ab4ff;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+.messageBody ul,
+.messageBody ol {
+  margin: 8px 0 14px 22px;
+  padding: 0;
 }
 
-.message.assistant .messageContent a:hover {
-  color: #b7d1ff;
+.messageBody li {
+  margin: 5px 0;
 }
 
-.message.assistant .messageContent .inlineCode {
-  display: inline-block;
-  padding: 1px 6px;
+.messageBody h1,
+.messageBody h2,
+.messageBody h3 {
+  margin: 18px 0 9px;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.messageBody h1 {
+  font-size: 24px;
+}
+
+.messageBody h2 {
+  font-size: 20px;
+}
+
+.messageBody h3 {
+  font-size: 17px;
+}
+
+.inlineCode {
+  padding: 2px 5px;
   border-radius: 5px;
-  background: #303030;
-  color: #f2f2f2;
-  font-family: monospace;
+  background: #2c2c2c;
+  color: #f1f1f1;
+  font-family: Consolas, monospace;
   font-size: .92em;
 }
 
-.message.assistant .messageContent pre {
-  width: 100%;
-  margin: 16px 0;
-  padding: 15px;
-  overflow-x: auto;
-  border: 1px solid #3a3a3a;
+.codeBlock {
+  position: relative;
+  margin: 13px 0;
+  border: 1px solid #3b3b3b;
   border-radius: 10px;
-  background: #171717;
+  overflow: hidden;
+  background: #151515;
 }
 
-.message.assistant .messageContent pre code {
-  color: #e8e8e8;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 13px;
-  line-height: 1.6;
-  white-space: pre;
+.codeHeader {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  border-bottom: 1px solid #303030;
+  background: #1e1e1e;
+  color: #888;
+  font-size: 10px;
+}
+
+.copyCodeButton,
+.copyAnswerButton {
+  border: 1px solid #3c3c3c;
+  border-radius: 6px;
+  background: #292929;
+  color: #aaa;
+  font-size: 10px;
+  padding: 5px 8px;
+}
+
+.copyCodeButton:hover,
+.copyAnswerButton:hover {
+  background: #383838;
+  color: #fff;
+}
+
+.codeBlock pre {
+  margin: 0;
+  padding: 13px;
+  overflow-x: auto;
+  color: #e7e7e7;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.answerActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  opacity: .75;
 }
 
 .generatedImage {
   display: block;
   max-width: 100%;
-  max-height: 600px;
+  max-height: 650px;
   margin-top: 12px;
   border-radius: 14px;
+  border: 1px solid #3b3b3b;
+}
+
+.messageImageText {
+  margin-bottom: 10px;
+}
+
+.thinkingMessage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #8b8b8b;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.thinkingDots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.thinkingDots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #999;
+  animation: thinking 1.2s infinite ease-in-out;
+}
+
+.thinkingDots span:nth-child(2) {
+  animation-delay: .15s;
+}
+
+.thinkingDots span:nth-child(3) {
+  animation-delay: .3s;
+}
+
+@keyframes thinking {
+  0%, 60%, 100% {
+    opacity: .25;
+    transform: translateY(0);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
 }
 
 /* =========================================
@@ -888,7 +939,7 @@ button {
   }
 
   .messageInner {
-    max-width: 91%;
+    max-width: 92%;
     font-size: 14px;
   }
 
@@ -936,22 +987,22 @@ button {
     font-size: 51px;
   }
 
-  .message.assistant .messageContent h1 {
-    font-size: 22px;
+  .messageBody h1 {
+    font-size: 21px;
   }
 
-  .message.assistant .messageContent h2 {
-    font-size: 19px;
+  .messageBody h2 {
+    font-size: 18px;
   }
 
-  .message.assistant .messageContent h3 {
-    font-size: 17px;
+  .messageBody h3 {
+    font-size: 16px;
+  }
+
+  .answerActions {
+    opacity: 1;
   }
 }
-
-/* =========================================
-   SMALL PHONES
-========================================= */
 
 @media (max-width: 380px) {
 
@@ -987,9 +1038,7 @@ button {
     <div class="authBrand">
 
       <div class="zedLogo">
-        <span class="z">Z</span>
-        <span class="e">e</span>
-        <span class="d">d</span>
+        <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
       </div>
 
       <div class="authSubtitle">
@@ -998,9 +1047,7 @@ button {
 
     </div>
 
-    <button
-      id="googleLogin"
-      class="authButton">
+    <button id="googleLogin" class="authButton">
       Continue with Google
     </button>
 
@@ -1022,15 +1069,11 @@ button {
       placeholder="Password"
       autocomplete="current-password">
 
-    <button
-      id="emailLogin"
-      class="authButton">
+    <button id="emailLogin" class="authButton">
       Sign in
     </button>
 
-    <button
-      id="emailSignup"
-      class="authButton secondary">
+    <button id="emailSignup" class="authButton secondary">
       Create account
     </button>
 
@@ -1063,9 +1106,7 @@ button {
         <div class="brand">
 
           <div class="brandZed">
-            <span class="z">Z</span>
-            <span class="e">e</span>
-            <span class="d">d</span>
+            <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
           </div>
 
           <span class="statusDot"></span>
@@ -1084,24 +1125,16 @@ button {
 
     </header>
 
-    <div
-      id="chatArea"
-      class="chatArea">
+    <div id="chatArea" class="chatArea">
 
-      <div
-        id="chatContent"
-        class="chatContent">
+      <div id="chatContent" class="chatContent">
 
-        <div
-          id="welcome"
-          class="welcome">
+        <div id="welcome" class="welcome">
 
           <div class="welcomeLogo">
 
             <div class="zedLogo">
-              <span class="z">Z</span>
-              <span class="e">e</span>
-              <span class="d">d</span>
+              <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
             </div>
 
           </div>
@@ -1124,14 +1157,9 @@ button {
 
       <div class="composerContainer">
 
-        <div
-          id="fileName"
-          class="fileName">
-        </div>
+        <div id="fileName" class="fileName"></div>
 
-        <div
-          id="attachMenu"
-          class="attachMenu hidden">
+        <div id="attachMenu" class="attachMenu hidden">
 
           <button id="uploadPhotoButton">
             Upload photo
@@ -1204,24 +1232,16 @@ button {
 
   </main>
 
-  <!-- MENU -->
+  <div id="menuOverlay" class="menuOverlay closed">
 
-  <div
-    id="menuOverlay"
-    class="menuOverlay closed">
-
-    <aside
-      id="menuDrawer"
-      class="menuDrawer">
+    <aside id="menuDrawer" class="menuDrawer">
 
       <div class="drawerTop">
 
         <div class="drawerBrand">
 
           <div class="brandZed">
-            <span class="z">Z</span>
-            <span class="e">e</span>
-            <span class="d">d</span>
+            <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
           </div>
 
         </div>
@@ -1235,9 +1255,7 @@ button {
 
       </div>
 
-      <button
-        id="newChatButton"
-        class="newChatButton">
+      <button id="newChatButton" class="newChatButton">
 
         <span class="newChatPlus">+</span>
         <span>New chat</span>
@@ -1268,15 +1286,11 @@ button {
 
           <div class="accountText">
 
-            <div
-              id="accountName"
-              class="accountName">
+            <div id="accountName" class="accountName">
               Guest
             </div>
 
-            <div
-              id="accountEmail"
-              class="accountEmail">
+            <div id="accountEmail" class="accountEmail">
               Not signed in
             </div>
 
@@ -1284,9 +1298,7 @@ button {
 
         </div>
 
-        <button
-          id="logoutButton"
-          class="logoutButton">
+        <button id="logoutButton" class="logoutButton">
           Log out
         </button>
 
@@ -1475,6 +1487,7 @@ let memories = [];
 let userId = "guest";
 let currentChatId = null;
 let allHistoryChats = [];
+let isSending = false;
 
 /* =========================================
    MENU
@@ -1491,7 +1504,6 @@ function closeMenu() {
 menuButton.addEventListener(
   "click",
   () => {
-
     if (
       menuOverlay.classList.contains("closed")
     ) {
@@ -1499,7 +1511,6 @@ menuButton.addEventListener(
     } else {
       closeMenu();
     }
-
   }
 );
 
@@ -1511,11 +1522,9 @@ drawerClose.addEventListener(
 menuOverlay.addEventListener(
   "click",
   event => {
-
     if (event.target === menuOverlay) {
       closeMenu();
     }
-
   }
 );
 
@@ -1536,6 +1545,7 @@ function getLocalChats() {
     return [];
 
   }
+
 }
 
 function saveLocalChats(chats) {
@@ -1555,6 +1565,7 @@ function saveLocalChats(chats) {
     );
 
   }
+
 }
 
 /* =========================================
@@ -1563,7 +1574,10 @@ function saveLocalChats(chats) {
 
 async function saveMemoryToFirestore(text) {
 
-  if (!auth.currentUser || !text) {
+  if (
+    !auth.currentUser ||
+    !text
+  ) {
     return;
   }
 
@@ -1592,7 +1606,8 @@ async function saveMemoryToFirestore(text) {
       memoriesRef,
       {
         text,
-        createdAt: serverTimestamp()
+        createdAt:
+          serverTimestamp()
       }
     );
 
@@ -1606,6 +1621,7 @@ async function saveMemoryToFirestore(text) {
     );
 
   }
+
 }
 
 async function loadMemories() {
@@ -1630,7 +1646,10 @@ async function loadMemories() {
       await getDocs(
         query(
           memoriesRef,
-          orderBy("createdAt", "asc")
+          orderBy(
+            "createdAt",
+            "asc"
+          )
         )
       );
 
@@ -1662,11 +1681,14 @@ async function loadMemories() {
     );
 
   }
+
 }
 
 function extractMemory(text) {
 
-  if (!/^remember\b/i.test(text)) {
+  if (
+    !/^remember\b/i.test(text)
+  ) {
     return null;
   }
 
@@ -1748,7 +1770,9 @@ async function saveChatToCloud() {
         chatRef,
         {
           messages,
-          updatedAt: serverTimestamp()
+
+          updatedAt:
+            serverTimestamp()
         },
         {
           merge: true
@@ -1765,6 +1789,7 @@ async function saveChatToCloud() {
     );
 
   }
+
 }
 
 /* =========================================
@@ -1780,14 +1805,17 @@ function renderHistory(chats) {
     const empty =
       document.createElement("div");
 
-    empty.className =
-      "historyItem";
+    empty.style.padding =
+      "12px 8px";
 
     empty.style.color =
       "#666";
 
+    empty.style.fontSize =
+      "12px";
+
     empty.textContent =
-      "No chats yet";
+      "No conversations yet.";
 
     historyList.appendChild(empty);
 
@@ -1812,20 +1840,25 @@ function renderHistory(chats) {
         () => {
 
           loadCloudChat(chat);
+
           closeMenu();
 
         }
       );
 
-      historyList.appendChild(item);
+      historyList.appendChild(
+        item
+      );
 
     }
   );
+
 }
 
 async function loadCloudHistory() {
 
   historyList.innerHTML = "";
+
   allHistoryChats = [];
 
   if (!auth.currentUser) {
@@ -1881,9 +1914,8 @@ async function loadCloudHistory() {
       error
     );
 
-    renderHistory([]);
-
   }
+
 }
 
 searchChats.addEventListener(
@@ -1914,13 +1946,15 @@ searchChats.addEventListener(
             .includes(search)
       );
 
-    renderHistory(filtered);
+    renderHistory(
+      filtered
+    );
 
   }
 );
 
 /* =========================================
-   LOCAL CHAT BACKUP
+   SAVE CHAT
 ========================================= */
 
 function saveCurrentChatLocally() {
@@ -1932,19 +1966,24 @@ function saveCurrentChatLocally() {
   const chats =
     getLocalChats();
 
-  const localId =
-    currentChatId ||
-    "local-" + Date.now();
+  if (!currentChatId) {
+
+    currentChatId =
+      "local-" +
+      Date.now();
+
+  }
 
   const existingIndex =
     chats.findIndex(
       chat =>
-        chat.id === localId
+        chat.id === currentChatId
     );
 
   const chatData = {
 
-    id: localId,
+    id:
+      currentChatId,
 
     title:
       messages.find(
@@ -1956,7 +1995,8 @@ function saveCurrentChatLocally() {
 
     messages,
 
-    updatedAt: Date.now()
+    updatedAt:
+      Date.now()
 
   };
 
@@ -1974,6 +2014,7 @@ function saveCurrentChatLocally() {
   }
 
   saveLocalChats(chats);
+
 }
 
 async function saveCurrentChat() {
@@ -1983,15 +2024,16 @@ async function saveCurrentChat() {
   await saveChatToCloud();
 
   await loadCloudHistory();
+
 }
 
 /* =========================================
-   MARKDOWN HELPERS
+   SAFE TEXT HELPERS
 ========================================= */
 
-function escapeHtml(value) {
+function escapeHtml(text) {
 
-  return String(value ?? "")
+  return String(text)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -2000,145 +2042,64 @@ function escapeHtml(value) {
 
 }
 
-function formatInlineMarkdown(text) {
+function formatInline(text) {
 
-  let result =
+  let output =
     escapeHtml(text);
 
-  const tokens = [];
-
-  function addToken(html) {
-
-    const token =
-      `@@ZEDTOKEN${tokens.length}@@`;
-
-    tokens.push(html);
-
-    return token;
-
-  }
-
-  /* Inline code */
-
-  result =
-    result.replace(
-      /`([^`\n]+)`/g,
-      (match, code) => {
-
-        return addToken(
-          `<code class="inlineCode">${code}</code>`
-        );
-
-      }
+  output =
+    output.replace(
+      /`([^`]+)`/g,
+      '<code class="inlineCode">$1</code>'
     );
 
-  /* Markdown links */
-
-  result =
-    result.replace(
-      /$begin:math:display$\(\[\^$end:math:display$]+)\]$begin:math:text$\(https\?\:\\\/\\\/\[\^\\s\)\]\+\)$end:math:text$/g,
-      (match, label, url) => {
-
-        return addToken(
-          `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`
-        );
-
-      }
-    );
-
-  /* Bare URLs */
-
-  result =
-    result.replace(
-      /(^|[\s(])(https?:\/\/[^\s<]+)/g,
-      (match, before, url) => {
-
-        const cleanUrl =
-          url.replace(
-            /[.,!?;:]+$/,
-            ""
-          );
-
-        const ending =
-          url.slice(
-            cleanUrl.length
-          );
-
-        return (
-          before +
-          addToken(
-            `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>`
-          ) +
-          ending
-        );
-
-      }
-    );
-
-  /* Bold */
-
-  result =
-    result.replace(
-      /\*\*(.+?)\*\*/g,
+  output =
+    output.replace(
+      /\*\*([^*]+)\*\*/g,
       "<strong>$1</strong>"
     );
 
-  result =
-    result.replace(
-      /__(.+?)__/g,
+  output =
+    output.replace(
+      /__([^_]+)__/g,
       "<strong>$1</strong>"
     );
 
-  /* Italic */
-
-  result =
-    result.replace(
-      /(^|[^\*])\*([^*\n]+)\*/g,
-      "$1<em>$2</em>"
+  output =
+    output.replace(
+      /\*([^*]+)\*/g,
+      "<em>$1</em>"
     );
 
-  result =
-    result.replace(
-      /(^|[^_])_([^_\n]+)_/g,
-      "$1<em>$2</em>"
-    );
+  return output;
 
-  /* Restore protected HTML */
-
-  tokens.forEach(
-    (html, index) => {
-
-      result =
-        result.replace(
-          `@@ZEDTOKEN${index}@@`,
-          html
-        );
-
-    }
-  );
-
-  return result;
 }
 
-function formatZedResponse(text) {
+/* =========================================
+   MARKDOWN-LIKE RESPONSE RENDERER
+========================================= */
+
+function renderAssistantContent(text) {
+
+  const container =
+    document.createElement("div");
+
+  container.className =
+    "messageBody";
 
   const source =
-    String(text ?? "")
-      .replace(/\r\n/g, "\n")
-      .trim();
-
-  if (!source) {
-    return "";
-  }
+    String(text || "")
+      .replace(/\r\n/g, "\n");
 
   const lines =
     source.split("\n");
 
-  let html = "";
   let paragraph = [];
   let listType = null;
-  let codeLines = null;
+  let listItems = [];
+  let inCode = false;
   let codeLanguage = "";
+  let codeLines = [];
 
   function flushParagraph() {
 
@@ -2146,51 +2107,137 @@ function formatZedResponse(text) {
       return;
     }
 
-    const content =
+    const value =
       paragraph
-        .map(line =>
-          formatInlineMarkdown(line.trim())
-        )
-        .join(" ");
+        .join("\n")
+        .trim();
 
-    html +=
-      `<p>${content}</p>`;
+    if (value) {
+
+      const p =
+        document.createElement("p");
+
+      p.innerHTML =
+        formatInline(value)
+          .replace(/\n/g, "<br>");
+
+      container.appendChild(p);
+
+    }
 
     paragraph = [];
 
   }
 
-  function closeList() {
+  function flushList() {
 
-    if (!listType) {
+    if (!listItems.length) {
       return;
     }
 
-    html +=
-      `</${listType}>`;
+    const list =
+      document.createElement(
+        listType === "ol"
+          ? "ol"
+          : "ul"
+      );
 
+    listItems.forEach(
+      item => {
+
+        const li =
+          document.createElement("li");
+
+        li.innerHTML =
+          formatInline(item);
+
+        list.appendChild(li);
+
+      }
+    );
+
+    container.appendChild(list);
+
+    listItems = [];
     listType = null;
 
   }
 
   function flushCode() {
 
-    if (!codeLines) {
-      return;
-    }
+    const wrapper =
+      document.createElement("div");
 
-    const code =
+    wrapper.className =
+      "codeBlock";
+
+    const header =
+      document.createElement("div");
+
+    header.className =
+      "codeHeader";
+
+    const language =
+      document.createElement("span");
+
+    language.textContent =
+      codeLanguage || "code";
+
+    const copy =
+      document.createElement("button");
+
+    copy.className =
+      "copyCodeButton";
+
+    copy.textContent =
+      "Copy";
+
+    copy.addEventListener(
+      "click",
+      async () => {
+
+        try {
+
+          await navigator.clipboard.writeText(
+            codeLines.join("\n")
+          );
+
+          copy.textContent =
+            "Copied";
+
+          setTimeout(
+            () => {
+              copy.textContent =
+                "Copy";
+            },
+            1200
+          );
+
+        } catch {
+
+          copy.textContent =
+            "Copy failed";
+
+        }
+
+      }
+    );
+
+    header.appendChild(language);
+    header.appendChild(copy);
+
+    const pre =
+      document.createElement("pre");
+
+    pre.textContent =
       codeLines.join("\n");
 
-    const languageClass =
-      codeLanguage
-        ? ` class="language-${escapeHtml(codeLanguage)}"`
-        : "";
+    wrapper.appendChild(header);
+    wrapper.appendChild(pre);
 
-    html +=
-      `<pre><code${languageClass}>${escapeHtml(code)}</code></pre>`;
+    container.appendChild(wrapper);
 
-    codeLines = null;
+    codeLines = [];
     codeLanguage = "";
 
   }
@@ -2207,66 +2254,47 @@ function formatZedResponse(text) {
     const trimmed =
       line.trim();
 
-    /* Fenced code */
-
     if (
       trimmed.startsWith("```")
     ) {
 
-      if (codeLines) {
-
-        flushCode();
-
-      } else {
+      if (!inCode) {
 
         flushParagraph();
-        closeList();
+        flushList();
 
-        codeLines = [];
+        inCode = true;
+
         codeLanguage =
           trimmed
             .slice(3)
             .trim();
+
+      } else {
+
+        inCode = false;
+
+        flushCode();
 
       }
 
       continue;
     }
 
-    if (codeLines) {
+    if (inCode) {
 
       codeLines.push(line);
 
       continue;
     }
 
-    /* Blank line */
-
     if (!trimmed) {
 
       flushParagraph();
-      closeList();
+      flushList();
 
       continue;
     }
-
-    /* Horizontal rule */
-
-    if (
-      /^(-{3,}|\*{3,}|_{3,})$/.test(
-        trimmed
-      )
-    ) {
-
-      flushParagraph();
-      closeList();
-
-      html += "<hr>";
-
-      continue;
-    }
-
-    /* Headings */
 
     const heading =
       trimmed.match(
@@ -2276,39 +2304,29 @@ function formatZedResponse(text) {
     if (heading) {
 
       flushParagraph();
-      closeList();
+      flushList();
 
       const level =
         heading[1].length;
 
-      html +=
-        `<h${level}>${formatInlineMarkdown(heading[2])}</h${level}>`;
+      const h =
+        document.createElement(
+          "h" + level
+        );
+
+      h.innerHTML =
+        formatInline(
+          heading[2]
+        );
+
+      container.appendChild(h);
 
       continue;
     }
-
-    /* Blockquote */
-
-    if (
-      trimmed.startsWith(">")
-    ) {
-
-      flushParagraph();
-      closeList();
-
-      html +=
-        `<blockquote>${formatInlineMarkdown(
-          trimmed.replace(/^>\s?/, "")
-        )}</blockquote>`;
-
-      continue;
-    }
-
-    /* Unordered list */
 
     const unordered =
       trimmed.match(
-        /^[-*+]\s+(.+)$/
+        /^[-*•]\s+(.+)$/
       );
 
     if (unordered) {
@@ -2317,24 +2335,22 @@ function formatZedResponse(text) {
 
       if (listType !== "ul") {
 
-        closeList();
+        flushList();
 
-        html += "<ul>";
         listType = "ul";
 
       }
 
-      html +=
-        `<li>${formatInlineMarkdown(unordered[1])}</li>`;
+      listItems.push(
+        unordered[1]
+      );
 
       continue;
     }
 
-    /* Ordered list */
-
     const ordered =
       trimmed.match(
-        /^\d+[.)]\s+(.+)$/
+        /^\d+\.\s+(.+)$/
       );
 
     if (ordered) {
@@ -2343,34 +2359,104 @@ function formatZedResponse(text) {
 
       if (listType !== "ol") {
 
-        closeList();
+        flushList();
 
-        html += "<ol>";
         listType = "ol";
 
       }
 
-      html +=
-        `<li>${formatInlineMarkdown(ordered[1])}</li>`;
+      listItems.push(
+        ordered[1]
+      );
 
       continue;
     }
 
-    /* Normal text */
-
-    if (listType) {
-      closeList();
-    }
+    flushList();
 
     paragraph.push(line);
 
   }
 
-  flushParagraph();
-  closeList();
-  flushCode();
+  if (inCode) {
+    flushCode();
+  }
 
-  return html;
+  flushParagraph();
+  flushList();
+
+  if (!container.children.length) {
+
+    const p =
+      document.createElement("p");
+
+    p.textContent =
+      text || "";
+
+    container.appendChild(p);
+
+  }
+
+  return container;
+
+}
+
+/* =========================================
+   COPY ANSWER
+========================================= */
+
+function addCopyButton(inner, text) {
+
+  const actions =
+    document.createElement("div");
+
+  actions.className =
+    "answerActions";
+
+  const button =
+    document.createElement("button");
+
+  button.className =
+    "copyAnswerButton";
+
+  button.textContent =
+    "Copy";
+
+  button.addEventListener(
+    "click",
+    async () => {
+
+      try {
+
+        await navigator.clipboard.writeText(
+          text
+        );
+
+        button.textContent =
+          "Copied";
+
+        setTimeout(
+          () => {
+            button.textContent =
+              "Copy";
+          },
+          1200
+        );
+
+      } catch {
+
+        button.textContent =
+          "Copy failed";
+
+      }
+
+    }
+  );
+
+  actions.appendChild(button);
+
+  inner.appendChild(actions);
+
 }
 
 /* =========================================
@@ -2421,30 +2507,65 @@ function renderMessages() {
           ? "You"
           : "Zed";
 
-      const content =
-        document.createElement("div");
-
-      content.className =
-        "messageContent";
+      inner.appendChild(label);
 
       if (
         message.role === "assistant"
       ) {
 
-        content.innerHTML =
-          formatZedResponse(
+        const body =
+          renderAssistantContent(
+            message.content || ""
+          );
+
+        inner.appendChild(body);
+
+        if (message.content) {
+
+          addCopyButton(
+            inner,
             message.content
           );
 
+        }
+
       } else {
+
+        const content =
+          document.createElement("div");
+
+        content.className =
+          "messageBody";
 
         content.textContent =
           message.content || "";
 
+        inner.appendChild(content);
+
       }
 
-      inner.appendChild(label);
-      inner.appendChild(content);
+      if (
+        message.image
+      ) {
+
+        const image =
+          document.createElement("img");
+
+        image.className =
+          "generatedImage";
+
+        image.src =
+          message.image;
+
+        image.alt =
+          "Image created by Zed";
+
+        image.loading =
+          "lazy";
+
+        inner.appendChild(image);
+
+      }
 
       wrapper.appendChild(inner);
 
@@ -2461,7 +2582,86 @@ function renderMessages() {
 
     }
   );
+
 }
+
+/* =========================================
+   THINKING MESSAGE
+========================================= */
+
+function showThinking() {
+
+  const wrapper =
+    document.createElement("div");
+
+  wrapper.className =
+    "message assistant";
+
+  wrapper.id =
+    "thinkingMessage";
+
+  const inner =
+    document.createElement("div");
+
+  inner.className =
+    "messageInner";
+
+  const label =
+    document.createElement("div");
+
+  label.className =
+    "messageLabel";
+
+  label.textContent =
+    "Zed";
+
+  const thinking =
+    document.createElement("div");
+
+  thinking.className =
+    "thinkingMessage";
+
+  thinking.innerHTML = `
+    <span>Thinking</span>
+    <span class="thinkingDots">
+      <span></span>
+      <span></span>
+      <span></span>
+    </span>
+  `;
+
+  inner.appendChild(label);
+  inner.appendChild(thinking);
+
+  wrapper.appendChild(inner);
+
+  chatContent.appendChild(wrapper);
+
+  requestAnimationFrame(
+    () => {
+      chatArea.scrollTop =
+        chatArea.scrollHeight;
+    }
+  );
+
+}
+
+function removeThinking() {
+
+  const thinking =
+    document.getElementById(
+      "thinkingMessage"
+    );
+
+  if (thinking) {
+    thinking.remove();
+  }
+
+}
+
+/* =========================================
+   LOAD CHAT
+========================================= */
 
 function loadCloudChat(chat) {
 
@@ -2489,12 +2689,18 @@ function newChat() {
 
   selectedFile = null;
 
-  fileName.textContent = "";
+  fileName.textContent =
+    "";
 
-  messageInput.value = "";
+  messageInput.value =
+    "";
 
   messageInput.style.height =
     "auto";
+
+  attachMenu.classList.add(
+    "hidden"
+  );
 
   renderMessages();
 
@@ -2527,9 +2733,10 @@ function readFileAsDataURL(file) {
         new FileReader();
 
       reader.onload =
-        () => resolve(
-          reader.result
-        );
+        () =>
+          resolve(
+            reader.result
+          );
 
       reader.onerror =
         reject;
@@ -2538,6 +2745,7 @@ function readFileAsDataURL(file) {
 
     }
   );
+
 }
 
 /* =========================================
@@ -2545,6 +2753,10 @@ function readFileAsDataURL(file) {
 ========================================= */
 
 async function sendMessage() {
+
+  if (isSending) {
+    return;
+  }
 
   const text =
     messageInput.value.trim();
@@ -2555,6 +2767,14 @@ async function sendMessage() {
   ) {
     return;
   }
+
+  isSending = true;
+
+  sendButton.disabled =
+    true;
+
+  attachButton.disabled =
+    true;
 
   const memoryText =
     extractMemory(text);
@@ -2569,7 +2789,8 @@ async function sendMessage() {
 
   const userMessage = {
 
-    role: "user",
+    role:
+      "user",
 
     content:
       text ||
@@ -2583,15 +2804,14 @@ async function sendMessage() {
 
   renderMessages();
 
-  messageInput.value = "";
+  messageInput.value =
+    "";
 
   messageInput.style.height =
     "auto";
 
-  sendButton.disabled =
-    true;
-
-  let filePayload = null;
+  let filePayload =
+    null;
 
   if (selectedFile) {
 
@@ -2621,7 +2841,8 @@ async function sendMessage() {
 
       messages.push({
 
-        role: "assistant",
+        role:
+          "assistant",
 
         content:
           "I couldn't read that file. Please try uploading it again."
@@ -2630,9 +2851,14 @@ async function sendMessage() {
 
       renderMessages();
 
-      selectedFile = null;
-      fileName.textContent = "";
-      sendButton.disabled = false;
+      isSending =
+        false;
+
+      sendButton.disabled =
+        false;
+
+      attachButton.disabled =
+        false;
 
       return;
 
@@ -2640,13 +2866,16 @@ async function sendMessage() {
 
   }
 
+  showThinking();
+
   try {
 
     const response =
       await fetch(
         "/api/chat",
         {
-          method: "POST",
+          method:
+            "POST",
 
           headers: {
             "Content-Type":
@@ -2684,30 +2913,17 @@ async function sendMessage() {
         }
       );
 
-    /*
-       Read the response safely.
-
-       Sometimes a server/proxy can return
-       plain text instead of JSON.
-    */
-
-    const rawResponse =
-      await response.text();
-
-    let data = {};
+    let data;
 
     try {
 
       data =
-        rawResponse
-          ? JSON.parse(rawResponse)
-          : {};
+        await response.json();
 
     } catch {
 
       throw new Error(
-        rawResponse ||
-        `Server returned HTTP ${response.status}.`
+        "The server returned an invalid response."
       );
 
     }
@@ -2716,32 +2932,21 @@ async function sendMessage() {
 
       throw new Error(
         data.error ||
-        data.message ||
-        `Server returned HTTP ${response.status}.`
+        "Zed could not respond."
       );
 
     }
 
-    const reply =
-      typeof data.reply === "string"
-        ? data.reply
-        : typeof data.message === "string"
-          ? data.message
-          : "";
-
-    if (!reply) {
-
-      throw new Error(
-        "Zed's server returned an empty response."
-      );
-
-    }
+    removeThinking();
 
     messages.push({
 
-      role: "assistant",
+      role:
+        "assistant",
 
-      content: reply
+      content:
+        data.reply ||
+        "I received your message."
 
     });
 
@@ -2756,15 +2961,16 @@ async function sendMessage() {
       error
     );
 
+    removeThinking();
+
     messages.push({
 
-      role: "assistant",
+      role:
+        "assistant",
 
       content:
-        "Sorry, I couldn't complete that request.\n\n" +
-        "**Error:** " +
-        (error.message ||
-          "Unknown error.")
+        "I couldn't complete that request.\n\n" +
+        "Please try again. If the problem continues, the server may be temporarily unavailable."
 
     });
 
@@ -2772,19 +2978,29 @@ async function sendMessage() {
 
   } finally {
 
-    selectedFile = null;
+    selectedFile =
+      null;
 
-    fileName.textContent = "";
+    fileName.textContent =
+      "";
 
-    photoInput.value = "";
-    fileInput.value = "";
+    photoInput.value =
+      "";
+
+    fileInput.value =
+      "";
+
+    isSending =
+      false;
 
     sendButton.disabled =
       false;
 
-    messageInput.focus();
+    attachButton.disabled =
+      false;
 
   }
+
 }
 
 /* =========================================
@@ -2792,6 +3008,10 @@ async function sendMessage() {
 ========================================= */
 
 async function createImage() {
+
+  if (isSending) {
+    return;
+  }
 
   const prompt =
     messageInput.value.trim();
@@ -2810,8 +3030,35 @@ async function createImage() {
     "hidden"
   );
 
+  isSending =
+    true;
+
   sendButton.disabled =
     true;
+
+  attachButton.disabled =
+    true;
+
+  messages.push({
+
+    role:
+      "user",
+
+    content:
+      "Create an image: " +
+      prompt
+
+  });
+
+  renderMessages();
+
+  messageInput.value =
+    "";
+
+  messageInput.style.height =
+    "auto";
+
+  showThinking();
 
   try {
 
@@ -2819,7 +3066,8 @@ async function createImage() {
       await fetch(
         "/api/generate-image",
         {
-          method: "POST",
+          method:
+            "POST",
 
           headers: {
             "Content-Type":
@@ -2834,23 +3082,17 @@ async function createImage() {
         }
       );
 
-    const rawResponse =
-      await response.text();
-
-    let data = {};
+    let data;
 
     try {
 
       data =
-        rawResponse
-          ? JSON.parse(rawResponse)
-          : {};
+        await response.json();
 
     } catch {
 
       throw new Error(
-        rawResponse ||
-        `Server returned HTTP ${response.status}.`
+        "The image service returned an invalid response."
       );
 
     }
@@ -2859,72 +3101,29 @@ async function createImage() {
 
       throw new Error(
         data.error ||
-        data.message ||
-        `Image generation failed with HTTP ${response.status}.`
+        "Image generation failed."
       );
 
     }
 
-    if (!data.image) {
-
-      throw new Error(
-        "The image service returned no image."
-      );
-
-    }
+    removeThinking();
 
     messages.push({
 
-      role: "user",
+      role:
+        "assistant",
 
       content:
-        "Create an image: " +
-        prompt
+        "I created the image you requested.",
 
-    });
-
-    messages.push({
-
-      role: "assistant",
-
-      content:
-        "Image created successfully."
+      image:
+        data.image || null
 
     });
 
     renderMessages();
 
-    const image =
-      document.createElement("img");
-
-    image.src =
-      data.image;
-
-    image.className =
-      "generatedImage";
-
-    image.alt =
-      "Generated image";
-
-    chatContent.appendChild(
-      image
-    );
-
-    messageInput.value = "";
-
-    messageInput.style.height =
-      "auto";
-
     await saveCurrentChat();
-
-    requestAnimationFrame(
-      () => {
-
-        chatArea.scrollTop =
-          chatArea.scrollHeight;
-
-      }
-    );
 
   } catch (error) {
 
@@ -2933,19 +3132,34 @@ async function createImage() {
       error
     );
 
-    alert(
-      error.message ||
-      "Image generation failed."
-    );
+    removeThinking();
+
+    messages.push({
+
+      role:
+        "assistant",
+
+      content:
+        "I couldn't create that image right now.\n\n" +
+        error.message
+
+    });
+
+    renderMessages();
 
   } finally {
+
+    isSending =
+      false;
 
     sendButton.disabled =
       false;
 
-    messageInput.focus();
+    attachButton.disabled =
+      false;
 
   }
+
 }
 
 /* =========================================
@@ -2954,31 +3168,15 @@ async function createImage() {
 
 attachButton.addEventListener(
   "click",
-  event => {
+  () => {
 
-    event.stopPropagation();
+    if (isSending) {
+      return;
+    }
 
     attachMenu.classList.toggle(
       "hidden"
     );
-
-  }
-);
-
-document.addEventListener(
-  "click",
-  event => {
-
-    if (
-      !attachMenu.contains(event.target) &&
-      event.target !== attachButton
-    ) {
-
-      attachMenu.classList.add(
-        "hidden"
-      );
-
-    }
 
   }
 );
@@ -3076,9 +3274,7 @@ messageInput.addEventListener(
 
       event.preventDefault();
 
-      if (!sendButton.disabled) {
-        sendMessage();
-      }
+      sendMessage();
 
     }
 
@@ -3133,8 +3329,7 @@ googleLogin.addEventListener(
       );
 
       authMessage.textContent =
-        error.message ||
-        "Google sign-in failed.";
+        error.message;
 
     } finally {
 
@@ -3172,8 +3367,7 @@ emailLogin.addEventListener(
       );
 
       authMessage.textContent =
-        error.message ||
-        "Sign-in failed.";
+        error.message;
 
     } finally {
 
@@ -3211,8 +3405,7 @@ emailSignup.addEventListener(
       );
 
       authMessage.textContent =
-        error.message ||
-        "Account creation failed.";
+        error.message;
 
     } finally {
 
@@ -3234,9 +3427,6 @@ logoutButton.addEventListener(
 
       messages = [];
       currentChatId = null;
-      memories = [];
-
-      renderMessages();
 
       closeMenu();
 
@@ -3314,7 +3504,7 @@ onAuthStateChanged(
 
       await loadCloudHistory();
 
-      messageInput.focus();
+      renderMessages();
 
     } else {
 
@@ -3370,6 +3560,22 @@ if (
   recognition.continuous =
     false;
 
+  recognition.onstart =
+    () => {
+
+      micButton.style.background =
+        "#4a4a4a";
+
+    };
+
+  recognition.onend =
+    () => {
+
+      micButton.style.background =
+        "transparent";
+
+    };
+
   recognition.onresult =
     event => {
 
@@ -3396,6 +3602,9 @@ if (
         error
       );
 
+      micButton.style.background =
+        "transparent";
+
     };
 
 }
@@ -3412,6 +3621,10 @@ micButton.addEventListener(
 
       return;
 
+    }
+
+    if (isSending) {
+      return;
     }
 
     try {

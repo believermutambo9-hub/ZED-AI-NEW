@@ -19,25 +19,37 @@ body {
   height: 100%;
   font-family: Arial, Helvetica, sans-serif;
   background: #212121;
-  color: #ffffff;
+  color: #fff;
 }
 
 body {
   overflow: hidden;
 }
 
-/* =========================
-   LOGIN SCREEN
-========================= */
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* AUTH */
 
 #authScreen {
   position: fixed;
   inset: 0;
   background: #212121;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 1000;
   padding: 20px;
 }
 
@@ -46,33 +58,34 @@ body {
   max-width: 420px;
   background: #2b2b2b;
   border-radius: 18px;
-  padding: 35px 28px;
-  box-shadow: 0 15px 50px rgba(0,0,0,0.35);
+  padding: 30px;
+  box-shadow: 0 15px 50px rgba(0,0,0,.4);
 }
 
 .authLogo {
   text-align: center;
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 8px;
+  margin-bottom: 25px;
 }
 
-.authSubtitle {
-  text-align: center;
+.authLogo h1 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.authLogo p {
+  margin: 8px 0 0;
   color: #aaa;
-  margin-bottom: 28px;
 }
 
 .authInput {
   width: 100%;
   padding: 14px;
+  margin-bottom: 12px;
   border: 1px solid #444;
+  border-radius: 10px;
   background: #1f1f1f;
   color: white;
-  border-radius: 10px;
   outline: none;
-  margin-bottom: 12px;
-  font-size: 15px;
 }
 
 .authInput:focus {
@@ -83,39 +96,16 @@ body {
   width: 100%;
   border: none;
   border-radius: 10px;
-  padding: 14px;
+  padding: 13px;
   margin-top: 8px;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: bold;
-  background: #ffffff;
+  background: #fff;
   color: #111;
-}
-
-.authButton:hover {
-  opacity: 0.9;
+  font-weight: bold;
 }
 
 .googleButton {
-  background: #ffffff;
+  background: #fff;
   color: #111;
-}
-
-.authDivider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #777;
-  margin: 20px 0;
-  font-size: 13px;
-}
-
-.authDivider::before,
-.authDivider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: #444;
 }
 
 .authSwitch {
@@ -126,23 +116,12 @@ body {
 }
 
 .authSwitch button {
-  background: none;
   border: none;
-  color: #fff;
-  cursor: pointer;
-  font-weight: bold;
+  background: none;
+  color: #72e6a4;
 }
 
-.authError {
-  color: #ff7777;
-  font-size: 13px;
-  margin-top: 10px;
-  text-align: center;
-}
-
-/* =========================
-   MAIN APP
-========================= */
+/* APP */
 
 #app {
   width: 100%;
@@ -150,9 +129,7 @@ body {
   display: flex;
 }
 
-/* =========================
-   SIDEBAR
-========================= */
+/* SIDEBAR */
 
 .sidebar {
   width: 260px;
@@ -161,23 +138,18 @@ body {
   border-right: 1px solid #303030;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-}
-
-.sidebarTop {
-  padding: 14px;
+  padding: 12px;
 }
 
 .newChatButton {
   width: 100%;
-  border: 1px solid #3c3c3c;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #444;
   background: #212121;
   color: white;
-  border-radius: 10px;
-  padding: 12px;
-  cursor: pointer;
   text-align: left;
-  font-size: 14px;
+  margin-bottom: 20px;
 }
 
 .newChatButton:hover {
@@ -187,43 +159,44 @@ body {
 .sidebarTitle {
   color: #888;
   font-size: 12px;
-  padding: 12px 16px 6px;
+  margin: 8px 8px 10px;
   text-transform: uppercase;
 }
 
-.history {
+#historyList {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 8px;
 }
 
 .historyItem {
-  padding: 10px 12px;
+  padding: 10px;
+  margin-bottom: 4px;
   border-radius: 8px;
   color: #ddd;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 14px;
 }
 
 .historyItem:hover {
-  background: #2a2a2a;
+  background: #2b2b2b;
 }
 
 .accountBox {
-  border-top: 1px solid #303030;
-  padding: 12px;
+  border-top: 1px solid #333;
+  padding-top: 12px;
+  margin-top: 10px;
 }
 
 .accountInfo {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 10px;
 }
 
-.userPhoto {
+.profilePhoto {
   width: 38px;
   height: 38px;
   border-radius: 50%;
@@ -231,20 +204,19 @@ body {
   background: #444;
 }
 
-.userDetails {
+.accountText {
   min-width: 0;
   flex: 1;
 }
 
-.userName {
+.accountName {
   font-size: 14px;
-  font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.userEmail {
+.accountEmail {
   font-size: 11px;
   color: #888;
   white-space: nowrap;
@@ -253,110 +225,78 @@ body {
 }
 
 .logoutButton {
-  margin-top: 10px;
   width: 100%;
+  border: 1px solid #444;
   background: transparent;
-  color: #bbb;
-  border: 1px solid #3a3a3a;
-  border-radius: 8px;
+  color: #ccc;
   padding: 8px;
-  cursor: pointer;
+  border-radius: 8px;
 }
 
-.logoutButton:hover {
-  background: #292929;
-  color: white;
-}
-
-/* =========================
-   MAIN AREA
-========================= */
+/* MAIN */
 
 .main {
   flex: 1;
   height: 100%;
-  min-width: 0;
+  position: relative;
   display: flex;
   flex-direction: column;
-  position: relative;
+  min-width: 0;
 }
 
-/* =========================
-   HEADER
-========================= */
-
-.header {
+.topBar {
   height: 58px;
   border-bottom: 1px solid #303030;
   display: flex;
   align-items: center;
-  padding: 0 18px;
-  gap: 12px;
-  flex-shrink: 0;
+  padding: 0 20px;
 }
 
-.menuButton {
-  display: none;
-  border: none;
-  background: transparent;
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-}
-
-.logo {
-  font-size: 18px;
+.brand {
   font-weight: bold;
+  font-size: 18px;
 }
 
-.onlineStatus {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #aaa;
-  font-size: 12px;
-}
-
-.onlineDot {
+.online {
   width: 8px;
   height: 8px;
   background: #72e6a4;
   border-radius: 50%;
+  display: inline-block;
+  margin-left: 8px;
 }
-
-/* =========================
-   CHAT AREA
-========================= */
 
 .chatArea {
   flex: 1;
   overflow-y: auto;
-  padding: 25px 20px 150px;
+  padding: 30px 20px 150px;
 }
 
-.chatInner {
+.chatContent {
   max-width: 850px;
   margin: 0 auto;
 }
 
 .welcome {
   text-align: center;
-  margin-top: 80px;
-  color: #ddd;
+  margin-top: 100px;
 }
 
 .welcome h1 {
   font-size: 34px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .welcome p {
-  color: #888;
+  color: #999;
 }
+
+/* MESSAGES */
 
 .message {
   display: flex;
-  margin: 18px 0;
+  margin-bottom: 22px;
+  gap: 12px;
 }
 
 .message.user {
@@ -364,44 +304,31 @@ body {
 }
 
 .messageBubble {
-  max-width: 80%;
-  padding: 13px 16px;
+  max-width: 78%;
+  padding: 12px 15px;
   border-radius: 16px;
-  white-space: pre-wrap;
-  word-break: break-word;
   line-height: 1.5;
-  font-size: 15px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.message.assistant .messageBubble {
+  background: #2b2b2b;
+  border-top-left-radius: 5px;
 }
 
 .message.user .messageBubble {
   background: #303030;
+  border-top-right-radius: 5px;
 }
 
-.message.assistant .messageBubble {
-  background: transparent;
-  padding-left: 0;
+.messageRole {
+  font-size: 11px;
+  color: #777;
+  margin-bottom: 4px;
 }
 
-.messageFile {
-  color: #aaa;
-  font-size: 12px;
-  margin-top: 6px;
-}
-
-/* =========================
-   STATUS
-========================= */
-
-.status {
-  text-align: center;
-  color: #888;
-  font-size: 12px;
-  min-height: 20px;
-}
-
-/* =========================
-   COMPOSER
-========================= */
+/* COMPOSER */
 
 .composerArea {
   position: absolute;
@@ -409,180 +336,96 @@ body {
   left: 0;
   right: 0;
   padding: 15px 20px 20px;
-  background: linear-gradient(
-    to top,
-    #212121 70%,
-    rgba(33,33,33,0)
-  );
+  background: linear-gradient(transparent, #212121 25%);
 }
 
 .composer {
   max-width: 850px;
   margin: 0 auto;
-  position: relative;
-}
-
-.inputBox {
+  background: #2f2f2f;
+  border: 1px solid #444;
+  border-radius: 18px;
+  padding: 8px;
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  background: #2f2f2f;
-  border: 1px solid #454545;
-  border-radius: 18px;
-  padding: 9px 10px;
 }
 
-.inputBox textarea {
+textarea {
   flex: 1;
   resize: none;
-  max-height: 180px;
-  min-height: 24px;
-  background: transparent;
-  color: white;
+  max-height: 160px;
+  min-height: 42px;
   border: none;
   outline: none;
-  font-family: inherit;
-  font-size: 15px;
-  line-height: 1.45;
-  padding: 8px;
+  background: transparent;
+  color: white;
+  padding: 10px;
 }
 
 .iconButton {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border: none;
-  border-radius: 50%;
+  border-radius: 10px;
   background: transparent;
-  color: #ddd;
-  cursor: pointer;
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.iconButton:hover {
-  background: #444;
-}
-
-.sendButton {
-  background: #ffffff;
-  color: #111;
+  color: #ccc;
   font-size: 18px;
 }
 
-.sendButton:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.iconButton:hover {
+  background: #414141;
 }
 
-/* =========================
-   ATTACH MENU
-========================= */
+.sendButton {
+  background: white;
+  color: black;
+  border-radius: 12px;
+}
 
-.attachWrapper {
-  position: relative;
+.sendButton:disabled {
+  opacity: .4;
+  cursor: not-allowed;
 }
 
 .attachMenu {
   position: absolute;
-  bottom: 50px;
-  left: 0;
-  width: 190px;
-  background: #2c2c2c;
+  bottom: 82px;
+  left: calc(50% - 425px);
+  background: #303030;
   border: 1px solid #444;
   border-radius: 12px;
   padding: 6px;
-  display: none;
-  box-shadow: 0 10px 35px rgba(0,0,0,0.35);
-  z-index: 100;
+  width: 190px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.4);
 }
 
-.attachMenu.show {
-  display: block;
-}
-
-.attachItem {
+.attachMenu button {
   width: 100%;
-  background: transparent;
-  color: #ddd;
-  border: none;
-  padding: 11px;
-  border-radius: 8px;
   text-align: left;
-  cursor: pointer;
-}
-
-.attachItem:hover {
-  background: #3a3a3a;
-}
-
-/* =========================
-   FILE PREVIEW
-========================= */
-
-.filePreview {
-  display: none;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-  background: #2c2c2c;
-  border: 1px solid #444;
-  border-radius: 10px;
-  padding: 9px 12px;
-}
-
-.filePreview.show {
-  display: flex;
-}
-
-.filePreviewName {
-  flex: 1;
-  font-size: 13px;
-  color: #ddd;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.removeFile {
+  padding: 10px;
   border: none;
   background: transparent;
-  color: #aaa;
-  cursor: pointer;
-  font-size: 18px;
+  color: white;
+  border-radius: 8px;
 }
 
-/* =========================
-   MOBILE
-========================= */
+.attachMenu button:hover {
+  background: #414141;
+}
+
+.fileName {
+  max-width: 850px;
+  margin: 0 auto 6px;
+  color: #aaa;
+  font-size: 12px;
+}
+
+/* MOBILE */
 
 @media (max-width: 700px) {
-
   .sidebar {
-    position: fixed;
-    left: -270px;
-    top: 0;
-    z-index: 500;
-    transition: left 0.2s ease;
-  }
-
-  .sidebar.open {
-    left: 0;
-  }
-
-  .menuButton {
-    display: block;
-  }
-
-  .header {
-    padding: 0 12px;
-  }
-
-  .welcome {
-    margin-top: 50px;
-  }
-
-  .welcome h1 {
-    font-size: 28px;
+    display: none;
   }
 
   .chatArea {
@@ -598,38 +441,31 @@ body {
   .messageBubble {
     max-width: 90%;
   }
+
+  .attachMenu {
+    left: 10px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<!-- =========================
-     LOGIN SCREEN
-========================= -->
-
+<!-- AUTH SCREEN -->
 <div id="authScreen">
-
   <div class="authBox">
 
     <div class="authLogo">
-      Zed AI
+      <h1>Zed AI</h1>
+      <p>Your intelligent assistant</p>
     </div>
 
-    <div class="authSubtitle">
-      Your intelligent assistant
-    </div>
-
-    <button
-      id="googleLogin"
-      class="authButton googleButton"
-      type="button"
-    >
+    <button id="googleLogin" class="authButton googleButton">
       Continue with Google
     </button>
 
-    <div class="authDivider">
-      OR
+    <div style="text-align:center;color:#777;margin:15px 0;">
+      or
     </div>
 
     <input
@@ -637,7 +473,6 @@ body {
       class="authInput"
       type="email"
       placeholder="Email"
-      autocomplete="email"
     >
 
     <input
@@ -645,99 +480,66 @@ body {
       class="authInput"
       type="password"
       placeholder="Password"
-      autocomplete="current-password"
     >
 
-    <button
-      id="emailLogin"
-      class="authButton"
-      type="button"
-    >
+    <button id="emailLogin" class="authButton">
       Sign in
     </button>
 
     <button
-      id="createAccount"
+      id="emailSignup"
       class="authButton"
-      type="button"
+      style="background:#3a3a3a;color:white;"
     >
       Create account
     </button>
 
-    <div
-      id="authError"
-      class="authError"
-    ></div>
+    <div id="authMessage"
+         style="margin-top:12px;text-align:center;color:#ff8a8a;font-size:13px;">
+    </div>
 
   </div>
-
 </div>
 
-<!-- =========================
-     APP
-========================= -->
+<!-- MAIN APP -->
+<div id="app" class="hidden">
 
-<div id="app">
+  <aside class="sidebar">
 
-  <aside class="sidebar" id="sidebar">
-
-    <div class="sidebarTop">
-
-      <button
-        class="newChatButton"
-        id="newChatButton"
-        type="button"
-      >
-        ＋ New chat
-      </button>
-
-    </div>
+    <button id="newChatButton" class="newChatButton">
+      ＋ New chat
+    </button>
 
     <div class="sidebarTitle">
       Recent chats
     </div>
 
-    <div
-      class="history"
-      id="history"
-    ></div>
+    <div id="historyList"></div>
 
-    <div
-      class="accountBox"
-      id="accountBox"
-      style="display:none;"
-    >
+    <div class="accountBox">
 
       <div class="accountInfo">
 
         <img
-          id="userPhoto"
-          class="userPhoto"
+          id="profilePhoto"
+          class="profilePhoto"
           src=""
           alt="Profile"
         >
 
-        <div class="userDetails">
+        <div class="accountText">
+          <div id="accountName" class="accountName">
+            Guest
+          </div>
 
-          <div
-            id="userName"
-            class="userName"
-          ></div>
-
-          <div
-            id="userEmail"
-            class="userEmail"
-          ></div>
-
+          <div id="accountEmail" class="accountEmail">
+            Not signed in
+          </div>
         </div>
 
       </div>
 
-      <button
-        id="logoutButton"
-        class="logoutButton"
-        type="button"
-      >
+      <button id="logoutButton" class="logoutButton">
         Log out
       </button>
 
@@ -747,177 +549,94 @@ body {
 
   <main class="main">
 
-    <header class="header">
-
-      <button
-        id="menuButton"
-        class="menuButton"
-        type="button"
-      >
-        ☰
-      </button>
-
-      <div class="logo">
+    <div class="topBar">
+      <div class="brand">
         Zed AI
+        <span class="online"></span>
       </div>
+    </div>
 
-      <div class="onlineStatus">
+    <div id="chatArea" class="chatArea">
 
-        <span class="onlineDot"></span>
+      <div id="chatContent" class="chatContent">
 
-        <span>
-          Online
-        </span>
-
-      </div>
-
-    </header>
-
-    <section
-      id="chatArea"
-      class="chatArea"
-    >
-
-      <div
-        id="chatInner"
-        class="chatInner"
-      >
-
-        <div
-          id="welcome"
-          class="welcome"
-        >
-
-          <h1>
-            How can I help you?
-          </h1>
-
-          <p>
-            Ask Zed AI anything.
-          </p>
-
+        <div id="welcome" class="welcome">
+          <h1>How can I help you?</h1>
+          <p>Zed AI is online</p>
         </div>
 
       </div>
 
-    </section>
-
-    <div
-      id="status"
-      class="status"
-    ></div>
+    </div>
 
     <div class="composerArea">
 
+      <div id="fileName" class="fileName"></div>
+
+      <div
+        id="attachMenu"
+        class="attachMenu hidden"
+      >
+        <button id="uploadPhotoButton">
+          🖼 Upload photo
+        </button>
+
+        <button id="uploadFileButton">
+          📎 Upload file
+        </button>
+
+        <button id="createImageButton">
+          🎨 Create image
+        </button>
+      </div>
+
       <div class="composer">
 
-        <div
-          id="filePreview"
-          class="filePreview"
+        <button
+          id="attachButton"
+          class="iconButton"
+          title="Attach"
         >
+          ＋
+        </button>
 
-          <div
-            id="filePreviewName"
-            class="filePreviewName"
-          ></div>
+        <textarea
+          id="messageInput"
+          rows="1"
+          placeholder="Message Zed AI..."
+        ></textarea>
 
-          <button
-            id="removeFile"
-            class="removeFile"
-            type="button"
-          >
-            ×
-          </button>
-
-        </div>
-
-        <div class="inputBox">
-
-          <div class="attachWrapper">
-
-            <button
-              id="attachButton"
-              class="iconButton"
-              type="button"
-              title="Attach"
-            >
-              ＋
-            </button>
-
-            <div
-              id="attachMenu"
-              class="attachMenu"
-            >
-
-              <button
-                id="photoButton"
-                class="attachItem"
-                type="button"
-              >
-                📷 Upload photo
-              </button>
-
-              <button
-                id="fileButton"
-                class="attachItem"
-                type="button"
-              >
-                📄 Upload file
-              </button>
-
-              <button
-                id="imageButton"
-                class="attachItem"
-                type="button"
-              >
-                🎨 Create image
-              </button>
-
-            </div>
-
-          </div>
-
-          <textarea
-            id="input"
-            rows="1"
-            placeholder="Message Zed AI..."
-          ></textarea>
-
-          <button
-            id="micButton"
-            class="iconButton"
-            type="button"
-            title="Voice input"
-          >
-            🎤
-          </button>
-
-          <button
-            id="sendButton"
-            class="iconButton sendButton"
-            type="button"
-            title="Send"
-          >
-            ↑
-          </button>
-
-        </div>
-
-        <input
-          id="photoInput"
-          type="file"
-          accept="image/*"
-          hidden
+        <button
+          id="micButton"
+          class="iconButton"
+          title="Voice"
         >
+          🎤
+        </button>
 
-        <input
-          id="fileInput"
-          type="file"
-          accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
-          hidden
+        <button
+          id="sendButton"
+          class="iconButton sendButton"
+          title="Send"
         >
+          ↑
+        </button>
 
       </div>
+
+      <input
+        id="photoInput"
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        class="hidden"
+      >
+
+      <input
+        id="fileInput"
+        type="file"
+        accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
+        class="hidden"
+      >
 
     </div>
 
@@ -931,9 +650,8 @@ body {
    FIREBASE
 ========================= */
 
-import {
-  initializeApp
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { initializeApp } from
+  "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 
 import {
   getAuth,
@@ -943,7 +661,8 @@ import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   signOut
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+} from
+  "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 import {
   getFirestore,
@@ -951,8 +670,12 @@ import {
   doc,
   setDoc,
   getDocs,
-  deleteDoc
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  addDoc,
+  query,
+  orderBy,
+  serverTimestamp
+} from
+  "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 
 const firebaseConfig = {
@@ -964,120 +687,54 @@ const firebaseConfig = {
   appId: "1:538225665227:web:d61483c3cafa8e4694e74e"
 };
 
+const firebaseApp = initializeApp(firebaseConfig);
 
-const firebaseConfigured =
-  !Object.values(firebaseConfig)
-    .some(value =>
-      String(value).startsWith("YOUR_")
-    );
-
-
-let auth = null;
-let googleProvider = null;
-let db = null;
-
-
-if (firebaseConfigured) {
-
-  const firebaseApp =
-    initializeApp(firebaseConfig);
-
-  auth =
-    getAuth(firebaseApp);
-
-  googleProvider =
-    new GoogleAuthProvider();
-
-  db =
-    getFirestore(firebaseApp);
-
-}
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
 
 
 /* =========================
    ELEMENTS
 ========================= */
 
-const authScreen =
-  document.getElementById("authScreen");
+const authScreen = document.getElementById("authScreen");
+const app = document.getElementById("app");
 
-const app =
-  document.getElementById("app");
+const googleLogin = document.getElementById("googleLogin");
+const emailLogin = document.getElementById("emailLogin");
+const emailSignup = document.getElementById("emailSignup");
 
-const googleLogin =
-  document.getElementById("googleLogin");
+const emailInput = document.getElementById("emailInput");
+const passwordInput = document.getElementById("passwordInput");
+const authMessage = document.getElementById("authMessage");
 
-const emailInput =
-  document.getElementById("emailInput");
+const logoutButton = document.getElementById("logoutButton");
 
-const passwordInput =
-  document.getElementById("passwordInput");
+const accountName = document.getElementById("accountName");
+const accountEmail = document.getElementById("accountEmail");
+const profilePhoto = document.getElementById("profilePhoto");
 
-const emailLogin =
-  document.getElementById("emailLogin");
+const newChatButton = document.getElementById("newChatButton");
+const historyList = document.getElementById("historyList");
 
-const createAccount =
-  document.getElementById("createAccount");
+const chatArea = document.getElementById("chatArea");
+const chatContent = document.getElementById("chatContent");
+const welcome = document.getElementById("welcome");
 
-const authError =
-  document.getElementById("authError");
+const messageInput = document.getElementById("messageInput");
+const sendButton = document.getElementById("sendButton");
 
-const accountBox =
-  document.getElementById("accountBox");
+const attachButton = document.getElementById("attachButton");
+const attachMenu = document.getElementById("attachMenu");
 
-const userPhoto =
-  document.getElementById("userPhoto");
+const uploadPhotoButton =
+  document.getElementById("uploadPhotoButton");
 
-const userName =
-  document.getElementById("userName");
+const uploadFileButton =
+  document.getElementById("uploadFileButton");
 
-const userEmail =
-  document.getElementById("userEmail");
-
-const logoutButton =
-  document.getElementById("logoutButton");
-
-const history =
-  document.getElementById("history");
-
-const newChatButton =
-  document.getElementById("newChatButton");
-
-const menuButton =
-  document.getElementById("menuButton");
-
-const sidebar =
-  document.getElementById("sidebar");
-
-const chatArea =
-  document.getElementById("chatArea");
-
-const chatInner =
-  document.getElementById("chatInner");
-
-const input =
-  document.getElementById("input");
-
-const send =
-  document.getElementById("sendButton");
-
-const mic =
-  document.getElementById("micButton");
-
-const attachButton =
-  document.getElementById("attachButton");
-
-const attachMenu =
-  document.getElementById("attachMenu");
-
-const photoButton =
-  document.getElementById("photoButton");
-
-const fileButton =
-  document.getElementById("fileButton");
-
-const imageButton =
-  document.getElementById("imageButton");
+const createImageButton =
+  document.getElementById("createImageButton");
 
 const photoInput =
   document.getElementById("photoInput");
@@ -1085,31 +742,23 @@ const photoInput =
 const fileInput =
   document.getElementById("fileInput");
 
-const filePreview =
-  document.getElementById("filePreview");
+const fileName =
+  document.getElementById("fileName");
 
-const filePreviewName =
-  document.getElementById("filePreviewName");
-
-const removeFile =
-  document.getElementById("removeFile");
-
-const status =
-  document.getElementById("status");
+const micButton =
+  document.getElementById("micButton");
 
 
 /* =========================
-   APP DATA
+   STATE
 ========================= */
 
 let messages = [];
-
 let selectedFile = null;
 
 let memories = [];
 
 let userId = "guest";
-
 let currentChatId = null;
 
 
@@ -1117,335 +766,267 @@ let currentChatId = null;
    LOCAL STORAGE
 ========================= */
 
-function getStorageKey() {
+function getLocalChats() {
+  try {
+    return JSON.parse(
+      localStorage.getItem("zed_ai_chats") || "[]"
+    );
+  } catch {
+    return [];
+  }
+}
 
-  return "zed_ai_chats";
-
+function saveLocalChats(chats) {
+  localStorage.setItem(
+    "zed_ai_chats",
+    JSON.stringify(chats)
+  );
 }
 
 
-function getChats() {
+/* =========================
+   MEMORY
+========================= */
+
+async function saveMemoryToFirestore(text) {
+
+  if (!auth.currentUser || !text) {
+    return;
+  }
+
+  const memoriesRef = collection(
+    db,
+    "users",
+    auth.currentUser.uid,
+    "memories"
+  );
+
+  const existing = memories.find(
+    item => item.toLowerCase() === text.toLowerCase()
+  );
+
+  if (existing) {
+    return;
+  }
+
+  const memoryData = {
+    text,
+    createdAt: serverTimestamp()
+  };
+
+  await addDoc(memoriesRef, memoryData);
+
+  memories.push(text);
+}
+
+
+async function loadMemories() {
+
+  memories = [];
+
+  if (!auth.currentUser) {
+    return;
+  }
 
   try {
 
-    return JSON.parse(
-      localStorage.getItem(
-        getStorageKey()
-      ) || "[]"
+    const memoriesRef = collection(
+      db,
+      "users",
+      auth.currentUser.uid,
+      "memories"
     );
 
-  } catch {
+    const snapshot = await getDocs(
+      query(memoriesRef, orderBy("createdAt", "asc"))
+    );
 
-    return [];
+    snapshot.forEach(item => {
+
+      const data = item.data();
+
+      if (
+        typeof data.text === "string" &&
+        data.text.trim()
+      ) {
+        memories.push(data.text.trim());
+      }
+
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Could not load memories:",
+      error
+    );
 
   }
-
 }
 
 
-function saveChats(chats) {
+function extractMemory(text) {
 
-  localStorage.setItem(
-    getStorageKey(),
-    JSON.stringify(chats)
-  );
-
-}
-
-
-/* =========================
-   FIRESTORE CHAT PATH
-========================= */
-
-function getUserChatsCollection() {
-
-  if (!db || !userId || userId === "guest") {
+  if (!/^remember\b/i.test(text)) {
     return null;
   }
 
-  return collection(
-    db,
-    "users",
-    userId,
-    "chats"
-  );
+  const memoryText = text
+    .replace(/^remember\b\s*(that)?\s*/i, "")
+    .trim();
 
+  return memoryText || null;
 }
 
 
 /* =========================
-   SAVE CHAT TO FIRESTORE
+   CHAT HISTORY
 ========================= */
 
 async function saveChatToCloud() {
 
   if (
-    !db ||
-    !userId ||
-    userId === "guest" ||
-    !messages.length
+    !auth.currentUser ||
+    messages.length === 0
   ) {
     return;
   }
 
   try {
 
-    const chatsCollection =
-      getUserChatsCollection();
-
-    if (!chatsCollection) {
-      return;
-    }
+    const chatsRef = collection(
+      db,
+      "users",
+      auth.currentUser.uid,
+      "chats"
+    );
 
     if (!currentChatId) {
 
-      currentChatId =
-        doc(chatsCollection).id;
+      const newChat = doc(chatsRef);
 
-    }
+      currentChatId = newChat.id;
 
-    const firstUserMessage =
-      messages.find(
-        message =>
-          message.role === "user"
-      );
+      await setDoc(newChat, {
+        title:
+          messages.find(
+            message => message.role === "user"
+          )?.content?.slice(0, 45) ||
+          "New chat",
 
-    const title =
-      firstUserMessage
-        ? firstUserMessage.content
-            .replace(/\s+/g, " ")
-            .slice(0, 45)
-        : "New conversation";
+        messages,
 
-    await setDoc(
-      doc(
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+    } else {
+
+      const chatRef = doc(
         db,
         "users",
-        userId,
+        auth.currentUser.uid,
         "chats",
         currentChatId
-      ),
-      {
-        title,
-        messages,
-        updatedAt:
-          new Date().toISOString(),
-        createdAt:
-          new Date().toISOString()
-      },
-      {
-        merge: true
-      }
-    );
+      );
+
+      await setDoc(
+        chatRef,
+        {
+          messages,
+          updatedAt: serverTimestamp()
+        },
+        {
+          merge: true
+        }
+      );
+
+    }
 
   } catch (error) {
 
     console.error(
-      "Firestore save error:",
+      "Cloud chat save failed:",
       error
     );
 
   }
-
 }
 
 
-/* =========================
-   LOAD CLOUD HISTORY
-========================= */
-
 async function loadCloudHistory() {
 
-  if (
-    !db ||
-    !userId ||
-    userId === "guest"
-  ) {
-    renderLocalHistory();
+  historyList.innerHTML = "";
+
+  if (!auth.currentUser) {
     return;
   }
 
   try {
 
-    const chatsCollection =
-      getUserChatsCollection();
+    const chatsRef = collection(
+      db,
+      "users",
+      auth.currentUser.uid,
+      "chats"
+    );
 
-    if (!chatsCollection) {
-      renderLocalHistory();
-      return;
-    }
-
-    const snapshot =
-      await getDocs(
-        chatsCollection
-      );
+    const snapshot = await getDocs(chatsRef);
 
     const chats = [];
 
-    snapshot.forEach(
-      documentSnapshot => {
+    snapshot.forEach(item => {
 
-        const data =
-          documentSnapshot.data();
+      chats.push({
+        id: item.id,
+        ...item.data()
+      });
 
-        chats.push({
+    });
 
-          id:
-            documentSnapshot.id,
+    chats.sort(
+      (a, b) => {
 
-          title:
-            data.title ||
-            "New conversation",
+        const aTime =
+          a.updatedAt?.seconds || 0;
 
-          messages:
-            data.messages || [],
+        const bTime =
+          b.updatedAt?.seconds || 0;
 
-          createdAt:
-            data.createdAt ||
-            "",
-
-          updatedAt:
-            data.updatedAt ||
-            ""
-
-        });
+        return bTime - aTime;
 
       }
     );
 
-    chats.sort(
-      (a, b) =>
-        new Date(
-          b.updatedAt ||
-          b.createdAt ||
-          0
-        ) -
-        new Date(
-          a.updatedAt ||
-          a.createdAt ||
-          0
-        )
-    );
+    chats.forEach(chat => {
 
-    renderHistoryFromChats(
-      chats
-    );
+      const item =
+        document.createElement("div");
+
+      item.className = "historyItem";
+
+      item.textContent =
+        chat.title || "New chat";
+
+      item.addEventListener(
+        "click",
+        () => loadCloudChat(chat)
+      );
+
+      historyList.appendChild(item);
+
+    });
 
   } catch (error) {
 
     console.error(
-      "Firestore history error:",
+      "Could not load cloud history:",
       error
     );
 
-    renderLocalHistory();
-
   }
-
 }
 
-
-/* =========================
-   RENDER HISTORY
-========================= */
-
-function renderHistoryFromChats(
-  chats
-) {
-
-  history.innerHTML = "";
-
-  chats.forEach(
-    chat => {
-
-      const item =
-        document.createElement(
-          "div"
-        );
-
-      item.className =
-        "historyItem";
-
-      item.textContent =
-        chat.title ||
-        "New conversation";
-
-      item.addEventListener(
-        "click",
-        () => {
-
-          loadCloudChat(
-            chat
-          );
-
-          sidebar.classList.remove(
-            "open"
-          );
-
-        }
-      );
-
-      history.appendChild(
-        item
-      );
-
-    }
-  );
-
-}
-
-
-function renderLocalHistory() {
-
-  history.innerHTML = "";
-
-  const chats =
-    getChats();
-
-  chats
-    .slice()
-    .reverse()
-    .forEach(
-      (chat, index) => {
-
-        const item =
-          document.createElement(
-            "div"
-          );
-
-        item.className =
-          "historyItem";
-
-        item.textContent =
-          chat.title ||
-          "New conversation";
-
-        item.addEventListener(
-          "click",
-          () => {
-
-            loadLocalChat(
-              chats.length -
-              1 -
-              index
-            );
-
-          }
-        );
-
-        history.appendChild(
-          item
-        );
-
-      }
-    );
-
-}
-
-
-/* =========================
-   SAVE LOCAL CHAT
-========================= */
 
 function saveCurrentChatLocally() {
 
@@ -1453,111 +1034,53 @@ function saveCurrentChatLocally() {
     return;
   }
 
-  const chats =
-    getChats();
+  const chats = getLocalChats();
 
-  const firstUserMessage =
-    messages.find(
-      message =>
-        message.role === "user"
-    );
-
-  const title =
-    firstUserMessage
-      ? firstUserMessage.content
-          .replace(/\s+/g, " ")
-          .slice(0, 45)
-      : "New conversation";
-
-  if (currentChatId) {
-
-    const existingIndex =
-      chats.findIndex(
-        chat =>
-          chat.id === currentChatId
-      );
-
-    if (existingIndex !== -1) {
-
-      chats[existingIndex] = {
-
-        ...chats[existingIndex],
-
-        id:
-          currentChatId,
-
-        title,
-
-        messages,
-
-        updatedAt:
-          new Date().toISOString()
-
-      };
-
-    } else {
-
-      chats.push({
-
-        id:
-          currentChatId,
-
-        title,
-
-        messages,
-
-        createdAt:
-          new Date().toISOString(),
-
-        updatedAt:
-          new Date().toISOString()
-
-      });
-
-    }
-
-  } else {
-
-    const localId =
-      "local-" +
-      Date.now();
+  if (!currentChatId) {
 
     currentChatId =
-      localId;
-
-    chats.push({
-
-      id:
-        localId,
-
-      title,
-
-      messages,
-
-      createdAt:
-        new Date().toISOString(),
-
-      updatedAt:
-        new Date().toISOString()
-
-    });
+      "local-" + Date.now();
 
   }
 
-  saveChats(chats);
+  const existingIndex =
+    chats.findIndex(
+      chat => chat.id === currentChatId
+    );
+
+  const chatData = {
+
+    id: currentChatId,
+
+    title:
+      messages.find(
+        message => message.role === "user"
+      )?.content?.slice(0, 45) ||
+      "New chat",
+
+    messages,
+
+    updatedAt: Date.now()
+
+  };
+
+  if (existingIndex >= 0) {
+
+    chats[existingIndex] =
+      chatData;
+
+  } else {
+
+    chats.unshift(chatData);
+
+  }
+
+  saveLocalChats(chats);
 
 }
 
 
-/* =========================
-   SAVE CHAT
-========================= */
-
 async function saveCurrentChat() {
-
-  if (!messages.length) {
-    return;
-  }
 
   saveCurrentChatLocally();
 
@@ -1569,107 +1092,81 @@ async function saveCurrentChat() {
 
 
 /* =========================
-   LOAD LOCAL CHAT
-========================= */
-
-function loadLocalChat(index) {
-
-  const chats =
-    getChats();
-
-  const chat =
-    chats[index];
-
-  if (!chat) {
-    return;
-  }
-
-  currentChatId =
-    chat.id ||
-    null;
-
-  messages =
-    chat.messages || [];
-
-  renderMessages();
-
-}
-
-
-/* =========================
-   LOAD CLOUD CHAT
-========================= */
-
-function loadCloudChat(chat) {
-
-  currentChatId =
-    chat.id;
-
-  messages =
-    chat.messages || [];
-
-  renderMessages();
-
-}
-
-
-/* =========================
-   RENDER MESSAGES
+   LOAD CHAT
 ========================= */
 
 function renderMessages() {
 
-  chatInner.innerHTML = "";
+  chatContent.innerHTML = "";
 
   if (!messages.length) {
 
-    const newWelcome =
-      document.createElement(
-        "div"
-      );
-
-    newWelcome.className =
-      "welcome";
-
-    newWelcome.innerHTML = `
-      <h1>How can I help you?</h1>
-      <p>Ask Zed AI anything.</p>
-    `;
-
-    chatInner.appendChild(
-      newWelcome
+    chatContent.appendChild(
+      welcome
     );
 
     return;
-
   }
 
   messages.forEach(
     message => {
 
-      if (
-        message.content ===
-        "[Generated image]"
-      ) {
+      const wrapper =
+        document.createElement("div");
 
-        addMessageToScreen(
-          "assistant",
-          "🖼️ Generated image"
+      wrapper.className =
+        "message " +
+        (
+          message.role === "user"
+            ? "user"
+            : "assistant"
         );
 
-      } else {
+      const bubble =
+        document.createElement("div");
 
-        addMessageToScreen(
-          message.role,
-          message.content
-        );
+      bubble.className =
+        "messageBubble";
 
-      }
+      bubble.textContent =
+        message.content || "";
+
+      wrapper.appendChild(bubble);
+
+      chatContent.appendChild(wrapper);
 
     }
   );
 
-  scrollToBottom();
+  chatArea.scrollTop =
+    chatArea.scrollHeight;
+}
+
+
+function loadLocalChat(chat) {
+
+  currentChatId = chat.id;
+
+  messages =
+    Array.isArray(chat.messages)
+      ? chat.messages
+      : [];
+
+  renderMessages();
+
+}
+
+
+function loadCloudChat(chat) {
+
+  currentChatId = chat.id;
+
+  messages =
+    Array.isArray(chat.messages)
+      ? chat.messages
+      : [];
+
+  renderMessages();
 
 }
 
@@ -1682,214 +1179,17 @@ function newChat() {
 
   messages = [];
 
-  selectedFile = null;
-
   currentChatId = null;
 
-  input.value = "";
+  selectedFile = null;
 
-  input.style.height =
-    "auto";
+  fileName.textContent = "";
 
-  filePreview.classList.remove(
-    "show"
-  );
+  messageInput.value = "";
 
-  photoInput.value = "";
-
-  fileInput.value = "";
-
-  chatInner.innerHTML = "";
-
-  const newWelcome =
-    document.createElement(
-      "div"
-    );
-
-  newWelcome.className =
-    "welcome";
-
-  newWelcome.innerHTML = `
-    <h1>How can I help you?</h1>
-    <p>Ask Zed AI anything.</p>
-  `;
-
-  chatInner.appendChild(
-    newWelcome
-  );
-
-  input.focus();
+  renderMessages();
 
 }
-
-
-/* =========================
-   CHAT DISPLAY
-========================= */
-
-function addMessageToScreen(
-  role,
-  content
-) {
-
-  const message =
-    document.createElement(
-      "div"
-    );
-
-  message.className =
-    "message " +
-    role;
-
-  const bubble =
-    document.createElement(
-      "div"
-    );
-
-  bubble.className =
-    "messageBubble";
-
-  bubble.textContent =
-    content;
-
-  message.appendChild(
-    bubble
-  );
-
-  chatInner.appendChild(
-    message
-  );
-
-}
-
-
-/* =========================
-   SCROLL
-========================= */
-
-function scrollToBottom() {
-
-  chatArea.scrollTop =
-    chatArea.scrollHeight;
-
-}
-
-
-/* =========================
-   FILE READING
-========================= */
-
-async function readFileAsDataURL(
-  file
-) {
-
-  return new Promise(
-    (resolve, reject) => {
-
-      const reader =
-        new FileReader();
-
-      reader.onload = () =>
-        resolve(
-          reader.result
-        );
-
-      reader.onerror = () =>
-        reject(
-          new Error(
-            "Could not read the selected file."
-          )
-        );
-
-      reader.readAsDataURL(
-        file
-      );
-
-    }
-  );
-
-}
-
-
-/* =========================
-   FILE SELECTION
-========================= */
-
-function showSelectedFile(
-  file
-) {
-
-  if (!file) {
-    return;
-  }
-
-  selectedFile =
-    file;
-
-  filePreviewName.textContent =
-    file.name;
-
-  filePreview.classList.add(
-    "show"
-  );
-
-}
-
-
-photoInput.addEventListener(
-  "change",
-  () => {
-
-    const file =
-      photoInput.files[0];
-
-    showSelectedFile(
-      file
-    );
-
-    attachMenu.classList.remove(
-      "show"
-    );
-
-  }
-);
-
-
-fileInput.addEventListener(
-  "change",
-  () => {
-
-    const file =
-      fileInput.files[0];
-
-    showSelectedFile(
-      file
-    );
-
-    attachMenu.classList.remove(
-      "show"
-    );
-
-  }
-);
-
-
-removeFile.addEventListener(
-  "click",
-  () => {
-
-    selectedFile = null;
-
-    photoInput.value = "";
-
-    fileInput.value = "";
-
-    filePreview.classList.remove(
-      "show"
-    );
-
-  }
-);
 
 
 /* =========================
@@ -1899,191 +1199,253 @@ removeFile.addEventListener(
 async function sendMessage() {
 
   const text =
-    input.value.trim();
+    messageInput.value.trim();
 
-  if (
-    !text &&
-    !selectedFile
-  ) {
+  if (!text && !selectedFile) {
     return;
   }
 
-  const fileToSend =
-    selectedFile;
+  const memoryText =
+    extractMemory(text);
 
-  let displayText =
-    text;
+  if (memoryText) {
 
-  if (fileToSend) {
+    try {
 
-    if (displayText) {
+      await saveMemoryToFirestore(
+        memoryText
+      );
 
-      displayText +=
-        "\n\n📎 " +
-        fileToSend.name;
+    } catch (error) {
 
-    } else {
-
-      displayText =
-        "📎 " +
-        fileToSend.name;
+      console.error(
+        "Memory save failed:",
+        error
+      );
 
     }
 
   }
 
-  messages.push({
+  const userMessage = {
 
-    role:
-      "user",
+    role: "user",
 
     content:
-      displayText
+      text ||
+      "Please analyze this uploaded file."
 
-  });
+  };
 
-  addMessageToScreen(
-    "user",
-    displayText
-  );
+  messages.push(userMessage);
 
-  input.value = "";
+  renderMessages();
 
-  input.style.height =
-    "auto";
+  messageInput.value = "";
 
-  scrollToBottom();
+  sendButton.disabled = true;
 
-  status.textContent =
-    fileToSend
-      ? "Preparing your file..."
-      : "Zed AI is thinking...";
 
-  send.disabled =
-    true;
+  let filePayload = null;
 
-  try {
+  if (selectedFile) {
 
-    let filePayload =
-      null;
-
-    if (fileToSend) {
-
-      const maxFileSize =
-        15 * 1024 * 1024;
-
-      const allowedTypes = [
-
-        "application/pdf",
-
-        "image/jpeg",
-
-        "image/png",
-
-        "image/webp",
-
-        "image/gif"
-
-      ];
-
-      if (
-        fileToSend.size >
-        maxFileSize
-      ) {
-
-        throw new Error(
-          "The file is too large. Maximum size is 15 MB."
-        );
-
-      }
-
-      if (
-        !allowedTypes.includes(
-          fileToSend.type
-        )
-      ) {
-
-        throw new Error(
-          "Zed AI currently supports JPG, PNG, WEBP, GIF images and PDF files."
-        );
-
-      }
-
-      status.textContent =
-        "Reading " +
-        fileToSend.name +
-        "...";
-
-      const dataUrl =
-        await readFileAsDataURL(
-          fileToSend
-        );
+    try {
 
       filePayload = {
-
-        name:
-          fileToSend.name,
-
-        mimeType:
-          fileToSend.type,
-
+        name: selectedFile.name,
+        mimeType: selectedFile.type,
         data:
-          dataUrl
-
+          await readFileAsDataURL(
+            selectedFile
+          )
       };
+
+    } catch (error) {
+
+      console.error(
+        "File reading failed:",
+        error
+      );
+
+      sendButton.disabled = false;
+
+      return;
 
     }
 
-    status.textContent =
-      fileToSend
-        ? "Zed AI is analyzing your file..."
-        : "Zed AI is thinking...";
+  }
+
+
+  try {
+
+    const response =
+      await fetch("/api/chat", {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify({
+
+          message: text,
+
+          userId,
+
+          memories,
+
+          conversation:
+            messages
+              .slice(0, -1)
+              .map(message => ({
+                role:
+                  message.role,
+                text:
+                  message.content
+              })),
+
+          file:
+            filePayload
+
+        })
+
+      });
+
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error ||
+        "Zed AI could not respond."
+      );
+
+    }
+
+
+    messages.push({
+
+      role: "assistant",
+
+      content:
+        data.reply ||
+        "I received your message."
+
+    });
+
+
+    renderMessages();
+
+    await saveCurrentChat();
+
+
+  } catch (error) {
+
+    console.error(
+      "Chat error:",
+      error
+    );
+
+    messages.push({
+
+      role: "assistant",
+
+      content:
+        "Sorry, I couldn't complete that request. " +
+        error.message
+
+    });
+
+    renderMessages();
+
+  } finally {
+
+    selectedFile = null;
+
+    fileName.textContent = "";
+
+    sendButton.disabled = false;
+
+  }
+
+}
+
+
+/* =========================
+   FILE READER
+========================= */
+
+function readFileAsDataURL(file) {
+
+  return new Promise(
+    (resolve, reject) => {
+
+      const reader =
+        new FileReader();
+
+      reader.onload =
+        () => resolve(
+          reader.result
+        );
+
+      reader.onerror =
+        reject;
+
+      reader.readAsDataURL(file);
+
+    }
+  );
+
+}
+
+
+/* =========================
+   IMAGE GENERATION
+========================= */
+
+async function createImage() {
+
+  const prompt =
+    messageInput.value.trim();
+
+  if (!prompt) {
+
+    alert(
+      "Describe the image you want Zed AI to create."
+    );
+
+    return;
+
+  }
+
+  attachMenu.classList.add(
+    "hidden"
+  );
+
+  sendButton.disabled = true;
+
+  try {
 
     const response =
       await fetch(
-        "/api/chat",
+        "/api/generate-image",
         {
-
-          method:
-            "POST",
+          method: "POST",
 
           headers: {
-
             "Content-Type":
               "application/json"
-
           },
 
-          body:
-            JSON.stringify({
-
-              message:
-                text,
-
-              userId,
-
-              memories,
-
-              conversation:
-                messages
-                  .slice(0, -1)
-                  .map(
-                    message => ({
-
-                      role:
-                        message.role,
-
-                      text:
-                        message.content
-
-                    })
-                  ),
-
-              file:
-                filePayload
-
-            })
-
+          body: JSON.stringify({
+            prompt
+          })
         }
       );
 
@@ -2094,86 +1456,60 @@ async function sendMessage() {
 
       throw new Error(
         data.error ||
-        "Request failed."
+        "Image generation failed."
       );
 
     }
-
-    const reply =
-      data.reply ||
-      data.message ||
-      "I couldn't generate a response.";
 
     messages.push({
-
-      role:
-        "assistant",
-
+      role: "user",
       content:
-        reply
-
+        "Create an image: " +
+        prompt
     });
 
-    addMessageToScreen(
-      "assistant",
-      reply
+    messages.push({
+      role: "assistant",
+      content:
+        "Image created successfully."
+    });
+
+    renderMessages();
+
+    const image =
+      document.createElement("img");
+
+    image.src = data.image;
+
+    image.style.maxWidth =
+      "100%";
+
+    image.style.borderRadius =
+      "12px";
+
+    image.style.marginTop =
+      "10px";
+
+    chatContent.appendChild(
+      image
     );
 
+    messageInput.value = "";
+
     await saveCurrentChat();
-
-    if (fileToSend) {
-
-      selectedFile =
-        null;
-
-      photoInput.value =
-        "";
-
-      fileInput.value =
-        "";
-
-      filePreview.classList.remove(
-        "show"
-      );
-
-    }
 
   } catch (error) {
 
     console.error(
+      "Image generation error:",
       error
     );
 
-    const errorMessage =
-      error.message ||
-      "Sorry, something went wrong. Please try again.";
-
-    messages.push({
-
-      role:
-        "assistant",
-
-      content:
-        errorMessage
-
-    });
-
-    addMessageToScreen(
-      "assistant",
-      errorMessage
-    );
-
-    await saveCurrentChat();
+    alert(error.message);
 
   } finally {
 
-    status.textContent =
-      "";
-
-    send.disabled =
-      false;
-
-    scrollToBottom();
+    sendButton.disabled = false;
 
   }
 
@@ -2181,20 +1517,106 @@ async function sendMessage() {
 
 
 /* =========================
-   SEND BUTTON
+   ATTACHMENTS
 ========================= */
 
-send.addEventListener(
+attachButton.addEventListener(
+  "click",
+  () => {
+
+    attachMenu.classList.toggle(
+      "hidden"
+    );
+
+  }
+);
+
+
+uploadPhotoButton.addEventListener(
+  "click",
+  () => {
+
+    attachMenu.classList.add(
+      "hidden"
+    );
+
+    photoInput.click();
+
+  }
+);
+
+
+uploadFileButton.addEventListener(
+  "click",
+  () => {
+
+    attachMenu.classList.add(
+      "hidden"
+    );
+
+    fileInput.click();
+
+  }
+);
+
+
+createImageButton.addEventListener(
+  "click",
+  createImage
+);
+
+
+photoInput.addEventListener(
+  "change",
+  () => {
+
+    const file =
+      photoInput.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    selectedFile = file;
+
+    fileName.textContent =
+      "Selected: " + file.name;
+
+  }
+);
+
+
+fileInput.addEventListener(
+  "change",
+  () => {
+
+    const file =
+      fileInput.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    selectedFile = file;
+
+    fileName.textContent =
+      "Selected: " + file.name;
+
+  }
+);
+
+
+/* =========================
+   MESSAGE INPUT
+========================= */
+
+sendButton.addEventListener(
   "click",
   sendMessage
 );
 
 
-/* =========================
-   ENTER KEY
-========================= */
-
-input.addEventListener(
+messageInput.addEventListener(
   "keydown",
   event => {
 
@@ -2213,21 +1635,17 @@ input.addEventListener(
 );
 
 
-/* =========================
-   AUTO RESIZE
-========================= */
-
-input.addEventListener(
+messageInput.addEventListener(
   "input",
   () => {
 
-    input.style.height =
+    messageInput.style.height =
       "auto";
 
-    input.style.height =
+    messageInput.style.height =
       Math.min(
-        input.scrollHeight,
-        180
+        messageInput.scrollHeight,
+        160
       ) + "px";
 
   }
@@ -2235,38 +1653,44 @@ input.addEventListener(
 
 
 /* =========================
-   ATTACH MENU
+   NEW CHAT
 ========================= */
 
-attachButton.addEventListener(
+newChatButton.addEventListener(
   "click",
-  event => {
-
-    event.stopPropagation();
-
-    attachMenu.classList.toggle(
-      "show"
-    );
-
-  }
+  newChat
 );
 
 
-document.addEventListener(
+/* =========================
+   AUTH
+========================= */
+
+googleLogin.addEventListener(
   "click",
-  event => {
+  async () => {
 
-    if (
-      !attachMenu.contains(
-        event.target
-      ) &&
-      event.target !==
-        attachButton
-    ) {
+    try {
 
-      attachMenu.classList.remove(
-        "show"
+      authMessage.textContent = "";
+
+      const provider =
+        new GoogleAuthProvider();
+
+      await signInWithPopup(
+        auth,
+        provider
       );
+
+    } catch (error) {
+
+      console.error(
+        "Google login error:",
+        error
+      );
+
+      authMessage.textContent =
+        error.message;
 
     }
 
@@ -2274,208 +1698,152 @@ document.addEventListener(
 );
 
 
-photoButton.addEventListener(
+emailLogin.addEventListener(
   "click",
-  () => {
+  async () => {
 
-    photoInput.click();
+    try {
+
+      authMessage.textContent = "";
+
+      await signInWithEmailAndPassword(
+        auth,
+        emailInput.value.trim(),
+        passwordInput.value
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Email login error:",
+        error
+      );
+
+      authMessage.textContent =
+        error.message;
+
+    }
 
   }
 );
 
 
-fileButton.addEventListener(
+emailSignup.addEventListener(
   "click",
-  () => {
+  async () => {
 
-    fileInput.click();
+    try {
+
+      authMessage.textContent = "";
+
+      await createUserWithEmailAndPassword(
+        auth,
+        emailInput.value.trim(),
+        passwordInput.value
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Account creation error:",
+        error
+      );
+
+      authMessage.textContent =
+        error.message;
+
+    }
+
+  }
+);
+
+
+logoutButton.addEventListener(
+  "click",
+  async () => {
+
+    await signOut(auth);
 
   }
 );
 
 
 /* =========================
-   CREATE IMAGE
+   AUTH STATE
 ========================= */
 
-imageButton.addEventListener(
-  "click",
-  async () => {
+onAuthStateChanged(
+  auth,
+  async user => {
 
-    attachMenu.classList.remove(
-      "show"
-    );
+    if (user) {
 
-    const prompt =
-      input.value.trim();
+      userId = user.uid;
 
-    if (!prompt) {
-
-      alert(
-        "Please type a description of the image you want to create."
+      authScreen.classList.add(
+        "hidden"
       );
 
-      input.focus();
+      app.classList.remove(
+        "hidden"
+      );
 
-      return;
 
-    }
+      accountName.textContent =
+        user.displayName ||
+        "Zed AI User";
 
-    status.textContent =
-      "Creating your image...";
+      accountEmail.textContent =
+        user.email ||
+        "";
 
-    send.disabled =
-      true;
 
-    try {
+      if (user.photoURL) {
 
-      const response =
-        await fetch(
-          "/api/generate-image",
-          {
-
-            method:
-              "POST",
-
-            headers: {
-
-              "Content-Type":
-                "application/json"
-
-            },
-
-            body:
-              JSON.stringify({
-
-                prompt
-
-              })
-
-          }
-        );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-
-        throw new Error(
-          data.error ||
-          "Image generation failed."
-        );
-
-      }
-
-      if (
-        data.image ||
-        data.imageUrl
-      ) {
-
-        const imagePrompt =
-          "🎨 Create image: " +
-          prompt;
-
-        messages.push({
-
-          role:
-            "user",
-
-          content:
-            imagePrompt
-
-        });
-
-        addMessageToScreen(
-          "user",
-          imagePrompt
-        );
-
-        const imageMessage =
-          document.createElement(
-            "div"
-          );
-
-        imageMessage.className =
-          "message assistant";
-
-        const bubble =
-          document.createElement(
-            "div"
-          );
-
-        bubble.className =
-          "messageBubble";
-
-        const image =
-          document.createElement(
-            "img"
-          );
-
-        image.src =
-          data.image ||
-          data.imageUrl;
-
-        image.style.maxWidth =
-          "100%";
-
-        image.style.borderRadius =
-          "12px";
-
-        bubble.appendChild(
-          image
-        );
-
-        imageMessage.appendChild(
-          bubble
-        );
-
-        chatInner.appendChild(
-          imageMessage
-        );
-
-        messages.push({
-
-          role:
-            "assistant",
-
-          content:
-            "[Generated image]"
-
-        });
-
-        await saveCurrentChat();
-
-        input.value = "";
+        profilePhoto.src =
+          user.photoURL;
 
       } else {
 
-        throw new Error(
-          "The server did not return an image."
-        );
+        profilePhoto.src =
+          "data:image/svg+xml," +
+          encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="80"
+                 height="80">
+              <rect width="100%"
+                    height="100%"
+                    fill="#444"/>
+              <text x="50%"
+                    y="55%"
+                    text-anchor="middle"
+                    fill="white"
+                    font-size="30">
+                Z
+              </text>
+            </svg>
+          `);
 
       }
 
-    } catch (error) {
 
-      console.error(
-        error
+      await loadMemories();
+
+      await loadCloudHistory();
+
+    } else {
+
+      userId = "guest";
+
+      memories = [];
+
+      authScreen.classList.remove(
+        "hidden"
       );
 
-      addMessageToScreen(
-        "assistant",
-        error.message ||
-        "Sorry, I couldn't create the image."
+      app.classList.add(
+        "hidden"
       );
-
-    } finally {
-
-      status.textContent =
-        "";
-
-      send.disabled =
-        false;
-
-      scrollToBottom();
 
     }
 
@@ -2487,48 +1855,29 @@ imageButton.addEventListener(
    VOICE INPUT
 ========================= */
 
-let recognition =
-  null;
+let recognition = null;
 
-const SpeechRecognition =
-  window.SpeechRecognition ||
-  window.webkitSpeechRecognition;
+if (
+  "webkitSpeechRecognition" in window ||
+  "SpeechRecognition" in window
+) {
 
-if (SpeechRecognition) {
+  const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
 
   recognition =
     new SpeechRecognition();
 
-  recognition.continuous =
-    false;
+  recognition.lang =
+    "en-US";
 
   recognition.interimResults =
     false;
 
-  recognition.lang =
-    "en-US";
+  recognition.continuous =
+    false;
 
-  recognition.onstart =
-    () => {
-
-      mic.textContent =
-        "🟢";
-
-      status.textContent =
-        "Listening...";
-
-    };
-
-  recognition.onend =
-    () => {
-
-      mic.textContent =
-        "🎙️";
-
-      status.textContent =
-        "";
-
-    };
 
   recognition.onresult =
     event => {
@@ -2536,459 +1885,43 @@ if (SpeechRecognition) {
       const transcript =
         event.results[0][0].transcript;
 
-      input.value =
+      messageInput.value =
         transcript;
 
-      input.dispatchEvent(
-        new Event("input")
-      );
-
     };
+
 
   recognition.onerror =
     error => {
 
       console.error(
-        "Speech recognition error:",
+        "Voice recognition error:",
         error
       );
 
-      mic.textContent =
-        "🎙️";
-
-      status.textContent =
-        "";
-
     };
 
-  mic.addEventListener(
-    "click",
-    () => {
+}
 
-      try {
 
-        recognition.start();
+micButton.addEventListener(
+  "click",
+  () => {
 
-      } catch (error) {
-
-        console.error(
-          error
-        );
-
-      }
-
-    }
-  );
-
-} else {
-
-  mic.addEventListener(
-    "click",
-    () => {
+    if (!recognition) {
 
       alert(
         "Voice input is not supported by this browser."
       );
 
-    }
-  );
-
-}
-
-
-/* =========================
-   NEW CHAT
-========================= */
-
-newChatButton.addEventListener(
-  "click",
-  () => {
-
-    newChat();
-
-    sidebar.classList.remove(
-      "open"
-    );
-
-  }
-);
-
-
-/* =========================
-   MOBILE MENU
-========================= */
-
-menuButton.addEventListener(
-  "click",
-  () => {
-
-    sidebar.classList.toggle(
-      "open"
-    );
-
-  }
-);
-
-
-/* =========================
-   ACCOUNT
-========================= */
-
-function showAccount(user) {
-
-  accountBox.style.display =
-    "block";
-
-  userName.textContent =
-    user.displayName ||
-    "Zed AI User";
-
-  userEmail.textContent =
-    user.email ||
-    "";
-
-  userPhoto.src =
-    user.photoURL ||
-    "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/anonymous.png";
-
-}
-
-
-function hideAccount() {
-
-  accountBox.style.display =
-    "none";
-
-}
-
-
-/* =========================
-   LOGOUT
-========================= */
-
-logoutButton.addEventListener(
-  "click",
-  async () => {
-
-    try {
-
-      if (auth) {
-
-        await signOut(
-          auth
-        );
-
-      }
-
-    } catch (error) {
-
-      console.error(
-        "Logout error:",
-        error
-      );
-
-    }
-
-  }
-);
-
-
-/* =========================
-   AUTH ERROR
-========================= */
-
-function showAuthError(
-  error
-) {
-
-  console.error(
-    error
-  );
-
-  let message =
-    "Something went wrong.";
-
-  if (
-    error &&
-    error.code ===
-      "auth/invalid-credential"
-  ) {
-
-    message =
-      "Incorrect email or password.";
-
-  } else if (
-    error &&
-    error.code ===
-      "auth/email-already-in-use"
-  ) {
-
-    message =
-      "This email is already registered.";
-
-  } else if (
-    error &&
-    error.code ===
-      "auth/weak-password"
-  ) {
-
-    message =
-      "Password should be at least 6 characters.";
-
-  } else if (
-    error &&
-    error.code ===
-      "auth/popup-closed-by-user"
-  ) {
-
-    message =
-      "Google sign-in was cancelled.";
-
-  } else if (
-    error &&
-    error.message
-  ) {
-
-    message =
-      error.message;
-
-  }
-
-  authError.textContent =
-    message;
-
-}
-
-
-/* =========================
-   GOOGLE LOGIN
-========================= */
-
-googleLogin.addEventListener(
-  "click",
-  async () => {
-
-    authError.textContent =
-      "";
-
-    if (!auth) {
-
-      authError.textContent =
-        "Firebase is not configured.";
-
       return;
 
     }
 
-    try {
-
-      await signInWithPopup(
-        auth,
-        googleProvider
-      );
-
-    } catch (error) {
-
-      showAuthError(
-        error
-      );
-
-    }
+    recognition.start();
 
   }
 );
-
-
-/* =========================
-   EMAIL LOGIN
-========================= */
-
-emailLogin.addEventListener(
-  "click",
-  async () => {
-
-    authError.textContent =
-      "";
-
-    const email =
-      emailInput.value.trim();
-
-    const password =
-      passwordInput.value;
-
-    if (
-      !email ||
-      !password
-    ) {
-
-      authError.textContent =
-        "Please enter your email and password.";
-
-      return;
-
-    }
-
-    if (!auth) {
-
-      authError.textContent =
-        "Firebase is not configured.";
-
-      return;
-
-    }
-
-    try {
-
-      await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-    } catch (error) {
-
-      showAuthError(
-        error
-      );
-
-    }
-
-  }
-);
-
-
-/* =========================
-   CREATE ACCOUNT
-========================= */
-
-createAccount.addEventListener(
-  "click",
-  async () => {
-
-    authError.textContent =
-      "";
-
-    const email =
-      emailInput.value.trim();
-
-    const password =
-      passwordInput.value;
-
-    if (
-      !email ||
-      !password
-    ) {
-
-      authError.textContent =
-        "Please enter your email and password.";
-
-      return;
-
-    }
-
-    if (!auth) {
-
-      authError.textContent =
-        "Firebase is not configured.";
-
-      return;
-
-    }
-
-    try {
-
-      await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-    } catch (error) {
-
-      showAuthError(
-        error
-      );
-
-    }
-
-  }
-);
-
-
-/* =========================
-   AUTH STATE
-========================= */
-
-if (auth) {
-
-  onAuthStateChanged(
-    auth,
-    async user => {
-
-      if (user) {
-
-        userId =
-          user.uid;
-
-        showAccount(
-          user
-        );
-
-        authScreen.style.display =
-          "none";
-
-        app.style.display =
-          "flex";
-
-        messages = [];
-
-        currentChatId = null;
-
-        await loadCloudHistory();
-
-      } else {
-
-        userId =
-          "guest";
-
-        currentChatId =
-          null;
-
-        messages = [];
-
-        hideAccount();
-
-        authScreen.style.display =
-          "flex";
-
-        app.style.display =
-          "flex";
-
-        renderLocalHistory();
-
-      }
-
-    }
-  );
-
-} else {
-
-  authScreen.style.display =
-    "flex";
-
-}
-
-
-/* =========================
-   INITIAL STATE
-========================= */
-
-if (!auth) {
-
-  authScreen.style.display =
-    "flex";
-
-}
 
 </script>
 

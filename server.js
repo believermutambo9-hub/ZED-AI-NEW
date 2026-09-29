@@ -2,8 +2,10 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
+
 const memory = new Map();
 const interactions = new Map();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -16,6 +18,7 @@ const geminiModel =
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY
 });
+
 const MAX_FILE_SIZE = 15 * 1024 * 1024;
 
 const ALLOWED_FILE_TYPES = new Set([
@@ -47,7 +50,9 @@ app.get("/health", (_req, res) => {
     service: "zed-ai",
     provider: "gemini-with-groq-and-openrouter-fallback",
     geminiModel,
-    fileAnalysis: true
+    fileAnalysis: true,
+    imageGeneration:
+      "cloudflare-flux-1-schnell"
   });
 });
 
@@ -99,7 +104,7 @@ function systemPrompt(memoryText) {
     "Zambian context, currency (ZMW/Kwacha), and everyday examples. " +
     "You may communicate in a Zambian local language when appropriate, " +
     "but never guess the user's local language. " +
-    "when responding make sure you summerize your answers. " +
+    "When responding, make sure you summarize your answers. " +
     "Do not claim to be human. " +
     "When a user uploads an image or PDF, inspect the uploaded content " +
     "carefully and answer based on the actual file. " +
@@ -108,6 +113,11 @@ function systemPrompt(memoryText) {
     (memoryText || "No saved memories yet.")
   );
 }
+
+/* =========================
+   GEMINI NEW
+========================= */
+
 async function askGeminiNew(prompt) {
   const response = await ai.models.generateContent({
     model: geminiModel,
@@ -116,6 +126,7 @@ async function askGeminiNew(prompt) {
 
   return response.text;
 }
+
 /* =========================
    GEMINI CHAT + FILE ANALYSIS
 ========================= */
@@ -310,43 +321,56 @@ async function askOpenRouter(
 }
 
 /* =========================
-   GEMINI IMAGE GENERATION
+   CLOUDFLARE IMAGE GENERATION
 ========================= */
 
-async function generateGeminiImage(
-  prompt,
-  apiKey
-) {
+async function generateCloudflareImage(prompt) {
+  const accountId =
+    process.env.CLOUDFLARE_ACCOUNT_ID;
+
+  const apiToken =
+    process.env.CLOUDFLARE_API_TOKEN;
+
+  if (!accountId) {
+    throw new Error(
+      "Cloudflare Account ID is not configured."
+    );
+  }
+
+  if (!apiToken) {
+    throw new Error(
+      "Cloudflare API token is not configured."
+    );
+  }
+
+  const model =
+    "@cf/black-forest-labs/flux-1-schnell";
+
+  const endpoint =
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`;
+
   const response = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/interactions",
+    endpoint,
     {
       method: "POST",
 
       headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
+        "Authorization": `Bearer ${apiToken}`,
+        "Content-Type": "application/json"
       },
 
       body: JSON.stringify({
-        model:
-          process.env.GEMINI_IMAGE_MODEL ||
-          "gemini-3.1-flash-image",
-
-        input: prompt,
-
-        response_format: {
-          type: "image",
-          mime_type: "image/jpeg",
-          aspect_ratio: "1:1",
-          image_size: "1K"
-        }
+        prompt,
+        steps: 4
       })
     }
   );
 
+  const data = await response.json();
+
   return {
     response,
-    data: await response.json()
+    data
   };
 }
 
@@ -460,93 +484,141 @@ app.post(
         });
       }
 
-      const geminiKey =
-        process.env.GEMINI_API_KEY;
-
-      if (!geminiKey) {
-        return res.status(500).json({
-          error:
-            "Gemini API key is not configured."
-        });
-      }
-
       const result =
-        await generateGeminiImage(
-          prompt,
-          geminiKey
+        await generateCloudflareImage(
+          prompt
         );
 
       if (!result.response.ok) {
         console.error(
-          "Gemini image API error:",
+          "Cloudflare image API error:",
           result.response.status,
+          result.data
+        );
+
+        const cloudflareError =
+          result.data?.errors?.[0]?.message ||
+          result.data?.error?.message ||
+          "Cloudflare image generation failed.";
+
+        return res.status(502).json({
+          error: cloudflareError
+        });
+      }
+
+      let base64Image =
+        result.data?.result?.image;
+
+      /*
+       * Some Workers AI responses
+       * may return the result directly.
+       */
+
+      if (
+        typeof base64Image !== "string" &&
+        typeof result.data?.result === "string"
+      ) {
+        base64Image =
+          result.data.result;
+      }
+
+      if (
+        typeof base64Image !== "string" ||
+        !base64Image
+      ) {
+        console.error(
+          "Cloudflare returned no image:",
           result.data
         );
 
         return res.status(502).json({
           error:
-            result.data?.error?.message ||
-            "Image generation failed."
+            "Cloudflare did not return an image."
         });
       }
 
+      const imageData =
+        base64Image.startsWith("data:")
+          ? base64Image
+          : `data:image/jpeg;base64,${base64Image}`;
+
       return res.json({
         ok: true,
-        data: result.data
+        image: imageData,
+        provider:
+          "cloudflare-flux-1-schnell"
       });
 
     } catch (error) {
       console.error(
-        "Image generation error:",
+        "Cloudflare image generation error:",
         error
       );
 
       return res.status(500).json({
         error:
+          error.message ||
           "Zed AI could not generate the image."
       });
     }
   }
 );
+
 /* =========================
    GEMINI INTERACTIONS TEST
 ========================= */
 
-app.post("/api/gemini-test", async (req, res) => {
-  try {
-    const prompt =
-      typeof req.body?.message === "string"
-        ? req.body.message.trim()
-        : "";
+app.post(
+  "/api/gemini-test",
+  async (req, res) => {
+    try {
+      const prompt =
+        typeof req.body?.message === "string"
+          ? req.body.message.trim()
+          : "";
 
-    if (!prompt) {
-      return res.status(400).json({
-        error: "Please enter a message."
+      if (!prompt) {
+        return res.status(400).json({
+          error: "Please enter a message."
+        });
+      }
+
+      const result =
+        await ai.interactions.create({
+          model: geminiModel,
+          input: prompt
+        });
+
+      return res.json({
+        ok: true,
+        interactionId: result.id,
+        text: result.outputs
+          ?.filter(
+            output =>
+              output.type === "text"
+          )
+          ?.map(
+            output =>
+              output.text
+          )
+          ?.join("") || ""
+      });
+
+    } catch (error) {
+      console.error(
+        "Gemini Interactions test error:",
+        error
+      );
+
+      return res.status(500).json({
+        error:
+          error.message ||
+          "Gemini Interactions request failed."
       });
     }
-
-    const result = await ai.interactions.create({
-      model: geminiModel,
-      input: prompt
-    });
-
-    return res.json({
-      ok: true,
-      interactionId: result.id,
-      text: result.outputs
-        ?.filter(output => output.type === "text")
-        ?.map(output => output.text)
-        ?.join("") || ""
-    });
-
-  } catch (error) {
-    console.error("Gemini Interactions test error:", error);
-
-    return res.status(500).json({
-      error: error.message || "Gemini Interactions request failed."
-    });
   }
-});
+);
+
 /* =========================
    CHAT API
 ========================= */

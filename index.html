@@ -45,7 +45,7 @@ button {
 }
 
 /* =========================================
-   ZED BRAND SYSTEM
+   ZED BRAND
 ========================================= */
 
 .zedLogo,
@@ -67,7 +67,6 @@ button {
 .brandZed .e,
 .brandZed .d {
   color: #f28c28;
-  text-shadow: none;
 }
 
 /* =========================================
@@ -194,10 +193,6 @@ button {
   height: 100%;
   overflow: hidden;
 }
-
-/* =========================================
-   MAIN CHAT
-========================================= */
 
 .main {
   width: 100%;
@@ -533,7 +528,7 @@ button {
 .message {
   width: 100%;
   display: flex;
-  margin-bottom: 28px;
+  margin-bottom: 30px;
 }
 
 .message.user {
@@ -545,7 +540,7 @@ button {
 }
 
 .messageInner {
-  max-width: 80%;
+  max-width: 82%;
   line-height: 1.65;
   font-size: 15px;
   overflow-wrap: anywhere;
@@ -564,13 +559,22 @@ button {
   color: #e3e3e3;
 }
 
+.messageLabel {
+  margin-bottom: 7px;
+  color: #777;
+  font-size: 11px;
+}
+
+/* =========================================
+   ZED MARKDOWN RESPONSE
+========================================= */
+
 .message.assistant .messageContent {
   width: 100%;
-  line-height: 1.75;
 }
 
 .message.assistant .messageContent p {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
 }
 
 .message.assistant .messageContent p:last-child {
@@ -580,24 +584,47 @@ button {
 .message.assistant .messageContent h1,
 .message.assistant .messageContent h2,
 .message.assistant .messageContent h3 {
+  margin: 22px 0 10px;
   color: #fff;
   line-height: 1.3;
-  font-weight: 700;
 }
 
 .message.assistant .messageContent h1 {
-  margin: 20px 0 10px;
-  font-size: 24px;
+  font-size: 25px;
 }
 
 .message.assistant .messageContent h2 {
-  margin: 18px 0 9px;
-  font-size: 20px;
+  font-size: 21px;
 }
 
 .message.assistant .messageContent h3 {
-  margin: 16px 0 8px;
-  font-size: 17px;
+  font-size: 18px;
+}
+
+.message.assistant .messageContent ul,
+.message.assistant .messageContent ol {
+  margin: 8px 0 17px;
+  padding-left: 27px;
+}
+
+.message.assistant .messageContent li {
+  margin: 6px 0;
+  padding-left: 3px;
+}
+
+.message.assistant .messageContent blockquote {
+  margin: 15px 0;
+  padding: 9px 14px;
+  border-left: 3px solid #666;
+  color: #aaa;
+  background: rgba(255,255,255,.035);
+  border-radius: 4px;
+}
+
+.message.assistant .messageContent hr {
+  margin: 22px 0;
+  border: 0;
+  border-top: 1px solid #3b3b3b;
 }
 
 .message.assistant .messageContent strong {
@@ -609,82 +636,49 @@ button {
   color: #eee;
 }
 
-.message.assistant .messageContent ul,
-.message.assistant .messageContent ol {
-  margin: 8px 0 16px;
-  padding-left: 25px;
-}
-
-.message.assistant .messageContent li {
-  margin: 6px 0;
-  padding-left: 3px;
-}
-
-.message.assistant .messageContent blockquote {
-  margin: 12px 0;
-  padding: 8px 14px;
-  border-left: 3px solid #666;
-  color: #bdbdbd;
-  background: #292929;
-  border-radius: 0 7px 7px 0;
-}
-
-.message.assistant .messageContent hr {
-  margin: 18px 0;
-  border: none;
-  border-top: 1px solid #3b3b3b;
-}
-
-.message.assistant .messageContent code.inlineCode {
-  padding: 2px 6px;
-  border-radius: 5px;
-  background: #303030;
-  color: #f0f0f0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: .9em;
-}
-
-.message.assistant .messageContent pre {
-  margin: 13px 0 16px;
-  padding: 14px;
-  overflow-x: auto;
-  border: 1px solid #3a3a3a;
-  border-radius: 10px;
-  background: #181818;
-  color: #e8e8e8;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
-  line-height: 1.55;
-  white-space: pre;
-}
-
-.message.assistant .messageContent pre code {
-  font-family: inherit;
-  background: transparent;
-  padding: 0;
-}
-
 .message.assistant .messageContent a {
-  color: #7db7ff;
+  color: #8ab4ff;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .message.assistant .messageContent a:hover {
-  color: #a9ceff;
+  color: #b7d1ff;
 }
 
-.messageLabel {
-  margin-bottom: 5px;
-  color: #777;
-  font-size: 11px;
+.message.assistant .messageContent .inlineCode {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: #303030;
+  color: #f2f2f2;
+  font-family: monospace;
+  font-size: .92em;
+}
+
+.message.assistant .messageContent pre {
+  width: 100%;
+  margin: 16px 0;
+  padding: 15px;
+  overflow-x: auto;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  background: #171717;
+}
+
+.message.assistant .messageContent pre code {
+  color: #e8e8e8;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
 }
 
 .generatedImage {
   display: block;
   max-width: 100%;
   max-height: 600px;
-  margin-top: 10px;
+  margin-top: 12px;
   border-radius: 14px;
 }
 
@@ -942,11 +936,22 @@ button {
     font-size: 51px;
   }
 
-  .message.assistant .messageContent pre {
-    font-size: 12px;
+  .message.assistant .messageContent h1 {
+    font-size: 22px;
   }
 
+  .message.assistant .messageContent h2 {
+    font-size: 19px;
+  }
+
+  .message.assistant .messageContent h3 {
+    font-size: 17px;
+  }
 }
+
+/* =========================================
+   SMALL PHONES
+========================================= */
 
 @media (max-width: 380px) {
 
@@ -965,7 +970,6 @@ button {
   .messageInner {
     max-width: 94%;
   }
-
 }
 </style>
 </head>
@@ -983,7 +987,9 @@ button {
     <div class="authBrand">
 
       <div class="zedLogo">
-        <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+        <span class="z">Z</span>
+        <span class="e">e</span>
+        <span class="d">d</span>
       </div>
 
       <div class="authSubtitle">
@@ -1006,13 +1012,15 @@ button {
       id="emailInput"
       class="authInput"
       type="email"
-      placeholder="Email">
+      placeholder="Email"
+      autocomplete="email">
 
     <input
       id="passwordInput"
       class="authInput"
       type="password"
-      placeholder="Password">
+      placeholder="Password"
+      autocomplete="current-password">
 
     <button
       id="emailLogin"
@@ -1055,7 +1063,9 @@ button {
         <div class="brand">
 
           <div class="brandZed">
-            <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+            <span class="z">Z</span>
+            <span class="e">e</span>
+            <span class="d">d</span>
           </div>
 
           <span class="statusDot"></span>
@@ -1089,7 +1099,9 @@ button {
           <div class="welcomeLogo">
 
             <div class="zedLogo">
-              <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+              <span class="z">Z</span>
+              <span class="e">e</span>
+              <span class="d">d</span>
             </div>
 
           </div>
@@ -1149,7 +1161,8 @@ button {
             id="messageInput"
             class="messageInput"
             rows="1"
-            placeholder="Message Zed..."></textarea>
+            placeholder="Message Zed..."
+            autocomplete="off"></textarea>
 
           <button
             id="micButton"
@@ -1191,7 +1204,7 @@ button {
 
   </main>
 
-  <!-- TEMPORARY MENU -->
+  <!-- MENU -->
 
   <div
     id="menuOverlay"
@@ -1206,7 +1219,9 @@ button {
         <div class="drawerBrand">
 
           <div class="brandZed">
-            <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+            <span class="z">Z</span>
+            <span class="e">e</span>
+            <span class="d">d</span>
           </div>
 
         </div>
@@ -1466,15 +1481,11 @@ let allHistoryChats = [];
 ========================================= */
 
 function openMenu() {
-  menuOverlay.classList.remove(
-    "closed"
-  );
+  menuOverlay.classList.remove("closed");
 }
 
 function closeMenu() {
-  menuOverlay.classList.add(
-    "closed"
-  );
+  menuOverlay.classList.add("closed");
 }
 
 menuButton.addEventListener(
@@ -1482,17 +1493,11 @@ menuButton.addEventListener(
   () => {
 
     if (
-      menuOverlay.classList.contains(
-        "closed"
-      )
+      menuOverlay.classList.contains("closed")
     ) {
-
       openMenu();
-
     } else {
-
       closeMenu();
-
     }
 
   }
@@ -1507,13 +1512,8 @@ menuOverlay.addEventListener(
   "click",
   event => {
 
-    if (
-      event.target ===
-      menuOverlay
-    ) {
-
+    if (event.target === menuOverlay) {
       closeMenu();
-
     }
 
   }
@@ -1528,9 +1528,7 @@ function getLocalChats() {
   try {
 
     return JSON.parse(
-      localStorage.getItem(
-        "zed_chats"
-      ) || "[]"
+      localStorage.getItem("zed_chats") || "[]"
     );
 
   } catch {
@@ -1538,16 +1536,25 @@ function getLocalChats() {
     return [];
 
   }
-
 }
 
 function saveLocalChats(chats) {
 
-  localStorage.setItem(
-    "zed_chats",
-    JSON.stringify(chats)
-  );
+  try {
 
+    localStorage.setItem(
+      "zed_chats",
+      JSON.stringify(chats)
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Local chat save failed:",
+      error
+    );
+
+  }
 }
 
 /* =========================================
@@ -1556,13 +1563,8 @@ function saveLocalChats(chats) {
 
 async function saveMemoryToFirestore(text) {
 
-  if (
-    !auth.currentUser ||
-    !text
-  ) {
-
+  if (!auth.currentUser || !text) {
     return;
-
   }
 
   const exists =
@@ -1573,30 +1575,37 @@ async function saveMemoryToFirestore(text) {
     );
 
   if (exists) {
-
     return;
-
   }
 
-  const memoriesRef =
-    collection(
-      db,
-      "users",
-      auth.currentUser.uid,
-      "memories"
+  try {
+
+    const memoriesRef =
+      collection(
+        db,
+        "users",
+        auth.currentUser.uid,
+        "memories"
+      );
+
+    await addDoc(
+      memoriesRef,
+      {
+        text,
+        createdAt: serverTimestamp()
+      }
     );
 
-  await addDoc(
-    memoriesRef,
-    {
-      text,
-      createdAt:
-        serverTimestamp()
-    }
-  );
+    memories.push(text);
 
-  memories.push(text);
+  } catch (error) {
 
+    console.error(
+      "Memory save failed:",
+      error
+    );
+
+  }
 }
 
 async function loadMemories() {
@@ -1604,9 +1613,7 @@ async function loadMemories() {
   memories = [];
 
   if (!auth.currentUser) {
-
     return;
-
   }
 
   try {
@@ -1623,10 +1630,7 @@ async function loadMemories() {
       await getDocs(
         query(
           memoriesRef,
-          orderBy(
-            "createdAt",
-            "asc"
-          )
+          orderBy("createdAt", "asc")
         )
       );
 
@@ -1658,17 +1662,12 @@ async function loadMemories() {
     );
 
   }
-
 }
 
 function extractMemory(text) {
 
-  if (
-    !/^remember\b/i.test(text)
-  ) {
-
+  if (!/^remember\b/i.test(text)) {
     return null;
-
   }
 
   const memoryText =
@@ -1680,7 +1679,6 @@ function extractMemory(text) {
       .trim();
 
   return memoryText || null;
-
 }
 
 /* =========================================
@@ -1693,9 +1691,7 @@ async function saveChatToCloud() {
     !auth.currentUser ||
     messages.length === 0
   ) {
-
     return;
-
   }
 
   try {
@@ -1719,7 +1715,6 @@ async function saveChatToCloud() {
       await setDoc(
         newChat,
         {
-
           title:
             messages.find(
               message =>
@@ -1735,7 +1730,6 @@ async function saveChatToCloud() {
 
           updatedAt:
             serverTimestamp()
-
         }
       );
 
@@ -1753,12 +1747,8 @@ async function saveChatToCloud() {
       await setDoc(
         chatRef,
         {
-
           messages,
-
-          updatedAt:
-            serverTimestamp()
-
+          updatedAt: serverTimestamp()
         },
         {
           merge: true
@@ -1775,7 +1765,6 @@ async function saveChatToCloud() {
     );
 
   }
-
 }
 
 /* =========================================
@@ -1786,13 +1775,30 @@ function renderHistory(chats) {
 
   historyList.innerHTML = "";
 
+  if (!chats.length) {
+
+    const empty =
+      document.createElement("div");
+
+    empty.className =
+      "historyItem";
+
+    empty.style.color =
+      "#666";
+
+    empty.textContent =
+      "No chats yet";
+
+    historyList.appendChild(empty);
+
+    return;
+  }
+
   chats.forEach(
     chat => {
 
       const item =
-        document.createElement(
-          "div"
-        );
+        document.createElement("div");
 
       item.className =
         "historyItem";
@@ -1806,31 +1812,24 @@ function renderHistory(chats) {
         () => {
 
           loadCloudChat(chat);
-
           closeMenu();
 
         }
       );
 
-      historyList.appendChild(
-        item
-      );
+      historyList.appendChild(item);
 
     }
   );
-
 }
 
 async function loadCloudHistory() {
 
   historyList.innerHTML = "";
-
   allHistoryChats = [];
 
   if (!auth.currentUser) {
-
     return;
-
   }
 
   try {
@@ -1844,19 +1843,14 @@ async function loadCloudHistory() {
       );
 
     const snapshot =
-      await getDocs(
-        chatsRef
-      );
+      await getDocs(chatsRef);
 
     snapshot.forEach(
       item => {
 
         allHistoryChats.push({
-          id:
-            item.id,
-
+          id: item.id,
           ...item.data()
-
         });
 
       }
@@ -1887,8 +1881,9 @@ async function loadCloudHistory() {
       error
     );
 
-  }
+    renderHistory([]);
 
+  }
 }
 
 searchChats.addEventListener(
@@ -1907,7 +1902,6 @@ searchChats.addEventListener(
       );
 
       return;
-
     }
 
     const filtered =
@@ -1920,47 +1914,37 @@ searchChats.addEventListener(
             .includes(search)
       );
 
-    renderHistory(
-      filtered
-    );
+    renderHistory(filtered);
 
   }
 );
 
 /* =========================================
-   SAVE CHAT
+   LOCAL CHAT BACKUP
 ========================================= */
 
 function saveCurrentChatLocally() {
 
   if (!messages.length) {
-
     return;
-
   }
 
   const chats =
     getLocalChats();
 
-  if (!currentChatId) {
-
-    currentChatId =
-      "local-" +
-      Date.now();
-
-  }
+  const localId =
+    currentChatId ||
+    "local-" + Date.now();
 
   const existingIndex =
     chats.findIndex(
       chat =>
-        chat.id ===
-        currentChatId
+        chat.id === localId
     );
 
   const chatData = {
 
-    id:
-      currentChatId,
+    id: localId,
 
     title:
       messages.find(
@@ -1972,8 +1956,7 @@ function saveCurrentChatLocally() {
 
     messages,
 
-    updatedAt:
-      Date.now()
+    updatedAt: Date.now()
 
   };
 
@@ -1991,7 +1974,6 @@ function saveCurrentChatLocally() {
   }
 
   saveLocalChats(chats);
-
 }
 
 async function saveCurrentChat() {
@@ -2001,16 +1983,15 @@ async function saveCurrentChat() {
   await saveChatToCloud();
 
   await loadCloudHistory();
-
 }
 
 /* =========================================
-   MARKDOWN / RESPONSE FORMATTER
+   MARKDOWN HELPERS
 ========================================= */
 
-function escapeHtml(text) {
+function escapeHtml(value) {
 
-  return String(text)
+  return String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -2024,52 +2005,48 @@ function formatInlineMarkdown(text) {
   let result =
     escapeHtml(text);
 
-  const inlineCodeParts = [];
+  const tokens = [];
 
-  /*
-     Protect inline code.
-  */
+  function addToken(html) {
+
+    const token =
+      `@@ZEDTOKEN${tokens.length}@@`;
+
+    tokens.push(html);
+
+    return token;
+
+  }
+
+  /* Inline code */
 
   result =
     result.replace(
       /`([^`\n]+)`/g,
       (match, code) => {
 
-        const token =
-          `@@INLINECODE${inlineCodeParts.length}@@`;
-
-        inlineCodeParts.push(
+        return addToken(
           `<code class="inlineCode">${code}</code>`
         );
-
-        return token;
 
       }
     );
 
-  /*
-     Markdown links.
-  */
+  /* Markdown links */
 
   result =
     result.replace(
       /$begin:math:display$\(\[\^$end:math:display$]+)\]$begin:math:text$\(https\?\:\\\/\\\/\[\^\\s\)\]\+\)$end:math:text$/g,
       (match, label, url) => {
 
-        return (
-          `<a href="${url}" ` +
-          `target="_blank" ` +
-          `rel="noopener noreferrer">` +
-          `${label}` +
-          `</a>`
+        return addToken(
+          `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`
         );
 
       }
     );
 
-  /*
-     Bare URLs.
-  */
+  /* Bare URLs */
 
   result =
     result.replace(
@@ -2088,21 +2065,17 @@ function formatInlineMarkdown(text) {
           );
 
         return (
-          `${before}` +
-          `<a href="${cleanUrl}" ` +
-          `target="_blank" ` +
-          `rel="noopener noreferrer">` +
-          `${cleanUrl}` +
-          `</a>` +
-          `${ending}`
+          before +
+          addToken(
+            `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>`
+          ) +
+          ending
         );
 
       }
     );
 
-  /*
-     Bold.
-  */
+  /* Bold */
 
   result =
     result.replace(
@@ -2116,9 +2089,7 @@ function formatInlineMarkdown(text) {
       "<strong>$1</strong>"
     );
 
-  /*
-     Italic.
-  */
+  /* Italic */
 
   result =
     result.replace(
@@ -2132,16 +2103,14 @@ function formatInlineMarkdown(text) {
       "$1<em>$2</em>"
     );
 
-  /*
-     Restore inline code.
-  */
+  /* Restore protected HTML */
 
-  inlineCodeParts.forEach(
+  tokens.forEach(
     (html, index) => {
 
       result =
         result.replace(
-          `@@INLINECODE${index}@@`,
+          `@@ZEDTOKEN${index}@@`,
           html
         );
 
@@ -2149,97 +2118,80 @@ function formatInlineMarkdown(text) {
   );
 
   return result;
-
 }
 
 function formatZedResponse(text) {
 
   const source =
-    String(text || "")
+    String(text ?? "")
       .replace(/\r\n/g, "\n")
-      .replace(/\r/g, "\n");
+      .trim();
+
+  if (!source) {
+    return "";
+  }
 
   const lines =
     source.split("\n");
 
-  const output = [];
-
+  let html = "";
   let paragraph = [];
   let listType = null;
-  let listItems = [];
-
-  let inCodeBlock = false;
-  let codeLines = [];
+  let codeLines = null;
+  let codeLanguage = "";
 
   function flushParagraph() {
 
     if (!paragraph.length) {
-
       return;
-
     }
 
-    const joined =
+    const content =
       paragraph
-        .join(" ")
-        .trim();
+        .map(line =>
+          formatInlineMarkdown(line.trim())
+        )
+        .join(" ");
 
-    if (joined) {
-
-      output.push(
-        `<p>${formatInlineMarkdown(joined)}</p>`
-      );
-
-    }
+    html +=
+      `<p>${content}</p>`;
 
     paragraph = [];
 
   }
 
-  function flushList() {
+  function closeList() {
 
-    if (!listItems.length) {
-
-      listType = null;
-
+    if (!listType) {
       return;
-
     }
 
-    const tag =
-      listType === "ol"
-        ? "ol"
-        : "ul";
-
-    output.push(
-      `<${tag}>` +
-      listItems
-        .map(
-          item =>
-            `<li>${formatInlineMarkdown(item)}</li>`
-        )
-        .join("") +
-      `</${tag}>`
-    );
-
-    listItems = [];
+    html +=
+      `</${listType}>`;
 
     listType = null;
 
   }
 
-  function flushCodeBlock() {
+  function flushCode() {
+
+    if (!codeLines) {
+      return;
+    }
 
     const code =
-      escapeHtml(
-        codeLines.join("\n")
-      );
+      codeLines.join("\n");
 
-    output.push(
-      `<pre><code>${code}</code></pre>`
-    );
+    const languageClass =
+      codeLanguage
+        ? ` class="language-${escapeHtml(codeLanguage)}"`
+        : "";
 
-    codeLines = [];
+    html +=
+      `<pre><code${languageClass}>${escapeHtml(code)}</code></pre>`;
+
+    codeLines = null;
+    codeLanguage = "";
 
   }
 
@@ -2255,78 +2207,66 @@ function formatZedResponse(text) {
     const trimmed =
       line.trim();
 
-    /*
-       Code blocks.
-    */
+    /* Fenced code */
 
     if (
       trimmed.startsWith("```")
     ) {
 
-      if (!inCodeBlock) {
+      if (codeLines) {
 
-        flushParagraph();
-        flushList();
-
-        inCodeBlock = true;
+        flushCode();
 
       } else {
 
-        inCodeBlock = false;
+        flushParagraph();
+        closeList();
 
-        flushCodeBlock();
+        codeLines = [];
+        codeLanguage =
+          trimmed
+            .slice(3)
+            .trim();
 
       }
 
       continue;
-
     }
 
-    if (inCodeBlock) {
+    if (codeLines) {
 
       codeLines.push(line);
 
       continue;
-
     }
 
-    /*
-       Empty lines.
-    */
+    /* Blank line */
 
     if (!trimmed) {
 
       flushParagraph();
-      flushList();
+      closeList();
 
       continue;
-
     }
 
-    /*
-       Horizontal rule.
-    */
+    /* Horizontal rule */
 
     if (
-      /^---+$/.test(trimmed) ||
-      /^\*\*\*+$/.test(trimmed) ||
-      /^___+$/.test(trimmed)
+      /^(-{3,}|\*{3,}|_{3,})$/.test(
+        trimmed
+      )
     ) {
 
       flushParagraph();
-      flushList();
+      closeList();
 
-      output.push(
-        "<hr>"
-      );
+      html += "<hr>";
 
       continue;
-
     }
 
-    /*
-       Headings.
-    */
+    /* Headings */
 
     const heading =
       trimmed.match(
@@ -2336,52 +2276,35 @@ function formatZedResponse(text) {
     if (heading) {
 
       flushParagraph();
-      flushList();
+      closeList();
 
       const level =
         heading[1].length;
 
-      output.push(
-        `<h${level}>` +
-        formatInlineMarkdown(
-          heading[2]
-        ) +
-        `</h${level}>`
-      );
+      html +=
+        `<h${level}>${formatInlineMarkdown(heading[2])}</h${level}>`;
 
       continue;
-
     }
 
-    /*
-       Blockquotes.
-    */
+    /* Blockquote */
 
-    const blockquote =
-      trimmed.match(
-        /^>\s?(.*)$/
-      );
-
-    if (blockquote) {
+    if (
+      trimmed.startsWith(">")
+    ) {
 
       flushParagraph();
-      flushList();
+      closeList();
 
-      output.push(
-        `<blockquote>` +
-        formatInlineMarkdown(
-          blockquote[1]
-        ) +
-        `</blockquote>`
-      );
+      html +=
+        `<blockquote>${formatInlineMarkdown(
+          trimmed.replace(/^>\s?/, "")
+        )}</blockquote>`;
 
       continue;
-
     }
 
-    /*
-       Unordered lists.
-    */
+    /* Unordered list */
 
     const unordered =
       trimmed.match(
@@ -2394,23 +2317,20 @@ function formatZedResponse(text) {
 
       if (listType !== "ul") {
 
-        flushList();
+        closeList();
 
+        html += "<ul>";
         listType = "ul";
 
       }
 
-      listItems.push(
-        unordered[1]
-      );
+      html +=
+        `<li>${formatInlineMarkdown(unordered[1])}</li>`;
 
       continue;
-
     }
 
-    /*
-       Ordered lists.
-    */
+    /* Ordered list */
 
     const ordered =
       trimmed.match(
@@ -2423,52 +2343,34 @@ function formatZedResponse(text) {
 
       if (listType !== "ol") {
 
-        flushList();
+        closeList();
 
+        html += "<ol>";
         listType = "ol";
 
       }
 
-      listItems.push(
-        ordered[1]
-      );
+      html +=
+        `<li>${formatInlineMarkdown(ordered[1])}</li>`;
 
       continue;
-
     }
 
-    /*
-       Normal paragraph text.
-    */
+    /* Normal text */
 
     if (listType) {
-
-      flushList();
-
+      closeList();
     }
 
-    paragraph.push(
-      trimmed
-    );
-
-  }
-
-  /*
-     Finish remaining content.
-  */
-
-  if (inCodeBlock) {
-
-    flushCodeBlock();
+    paragraph.push(line);
 
   }
 
   flushParagraph();
+  closeList();
+  flushCode();
 
-  flushList();
-
-  return output.join("");
-
+  return html;
 }
 
 /* =========================================
@@ -2486,16 +2388,13 @@ function renderMessages() {
     );
 
     return;
-
   }
 
   messages.forEach(
     message => {
 
       const wrapper =
-        document.createElement(
-          "div"
-        );
+        document.createElement("div");
 
       wrapper.className =
         "message " +
@@ -2506,17 +2405,13 @@ function renderMessages() {
         );
 
       const inner =
-        document.createElement(
-          "div"
-        );
+        document.createElement("div");
 
       inner.className =
         "messageInner";
 
       const label =
-        document.createElement(
-          "div"
-        );
+        document.createElement("div");
 
       label.className =
         "messageLabel";
@@ -2527,44 +2422,33 @@ function renderMessages() {
           : "Zed";
 
       const content =
-        document.createElement(
-          "div"
-        );
+        document.createElement("div");
 
       content.className =
         "messageContent";
 
       if (
-        message.role === "user"
+        message.role === "assistant"
       ) {
+
+        content.innerHTML =
+          formatZedResponse(
+            message.content
+          );
+
+      } else {
 
         content.textContent =
           message.content || "";
 
-      } else {
-
-        content.innerHTML =
-          formatZedResponse(
-            message.content || ""
-          );
-
       }
 
-      inner.appendChild(
-        label
-      );
+      inner.appendChild(label);
+      inner.appendChild(content);
 
-      inner.appendChild(
-        content
-      );
+      wrapper.appendChild(inner);
 
-      wrapper.appendChild(
-        inner
-      );
-
-      chatContent.appendChild(
-        wrapper
-      );
+      chatContent.appendChild(wrapper);
 
     }
   );
@@ -2577,7 +2461,6 @@ function renderMessages() {
 
     }
   );
-
 }
 
 function loadCloudChat(chat) {
@@ -2586,9 +2469,7 @@ function loadCloudChat(chat) {
     chat.id;
 
   messages =
-    Array.isArray(
-      chat.messages
-    )
+    Array.isArray(chat.messages)
       ? chat.messages
       : [];
 
@@ -2646,21 +2527,17 @@ function readFileAsDataURL(file) {
         new FileReader();
 
       reader.onload =
-        () =>
-          resolve(
-            reader.result
-          );
+        () => resolve(
+          reader.result
+        );
 
       reader.onerror =
         reject;
 
-      reader.readAsDataURL(
-        file
-      );
+      reader.readAsDataURL(file);
 
     }
   );
-
 }
 
 /* =========================================
@@ -2676,9 +2553,7 @@ async function sendMessage() {
     !text &&
     !selectedFile
   ) {
-
     return;
-
   }
 
   const memoryText =
@@ -2686,20 +2561,9 @@ async function sendMessage() {
 
   if (memoryText) {
 
-    try {
-
-      await saveMemoryToFirestore(
-        memoryText
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Memory save failed:",
-        error
-      );
-
-    }
+    await saveMemoryToFirestore(
+      memoryText
+    );
 
   }
 
@@ -2755,8 +2619,20 @@ async function sendMessage() {
         error
       );
 
-      sendButton.disabled =
-        false;
+      messages.push({
+
+        role: "assistant",
+
+        content:
+          "I couldn't read that file. Please try uploading it again."
+
+      });
+
+      renderMessages();
+
+      selectedFile = null;
+      fileName.textContent = "";
+      sendButton.disabled = false;
 
       return;
 
@@ -2770,7 +2646,6 @@ async function sendMessage() {
       await fetch(
         "/api/chat",
         {
-
           method: "POST",
 
           headers: {
@@ -2793,13 +2668,11 @@ async function sendMessage() {
                   .slice(0, -1)
                   .map(
                     message => ({
-
                       role:
                         message.role,
 
                       text:
                         message.content
-
                     })
                   ),
 
@@ -2811,14 +2684,55 @@ async function sendMessage() {
         }
       );
 
-    const data =
-      await response.json();
+    /*
+       Read the response safely.
+
+       Sometimes a server/proxy can return
+       plain text instead of JSON.
+    */
+
+    const rawResponse =
+      await response.text();
+
+    let data = {};
+
+    try {
+
+      data =
+        rawResponse
+          ? JSON.parse(rawResponse)
+          : {};
+
+    } catch {
+
+      throw new Error(
+        rawResponse ||
+        `Server returned HTTP ${response.status}.`
+      );
+
+    }
 
     if (!response.ok) {
 
       throw new Error(
         data.error ||
-        "Zed could not respond."
+        data.message ||
+        `Server returned HTTP ${response.status}.`
+      );
+
+    }
+
+    const reply =
+      typeof data.reply === "string"
+        ? data.reply
+        : typeof data.message === "string"
+          ? data.message
+          : "";
+
+    if (!reply) {
+
+      throw new Error(
+        "Zed's server returned an empty response."
       );
 
     }
@@ -2827,9 +2741,7 @@ async function sendMessage() {
 
       role: "assistant",
 
-      content:
-        data.reply ||
-        "I received your message."
+      content: reply
 
     });
 
@@ -2850,7 +2762,9 @@ async function sendMessage() {
 
       content:
         "Sorry, I couldn't complete that request.\n\n" +
-        error.message
+        "**Error:** " +
+        (error.message ||
+          "Unknown error.")
 
     });
 
@@ -2862,11 +2776,15 @@ async function sendMessage() {
 
     fileName.textContent = "";
 
+    photoInput.value = "";
+    fileInput.value = "";
+
     sendButton.disabled =
       false;
 
-  }
+    messageInput.focus();
 
+  }
 }
 
 /* =========================================
@@ -2901,7 +2819,6 @@ async function createImage() {
       await fetch(
         "/api/generate-image",
         {
-
           method: "POST",
 
           headers: {
@@ -2917,14 +2834,41 @@ async function createImage() {
         }
       );
 
-    const data =
-      await response.json();
+    const rawResponse =
+      await response.text();
+
+    let data = {};
+
+    try {
+
+      data =
+        rawResponse
+          ? JSON.parse(rawResponse)
+          : {};
+
+    } catch {
+
+      throw new Error(
+        rawResponse ||
+        `Server returned HTTP ${response.status}.`
+      );
+
+    }
 
     if (!response.ok) {
 
       throw new Error(
         data.error ||
-        "Image generation failed."
+        data.message ||
+        `Image generation failed with HTTP ${response.status}.`
+      );
+
+    }
+
+    if (!data.image) {
+
+      throw new Error(
+        "The image service returned no image."
       );
 
     }
@@ -2951,15 +2895,16 @@ async function createImage() {
     renderMessages();
 
     const image =
-      document.createElement(
-        "img"
-      );
+      document.createElement("img");
 
     image.src =
       data.image;
 
     image.className =
       "generatedImage";
+
+    image.alt =
+      "Generated image";
 
     chatContent.appendChild(
       image
@@ -2989,7 +2934,8 @@ async function createImage() {
     );
 
     alert(
-      error.message
+      error.message ||
+      "Image generation failed."
     );
 
   } finally {
@@ -2997,8 +2943,9 @@ async function createImage() {
     sendButton.disabled =
       false;
 
-  }
+    messageInput.focus();
 
+  }
 }
 
 /* =========================================
@@ -3007,11 +2954,31 @@ async function createImage() {
 
 attachButton.addEventListener(
   "click",
-  () => {
+  event => {
+
+    event.stopPropagation();
 
     attachMenu.classList.toggle(
       "hidden"
     );
+
+  }
+);
+
+document.addEventListener(
+  "click",
+  event => {
+
+    if (
+      !attachMenu.contains(event.target) &&
+      event.target !== attachButton
+    ) {
+
+      attachMenu.classList.add(
+        "hidden"
+      );
+
+    }
 
   }
 );
@@ -3055,9 +3022,7 @@ photoInput.addEventListener(
       photoInput.files?.[0];
 
     if (!file) {
-
       return;
-
     }
 
     selectedFile =
@@ -3078,9 +3043,7 @@ fileInput.addEventListener(
       fileInput.files?.[0];
 
     if (!file) {
-
       return;
-
     }
 
     selectedFile =
@@ -3113,7 +3076,9 @@ messageInput.addEventListener(
 
       event.preventDefault();
 
-      sendMessage();
+      if (!sendButton.disabled) {
+        sendMessage();
+      }
 
     }
 
@@ -3149,6 +3114,9 @@ googleLogin.addEventListener(
       authMessage.textContent =
         "";
 
+      googleLogin.disabled =
+        true;
+
       const provider =
         new GoogleAuthProvider();
 
@@ -3165,7 +3133,13 @@ googleLogin.addEventListener(
       );
 
       authMessage.textContent =
-        error.message;
+        error.message ||
+        "Google sign-in failed.";
+
+    } finally {
+
+      googleLogin.disabled =
+        false;
 
     }
 
@@ -3181,6 +3155,9 @@ emailLogin.addEventListener(
       authMessage.textContent =
         "";
 
+      emailLogin.disabled =
+        true;
+
       await signInWithEmailAndPassword(
         auth,
         emailInput.value.trim(),
@@ -3195,7 +3172,13 @@ emailLogin.addEventListener(
       );
 
       authMessage.textContent =
-        error.message;
+        error.message ||
+        "Sign-in failed.";
+
+    } finally {
+
+      emailLogin.disabled =
+        false;
 
     }
 
@@ -3211,6 +3194,9 @@ emailSignup.addEventListener(
       authMessage.textContent =
         "";
 
+      emailSignup.disabled =
+        true;
+
       await createUserWithEmailAndPassword(
         auth,
         emailInput.value.trim(),
@@ -3225,7 +3211,13 @@ emailSignup.addEventListener(
       );
 
       authMessage.textContent =
-        error.message;
+        error.message ||
+        "Account creation failed.";
+
+    } finally {
+
+      emailSignup.disabled =
+        false;
 
     }
 
@@ -3236,9 +3228,26 @@ logoutButton.addEventListener(
   "click",
   async () => {
 
-    await signOut(auth);
+    try {
 
-    closeMenu();
+      await signOut(auth);
+
+      messages = [];
+      currentChatId = null;
+      memories = [];
+
+      renderMessages();
+
+      closeMenu();
+
+    } catch (error) {
+
+      console.error(
+        "Logout error:",
+        error
+      );
+
+    }
 
   }
 );
@@ -3305,12 +3314,19 @@ onAuthStateChanged(
 
       await loadCloudHistory();
 
+      messageInput.focus();
+
     } else {
 
       userId =
         "guest";
 
       memories = [];
+
+      messages = [];
+
+      currentChatId =
+        null;
 
       authScreen.classList.remove(
         "hidden"
@@ -3368,6 +3384,8 @@ if (
         new Event("input")
       );
 
+      messageInput.focus();
+
     };
 
   recognition.onerror =
@@ -3413,7 +3431,7 @@ micButton.addEventListener(
 );
 
 /* =========================================
-   START CLEAN
+   START
 ========================================= */
 
 renderMessages();

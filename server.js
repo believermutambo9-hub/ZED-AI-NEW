@@ -83,6 +83,7 @@ function shouldUseFootball(message = "") {
     "kickoff",
     "starting lineup",
     "lineup",
+
     "arsenal",
     "chelsea",
     "liverpool",
@@ -94,6 +95,7 @@ function shouldUseFootball(message = "") {
     "tottenham",
     "newcastle",
     "aston villa",
+
     "barcelona",
     "real madrid",
     "atletico madrid",
@@ -109,18 +111,22 @@ function shouldUseFootball(message = "") {
     "lyon",
     "marseille",
     "monaco",
+
     "ajax",
     "psv",
     "benfica",
     "porto",
+
     "al hilal",
     "al nassr",
+
     "mamelodi sundowns",
     "kaizer chiefs",
     "al ahly",
     "zamalek",
     "young africans",
     "tp mazembe",
+
     "zambia",
     "malawi",
     "nigeria",
@@ -128,6 +134,7 @@ function shouldUseFootball(message = "") {
     "south africa",
     "egypt",
     "morocco",
+
     "brazil",
     "argentina",
     "france",
@@ -146,7 +153,7 @@ function shouldUseFootball(message = "") {
 
 
 // ============================================================
-// AI SYSTEM PROMPT
+// SYSTEM PROMPT
 // ============================================================
 
 const systemPrompt = `
@@ -154,7 +161,7 @@ You are Zed AI, a helpful general-purpose AI assistant.
 
 Give clear, useful and natural answers.
 
-IMPORTANT CURRENT-INFORMATION RULES:
+CURRENT INFORMATION RULES:
 - When current information is supplied by web search, use it.
 - Do not invent current information.
 - Do not invent dates, prices, scores, fixtures, standings, news or events.
@@ -166,7 +173,7 @@ FOOTBALL RULES:
 - A score of 0-0 does NOT automatically mean a match is live.
 - Use the supplied match state/status to determine whether a match is scheduled, live or completed.
 - Football times supplied to you are displayed in Zambia time (Africa/Lusaka).
-- The user may ask about football anywhere in the world, not only Zambia.
+- The user can ask about football anywhere in the world, not only Zambia.
 
 Answer the user's question directly.
 `;
@@ -180,7 +187,9 @@ async function askGemini(messages) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
+    throw new Error(
+      "GEMINI_API_KEY is not configured"
+    );
   }
 
   const ai = new GoogleGenAI({
@@ -194,16 +203,19 @@ async function askGemini(messages) {
         : "user",
     parts: [
       {
-        text: String(message.content || "")
+        text: String(
+          message.content || ""
+        )
       }
     ]
   }));
 
-  const response = await ai.models.generateContent({
-    model: geminiModel,
-    systemInstruction: systemPrompt,
-    contents
-  });
+  const response =
+    await ai.models.generateContent({
+      model: geminiModel,
+      systemInstruction: systemPrompt,
+      contents
+    });
 
   return (
     response?.text ||
@@ -223,7 +235,9 @@ async function askGroq(messages) {
   const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
-    throw new Error("GROQ_API_KEY is not configured");
+    throw new Error(
+      "GROQ_API_KEY is not configured"
+    );
   }
 
   const response = await fetch(
@@ -238,11 +252,13 @@ async function askGroq(messages) {
         model:
           process.env.GROQ_MODEL ||
           "llama-3.3-70b-versatile",
+
         messages: [
           {
             role: "system",
             content: systemPrompt
           },
+
           ...messages.map((message) => ({
             role: message.role,
             content: String(
@@ -250,24 +266,27 @@ async function askGroq(messages) {
             )
           }))
         ],
+
         temperature: 0.7
       })
     }
   );
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText =
+      await response.text();
 
     throw new Error(
       `Groq ${response.status}: ${errorText}`
     );
   }
 
-  const data = await response.json();
+  const data =
+    await response.json();
 
   return (
-    data?.choices?.[0]?.message?.content ||
-    ""
+    data?.choices?.[0]?.message
+      ?.content || ""
   ).trim();
 }
 
@@ -277,7 +296,8 @@ async function askGroq(messages) {
 // ============================================================
 
 async function askOpenRouter(messages) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey =
+    process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
     throw new Error(
@@ -289,6 +309,7 @@ async function askOpenRouter(messages) {
     "https://openrouter.ai/api/v1/chat/completions",
     {
       method: "POST",
+
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
@@ -296,15 +317,18 @@ async function askOpenRouter(messages) {
           "https://zed-ai-h7h4.onrender.com",
         "X-Title": "Zed AI"
       },
+
       body: JSON.stringify({
         model:
           process.env.OPENROUTER_MODEL ||
           "openai/gpt-oss-20b:free",
+
         messages: [
           {
             role: "system",
             content: systemPrompt
           },
+
           ...messages.map((message) => ({
             role: message.role,
             content: String(
@@ -312,24 +336,27 @@ async function askOpenRouter(messages) {
             )
           }))
         ],
+
         temperature: 0.7
       })
     }
   );
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText =
+      await response.text();
 
     throw new Error(
       `OpenRouter ${response.status}: ${errorText}`
     );
   }
 
-  const data = await response.json();
+  const data =
+    await response.json();
 
   return (
-    data?.choices?.[0]?.message?.content ||
-    ""
+    data?.choices?.[0]?.message
+      ?.content || ""
   ).trim();
 }
 
@@ -342,7 +369,8 @@ async function askAI(messages) {
   const errors = [];
 
   try {
-    const answer = await askGemini(messages);
+    const answer =
+      await askGemini(messages);
 
     if (answer) {
       return {
@@ -362,7 +390,8 @@ async function askAI(messages) {
   }
 
   try {
-    const answer = await askGroq(messages);
+    const answer =
+      await askGroq(messages);
 
     if (answer) {
       return {
@@ -436,17 +465,20 @@ async function generateImage(prompt) {
 
   const response = await fetch(url, {
     method: "POST",
+
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json"
     },
+
     body: JSON.stringify({
       prompt
     })
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText =
+      await response.text();
 
     throw new Error(
       `Cloudflare ${response.status}: ${errorText}`
@@ -454,7 +486,9 @@ async function generateImage(prompt) {
   }
 
   const contentType =
-    response.headers.get("content-type") || "";
+    response.headers.get(
+      "content-type"
+    ) || "";
 
   if (
     contentType.includes("image/")
@@ -466,26 +500,26 @@ async function generateImage(prompt) {
 
     return {
       mimeType: contentType,
-      data: buffer.toString("base64")
+      data: buffer.toString(
+        "base64"
+      )
     };
   }
 
-  const data = await response.json();
+  const data =
+    await response.json();
 
-  if (
-    data?.result?.image
-  ) {
+  if (data?.result?.image) {
     return {
       mimeType: "image/png",
       data: data.result.image
     };
   }
 
-  if (
-    data?.result?.image_url
-  ) {
+  if (data?.result?.image_url) {
     return {
-      imageUrl: data.result.image_url
+      imageUrl:
+        data.result.image_url
     };
   }
 
@@ -499,25 +533,40 @@ async function generateImage(prompt) {
 // HEALTH CHECK
 // ============================================================
 
-app.get("/health", (req, res) => {
-  res.json({
-    ok: true,
-    service: "zed-ai",
-    provider:
-      "gemini-with-groq-and-openrouter-fallback",
-    geminiModel,
-    fileAnalysis: true,
-    football: true,
-    footballScope: "worldwide",
-    footballRouting:
-      "team-league-worldwide",
-    webSearch: true,
-    imageGeneration: Boolean(
-      process.env.CLOUDFLARE_ACCOUNT_ID &&
-      process.env.CLOUDFLARE_API_TOKEN
-    )
-  });
-});
+app.get(
+  "/health",
+  (req, res) => {
+    res.json({
+      ok: true,
+      service: "zed-ai",
+
+      provider:
+        "gemini-with-groq-and-openrouter-fallback",
+
+      geminiModel,
+
+      fileAnalysis: true,
+
+      football: true,
+
+      footballScope:
+        "worldwide",
+
+      footballRouting:
+        "team-league-worldwide",
+
+      webSearch: true,
+
+      imageGeneration:
+        Boolean(
+          process.env
+            .CLOUDFLARE_ACCOUNT_ID &&
+          process.env
+            .CLOUDFLARE_API_TOKEN
+        )
+    });
+  }
+);
 
 
 // ============================================================
@@ -528,13 +577,14 @@ app.get(
   "/api/gemini-test",
   async (req, res) => {
     try {
-      const result = await askGemini([
-        {
-          role: "user",
-          content:
-            "Reply with exactly: Zed AI Gemini test successful."
-        }
-      ]);
+      const result =
+        await askGemini([
+          {
+            role: "user",
+            content:
+              "Reply with exactly: Zed AI Gemini test successful."
+          }
+        ]);
 
       res.json({
         ok: true,
@@ -559,13 +609,15 @@ app.post(
   async (req, res) => {
     try {
       const prompt =
-        String(req.body?.prompt || "")
-          .trim();
+        String(
+          req.body?.prompt || ""
+        ).trim();
 
       if (!prompt) {
         return res.status(400).json({
           ok: false,
-          error: "Image prompt is required"
+          error:
+            "Image prompt is required"
         });
       }
 
@@ -613,31 +665,48 @@ app.post(
       if (!userMessage) {
         return res.status(400).json({
           ok: false,
-          error: "Message is required"
+          error:
+            "Message is required"
         });
       }
 
-      if (!memory.has(conversationId)) {
-        memory.set(conversationId, []);
+      if (
+        !memory.has(
+          conversationId
+        )
+      ) {
+        memory.set(
+          conversationId,
+          []
+        );
       }
 
       const conversation =
-        memory.get(conversationId);
-
-      let webContext = "";
-      let searchUsed = false;
+        memory.get(
+          conversationId
+        );
 
       // --------------------------------------------------------
       // WEB SEARCH
       // --------------------------------------------------------
 
-      if (shouldSearchWeb(userMessage)) {
+      let webContext = "";
+      let searchUsed = false;
+
+      if (
+        shouldSearchWeb(
+          userMessage
+        )
+      ) {
         try {
           const searchResult =
-            await webSearch(userMessage);
+            await webSearch(
+              userMessage
+            );
 
           if (
-            typeof searchResult === "string" &&
+            typeof searchResult ===
+              "string" &&
             searchResult.trim()
           ) {
             searchUsed = true;
@@ -668,7 +737,9 @@ Do not invent information that is not supported by the results.
       let footballMode = null;
 
       if (
-        shouldUseFootball(userMessage)
+        shouldUseFootball(
+          userMessage
+        )
       ) {
         try {
           const footballRequestType =
@@ -695,6 +766,10 @@ Do not invent information that is not supported by the results.
             specificLeague
           );
 
+          // ----------------------------------------------------
+          // TEAM REQUEST
+          // ----------------------------------------------------
+
           if (specificTeam) {
             const teamResult =
               await footballTeamFeature(
@@ -719,7 +794,13 @@ Use this football data directly.
 Do not invent missing fixtures, results, scores, dates or status.
 `;
             }
-          } else if (
+          }
+
+          // ----------------------------------------------------
+          // LEAGUE REQUEST
+          // ----------------------------------------------------
+
+          else if (
             specificLeague
           ) {
             const leagueResult =
@@ -745,7 +826,13 @@ Use this football data directly.
 Do not invent missing fixtures, results, scores, dates or status.
 `;
             }
-          } else {
+          }
+
+          // ----------------------------------------------------
+          // WORLDWIDE FOOTBALL
+          // ----------------------------------------------------
+
+          else {
             const football =
               await footballFeature();
 
@@ -756,7 +843,8 @@ Do not invent missing fixtures, results, scores, dates or status.
               football.text.trim()
             ) {
               footballUsed = true;
-              footballMode = "worldwide";
+              footballMode =
+                "worldwide";
 
               footballContext = `
 CURRENT WORLDWIDE FOOTBALL DATA:
@@ -790,37 +878,55 @@ Do not invent missing fixtures, results, scores, dates or status.
 
       conversation.push({
         role: "user",
-        content: fullUserMessage
+        content:
+          fullUserMessage
       });
 
-      // Keep memory from becoming too large
+      // Keep recent conversation
       const recentMessages =
         conversation.slice(-20);
 
+      // --------------------------------------------------------
+      // ASK AI
+      // --------------------------------------------------------
+
       const result =
-        await askAI(recentMessages);
+        await askAI(
+          recentMessages
+        );
 
       conversation.push({
         role: "assistant",
-        content: result.answer
+        content:
+          result.answer
       });
 
-      // Keep only recent conversation
-      if (conversation.length > 40) {
+      // Prevent unlimited memory growth
+      if (
+        conversation.length > 40
+      ) {
         conversation.splice(
           0,
           conversation.length - 40
         );
       }
 
+      // --------------------------------------------------------
+      // RESPONSE
+      // --------------------------------------------------------
+
       res.json({
         ok: true,
         answer: result.answer,
-        provider: result.provider,
-        webSearch: searchUsed,
-        football: footballUsed,
+        provider:
+          result.provider,
+        webSearch:
+          searchUsed,
+        football:
+          footballUsed,
         footballMode
       });
+
     } catch (error) {
       console.error(
         "Chat error:",
@@ -839,17 +945,21 @@ Do not invent missing fixtures, results, scores, dates or status.
 
 
 // ============================================================
-// FRONTEND
+// FRONTEND FALLBACK
 // ============================================================
+// Express 5 does not accept app.get("*").
+// This middleware serves index.html for frontend routes.
 
-app.get("*", (req, res) => {
-  res.sendFile(
-    path.join(
-      __dirname,
-      "index.html"
-    )
-  );
-});
+app.use(
+  (req, res) => {
+    res.sendFile(
+      path.join(
+        __dirname,
+        "index.html"
+      )
+    );
+  }
+);
 
 
 // ============================================================

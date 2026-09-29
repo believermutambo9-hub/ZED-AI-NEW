@@ -833,13 +833,25 @@ app.post(
 
         try {
 
-          const gemini =
-            await askGemini(
-              fullConversation,
-              clientMemories,
-              geminiKey,
-              uploadedFile
-            );
+      const gemini =
+        await askGemini(
+           searchContext
+              ? [
+                  ...fullConversation,
+                  {
+                   role: "user",
+                   text:
+                     "Use the following live web search results to answer the user's question. " +
+                     "Prefer these current results when the question requires up-to-date information. " +
+                     "Do not claim you searched the web if no useful results were found.\n\n" +
+                     searchContext
+                  }
+               ]
+             : fullConversation,
+           clientMemories,
+           geminiKey,
+           uploadedFile
+       );
 
           if (
             gemini.response.ok

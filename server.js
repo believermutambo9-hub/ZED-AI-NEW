@@ -2,10 +2,12 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
+
 import {
   webSearch,
   shouldSearchWeb
 } from "./web-search.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -45,10 +47,13 @@ app.get("/health", (_req, res) => {
   res.json({
     ok: true,
     service: "zed-ai",
-    provider: "gemini-with-groq-and-openrouter-fallback",
+    provider:
+      "gemini-with-groq-and-openrouter-fallback",
     geminiModel,
     fileAnalysis: true,
-    imageGeneration: "cloudflare-flux-1-schnell"
+    webSearch: true,
+    imageGeneration:
+      "cloudflare-flux-1-schnell"
   });
 });
 
@@ -59,14 +64,23 @@ app.get("/health", (_req, res) => {
 
 function systemPrompt(memoryText = "") {
   return (
-    "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
+    "You are Zed, a helpful, friendly and intelligent AI assistant. " +
     "Always explain things using simple, clear and easy-to-understand English. " +
     "Avoid unnecessarily difficult words or technical language unless requested. " +
+    "You are a global assistant and should be able to answer questions about " +
+    "countries, people, businesses, technology, entertainment, sports, football, " +
+    "news and other topics around the world. " +
     "When relevant, understand that the user may be in Zambia and use " +
     "Zambian context, currency (ZMW/Kwacha), and everyday examples. " +
     "You may communicate in a Zambian local language when appropriate, " +
     "but never guess the user's local language. " +
-    "When responding, make sure you summarize your answers when useful. " +
+    "When current web information is provided in the user's message, " +
+    "use that information to answer current questions. " +
+    "Do not say that your knowledge stops at 2024 when current web information " +
+    "has been provided. " +
+    "Do not claim that you searched the web unless web search information " +
+    "is actually included in the conversation. " +
+    "When responding, summarize your answers when useful. " +
     "Do not claim to be human. " +
     "When a user uploads an image or PDF, inspect the uploaded content " +
     "carefully and answer based on the actual file. " +
@@ -89,48 +103,64 @@ async function askGemini(
 ) {
 
   const memoryText = memories
-    .filter(item => typeof item === "string")
-    .map(item => item.trim())
+    .filter(
+      item =>
+        typeof item === "string"
+    )
+    .map(
+      item =>
+        item.trim()
+    )
     .filter(Boolean)
     .join("\n");
 
-  const contents = conversation.map(message => ({
-    role:
-      message.role === "assistant"
-        ? "model"
-        : "user",
+  const contents =
+    conversation.map(message => ({
+      role:
+        message.role === "assistant"
+          ? "model"
+          : "user",
 
-    parts: [
-      {
-        text: String(message.text || "")
-      }
-    ]
-  }));
+      parts: [
+        {
+          text:
+            String(message.text || "")
+        }
+      ]
+    }));
 
   if (file) {
 
     const base64Data =
       file.data
-        .replace(/^data:[^;]+;base64,/, "")
+        .replace(
+          /^data:[^;]+;base64,/,
+          ""
+        )
         .replace(/\s/g, "");
 
     const lastUserMessage =
       [...contents]
         .reverse()
         .find(
-          item => item.role === "user"
+          item =>
+            item.role === "user"
         );
 
     if (!lastUserMessage) {
+
       throw new Error(
         "Could not attach the uploaded file to the user message."
       );
+
     }
 
     lastUserMessage.parts.push({
       inline_data: {
-        mime_type: file.mimeType,
-        data: base64Data
+        mime_type:
+          file.mimeType,
+        data:
+          base64Data
       }
     });
   }
@@ -138,29 +168,36 @@ async function askGemini(
   const endpoint =
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`;
 
-  const response = await fetch(
-    endpoint,
-    {
-      method: "POST",
+  const response =
+    await fetch(
+      endpoint,
+      {
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
-      },
+        headers: {
+          "Content-Type":
+            "application/json",
 
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [
-            {
-              text: systemPrompt(memoryText)
-            }
-          ]
+          "x-goog-api-key":
+            apiKey
         },
 
-        contents
-      })
-    }
-  );
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [
+              {
+                text:
+                  systemPrompt(
+                    memoryText
+                  )
+              }
+            ]
+          },
+
+          contents
+        })
+      }
+    );
 
   const data =
     await response.json();
@@ -182,20 +219,33 @@ async function askGroq(
   apiKey
 ) {
 
-  const memoryText = memories
-    .filter(item => typeof item === "string")
-    .map(item => item.trim())
-    .filter(Boolean)
-    .join("\n");
+  const memoryText =
+    memories
+      .filter(
+        item =>
+          typeof item === "string"
+      )
+      .map(
+        item =>
+          item.trim()
+      )
+      .filter(Boolean)
+      .join("\n");
 
   const groqMessages = [
     {
       role: "system",
-      content: systemPrompt(memoryText)
+
+      content:
+        systemPrompt(
+          memoryText
+        )
     }
   ];
 
-  for (const message of conversation) {
+  for (
+    const message of conversation
+  ) {
 
     if (
       message.role !== "user" &&
@@ -211,29 +261,35 @@ async function askGroq(
           : "user",
 
       content:
-        String(message.text || "")
+        String(
+          message.text || ""
+        )
     });
   }
 
-  const response = await fetch(
-    "https://api.groq.com/openai/v1/chat/completions",
-    {
-      method: "POST",
+  const response =
+    await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json",
+        headers: {
+          "Content-Type":
+            "application/json",
 
-        "Authorization":
-          `Bearer ${apiKey}`
-      },
+          "Authorization":
+            `Bearer ${apiKey}`
+        },
 
-      body: JSON.stringify({
-        model: "openai/gpt-oss-120b",
+        body: JSON.stringify({
+          model:
+            "openai/gpt-oss-120b",
 
-        messages: groqMessages
-      })
-    }
-  );
+          messages:
+            groqMessages
+        })
+      }
+    );
 
   const data =
     await response.json();
@@ -255,20 +311,33 @@ async function askOpenRouter(
   apiKey
 ) {
 
-  const memoryText = memories
-    .filter(item => typeof item === "string")
-    .map(item => item.trim())
-    .filter(Boolean)
-    .join("\n");
+  const memoryText =
+    memories
+      .filter(
+        item =>
+          typeof item === "string"
+      )
+      .map(
+        item =>
+          item.trim()
+      )
+      .filter(Boolean)
+      .join("\n");
 
   const routerMessages = [
     {
       role: "system",
-      content: systemPrompt(memoryText)
+
+      content:
+        systemPrompt(
+          memoryText
+        )
     }
   ];
 
-  for (const message of conversation) {
+  for (
+    const message of conversation
+  ) {
 
     if (
       message.role !== "user" &&
@@ -284,35 +353,41 @@ async function askOpenRouter(
           : "user",
 
       content:
-        String(message.text || "")
+        String(
+          message.text || ""
+        )
     });
   }
 
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
+  const response =
+    await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json",
+        headers: {
+          "Content-Type":
+            "application/json",
 
-        "Authorization":
-          `Bearer ${apiKey}`,
+          "Authorization":
+            `Bearer ${apiKey}`,
 
-        "HTTP-Referer":
-          "https://zed-ai-h7h4.onrender.com",
+          "HTTP-Referer":
+            "https://zed-ai-h7h4.onrender.com",
 
-        "X-Title":
-          "Zed AI"
-      },
+          "X-Title":
+            "Zed"
+        },
 
-      body: JSON.stringify({
-        model: "openrouter/free",
+        body: JSON.stringify({
+          model:
+            "openrouter/free",
 
-        messages: routerMessages
-      })
-    }
-  );
+          messages:
+            routerMessages
+        })
+      }
+    );
 
   const data =
     await response.json();
@@ -339,15 +414,19 @@ async function generateCloudflareImage(
     process.env.CLOUDFLARE_API_TOKEN;
 
   if (!accountId) {
+
     throw new Error(
       "Cloudflare Account ID is not configured."
     );
+
   }
 
   if (!apiToken) {
+
     throw new Error(
       "Cloudflare API token is not configured."
     );
+
   }
 
   const model =
@@ -356,25 +435,26 @@ async function generateCloudflareImage(
   const endpoint =
     `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`;
 
-  const response = await fetch(
-    endpoint,
-    {
-      method: "POST",
+  const response =
+    await fetch(
+      endpoint,
+      {
+        method: "POST",
 
-      headers: {
-        "Authorization":
-          `Bearer ${apiToken}`,
+        headers: {
+          "Authorization":
+            `Bearer ${apiToken}`,
 
-        "Content-Type":
-          "application/json"
-      },
+          "Content-Type":
+            "application/json"
+        },
 
-      body: JSON.stringify({
-        prompt,
-        steps: 4
-      })
-    }
-  );
+        body: JSON.stringify({
+          prompt,
+          steps: 4
+        })
+      }
+    );
 
   const data =
     await response.json();
@@ -396,11 +476,14 @@ function validateFile(file) {
     !file ||
     typeof file !== "object"
   ) {
+
     return {
       valid: false,
+
       error:
         "Uploaded file information is missing."
     };
+
   }
 
   const name =
@@ -410,7 +493,9 @@ function validateFile(file) {
 
   const mimeType =
     typeof file.mimeType === "string"
-      ? file.mimeType.trim().toLowerCase()
+      ? file.mimeType
+          .trim()
+          .toLowerCase()
       : "";
 
   const data =
@@ -419,50 +504,71 @@ function validateFile(file) {
       : "";
 
   if (!name) {
+
     return {
       valid: false,
+
       error:
         "The uploaded file has no name."
     };
+
   }
 
   if (
-    !ALLOWED_FILE_TYPES.has(mimeType)
+    !ALLOWED_FILE_TYPES.has(
+      mimeType
+    )
   ) {
+
     return {
       valid: false,
+
       error:
-        "Zed AI currently supports JPG, PNG, WEBP, GIF images and PDF files."
+        "Zed currently supports JPG, PNG, WEBP, GIF images and PDF files."
     };
+
   }
 
   if (!data) {
+
     return {
       valid: false,
+
       error:
         "The uploaded file is empty."
     };
+
   }
 
   const base64Data =
     data
-      .replace(/^data:[^;]+;base64,/, "")
-      .replace(/\s/g, "");
+      .replace(
+        /^data:[^;]+;base64,/,
+        ""
+      )
+      .replace(
+        /\s/g,
+        ""
+      );
 
   const estimatedSize =
     Math.floor(
-      (base64Data.length * 3) / 4
+      (base64Data.length * 3) /
+        4
     );
 
   if (
     estimatedSize >
     MAX_FILE_SIZE
   ) {
+
     return {
       valid: false,
+
       error:
         "The uploaded file is too large. Maximum size is 15 MB."
     };
+
   }
 
   return {
@@ -471,7 +577,8 @@ function validateFile(file) {
     file: {
       name,
       mimeType,
-      data: base64Data
+      data:
+        base64Data
     }
   };
 }
@@ -506,7 +613,9 @@ app.post(
           prompt
         );
 
-      if (!result.response.ok) {
+      if (
+        !result.response.ok
+      ) {
 
         console.error(
           "Cloudflare image API error:",
@@ -520,7 +629,8 @@ app.post(
           "Cloudflare image generation failed.";
 
         return res.status(502).json({
-          error: cloudflareError
+          error:
+            cloudflareError
         });
 
       }
@@ -529,8 +639,10 @@ app.post(
         result.data?.result?.image;
 
       if (
-        typeof base64Image !== "string" &&
-        typeof result.data?.result === "string"
+        typeof base64Image !==
+          "string" &&
+        typeof result.data?.result ===
+          "string"
       ) {
 
         base64Image =
@@ -539,7 +651,8 @@ app.post(
       }
 
       if (
-        typeof base64Image !== "string" ||
+        typeof base64Image !==
+          "string" ||
         !base64Image
       ) {
 
@@ -556,13 +669,18 @@ app.post(
       }
 
       const imageData =
-        base64Image.startsWith("data:")
+        base64Image.startsWith(
+          "data:"
+        )
           ? base64Image
           : `data:image/jpeg;base64,${base64Image}`;
 
       return res.json({
         ok: true,
-        image: imageData,
+
+        image:
+          imageData,
+
         provider:
           "cloudflare-flux-1-schnell"
       });
@@ -577,7 +695,7 @@ app.post(
       return res.status(500).json({
         error:
           error.message ||
-          "Zed AI could not generate the image."
+          "Zed could not generate the image."
       });
 
     }
@@ -612,8 +730,11 @@ app.post(
 
       const result =
         await ai.interactions.create({
-          model: geminiModel,
-          input: prompt
+          model:
+            geminiModel,
+
+          input:
+            prompt
         });
 
       return res.json({
@@ -633,7 +754,8 @@ app.post(
               output =>
                 output.text
             )
-            ?.join("") || ""
+            ?.join("") ||
+          ""
 
       });
 
@@ -685,7 +807,8 @@ app.post(
           ? req.body.memories
               .filter(
                 item =>
-                  typeof item === "string"
+                  typeof item ===
+                  "string"
               )
               .map(
                 item =>
@@ -697,16 +820,22 @@ app.post(
       let uploadedFile = null;
 
 
-      /* FILE */
+      /* =========================
+         FILE
+      ========================= */
 
-      if (req.body?.file) {
+      if (
+        req.body?.file
+      ) {
 
         const validation =
           validateFile(
             req.body.file
           );
 
-        if (!validation.valid) {
+        if (
+          !validation.valid
+        ) {
 
           return res.status(400).json({
             error:
@@ -727,7 +856,9 @@ app.post(
       }
 
 
-      /* MESSAGE CHECK */
+      /* =========================
+         MESSAGE CHECK
+      ========================= */
 
       if (
         !message &&
@@ -742,22 +873,6 @@ app.post(
       }
 
 
-      /*
-       * Build one conversation containing
-       * the previous messages plus the
-       * current user message.
-       */
-
-      const fullConversation = [
-        ...conversation,
-
-        {
-          role: "user",
-          text:
-            message ||
-            "Please analyze the uploaded file and tell me what you find."
-        }
-      ];
       /* =========================
          WEB SEARCH
       ========================= */
@@ -773,26 +888,32 @@ app.post(
         try {
 
           console.log(
-            "Searching web for:",
+            "Zed web search:",
             message
           );
 
           const search =
-            await webSearch(message);
+            await webSearch(
+              message
+            );
 
           if (
             search.ok &&
-            search.results.length
+            Array.isArray(
+              search.results
+            ) &&
+            search.results.length > 0
           ) {
 
             searchContext =
-              "\n\nLIVE WEB SEARCH RESULTS:\n\n";
+              "\n\nCURRENT WEB SEARCH RESULTS:\n\n";
 
             search.results.forEach(
               (result, index) => {
 
                 searchContext +=
-                  `${index + 1}. ${result.title}\n` +
+                  `SOURCE ${index + 1}\n` +
+                  `Title: ${result.title}\n` +
                   `URL: ${result.link}\n` +
                   `Summary: ${result.snippet}\n\n`;
 
@@ -800,13 +921,15 @@ app.post(
             );
 
             console.log(
-              `Web search returned ${search.results.length} results.`
+              "Web search successful:",
+              search.results.length,
+              "results"
             );
 
           } else {
 
             console.log(
-              "Web search returned no results."
+              "Web search returned no usable results."
             );
 
           }
@@ -822,6 +945,41 @@ app.post(
 
       }
 
+
+      /* =========================
+         BUILD CONVERSATION
+      ========================= */
+
+      const userText =
+        message ||
+        "Please analyze the uploaded file and tell me what you find.";
+
+      const finalUserText =
+        searchContext
+          ? (
+              userText +
+              searchContext +
+              "\nIMPORTANT INSTRUCTIONS: " +
+              "Answer the user's original question using the current " +
+              "web search information above when relevant. " +
+              "Do not say that you cannot access current information. " +
+              "If the search results are insufficient, clearly say that " +
+              "the available search results were insufficient."
+            )
+          : userText;
+
+      const fullConversation = [
+        ...conversation,
+
+        {
+          role: "user",
+
+          text:
+            finalUserText
+        }
+      ];
+
+
       /* =========================
          GEMINI
       ========================= */
@@ -833,25 +991,13 @@ app.post(
 
         try {
 
-      const gemini =
-        await askGemini(
-           searchContext
-              ? [
-                  ...fullConversation,
-                  {
-                   role: "user",
-                   text:
-                     "Use the following live web search results to answer the user's question. " +
-                     "Prefer these current results when the question requires up-to-date information. " +
-                     "Do not claim you searched the web if no useful results were found.\n\n" +
-                     searchContext
-                  }
-               ]
-             : fullConversation,
-           clientMemories,
-           geminiKey,
-           uploadedFile
-       );
+          const gemini =
+            await askGemini(
+              fullConversation,
+              clientMemories,
+              geminiKey,
+              uploadedFile
+            );
 
           if (
             gemini.response.ok
@@ -872,7 +1018,15 @@ app.post(
 
               return res.json({
                 reply,
-                provider: "gemini",
+
+                provider:
+                  "gemini",
+
+                webSearched:
+                  Boolean(
+                    searchContext
+                  ),
+
                 fileAnalyzed:
                   Boolean(
                     uploadedFile
@@ -890,13 +1044,11 @@ app.post(
           );
 
 
-          /*
-           * Uploaded files require Gemini.
-           * Do not send a file to a text-only
-           * fallback.
-           */
+          /* FILES REQUIRE GEMINI */
 
-          if (uploadedFile) {
+          if (
+            uploadedFile
+          ) {
 
             return res.status(502).json({
               error:
@@ -913,19 +1065,23 @@ app.post(
             error
           );
 
-          if (uploadedFile) {
+          if (
+            uploadedFile
+          ) {
 
             return res.status(502).json({
               error:
                 error.message ||
-                "Zed AI could not analyze the uploaded file."
+                "Zed could not analyze the uploaded file."
             });
 
           }
 
         }
 
-      } else if (uploadedFile) {
+      } else if (
+        uploadedFile
+      ) {
 
         return res.status(500).json({
           error:
@@ -972,7 +1128,14 @@ app.post(
 
               return res.json({
                 reply,
-                provider: "groq"
+
+                provider:
+                  "groq",
+
+                webSearched:
+                  Boolean(
+                    searchContext
+                  )
               });
 
             }
@@ -1034,8 +1197,14 @@ app.post(
 
               return res.json({
                 reply,
+
                 provider:
-                  "openrouter"
+                  "openrouter",
+
+                webSearched:
+                  Boolean(
+                    searchContext
+                  )
               });
 
             }
@@ -1073,13 +1242,13 @@ app.post(
     } catch (error) {
 
       console.error(
-        "Zed AI server error:",
+        "Zed server error:",
         error
       );
 
       return res.status(500).json({
         error:
-          "Zed AI could not complete the request. Please try again."
+          "Zed could not complete the request. Please try again."
       });
 
     }
@@ -1098,7 +1267,7 @@ app.listen(
   () => {
 
     console.log(
-      `Zed AI running on port ${port}`
+      `Zed running on port ${port}`
     );
 
   }

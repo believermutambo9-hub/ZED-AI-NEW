@@ -758,7 +758,69 @@ app.post(
             "Please analyze the uploaded file and tell me what you find."
         }
       ];
+      /* =========================
+         WEB SEARCH
+      ========================= */
 
+      let searchContext = "";
+
+      if (
+        message &&
+        !uploadedFile &&
+        shouldSearchWeb(message)
+      ) {
+
+        try {
+
+          console.log(
+            "Searching web for:",
+            message
+          );
+
+          const search =
+            await webSearch(message);
+
+          if (
+            search.ok &&
+            search.results.length
+          ) {
+
+            searchContext =
+              "\n\nLIVE WEB SEARCH RESULTS:\n\n";
+
+            search.results.forEach(
+              (result, index) => {
+
+                searchContext +=
+                  `${index + 1}. ${result.title}\n` +
+                  `URL: ${result.link}\n` +
+                  `Summary: ${result.snippet}\n\n`;
+
+              }
+            );
+
+            console.log(
+              `Web search returned ${search.results.length} results.`
+            );
+
+          } else {
+
+            console.log(
+              "Web search returned no results."
+            );
+
+          }
+
+        } catch (error) {
+
+          console.error(
+            "Web search failed:",
+            error
+          );
+
+        }
+
+      }
 
       /* =========================
          GEMINI

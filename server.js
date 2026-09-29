@@ -47,13 +47,11 @@ app.get("/health", (_req, res) => {
   res.json({
     ok: true,
     service: "zed-ai",
-    provider:
-      "gemini-with-groq-and-openrouter-fallback",
+    provider: "gemini-with-groq-and-openrouter-fallback",
     geminiModel,
     fileAnalysis: true,
     webSearch: true,
-    imageGeneration:
-      "cloudflare-flux-1-schnell"
+    imageGeneration: "cloudflare-flux-1-schnell"
   });
 });
 
@@ -101,66 +99,46 @@ async function askGemini(
   apiKey,
   file = null
 ) {
-
   const memoryText = memories
-    .filter(
-      item =>
-        typeof item === "string"
-    )
-    .map(
-      item =>
-        item.trim()
-    )
+    .filter(item => typeof item === "string")
+    .map(item => item.trim())
     .filter(Boolean)
     .join("\n");
 
-  const contents =
-    conversation.map(message => ({
-      role:
-        message.role === "assistant"
-          ? "model"
-          : "user",
+  const contents = conversation.map(message => ({
+    role:
+      message.role === "assistant"
+        ? "model"
+        : "user",
 
-      parts: [
-        {
-          text:
-            String(message.text || "")
-        }
-      ]
-    }));
+    parts: [
+      {
+        text: String(message.text || "")
+      }
+    ]
+  }));
 
   if (file) {
-
     const base64Data =
       file.data
-        .replace(
-          /^data:[^;]+;base64,/,
-          ""
-        )
+        .replace(/^data:[^;]+;base64,/, "")
         .replace(/\s/g, "");
 
     const lastUserMessage =
       [...contents]
         .reverse()
-        .find(
-          item =>
-            item.role === "user"
-        );
+        .find(item => item.role === "user");
 
     if (!lastUserMessage) {
-
       throw new Error(
         "Could not attach the uploaded file to the user message."
       );
-
     }
 
     lastUserMessage.parts.push({
       inline_data: {
-        mime_type:
-          file.mimeType,
-        data:
-          base64Data
+        mime_type: file.mimeType,
+        data: base64Data
       }
     });
   }
@@ -168,39 +146,31 @@ async function askGemini(
   const endpoint =
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`;
 
-  const response =
-    await fetch(
-      endpoint,
-      {
-        method: "POST",
+  const response = await fetch(
+    endpoint,
+    {
+      method: "POST",
 
-        headers: {
-          "Content-Type":
-            "application/json",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
 
-          "x-goog-api-key":
-            apiKey
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [
+            {
+              text: systemPrompt(memoryText)
+            }
+          ]
         },
 
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [
-              {
-                text:
-                  systemPrompt(
-                    memoryText
-                  )
-              }
-            ]
-          },
+        contents
+      })
+    }
+  );
 
-          contents
-        })
-      }
-    );
-
-  const data =
-    await response.json();
+  const data = await response.json();
 
   return {
     response,
@@ -218,35 +188,21 @@ async function askGroq(
   memories,
   apiKey
 ) {
-
   const memoryText =
     memories
-      .filter(
-        item =>
-          typeof item === "string"
-      )
-      .map(
-        item =>
-          item.trim()
-      )
+      .filter(item => typeof item === "string")
+      .map(item => item.trim())
       .filter(Boolean)
       .join("\n");
 
   const groqMessages = [
     {
       role: "system",
-
-      content:
-        systemPrompt(
-          memoryText
-        )
+      content: systemPrompt(memoryText)
     }
   ];
 
-  for (
-    const message of conversation
-  ) {
-
+  for (const message of conversation) {
     if (
       message.role !== "user" &&
       message.role !== "assistant"
@@ -260,39 +216,28 @@ async function askGroq(
           ? "assistant"
           : "user",
 
-      content:
-        String(
-          message.text || ""
-        )
+      content: String(message.text || "")
     });
   }
 
-  const response =
-    await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
+  const response = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
 
-        headers: {
-          "Content-Type":
-            "application/json",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
 
-          "Authorization":
-            `Bearer ${apiKey}`
-        },
+      body: JSON.stringify({
+        model: "openai/gpt-oss-120b",
+        messages: groqMessages
+      })
+    }
+  );
 
-        body: JSON.stringify({
-          model:
-            "openai/gpt-oss-120b",
-
-          messages:
-            groqMessages
-        })
-      }
-    );
-
-  const data =
-    await response.json();
+  const data = await response.json();
 
   return {
     response,
@@ -310,35 +255,21 @@ async function askOpenRouter(
   memories,
   apiKey
 ) {
-
   const memoryText =
     memories
-      .filter(
-        item =>
-          typeof item === "string"
-      )
-      .map(
-        item =>
-          item.trim()
-      )
+      .filter(item => typeof item === "string")
+      .map(item => item.trim())
       .filter(Boolean)
       .join("\n");
 
   const routerMessages = [
     {
       role: "system",
-
-      content:
-        systemPrompt(
-          memoryText
-        )
+      content: systemPrompt(memoryText)
     }
   ];
 
-  for (
-    const message of conversation
-  ) {
-
+  for (const message of conversation) {
     if (
       message.role !== "user" &&
       message.role !== "assistant"
@@ -352,45 +283,33 @@ async function askOpenRouter(
           ? "assistant"
           : "user",
 
-      content:
-        String(
-          message.text || ""
-        )
+      content: String(message.text || "")
     });
   }
 
-  const response =
-    await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
+  const response = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
 
-        headers: {
-          "Content-Type":
-            "application/json",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
 
-          "Authorization":
-            `Bearer ${apiKey}`,
+        "HTTP-Referer":
+          "https://zed-ai-h7h4.onrender.com",
 
-          "HTTP-Referer":
-            "https://zed-ai-h7h4.onrender.com",
+        "X-Title": "Zed"
+      },
 
-          "X-Title":
-            "Zed"
-        },
+      body: JSON.stringify({
+        model: "openrouter/free",
+        messages: routerMessages
+      })
+    }
+  );
 
-        body: JSON.stringify({
-          model:
-            "openrouter/free",
-
-          messages:
-            routerMessages
-        })
-      }
-    );
-
-  const data =
-    await response.json();
+  const data = await response.json();
 
   return {
     response,
@@ -403,10 +322,7 @@ async function askOpenRouter(
    CLOUDFLARE IMAGE GENERATION
 ========================= */
 
-async function generateCloudflareImage(
-  prompt
-) {
-
+async function generateCloudflareImage(prompt) {
   const accountId =
     process.env.CLOUDFLARE_ACCOUNT_ID;
 
@@ -414,19 +330,15 @@ async function generateCloudflareImage(
     process.env.CLOUDFLARE_API_TOKEN;
 
   if (!accountId) {
-
     throw new Error(
       "Cloudflare Account ID is not configured."
     );
-
   }
 
   if (!apiToken) {
-
     throw new Error(
       "Cloudflare API token is not configured."
     );
-
   }
 
   const model =
@@ -435,29 +347,27 @@ async function generateCloudflareImage(
   const endpoint =
     `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`;
 
-  const response =
-    await fetch(
-      endpoint,
-      {
-        method: "POST",
+  const response = await fetch(
+    endpoint,
+    {
+      method: "POST",
 
-        headers: {
-          "Authorization":
-            `Bearer ${apiToken}`,
+      headers: {
+        "Authorization":
+          `Bearer ${apiToken}`,
 
-          "Content-Type":
-            "application/json"
-        },
+        "Content-Type":
+          "application/json"
+      },
 
-        body: JSON.stringify({
-          prompt,
-          steps: 4
-        })
-      }
-    );
+      body: JSON.stringify({
+        prompt,
+        steps: 4
+      })
+    }
+  );
 
-  const data =
-    await response.json();
+  const data = await response.json();
 
   return {
     response,
@@ -471,19 +381,15 @@ async function generateCloudflareImage(
 ========================= */
 
 function validateFile(file) {
-
   if (
     !file ||
     typeof file !== "object"
   ) {
-
     return {
       valid: false,
-
       error:
         "Uploaded file information is missing."
     };
-
   }
 
   const name =
@@ -493,9 +399,7 @@ function validateFile(file) {
 
   const mimeType =
     typeof file.mimeType === "string"
-      ? file.mimeType
-          .trim()
-          .toLowerCase()
+      ? file.mimeType.trim().toLowerCase()
       : "";
 
   const data =
@@ -504,14 +408,11 @@ function validateFile(file) {
       : "";
 
   if (!name) {
-
     return {
       valid: false,
-
       error:
         "The uploaded file has no name."
     };
-
   }
 
   if (
@@ -519,56 +420,40 @@ function validateFile(file) {
       mimeType
     )
   ) {
-
     return {
       valid: false,
-
       error:
         "Zed currently supports JPG, PNG, WEBP, GIF images and PDF files."
     };
-
   }
 
   if (!data) {
-
     return {
       valid: false,
-
       error:
         "The uploaded file is empty."
     };
-
   }
 
   const base64Data =
     data
-      .replace(
-        /^data:[^;]+;base64,/,
-        ""
-      )
-      .replace(
-        /\s/g,
-        ""
-      );
+      .replace(/^data:[^;]+;base64,/, "")
+      .replace(/\s/g, "");
 
   const estimatedSize =
     Math.floor(
-      (base64Data.length * 3) /
-        4
+      (base64Data.length * 3) / 4
     );
 
   if (
     estimatedSize >
     MAX_FILE_SIZE
   ) {
-
     return {
       valid: false,
-
       error:
         "The uploaded file is too large. Maximum size is 15 MB."
     };
-
   }
 
   return {
@@ -577,8 +462,7 @@ function validateFile(file) {
     file: {
       name,
       mimeType,
-      data:
-        base64Data
+      data: base64Data
     }
   };
 }
@@ -591,21 +475,17 @@ function validateFile(file) {
 app.post(
   "/api/generate-image",
   async (req, res) => {
-
     try {
-
       const prompt =
         typeof req.body?.prompt === "string"
           ? req.body.prompt.trim()
           : "";
 
       if (!prompt) {
-
         return res.status(400).json({
           error:
             "Please enter an image description."
         });
-
       }
 
       const result =
@@ -613,10 +493,7 @@ app.post(
           prompt
         );
 
-      if (
-        !result.response.ok
-      ) {
-
+      if (!result.response.ok) {
         console.error(
           "Cloudflare image API error:",
           result.response.status,
@@ -629,33 +506,25 @@ app.post(
           "Cloudflare image generation failed.";
 
         return res.status(502).json({
-          error:
-            cloudflareError
+          error: cloudflareError
         });
-
       }
 
       let base64Image =
         result.data?.result?.image;
 
       if (
-        typeof base64Image !==
-          "string" &&
-        typeof result.data?.result ===
-          "string"
+        typeof base64Image !== "string" &&
+        typeof result.data?.result === "string"
       ) {
-
         base64Image =
           result.data.result;
-
       }
 
       if (
-        typeof base64Image !==
-          "string" ||
+        typeof base64Image !== "string" ||
         !base64Image
       ) {
-
         console.error(
           "Cloudflare returned no image:",
           result.data
@@ -665,28 +534,21 @@ app.post(
           error:
             "Cloudflare did not return an image."
         });
-
       }
 
       const imageData =
-        base64Image.startsWith(
-          "data:"
-        )
+        base64Image.startsWith("data:")
           ? base64Image
           : `data:image/jpeg;base64,${base64Image}`;
 
       return res.json({
         ok: true,
-
-        image:
-          imageData,
-
+        image: imageData,
         provider:
           "cloudflare-flux-1-schnell"
       });
 
     } catch (error) {
-
       console.error(
         "Cloudflare image generation error:",
         error
@@ -697,9 +559,7 @@ app.post(
           error.message ||
           "Zed could not generate the image."
       });
-
     }
-
   }
 );
 
@@ -711,34 +571,26 @@ app.post(
 app.post(
   "/api/gemini-test",
   async (req, res) => {
-
     try {
-
       const prompt =
         typeof req.body?.message === "string"
           ? req.body.message.trim()
           : "";
 
       if (!prompt) {
-
         return res.status(400).json({
           error:
             "Please enter a message."
         });
-
       }
 
       const result =
         await ai.interactions.create({
-          model:
-            geminiModel,
-
-          input:
-            prompt
+          model: geminiModel,
+          input: prompt
         });
 
       return res.json({
-
         ok: true,
 
         interactionId:
@@ -756,11 +608,9 @@ app.post(
             )
             ?.join("") ||
           ""
-
       });
 
     } catch (error) {
-
       console.error(
         "Gemini Interactions test error:",
         error
@@ -771,9 +621,7 @@ app.post(
           error.message ||
           "Gemini Interactions request failed."
       });
-
     }
-
   }
 );
 
@@ -785,30 +633,23 @@ app.post(
 app.post(
   "/api/chat",
   async (req, res) => {
-
     try {
-
       const message =
         typeof req.body?.message === "string"
           ? req.body.message.trim()
           : "";
 
       const conversation =
-        Array.isArray(
-          req.body?.conversation
-        )
+        Array.isArray(req.body?.conversation)
           ? req.body.conversation
           : [];
 
       const clientMemories =
-        Array.isArray(
-          req.body?.memories
-        )
+        Array.isArray(req.body?.memories)
           ? req.body.memories
               .filter(
                 item =>
-                  typeof item ===
-                  "string"
+                  typeof item === "string"
               )
               .map(
                 item =>
@@ -824,24 +665,17 @@ app.post(
          FILE
       ========================= */
 
-      if (
-        req.body?.file
-      ) {
-
+      if (req.body?.file) {
         const validation =
           validateFile(
             req.body.file
           );
 
-        if (
-          !validation.valid
-        ) {
-
+        if (!validation.valid) {
           return res.status(400).json({
             error:
               validation.error
           });
-
         }
 
         uploadedFile =
@@ -852,7 +686,6 @@ app.post(
           uploadedFile.name,
           uploadedFile.mimeType
         );
-
       }
 
 
@@ -864,12 +697,10 @@ app.post(
         !message &&
         !uploadedFile
       ) {
-
         return res.status(400).json({
           error:
             "Please enter a message or upload a file."
         });
-
       }
 
 
@@ -884,13 +715,26 @@ app.post(
         !uploadedFile &&
         shouldSearchWeb(message)
       ) {
-
         try {
-
           console.log(
             "Zed web search:",
             message
           );
+
+          /*
+             IMPORTANT:
+
+             webSearch() now returns a STRING
+             containing the formatted search
+             results.
+
+             The previous code expected:
+
+             search.ok
+             search.results
+
+             That was the problem.
+          */
 
           const search =
             await webSearch(
@@ -898,51 +742,29 @@ app.post(
             );
 
           if (
-            search.ok &&
-            Array.isArray(
-              search.results
-            ) &&
-            search.results.length > 0
+            typeof search === "string" &&
+            search.trim()
           ) {
-
             searchContext =
-              "\n\nCURRENT WEB SEARCH RESULTS:\n\n";
-
-            search.results.forEach(
-              (result, index) => {
-
-                searchContext +=
-                  `SOURCE ${index + 1}\n` +
-                  `Title: ${result.title}\n` +
-                  `URL: ${result.link}\n` +
-                  `Summary: ${result.snippet}\n\n`;
-
-              }
-            );
+              "\n\nCURRENT WEB SEARCH RESULTS:\n\n" +
+              search.trim();
 
             console.log(
-              "Web search successful:",
-              search.results.length,
-              "results"
+              "Web search returned usable results."
             );
 
           } else {
-
             console.log(
               "Web search returned no usable results."
             );
-
           }
 
         } catch (error) {
-
           console.error(
             "Web search failed:",
             error
           );
-
         }
-
       }
 
 
@@ -959,12 +781,13 @@ app.post(
           ? (
               userText +
               searchContext +
-              "\nIMPORTANT INSTRUCTIONS: " +
+              "\n\nIMPORTANT INSTRUCTIONS: " +
               "Answer the user's original question using the current " +
               "web search information above when relevant. " +
               "Do not say that you cannot access current information. " +
               "If the search results are insufficient, clearly say that " +
-              "the available search results were insufficient."
+              "the available search results were insufficient. " +
+              "Do not invent football scores, dates, teams, or results."
             )
           : userText;
 
@@ -973,9 +796,7 @@ app.post(
 
         {
           role: "user",
-
-          text:
-            finalUserText
+          text: finalUserText
         }
       ];
 
@@ -988,9 +809,7 @@ app.post(
         process.env.GEMINI_API_KEY;
 
       if (geminiKey) {
-
         try {
-
           const gemini =
             await askGemini(
               fullConversation,
@@ -999,10 +818,7 @@ app.post(
               uploadedFile
             );
 
-          if (
-            gemini.response.ok
-          ) {
-
+          if (gemini.response.ok) {
             const reply =
               gemini.data
                 ?.candidates?.[0]
@@ -1015,7 +831,6 @@ app.post(
                 ?.trim();
 
             if (reply) {
-
               return res.json({
                 reply,
 
@@ -1032,9 +847,7 @@ app.post(
                     uploadedFile
                   )
               });
-
             }
-
           }
 
           console.error(
@@ -1043,51 +856,34 @@ app.post(
             gemini.data?.error?.message
           );
 
-
-          /* FILES REQUIRE GEMINI */
-
-          if (
-            uploadedFile
-          ) {
-
+          if (uploadedFile) {
             return res.status(502).json({
               error:
                 gemini.data?.error?.message ||
                 "Gemini could not analyze the uploaded file. Please try again."
             });
-
           }
 
         } catch (error) {
-
           console.error(
             "Gemini request failed:",
             error
           );
 
-          if (
-            uploadedFile
-          ) {
-
+          if (uploadedFile) {
             return res.status(502).json({
               error:
                 error.message ||
                 "Zed could not analyze the uploaded file."
             });
-
           }
-
         }
 
-      } else if (
-        uploadedFile
-      ) {
-
+      } else if (uploadedFile) {
         return res.status(500).json({
           error:
             "Gemini API key is not configured. File analysis requires Gemini."
         });
-
       }
 
 
@@ -1099,9 +895,7 @@ app.post(
         process.env.GROQ_API_KEY;
 
       if (groqKey) {
-
         try {
-
           console.log(
             "Using Groq backup."
           );
@@ -1113,10 +907,7 @@ app.post(
               groqKey
             );
 
-          if (
-            groq.response.ok
-          ) {
-
+          if (groq.response.ok) {
             const reply =
               groq.data
                 ?.choices?.[0]
@@ -1125,7 +916,6 @@ app.post(
                 ?.trim();
 
             if (reply) {
-
               return res.json({
                 reply,
 
@@ -1137,9 +927,7 @@ app.post(
                     searchContext
                   )
               });
-
             }
-
           }
 
           console.error(
@@ -1149,14 +937,11 @@ app.post(
           );
 
         } catch (error) {
-
           console.error(
             "Groq request failed:",
             error
           );
-
         }
-
       }
 
 
@@ -1168,9 +953,7 @@ app.post(
         process.env.OPENROUTER_API_KEY;
 
       if (openRouterKey) {
-
         try {
-
           console.log(
             "Using OpenRouter backup."
           );
@@ -1182,10 +965,7 @@ app.post(
               openRouterKey
             );
 
-          if (
-            openRouter.response.ok
-          ) {
-
+          if (openRouter.response.ok) {
             const reply =
               openRouter.data
                 ?.choices?.[0]
@@ -1194,7 +974,6 @@ app.post(
                 ?.trim();
 
             if (reply) {
-
               return res.json({
                 reply,
 
@@ -1206,9 +985,7 @@ app.post(
                     searchContext
                   )
               });
-
             }
-
           }
 
           console.error(
@@ -1218,14 +995,11 @@ app.post(
           );
 
         } catch (error) {
-
           console.error(
             "OpenRouter request failed:",
             error
           );
-
         }
-
       }
 
 
@@ -1238,9 +1012,7 @@ app.post(
           "All AI services are currently unavailable. Please try again."
       });
 
-
     } catch (error) {
-
       console.error(
         "Zed server error:",
         error
@@ -1250,9 +1022,7 @@ app.post(
         error:
           "Zed could not complete the request. Please try again."
       });
-
     }
-
   }
 );
 
@@ -1265,10 +1035,8 @@ app.listen(
   port,
   "0.0.0.0",
   () => {
-
     console.log(
       `Zed running on port ${port}`
     );
-
   }
 );

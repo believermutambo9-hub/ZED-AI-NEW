@@ -5,14 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#171717">
 <title>Zed</title>
+
 <!-- Zed typography -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
 * {
   box-sizing: border-box;
 }
+
 html,
 body {
   margin: 0;
@@ -23,23 +26,29 @@ body {
   background: #212121;
   color: #f5f5f5;
 }
+
 body {
   overflow: hidden;
 }
+
 button,
 input,
 textarea {
   font: inherit;
 }
+
 button {
   cursor: pointer;
 }
+
 .hidden {
   display: none !important;
 }
+
 /* =========================================
    ZED BRAND SYSTEM
 ========================================= */
+
 .zedLogo,
 .brandZed {
   display: inline-flex;
@@ -48,28 +57,25 @@ button {
   font-family: "Syne", sans-serif;
   font-weight: 800;
   line-height: .9;
+  letter-spacing: -2px;
   user-select: none;
 }
+
+/* ALL ZED LETTERS ORANGE */
 .zedLogo .z,
-.brandZed .z {
-  color: #198a43;
-}
 .zedLogo .e,
-.brandZed .e {
-  color: #d62828;
-}
 .zedLogo .d,
+.brandZed .z,
+.brandZed .e,
 .brandZed .d {
-  color: #111;
-  text-shadow:
-    1px 0 #f28c28,
-    -1px 0 #f28c28,
-    0 1px #f28c28,
-    0 -1px #f28c28;
+  color: #f28c28;
+  text-shadow: none;
 }
+
 /* =========================================
    AUTHENTICATION
 ========================================= */
+
 #authScreen {
   position: fixed;
   inset: 0;
@@ -86,6 +92,7 @@ button {
     ),
     #171717;
 }
+
 .authBox {
   width: 100%;
   max-width: 400px;
@@ -95,20 +102,24 @@ button {
   background: #212121;
   box-shadow: 0 25px 70px rgba(0,0,0,.45);
 }
+
 .authBrand {
   text-align: center;
   margin-bottom: 32px;
 }
+
 .authBrand .zedLogo {
   font-size: 58px;
   letter-spacing: -5px;
 }
+
 .authSubtitle {
   margin-top: 15px;
   color: #8d8d8d;
   font-size: 14px;
   line-height: 1.5;
 }
+
 .authInput {
   width: 100%;
   height: 48px;
@@ -120,9 +131,11 @@ button {
   background: #181818;
   color: #fff;
 }
+
 .authInput:focus {
   border-color: #666;
 }
+
 .authButton {
   width: 100%;
   height: 46px;
@@ -133,17 +146,21 @@ button {
   color: #111;
   font-weight: 600;
 }
+
 .authButton:hover {
   background: #ddd;
 }
+
 .authButton.secondary {
   background: #303030;
   color: #fff;
   border: 1px solid #414141;
 }
+
 .authButton.secondary:hover {
   background: #383838;
 }
+
 .authDivider {
   display: flex;
   align-items: center;
@@ -152,6 +169,7 @@ button {
   color: #777;
   font-size: 12px;
 }
+
 .authDivider::before,
 .authDivider::after {
   content: "";
@@ -159,6 +177,7 @@ button {
   height: 1px;
   background: #363636;
 }
+
 #authMessage {
   min-height: 18px;
   margin-top: 12px;
@@ -166,18 +185,22 @@ button {
   color: #ff8585;
   font-size: 12px;
 }
+
 /* =========================================
    APPLICATION
 ========================================= */
+
 #app {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
 }
+
 /* =========================================
    MAIN CHAT
 ========================================= */
+
 .main {
   width: 100%;
   height: 100%;
@@ -185,9 +208,11 @@ button {
   flex-direction: column;
   background: #212121;
 }
+
 /* =========================================
    TOP BAR
 ========================================= */
+
 .topBar {
   position: relative;
   z-index: 20;
@@ -200,11 +225,13 @@ button {
   border-bottom: 1px solid #303030;
   background: rgba(33,33,33,.96);
 }
+
 .topLeft {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .menuButton,
 .topActionButton {
   width: 40px;
@@ -218,28 +245,34 @@ button {
   color: #d7d7d7;
   font-size: 20px;
 }
+
 .menuButton:hover,
 .topActionButton:hover {
   background: #303030;
 }
+
 .brand {
   display: flex;
   align-items: center;
   gap: 7px;
 }
+
 .brandZed {
   font-size: 21px;
   letter-spacing: -1.8px;
 }
+
 .statusDot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: #36b866;
 }
+
 /* =========================================
    MENU DRAWER
 ========================================= */
+
 .menuOverlay {
   position: fixed;
   inset: 0;
@@ -248,6 +281,7 @@ button {
   opacity: 1;
   transition: opacity .2s ease;
 }
+
 .menuDrawer {
   position: absolute;
   top: 0;
@@ -264,27 +298,33 @@ button {
   transform: translateX(0);
   transition: transform .22s ease;
 }
+
 .menuOverlay.closed {
   opacity: 0;
   pointer-events: none;
 }
+
 .menuOverlay.closed .menuDrawer {
   transform: translateX(-100%);
 }
+
 .drawerTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 2px 2px 12px;
 }
+
 .drawerBrand {
   display: flex;
   align-items: center;
   padding-left: 8px;
 }
+
 .drawerBrand .brandZed {
   font-size: 22px;
 }
+
 .drawerClose {
   width: 40px;
   height: 40px;
@@ -294,9 +334,11 @@ button {
   color: #ccc;
   font-size: 22px;
 }
+
 .drawerClose:hover {
   background: #2b2b2b;
 }
+
 .newChatButton {
   width: 100%;
   height: 46px;
@@ -311,13 +353,16 @@ button {
   text-align: left;
   margin-bottom: 14px;
 }
+
 .newChatButton:hover {
   background: #2b2b2b;
 }
+
 .newChatPlus {
   font-size: 21px;
   font-weight: 300;
 }
+
 .searchChats {
   width: 100%;
   height: 42px;
@@ -329,9 +374,11 @@ button {
   background: #202020;
   color: #fff;
 }
+
 .searchChats::placeholder {
   color: #777;
 }
+
 .drawerSectionTitle {
   padding: 0 8px 8px;
   color: #777;
@@ -340,11 +387,13 @@ button {
   letter-spacing: .6px;
   text-transform: uppercase;
 }
+
 #historyList {
   flex: 1;
   overflow-y: auto;
   padding-right: 2px;
 }
+
 .historyItem {
   width: 100%;
   padding: 10px 11px;
@@ -357,20 +406,24 @@ button {
   text-overflow: ellipsis;
   font-size: 13px;
 }
+
 .historyItem:hover {
   background: #292929;
 }
+
 .accountBox {
   padding-top: 12px;
   margin-top: 10px;
   border-top: 1px solid #303030;
 }
+
 .accountInfo {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 7px 4px 10px;
 }
+
 .profilePhoto {
   width: 34px;
   height: 34px;
@@ -378,10 +431,12 @@ button {
   object-fit: cover;
   background: #444;
 }
+
 .accountText {
   min-width: 0;
   flex: 1;
 }
+
 .accountName {
   color: #eee;
   font-size: 13px;
@@ -389,6 +444,7 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .accountEmail {
   margin-top: 2px;
   color: #777;
@@ -397,6 +453,7 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .logoutButton {
   width: 100%;
   height: 38px;
@@ -405,19 +462,23 @@ button {
   background: transparent;
   color: #aaa;
 }
+
 .logoutButton:hover {
   background: #292929;
   color: #fff;
 }
+
 /* =========================================
    CHAT AREA
 ========================================= */
+
 .chatArea {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   scroll-behavior: smooth;
 }
+
 .chatContent {
   width: 100%;
   max-width: 900px;
@@ -425,9 +486,11 @@ button {
   margin: 0 auto;
   padding: 40px 24px 170px;
 }
+
 /* =========================================
    WELCOME
 ========================================= */
+
 .welcome {
   min-height: calc(100vh - 230px);
   display: flex;
@@ -437,17 +500,16 @@ button {
   text-align: center;
   padding-bottom: 40px;
 }
+
 .welcomeLogo {
   margin-bottom: 26px;
 }
+
 .welcomeLogo .zedLogo {
   font-size: 64px;
   letter-spacing: -6px;
 }
-/*
-  The welcome heading intentionally uses
-  a different typeface from the Zed logo.
-*/
+
 .welcome h1 {
   margin: 0;
   color: #f3f3f3;
@@ -457,6 +519,7 @@ button {
   letter-spacing: -1.4px;
   line-height: 1.1;
 }
+
 .welcome p {
   max-width: 560px;
   margin: 14px 0 0;
@@ -464,26 +527,32 @@ button {
   font-size: 14px;
   line-height: 1.65;
 }
+
 /* =========================================
    MESSAGES
 ========================================= */
+
 .message {
   width: 100%;
   display: flex;
   margin-bottom: 28px;
 }
+
 .message.user {
   justify-content: flex-end;
 }
+
 .message.assistant {
   justify-content: flex-start;
 }
+
 .messageInner {
   max-width: 80%;
   line-height: 1.65;
   font-size: 15px;
   overflow-wrap: anywhere;
 }
+
 .message.user .messageInner {
   padding: 11px 15px;
   border-radius: 17px;
@@ -491,15 +560,18 @@ button {
   color: #f2f2f2;
   white-space: pre-wrap;
 }
+
 .message.assistant .messageInner {
   padding: 2px 0;
   color: #e3e3e3;
 }
+
 .messageLabel {
   margin-bottom: 5px;
   color: #777;
   font-size: 11px;
 }
+
 .generatedImage {
   display: block;
   max-width: 100%;
@@ -507,9 +579,11 @@ button {
   margin-top: 10px;
   border-radius: 14px;
 }
+
 /* =========================================
    COMPOSER
 ========================================= */
+
 .composerArea {
   position: absolute;
   z-index: 15;
@@ -524,11 +598,13 @@ button {
       #212121 28%
     );
 }
+
 .composerContainer {
   width: 100%;
   max-width: 850px;
   margin: 0 auto;
 }
+
 .fileName {
   min-height: 0;
   margin: 0 auto 7px;
@@ -536,6 +612,7 @@ button {
   color: #999;
   font-size: 11px;
 }
+
 .composer {
   min-height: 58px;
   display: flex;
@@ -547,6 +624,7 @@ button {
   background: #2f2f2f;
   box-shadow: 0 4px 20px rgba(0,0,0,.15);
 }
+
 .iconButton {
   width: 42px;
   height: 42px;
@@ -560,9 +638,11 @@ button {
   color: #c9c9c9;
   font-size: 20px;
 }
+
 .iconButton:hover {
   background: #414141;
 }
+
 .messageInput {
   flex: 1;
   min-width: 0;
@@ -576,30 +656,37 @@ button {
   color: #fff;
   line-height: 1.4;
 }
+
 .messageInput::placeholder {
   color: #888;
 }
+
 .sendButton {
   background: #f2f2f2;
   color: #111;
   font-size: 21px;
 }
+
 .sendButton:hover {
   background: #fff;
 }
+
 .sendButton:disabled {
   opacity: .4;
   cursor: not-allowed;
 }
+
 .composerHint {
   margin-top: 7px;
   text-align: center;
   color: #686868;
   font-size: 10px;
 }
+
 /* =========================================
    ATTACHMENT MENU
 ========================================= */
+
 .attachMenu {
   position: absolute;
   left: max(calc(50% - 425px), 20px);
@@ -611,6 +698,7 @@ button {
   background: #303030;
   box-shadow: 0 15px 40px rgba(0,0,0,.45);
 }
+
 .attachMenu button {
   width: 100%;
   height: 40px;
@@ -622,353 +710,474 @@ button {
   text-align: left;
   font-size: 13px;
 }
+
 .attachMenu button:hover {
   background: #414141;
 }
+
 /* =========================================
    SCROLLBARS
 ========================================= */
+
 *::-webkit-scrollbar {
   width: 7px;
 }
+
 *::-webkit-scrollbar-track {
   background: transparent;
 }
+
 *::-webkit-scrollbar-thumb {
   background: #3c3c3c;
   border-radius: 10px;
 }
+
 *::-webkit-scrollbar-thumb:hover {
   background: #505050;
 }
+
 /* =========================================
    MOBILE
 ========================================= */
+
 @media (max-width: 700px) {
   .topBar {
     height: 56px;
     min-height: 56px;
     padding: 0 9px;
   }
+
   .topLeft {
     gap: 7px;
   }
+
   .menuButton,
   .topActionButton {
     width: 40px;
     height: 40px;
   }
+
   .brandZed {
     font-size: 20px;
     letter-spacing: -1.6px;
   }
+
   .chatContent {
     padding: 25px 15px 160px;
   }
+
   .welcome {
     min-height: calc(100vh - 210px);
   }
+
   .welcomeLogo .zedLogo {
     font-size: 51px;
     letter-spacing: -5px;
   }
+
   .welcome h1 {
     font-size: 32px;
   }
+
   .welcome p {
     max-width: 330px;
     font-size: 13px;
   }
+
   .messageInner {
     max-width: 91%;
     font-size: 14px;
   }
+
   .composerArea {
     padding: 10px 8px 12px;
   }
+
   .composerContainer {
     max-width: none;
   }
+
   .composer {
     min-height: 55px;
     border-radius: 18px;
   }
+
   .iconButton {
     width: 39px;
     height: 39px;
     flex-basis: 39px;
   }
+
   .messageInput {
     min-height: 39px;
   }
+
   .composerHint {
     display: none;
   }
+
   .attachMenu {
     left: 8px;
     bottom: 78px;
   }
+
   .menuDrawer {
     width: 285px;
   }
+
   .authBox {
     padding: 30px 22px;
   }
+
   .authBrand .zedLogo {
     font-size: 51px;
   }
 }
+
 /* =========================================
    SMALL PHONES
 ========================================= */
+
 @media (max-width: 380px) {
   .brandZed {
     font-size: 19px;
   }
+
   .welcomeLogo .zedLogo {
     font-size: 47px;
   }
+
   .welcome h1 {
     font-size: 29px;
   }
+
   .messageInner {
     max-width: 94%;
   }
 }
 </style>
 </head>
+
 <body>
+
 <!-- =========================================
      AUTHENTICATION
 ========================================= -->
+
 <div id="authScreen">
   <div class="authBox">
-<div class="authBrand">
-  <div class="zedLogo">
-    <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
-  </div>
-  <div class="authSubtitle">
-    A smarter way to get things done
+
+    <div class="authBrand">
+      <div class="zedLogo">
+        <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+      </div>
+
+      <div class="authSubtitle">
+        A smarter way to get things done
+      </div>
+    </div>
+
+    <button
+      id="googleLogin"
+      class="authButton">
+      Continue with Google
+    </button>
+
+    <div class="authDivider">
+      or continue with email
+    </div>
+
+    <input
+      id="emailInput"
+      class="authInput"
+      type="email"
+      placeholder="Email">
+
+    <input
+      id="passwordInput"
+      class="authInput"
+      type="password"
+      placeholder="Password">
+
+    <button
+      id="emailLogin"
+      class="authButton">
+      Sign in
+    </button>
+
+    <button
+      id="emailSignup"
+      class="authButton secondary">
+      Create account
+    </button>
+
+    <div id="authMessage"></div>
+
   </div>
 </div>
-<button
-  id="googleLogin"
-  class="authButton">
-  Continue with Google
-</button>
-<div class="authDivider">
-  or continue with email
-</div>
-<input
-  id="emailInput"
-  class="authInput"
-  type="email"
-  placeholder="Email">
-<input
-  id="passwordInput"
-  class="authInput"
-  type="password"
-  placeholder="Password">
-<button
-  id="emailLogin"
-  class="authButton">
-  Sign in
-</button>
-<button
-  id="emailSignup"
-  class="authButton secondary">
-  Create account
-</button>
-<div id="authMessage"></div>
-  </div>
-</div>
+
 <!-- =========================================
      APPLICATION
 ========================================= -->
+
 <div id="app" class="hidden">
+
   <main class="main">
-<header class="topBar">
-  <div class="topLeft">
-    <button
-      id="menuButton"
-      class="menuButton"
-      title="Open menu"
-      aria-label="Open menu">
-      ☰
-    </button>
-    <div class="brand">
-      <div class="brandZed">
-        <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
-      </div>
-      <span class="statusDot"></span>
-    </div>
-  </div>
-  <button
-    id="newChatTopButton"
-    class="topActionButton"
-    title="New chat"
-    aria-label="New chat">
-    +
-  </button>
-</header>
-<div
-  id="chatArea"
-  class="chatArea">
-  <div
-    id="chatContent"
-    class="chatContent">
-    <div
-      id="welcome"
-      class="welcome">
-      <div class="welcomeLogo">
-        <div class="zedLogo">
-          <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+
+    <header class="topBar">
+
+      <div class="topLeft">
+
+        <button
+          id="menuButton"
+          class="menuButton"
+          title="Open menu"
+          aria-label="Open menu">
+          ☰
+        </button>
+
+        <div class="brand">
+
+          <div class="brandZed">
+            <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+          </div>
+
+          <span class="statusDot"></span>
+
         </div>
+
       </div>
-      <h1>
-        Welcome to Zed
-      </h1>
-      <p>
-        Ask anything, write something, learn something new, or get things done.
-      </p>
-    </div>
-  </div>
-</div>
-<div class="composerArea">
-  <div class="composerContainer">
-    <div
-      id="fileName"
-      class="fileName">
-    </div>
-    <div
-      id="attachMenu"
-      class="attachMenu hidden">
-      <button id="uploadPhotoButton">
-        Upload photo
-      </button>
-      <button id="uploadFileButton">
-        Upload PDF
-      </button>
-      <button id="createImageButton">
-        Create image
-      </button>
-    </div>
-    <div class="composer">
+
       <button
-        id="attachButton"
-        class="iconButton"
-        title="Attach"
-        aria-label="Attach">
+        id="newChatTopButton"
+        class="topActionButton"
+        title="New chat"
+        aria-label="New chat">
         +
       </button>
-      <textarea
-        id="messageInput"
-        class="messageInput"
-        rows="1"
-        placeholder="Message Zed..."></textarea>
-      <button
-        id="micButton"
-        class="iconButton"
-        title="Voice input"
-        aria-label="Voice input">
-        ◉
-      </button>
-      <button
-        id="sendButton"
-        class="iconButton sendButton"
-        title="Send"
-        aria-label="Send">
-        ↑
-      </button>
+
+    </header>
+
+    <div
+      id="chatArea"
+      class="chatArea">
+
+      <div
+        id="chatContent"
+        class="chatContent">
+
+        <div
+          id="welcome"
+          class="welcome">
+
+          <div class="welcomeLogo">
+
+            <div class="zedLogo">
+              <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+            </div>
+
+          </div>
+
+          <h1>
+            Welcome to Zed
+          </h1>
+
+          <p>
+            Ask anything, write something, learn something new, or get things done.
+          </p>
+
+        </div>
+
+      </div>
+
     </div>
-    <div class="composerHint">
-      Zed can make mistakes. Check important information.
+
+    <div class="composerArea">
+
+      <div class="composerContainer">
+
+        <div
+          id="fileName"
+          class="fileName">
+        </div>
+
+        <div
+          id="attachMenu"
+          class="attachMenu hidden">
+
+          <button id="uploadPhotoButton">
+            Upload photo
+          </button>
+
+          <button id="uploadFileButton">
+            Upload PDF
+          </button>
+
+          <button id="createImageButton">
+            Create image
+          </button>
+
+        </div>
+
+        <div class="composer">
+
+          <button
+            id="attachButton"
+            class="iconButton"
+            title="Attach"
+            aria-label="Attach">
+            +
+          </button>
+
+          <textarea
+            id="messageInput"
+            class="messageInput"
+            rows="1"
+            placeholder="Message Zed..."></textarea>
+
+          <button
+            id="micButton"
+            class="iconButton"
+            title="Voice input"
+            aria-label="Voice input">
+            ◉
+          </button>
+
+          <button
+            id="sendButton"
+            class="iconButton sendButton"
+            title="Send"
+            aria-label="Send">
+            ↑
+          </button>
+
+        </div>
+
+        <div class="composerHint">
+          Zed can make mistakes. Check important information.
+        </div>
+
+      </div>
+
+      <input
+        id="photoInput"
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        class="hidden">
+
+      <input
+        id="fileInput"
+        type="file"
+        accept=".pdf,application/pdf"
+        class="hidden">
+
     </div>
-  </div>
-  <input
-    id="photoInput"
-    type="file"
-    accept="image/jpeg,image/png,image/webp,image/gif"
-    class="hidden">
-  <input
-    id="fileInput"
-    type="file"
-    accept=".pdf,application/pdf"
-    class="hidden">
-</div>
+
   </main>
+
   <!-- TEMPORARY MENU -->
+
   <div
     id="menuOverlay"
     class="menuOverlay closed">
-<aside
-  id="menuDrawer"
-  class="menuDrawer">
-  <div class="drawerTop">
-    <div class="drawerBrand">
-      <div class="brandZed">
-        <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
-      </div>
-    </div>
-    <button
-      id="drawerClose"
-      class="drawerClose"
-      aria-label="Close menu">
-      ×
-    </button>
-  </div>
-  <button
-    id="newChatButton"
-    class="newChatButton">
-    <span class="newChatPlus">+</span>
-    <span>New chat</span>
-  </button>
-  <input
-    id="searchChats"
-    class="searchChats"
-    type="search"
-    placeholder="Search chats...">
-  <div class="drawerSectionTitle">
-    Recent chats
-  </div>
-  <div id="historyList"></div>
-  <div class="accountBox">
-    <div class="accountInfo">
-      <img
-        id="profilePhoto"
-        class="profilePhoto"
-        src=""
-        alt="Profile">
-      <div class="accountText">
-        <div
-          id="accountName"
-          class="accountName">
-          Guest
+
+    <aside
+      id="menuDrawer"
+      class="menuDrawer">
+
+      <div class="drawerTop">
+
+        <div class="drawerBrand">
+
+          <div class="brandZed">
+            <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+          </div>
+
         </div>
-        <div
-          id="accountEmail"
-          class="accountEmail">
-          Not signed in
-        </div>
+
+        <button
+          id="drawerClose"
+          class="drawerClose"
+          aria-label="Close menu">
+          ×
+        </button>
+
       </div>
-    </div>
-    <button
-      id="logoutButton"
-      class="logoutButton">
-      Log out
-    </button>
+
+      <button
+        id="newChatButton"
+        class="newChatButton">
+
+        <span class="newChatPlus">+</span>
+        <span>New chat</span>
+
+      </button>
+
+      <input
+        id="searchChats"
+        class="searchChats"
+        type="search"
+        placeholder="Search chats...">
+
+      <div class="drawerSectionTitle">
+        Recent chats
+      </div>
+
+      <div id="historyList"></div>
+
+      <div class="accountBox">
+
+        <div class="accountInfo">
+
+          <img
+            id="profilePhoto"
+            class="profilePhoto"
+            src=""
+            alt="Profile">
+
+          <div class="accountText">
+
+            <div
+              id="accountName"
+              class="accountName">
+              Guest
+            </div>
+
+            <div
+              id="accountEmail"
+              class="accountEmail">
+              Not signed in
+            </div>
+
+          </div>
+
+        </div>
+
+        <button
+          id="logoutButton"
+          class="logoutButton">
+          Log out
+        </button>
+
+      </div>
+
+    </aside>
+
   </div>
-</aside>
-  </div>
+
 </div>
+
 <script type="module">
+
 /* =========================================
    FIREBASE
 ========================================= */
+
 import {
   initializeApp
 } from
 "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+
 import {
   getAuth,
   GoogleAuthProvider,
@@ -979,6 +1188,7 @@ import {
   signOut
 } from
 "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
 import {
   getFirestore,
   collection,
@@ -991,120 +1201,170 @@ import {
   serverTimestamp
 } from
 "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
 const firebaseConfig = {
   apiKey:
     "AIzaSyD1jcmrhZK_XitZu-9Wa9whFB7BJZn0Wa8",
+
   authDomain:
     "zed-ai-6d201.firebaseapp.com",
+
   projectId:
     "zed-ai-6d201",
+
   storageBucket:
     "zed-ai-6d201.firebasestorage.app",
+
   messagingSenderId:
     "538225665227",
+
   appId:
     "1:538225665227:web:d61483c3cafa8e4694e74e"
 };
+
 const firebaseApp =
   initializeApp(firebaseConfig);
+
 const auth =
   getAuth(firebaseApp);
+
 const db =
   getFirestore(firebaseApp);
+
 /* =========================================
    ELEMENTS
 ========================================= */
+
 const authScreen =
   document.getElementById("authScreen");
+
 const app =
   document.getElementById("app");
+
 const googleLogin =
   document.getElementById("googleLogin");
+
 const emailLogin =
   document.getElementById("emailLogin");
+
 const emailSignup =
   document.getElementById("emailSignup");
+
 const emailInput =
   document.getElementById("emailInput");
+
 const passwordInput =
   document.getElementById("passwordInput");
+
 const authMessage =
   document.getElementById("authMessage");
+
 const logoutButton =
   document.getElementById("logoutButton");
+
 const accountName =
   document.getElementById("accountName");
+
 const accountEmail =
   document.getElementById("accountEmail");
+
 const profilePhoto =
   document.getElementById("profilePhoto");
+
 const menuButton =
   document.getElementById("menuButton");
+
 const menuOverlay =
   document.getElementById("menuOverlay");
+
 const drawerClose =
   document.getElementById("drawerClose");
+
 const newChatButton =
   document.getElementById("newChatButton");
+
 const newChatTopButton =
   document.getElementById("newChatTopButton");
+
 const historyList =
   document.getElementById("historyList");
+
 const searchChats =
   document.getElementById("searchChats");
+
 const chatArea =
   document.getElementById("chatArea");
+
 const chatContent =
   document.getElementById("chatContent");
+
 const welcome =
   document.getElementById("welcome");
+
 const messageInput =
   document.getElementById("messageInput");
+
 const sendButton =
   document.getElementById("sendButton");
+
 const attachButton =
   document.getElementById("attachButton");
+
 const attachMenu =
   document.getElementById("attachMenu");
+
 const uploadPhotoButton =
   document.getElementById("uploadPhotoButton");
+
 const uploadFileButton =
   document.getElementById("uploadFileButton");
+
 const createImageButton =
   document.getElementById("createImageButton");
+
 const photoInput =
   document.getElementById("photoInput");
+
 const fileInput =
   document.getElementById("fileInput");
+
 const fileName =
   document.getElementById("fileName");
+
 const micButton =
   document.getElementById("micButton");
+
 /* =========================================
    STATE
 ========================================= */
+
 let messages = [];
 let selectedFile = null;
 let memories = [];
 let userId = "guest";
 let currentChatId = null;
 let allHistoryChats = [];
+
 /* =========================================
    MENU
 ========================================= */
+
 function openMenu() {
   menuOverlay.classList.remove(
     "closed"
   );
 }
+
 function closeMenu() {
   menuOverlay.classList.add(
     "closed"
   );
 }
+
 menuButton.addEventListener(
   "click",
   () => {
+
     if (
       menuOverlay.classList.contains(
         "closed"
@@ -1114,62 +1374,84 @@ menuButton.addEventListener(
     } else {
       closeMenu();
     }
+
   }
 );
+
 drawerClose.addEventListener(
   "click",
   closeMenu
 );
+
 menuOverlay.addEventListener(
   "click",
   event => {
+
     if (
       event.target ===
       menuOverlay
     ) {
       closeMenu();
     }
+
   }
 );
+
 /* =========================================
    LOCAL STORAGE
 ========================================= */
+
 function getLocalChats() {
+
   try {
+
     return JSON.parse(
       localStorage.getItem(
         "zed_chats"
       ) || "[]"
     );
+
   } catch {
+
     return [];
+
   }
+
 }
+
 function saveLocalChats(chats) {
+
   localStorage.setItem(
     "zed_chats",
     JSON.stringify(chats)
   );
+
 }
+
 /* =========================================
    MEMORY
 ========================================= */
+
 async function saveMemoryToFirestore(text) {
+
   if (
     !auth.currentUser ||
     !text
   ) {
     return;
   }
+
   const exists =
     memories.some(
       item =>
         item.toLowerCase() ===
         text.toLowerCase()
     );
+
   if (exists) {
     return;
   }
+
   const memoriesRef =
     collection(
       db,
@@ -1177,6 +1459,7 @@ async function saveMemoryToFirestore(text) {
       auth.currentUser.uid,
       "memories"
     );
+
   await addDoc(
     memoriesRef,
     {
@@ -1185,14 +1468,20 @@ async function saveMemoryToFirestore(text) {
         serverTimestamp()
     }
   );
+
   memories.push(text);
 }
+
 async function loadMemories() {
+
   memories = [];
+
   if (!auth.currentUser) {
     return;
   }
+
   try {
+
     const memoriesRef =
       collection(
         db,
@@ -1200,6 +1489,7 @@ async function loadMemories() {
         auth.currentUser.uid,
         "memories"
       );
+
     const snapshot =
       await getDocs(
         query(
@@ -1210,33 +1500,46 @@ async function loadMemories() {
           )
         )
       );
+
     snapshot.forEach(
       item => {
+
         const data =
           item.data();
+
         if (
           typeof data.text === "string" &&
           data.text.trim()
         ) {
+
           memories.push(
             data.text.trim()
           );
+
         }
+
       }
     );
+
   } catch (error) {
+
     console.error(
       "Could not load memories:",
       error
     );
+
   }
+
 }
+
 function extractMemory(text) {
+
   if (
     !/^remember\b/i.test(text)
   ) {
     return null;
   }
+
   const memoryText =
     text
       .replace(
@@ -1244,19 +1547,26 @@ function extractMemory(text) {
         ""
       )
       .trim();
+
   return memoryText || null;
+
 }
+
 /* =========================================
    CLOUD CHAT STORAGE
 ========================================= */
+
 async function saveChatToCloud() {
+
   if (
     !auth.currentUser ||
     messages.length === 0
   ) {
     return;
   }
+
   try {
+
     const chatsRef =
       collection(
         db,
@@ -1264,11 +1574,15 @@ async function saveChatToCloud() {
         auth.currentUser.uid,
         "chats"
       );
+
     if (!currentChatId) {
+
       const newChat =
         doc(chatsRef);
+
       currentChatId =
         newChat.id;
+
       await setDoc(
         newChat,
         {
@@ -1279,14 +1593,19 @@ async function saveChatToCloud() {
             )?.content
               ?.slice(0, 45) ||
             "New chat",
+
           messages,
+
           createdAt:
             serverTimestamp(),
+
           updatedAt:
             serverTimestamp()
         }
       );
+
     } else {
+
       const chatRef =
         doc(
           db,
@@ -1295,10 +1614,12 @@ async function saveChatToCloud() {
           "chats",
           currentChatId
         );
+
       await setDoc(
         chatRef,
         {
           messages,
+
           updatedAt:
             serverTimestamp()
         },
@@ -1306,50 +1627,73 @@ async function saveChatToCloud() {
           merge: true
         }
       );
+
     }
+
   } catch (error) {
+
     console.error(
       "Cloud chat save failed:",
       error
     );
+
   }
+
 }
+
 /* =========================================
    HISTORY
 ========================================= */
+
 function renderHistory(chats) {
+
   historyList.innerHTML = "";
+
   chats.forEach(
     chat => {
+
       const item =
         document.createElement(
           "div"
         );
+
       item.className =
         "historyItem";
+
       item.textContent =
         chat.title ||
         "New chat";
+
       item.addEventListener(
         "click",
         () => {
+
           loadCloudChat(chat);
           closeMenu();
+
         }
       );
+
       historyList.appendChild(
         item
       );
+
     }
   );
+
 }
+
 async function loadCloudHistory() {
+
   historyList.innerHTML = "";
   allHistoryChats = [];
+
   if (!auth.currentUser) {
     return;
   }
+
   try {
+
     const chatsRef =
       collection(
         db,
@@ -1357,51 +1701,73 @@ async function loadCloudHistory() {
         auth.currentUser.uid,
         "chats"
       );
+
     const snapshot =
       await getDocs(
         chatsRef
       );
+
     snapshot.forEach(
       item => {
+
         allHistoryChats.push({
           id:
             item.id,
+
           ...item.data()
         });
+
       }
     );
+
     allHistoryChats.sort(
       (a, b) => {
+
         const aTime =
           a.updatedAt?.seconds || 0;
+
         const bTime =
           b.updatedAt?.seconds || 0;
+
         return bTime - aTime;
+
       }
     );
+
     renderHistory(
       allHistoryChats
     );
+
   } catch (error) {
+
     console.error(
       "Could not load cloud history:",
       error
     );
+
   }
+
 }
+
 searchChats.addEventListener(
   "input",
   () => {
+
     const search =
       searchChats.value
         .trim()
         .toLowerCase();
+
     if (!search) {
+
       renderHistory(
         allHistoryChats
       );
+
       return;
+
     }
+
     const filtered =
       allHistoryChats.filter(
         chat =>
@@ -1411,34 +1777,47 @@ searchChats.addEventListener(
             .toLowerCase()
             .includes(search)
       );
+
     renderHistory(
       filtered
     );
+
   }
 );
+
 /* =========================================
    SAVE CHAT
 ========================================= */
+
 function saveCurrentChatLocally() {
+
   if (!messages.length) {
     return;
   }
+
   const chats =
     getLocalChats();
+
   if (!currentChatId) {
+
     currentChatId =
       "local-" +
       Date.now();
+
   }
+
   const existingIndex =
     chats.findIndex(
       chat =>
         chat.id ===
         currentChatId
     );
+
   const chatData = {
+
     id:
       currentChatId,
+
     title:
       messages.find(
         message =>
@@ -1446,42 +1825,67 @@ function saveCurrentChatLocally() {
       )?.content
         ?.slice(0, 45) ||
       "New chat",
+
     messages,
+
     updatedAt:
       Date.now()
+
   };
+
   if (existingIndex >= 0) {
+
     chats[existingIndex] =
       chatData;
+
   } else {
+
     chats.unshift(
       chatData
     );
+
   }
+
   saveLocalChats(chats);
+
 }
+
 async function saveCurrentChat() {
+
   saveCurrentChatLocally();
+
   await saveChatToCloud();
+
   await loadCloudHistory();
+
 }
+
 /* =========================================
    RENDER MESSAGES
 ========================================= */
+
 function renderMessages() {
+
   chatContent.innerHTML = "";
+
   if (!messages.length) {
+
     chatContent.appendChild(
       welcome
     );
+
     return;
+
   }
+
   messages.forEach(
     message => {
+
       const wrapper =
         document.createElement(
           "div"
         );
+
       wrapper.className =
         "message " +
         (
@@ -1489,612 +1893,902 @@ function renderMessages() {
             ? "user"
             : "assistant"
         );
+
       const inner =
         document.createElement(
           "div"
         );
+
       inner.className =
         "messageInner";
+
       const label =
         document.createElement(
           "div"
         );
+
       label.className =
         "messageLabel";
+
       label.textContent =
         message.role === "user"
           ? "You"
           : "Zed";
+
       const content =
         document.createElement(
           "div"
         );
+
       content.textContent =
         message.content || "";
+
       inner.appendChild(
         label
       );
+
       inner.appendChild(
         content
       );
+
       wrapper.appendChild(
         inner
       );
+
       chatContent.appendChild(
         wrapper
       );
+
     }
   );
+
   requestAnimationFrame(
     () => {
+
       chatArea.scrollTop =
         chatArea.scrollHeight;
+
     }
   );
+
 }
+
 function loadCloudChat(chat) {
+
   currentChatId =
     chat.id;
+
   messages =
     Array.isArray(
       chat.messages
     )
       ? chat.messages
       : [];
+
   renderMessages();
+
 }
+
 /* =========================================
    NEW CHAT
 ========================================= */
+
 function newChat() {
+
   messages = [];
+
   currentChatId = null;
+
   selectedFile = null;
+
   fileName.textContent = "";
+
   messageInput.value = "";
+
   messageInput.style.height =
     "auto";
+
   renderMessages();
+
   closeMenu();
+
   messageInput.focus();
+
 }
+
 newChatButton.addEventListener(
   "click",
   newChat
 );
+
 newChatTopButton.addEventListener(
   "click",
   newChat
 );
+
 /* =========================================
    FILE READER
 ========================================= */
+
 function readFileAsDataURL(file) {
+
   return new Promise(
     (resolve, reject) => {
+
       const reader =
         new FileReader();
+
       reader.onload =
         () =>
           resolve(
             reader.result
           );
+
       reader.onerror =
         reject;
+
       reader.readAsDataURL(
         file
       );
+
     }
   );
+
 }
+
 /* =========================================
    SEND MESSAGE
 ========================================= */
+
 async function sendMessage() {
+
   const text =
     messageInput.value.trim();
+
   if (
     !text &&
     !selectedFile
   ) {
     return;
   }
+
   const memoryText =
     extractMemory(text);
+
   if (memoryText) {
+
     try {
+
       await saveMemoryToFirestore(
         memoryText
       );
+
     } catch (error) {
+
       console.error(
         "Memory save failed:",
         error
       );
+
     }
+
   }
+
   const userMessage = {
+
     role: "user",
+
     content:
       text ||
       "Please analyze this uploaded file."
+
   };
+
   messages.push(
     userMessage
   );
+
   renderMessages();
+
   messageInput.value = "";
+
   messageInput.style.height =
     "auto";
+
   sendButton.disabled =
     true;
+
   let filePayload = null;
+
   if (selectedFile) {
+
     try {
+
       filePayload = {
+
         name:
           selectedFile.name,
+
         mimeType:
           selectedFile.type,
+
         data:
           await readFileAsDataURL(
             selectedFile
           )
+
       };
+
     } catch (error) {
+
       console.error(
         "File reading failed:",
         error
       );
+
       sendButton.disabled =
         false;
+
       return;
+
     }
+
   }
+
   try {
+
     const response =
       await fetch(
         "/api/chat",
         {
           method: "POST",
+
           headers: {
             "Content-Type":
               "application/json"
           },
+
           body:
             JSON.stringify({
+
               message:
                 text,
+
               userId,
+
               memories,
+
               conversation:
                 messages
                   .slice(0, -1)
                   .map(
                     message => ({
+
                       role:
                         message.role,
+
                       text:
                         message.content
+
                     })
                   ),
+
               file:
                 filePayload
+
             })
+
         }
       );
+
     const data =
       await response.json();
+
     if (!response.ok) {
+
       throw new Error(
         data.error ||
         "Zed could not respond."
       );
+
     }
+
     messages.push({
+
       role: "assistant",
+
       content:
         data.reply ||
         "I received your message."
+
     });
+
     renderMessages();
+
     await saveCurrentChat();
+
   } catch (error) {
+
     console.error(
       "Chat error:",
       error
     );
+
     messages.push({
+
       role: "assistant",
+
       content:
         "Sorry, I couldn't complete that request.\n\n" +
         error.message
+
     });
+
     renderMessages();
+
   } finally {
+
     selectedFile = null;
+
     fileName.textContent = "";
+
     sendButton.disabled =
       false;
+
   }
+
 }
+
 /* =========================================
    IMAGE GENERATION
 ========================================= */
+
 async function createImage() {
+
   const prompt =
     messageInput.value.trim();
+
   if (!prompt) {
+
     alert(
       "Describe the image you want Zed to create."
     );
+
     return;
+
   }
+
   attachMenu.classList.add(
     "hidden"
   );
+
   sendButton.disabled =
     true;
+
   try {
+
     const response =
       await fetch(
         "/api/generate-image",
         {
           method: "POST",
+
           headers: {
             "Content-Type":
               "application/json"
           },
+
           body:
             JSON.stringify({
               prompt
             })
+
         }
       );
+
     const data =
       await response.json();
+
     if (!response.ok) {
+
       throw new Error(
         data.error ||
         "Image generation failed."
       );
+
     }
+
     messages.push({
+
       role: "user",
+
       content:
         "Create an image: " +
         prompt
+
     });
+
     messages.push({
+
       role: "assistant",
+
       content:
         "Image created successfully."
+
     });
+
     renderMessages();
+
     const image =
       document.createElement(
         "img"
       );
+
     image.src =
       data.image;
+
     image.className =
       "generatedImage";
+
     chatContent.appendChild(
       image
     );
+
     messageInput.value = "";
+
     messageInput.style.height =
       "auto";
+
     await saveCurrentChat();
+
     requestAnimationFrame(
       () => {
+
         chatArea.scrollTop =
           chatArea.scrollHeight;
+
       }
     );
+
   } catch (error) {
+
     console.error(
       "Image generation error:",
       error
     );
+
     alert(
       error.message
     );
+
   } finally {
+
     sendButton.disabled =
       false;
+
   }
+
 }
+
 /* =========================================
    ATTACHMENTS
 ========================================= */
+
 attachButton.addEventListener(
   "click",
   () => {
+
     attachMenu.classList.toggle(
       "hidden"
     );
+
   }
 );
+
 uploadPhotoButton.addEventListener(
   "click",
   () => {
+
     attachMenu.classList.add(
       "hidden"
     );
+
     photoInput.click();
+
   }
 );
+
 uploadFileButton.addEventListener(
   "click",
   () => {
+
     attachMenu.classList.add(
       "hidden"
     );
+
     fileInput.click();
+
   }
 );
+
 createImageButton.addEventListener(
   "click",
   createImage
 );
+
 photoInput.addEventListener(
   "change",
   () => {
+
     const file =
       photoInput.files?.[0];
+
     if (!file) {
       return;
     }
+
     selectedFile =
       file;
+
     fileName.textContent =
       "Selected: " +
       file.name;
+
   }
 );
+
 fileInput.addEventListener(
   "change",
   () => {
+
     const file =
       fileInput.files?.[0];
+
     if (!file) {
       return;
     }
+
     selectedFile =
       file;
+
     fileName.textContent =
       "Selected: " +
       file.name;
+
   }
 );
+
 /* =========================================
    INPUT
 ========================================= */
+
 sendButton.addEventListener(
   "click",
   sendMessage
 );
+
 messageInput.addEventListener(
   "keydown",
   event => {
+
     if (
       event.key === "Enter" &&
       !event.shiftKey
     ) {
+
       event.preventDefault();
+
       sendMessage();
+
     }
+
   }
 );
+
 messageInput.addEventListener(
   "input",
   () => {
+
     messageInput.style.height =
       "auto";
+
     messageInput.style.height =
       Math.min(
         messageInput.scrollHeight,
         150
       ) + "px";
+
   }
 );
+
 /* =========================================
    AUTHENTICATION
 ========================================= */
+
 googleLogin.addEventListener(
   "click",
   async () => {
+
     try {
+
       authMessage.textContent =
         "";
+
       const provider =
         new GoogleAuthProvider();
+
       await signInWithPopup(
         auth,
         provider
       );
+
     } catch (error) {
+
       console.error(
         "Google login error:",
         error
       );
+
       authMessage.textContent =
         error.message;
+
     }
+
   }
 );
+
 emailLogin.addEventListener(
   "click",
   async () => {
+
     try {
+
       authMessage.textContent =
         "";
+
       await signInWithEmailAndPassword(
         auth,
         emailInput.value.trim(),
         passwordInput.value
       );
+
     } catch (error) {
+
       console.error(
         "Email login error:",
         error
       );
+
       authMessage.textContent =
         error.message;
+
     }
+
   }
 );
+
 emailSignup.addEventListener(
   "click",
   async () => {
+
     try {
+
       authMessage.textContent =
         "";
+
       await createUserWithEmailAndPassword(
         auth,
         emailInput.value.trim(),
         passwordInput.value
       );
+
     } catch (error) {
+
       console.error(
         "Account creation error:",
         error
       );
+
       authMessage.textContent =
         error.message;
+
     }
+
   }
 );
+
 logoutButton.addEventListener(
   "click",
   async () => {
+
     await signOut(auth);
+
     closeMenu();
+
   }
 );
+
 /* =========================================
    AUTH STATE
 ========================================= */
+
 onAuthStateChanged(
   auth,
   async user => {
+
     if (user) {
+
       userId =
         user.uid;
+
       authScreen.classList.add(
         "hidden"
       );
+
       app.classList.remove(
         "hidden"
       );
+
       accountName.textContent =
         user.displayName ||
         "Zed User";
+
       accountEmail.textContent =
         user.email ||
         "";
+
       if (user.photoURL) {
+
         profilePhoto.src =
           user.photoURL;
+
       } else {
+
         profilePhoto.src =
           "data:image/svg+xml," +
           encodeURIComponent(`
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="80"
                  height="80">
-              <rect width="100%"
-                    height="100%"
-                    fill="#444"/>
-              <text x="50%"
-                    y="57%"
-                    text-anchor="middle"
-                    fill="white"
-                    font-family="Arial"
-                    font-size="30">
+
+              <rect
+                width="100%"
+                height="100%"
+                fill="#444"/>
+
+              <text
+                x="50%"
+                y="57%"
+                text-anchor="middle"
+                fill="white"
+                font-family="Arial"
+                font-size="30">
                 Z
               </text>
+
             </svg>
           `);
+
       }
+
       await loadMemories();
+
       await loadCloudHistory();
+
     } else {
+
       userId =
         "guest";
+
       memories = [];
+
       authScreen.classList.remove(
         "hidden"
       );
+
       app.classList.add(
         "hidden"
       );
+
       closeMenu();
+
     }
+
   }
 );
+
 /* =========================================
    VOICE INPUT
 ========================================= */
+
 let recognition = null;
+
 if (
   "webkitSpeechRecognition" in window ||
   "SpeechRecognition" in window
 ) {
+
   const SpeechRecognition =
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
+
   recognition =
     new SpeechRecognition();
+
   recognition.lang =
     "en-US";
+
   recognition.interimResults =
     false;
+
   recognition.continuous =
     false;
+
   recognition.onresult =
     event => {
+
       const transcript =
         event.results[0][0]
           .transcript;
+
       messageInput.value =
         transcript;
+
       messageInput.dispatchEvent(
         new Event("input")
       );
+
     };
+
   recognition.onerror =
     error => {
+
       console.error(
         "Voice recognition error:",
         error
       );
+
     };
+
 }
+
 micButton.addEventListener(
   "click",
   () => {
+
     if (!recognition) {
+
       alert(
         "Voice input is not supported by this browser."
       );
+
       return;
+
     }
+
     try {
+
       recognition.start();
+
     } catch (error) {
+
       console.error(
         "Voice start error:",
         error
       );
+
     }
+
   }
 );
+
 /* =========================================
    START CLEAN
 ========================================= */
+
 renderMessages();
+
 </script>
+
 </body>
 </html>

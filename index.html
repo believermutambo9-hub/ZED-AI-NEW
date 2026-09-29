@@ -40,7 +40,9 @@ button {
   display: none !important;
 }
 
-/* AUTH */
+/* =========================
+   AUTH
+========================= */
 
 #authScreen {
   position: fixed;
@@ -121,7 +123,9 @@ button {
   color: #72e6a4;
 }
 
-/* APP */
+/* =========================
+   APP
+========================= */
 
 #app {
   width: 100%;
@@ -129,7 +133,9 @@ button {
   display: flex;
 }
 
-/* SIDEBAR */
+/* =========================
+   SIDEBAR
+========================= */
 
 .sidebar {
   width: 260px;
@@ -233,7 +239,9 @@ button {
   border-radius: 8px;
 }
 
-/* MAIN */
+/* =========================
+   MAIN
+========================= */
 
 .main {
   flex: 1;
@@ -291,7 +299,9 @@ button {
   color: #999;
 }
 
-/* MESSAGES */
+/* =========================
+   MESSAGES
+========================= */
 
 .message {
   display: flex;
@@ -322,13 +332,9 @@ button {
   border-top-right-radius: 5px;
 }
 
-.messageRole {
-  font-size: 11px;
-  color: #777;
-  margin-bottom: 4px;
-}
-
-/* COMPOSER */
+/* =========================
+   COMPOSER
+========================= */
 
 .composerArea {
   position: absolute;
@@ -421,21 +427,54 @@ textarea {
   font-size: 12px;
 }
 
-/* MOBILE */
+/* =========================
+   MOBILE
+========================= */
 
 @media (max-width: 700px) {
+
   .sidebar {
+    width: 68px;
+    display: flex;
+    padding: 8px;
+    flex-shrink: 0;
+  }
+
+  .sidebarTitle,
+  #historyList,
+  .accountBox {
     display: none;
   }
 
+  .newChatButton {
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 0;
+  }
+
+  .newChatButton::after {
+    content: "＋";
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .topBar {
+    padding: 0 14px;
+  }
+
   .chatArea {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding: 20px 10px 150px;
   }
 
   .composerArea {
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   .messageBubble {
@@ -444,6 +483,15 @@ textarea {
 
   .attachMenu {
     left: 10px;
+    bottom: 82px;
+  }
+
+  .welcome {
+    margin-top: 80px;
+  }
+
+  .welcome h1 {
+    font-size: 28px;
   }
 }
 </style>
@@ -451,8 +499,12 @@ textarea {
 
 <body>
 
-<!-- AUTH SCREEN -->
+<!-- =========================
+     AUTH SCREEN
+========================= -->
+
 <div id="authScreen">
+
   <div class="authBox">
 
     <div class="authLogo">
@@ -460,7 +512,9 @@ textarea {
       <p>Your intelligent assistant</p>
     </div>
 
-    <button id="googleLogin" class="authButton googleButton">
+    <button
+      id="googleLogin"
+      class="authButton googleButton">
       Continue with Google
     </button>
 
@@ -482,31 +536,40 @@ textarea {
       placeholder="Password"
     >
 
-    <button id="emailLogin" class="authButton">
+    <button
+      id="emailLogin"
+      class="authButton">
       Sign in
     </button>
 
     <button
       id="emailSignup"
       class="authButton"
-      style="background:#3a3a3a;color:white;"
-    >
+      style="background:#3a3a3a;color:white;">
       Create account
     </button>
 
-    <div id="authMessage"
-         style="margin-top:12px;text-align:center;color:#ff8a8a;font-size:13px;">
+    <div
+      id="authMessage"
+      style="margin-top:12px;text-align:center;color:#ff8a8a;font-size:13px;">
     </div>
 
   </div>
+
 </div>
 
-<!-- MAIN APP -->
+
+<!-- =========================
+     MAIN APP
+========================= -->
+
 <div id="app" class="hidden">
 
   <aside class="sidebar">
 
-    <button id="newChatButton" class="newChatButton">
+    <button
+      id="newChatButton"
+      class="newChatButton">
       ＋ New chat
     </button>
 
@@ -528,18 +591,26 @@ textarea {
         >
 
         <div class="accountText">
-          <div id="accountName" class="accountName">
+
+          <div
+            id="accountName"
+            class="accountName">
             Guest
           </div>
 
-          <div id="accountEmail" class="accountEmail">
+          <div
+            id="accountEmail"
+            class="accountEmail">
             Not signed in
           </div>
+
         </div>
 
       </div>
 
-      <button id="logoutButton" class="logoutButton">
+      <button
+        id="logoutButton"
+        class="logoutButton">
         Log out
       </button>
 
@@ -547,82 +618,106 @@ textarea {
 
   </aside>
 
+
   <main class="main">
 
     <div class="topBar">
+
       <div class="brand">
         Zed AI
         <span class="online"></span>
       </div>
+
     </div>
 
-    <div id="chatArea" class="chatArea">
 
-      <div id="chatContent" class="chatContent">
+    <div
+      id="chatArea"
+      class="chatArea">
 
-        <div id="welcome" class="welcome">
-          <h1>How can I help you?</h1>
-          <p>Zed AI is online</p>
+      <div
+        id="chatContent"
+        class="chatContent">
+
+        <div
+          id="welcome"
+          class="welcome">
+
+          <h1>
+            How can I help you?
+          </h1>
+
+          <p>
+            Zed AI is online
+          </p>
+
         </div>
 
       </div>
 
     </div>
 
+
     <div class="composerArea">
 
-      <div id="fileName" class="fileName"></div>
+      <div
+        id="fileName"
+        class="fileName">
+      </div>
+
 
       <div
         id="attachMenu"
-        class="attachMenu hidden"
-      >
-        <button id="uploadPhotoButton">
+        class="attachMenu hidden">
+
+        <button
+          id="uploadPhotoButton">
           🖼 Upload photo
         </button>
 
-        <button id="uploadFileButton">
+        <button
+          id="uploadFileButton">
           📎 Upload file
         </button>
 
-        <button id="createImageButton">
+        <button
+          id="createImageButton">
           🎨 Create image
         </button>
+
       </div>
+
 
       <div class="composer">
 
         <button
           id="attachButton"
           class="iconButton"
-          title="Attach"
-        >
+          title="Attach">
           ＋
         </button>
 
         <textarea
           id="messageInput"
           rows="1"
-          placeholder="Message Zed AI..."
-        ></textarea>
+          placeholder="Message Zed AI..."></textarea>
 
         <button
           id="micButton"
           class="iconButton"
-          title="Voice"
-        >
+          title="Voice">
           🎤
         </button>
 
         <button
           id="sendButton"
           class="iconButton sendButton"
-          title="Send"
-        >
+          title="Send">
           ↑
         </button>
 
       </div>
+
 
       <input
         id="photoInput"
@@ -644,14 +739,17 @@ textarea {
 
 </div>
 
+
 <script type="module">
 
 /* =========================
    FIREBASE
 ========================= */
 
-import { initializeApp } from
-  "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import {
+  initializeApp
+} from
+"https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 
 import {
   getAuth,
@@ -662,7 +760,7 @@ import {
   onAuthStateChanged,
   signOut
 } from
-  "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+"https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 import {
   getFirestore,
@@ -675,57 +773,108 @@ import {
   orderBy,
   serverTimestamp
 } from
-  "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+"https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD1jcmrhZK_XitZu-9Wa9whFB7BJZn0Wa8",
-  authDomain: "zed-ai-6d201.firebaseapp.com",
-  projectId: "zed-ai-6d201",
-  storageBucket: "zed-ai-6d201.firebasestorage.app",
-  messagingSenderId: "538225665227",
-  appId: "1:538225665227:web:d61483c3cafa8e4694e74e"
+
+  apiKey:
+    "AIzaSyD1jcmrhZK_XitZu-9Wa9whFB7BJZn0Wa8",
+
+  authDomain:
+    "zed-ai-6d201.firebaseapp.com",
+
+  projectId:
+    "zed-ai-6d201",
+
+  storageBucket:
+    "zed-ai-6d201.firebasestorage.app",
+
+  messagingSenderId:
+    "538225665227",
+
+  appId:
+    "1:538225665227:web:d61483c3cafa8e4694e74e"
+
 };
 
-const firebaseApp = initializeApp(firebaseConfig);
 
-const auth = getAuth(firebaseApp);
-const db = getFirestore(firebaseApp);
+const firebaseApp =
+  initializeApp(firebaseConfig);
+
+const auth =
+  getAuth(firebaseApp);
+
+const db =
+  getFirestore(firebaseApp);
 
 
 /* =========================
    ELEMENTS
 ========================= */
 
-const authScreen = document.getElementById("authScreen");
-const app = document.getElementById("app");
+const authScreen =
+  document.getElementById("authScreen");
 
-const googleLogin = document.getElementById("googleLogin");
-const emailLogin = document.getElementById("emailLogin");
-const emailSignup = document.getElementById("emailSignup");
+const app =
+  document.getElementById("app");
 
-const emailInput = document.getElementById("emailInput");
-const passwordInput = document.getElementById("passwordInput");
-const authMessage = document.getElementById("authMessage");
+const googleLogin =
+  document.getElementById("googleLogin");
 
-const logoutButton = document.getElementById("logoutButton");
+const emailLogin =
+  document.getElementById("emailLogin");
 
-const accountName = document.getElementById("accountName");
-const accountEmail = document.getElementById("accountEmail");
-const profilePhoto = document.getElementById("profilePhoto");
+const emailSignup =
+  document.getElementById("emailSignup");
 
-const newChatButton = document.getElementById("newChatButton");
-const historyList = document.getElementById("historyList");
+const emailInput =
+  document.getElementById("emailInput");
 
-const chatArea = document.getElementById("chatArea");
-const chatContent = document.getElementById("chatContent");
-const welcome = document.getElementById("welcome");
+const passwordInput =
+  document.getElementById("passwordInput");
 
-const messageInput = document.getElementById("messageInput");
-const sendButton = document.getElementById("sendButton");
+const authMessage =
+  document.getElementById("authMessage");
 
-const attachButton = document.getElementById("attachButton");
-const attachMenu = document.getElementById("attachMenu");
+const logoutButton =
+  document.getElementById("logoutButton");
+
+const accountName =
+  document.getElementById("accountName");
+
+const accountEmail =
+  document.getElementById("accountEmail");
+
+const profilePhoto =
+  document.getElementById("profilePhoto");
+
+const newChatButton =
+  document.getElementById("newChatButton");
+
+const historyList =
+  document.getElementById("historyList");
+
+const chatArea =
+  document.getElementById("chatArea");
+
+const chatContent =
+  document.getElementById("chatContent");
+
+const welcome =
+  document.getElementById("welcome");
+
+const messageInput =
+  document.getElementById("messageInput");
+
+const sendButton =
+  document.getElementById("sendButton");
+
+const attachButton =
+  document.getElementById("attachButton");
+
+const attachMenu =
+  document.getElementById("attachMenu");
 
 const uploadPhotoButton =
   document.getElementById("uploadPhotoButton");
@@ -754,11 +903,13 @@ const micButton =
 ========================= */
 
 let messages = [];
+
 let selectedFile = null;
 
 let memories = [];
 
 let userId = "guest";
+
 let currentChatId = null;
 
 
@@ -767,20 +918,31 @@ let currentChatId = null;
 ========================= */
 
 function getLocalChats() {
+
   try {
+
     return JSON.parse(
-      localStorage.getItem("zed_ai_chats") || "[]"
+      localStorage.getItem(
+        "zed_ai_chats"
+      ) || "[]"
     );
+
   } catch {
+
     return [];
+
   }
+
 }
 
+
 function saveLocalChats(chats) {
+
   localStorage.setItem(
     "zed_ai_chats",
     JSON.stringify(chats)
   );
+
 }
 
 
@@ -790,33 +952,52 @@ function saveLocalChats(chats) {
 
 async function saveMemoryToFirestore(text) {
 
-  if (!auth.currentUser || !text) {
+  if (
+    !auth.currentUser ||
+    !text
+  ) {
+
     return;
+
   }
 
-  const memoriesRef = collection(
-    db,
-    "users",
-    auth.currentUser.uid,
-    "memories"
-  );
 
-  const existing = memories.find(
-    item => item.toLowerCase() === text.toLowerCase()
-  );
+  const memoriesRef =
+    collection(
+      db,
+      "users",
+      auth.currentUser.uid,
+      "memories"
+    );
+
+
+  const existing =
+    memories.find(
+      item =>
+        item.toLowerCase() ===
+        text.toLowerCase()
+    );
+
 
   if (existing) {
+
     return;
+
   }
 
-  const memoryData = {
-    text,
-    createdAt: serverTimestamp()
-  };
 
-  await addDoc(memoriesRef, memoryData);
+  await addDoc(
+    memoriesRef,
+    {
+      text,
+      createdAt:
+        serverTimestamp()
+    }
+  );
+
 
   memories.push(text);
+
 }
 
 
@@ -825,34 +1006,55 @@ async function loadMemories() {
   memories = [];
 
   if (!auth.currentUser) {
+
     return;
+
   }
+
 
   try {
 
-    const memoriesRef = collection(
-      db,
-      "users",
-      auth.currentUser.uid,
-      "memories"
-    );
+    const memoriesRef =
+      collection(
+        db,
+        "users",
+        auth.currentUser.uid,
+        "memories"
+      );
 
-    const snapshot = await getDocs(
-      query(memoriesRef, orderBy("createdAt", "asc"))
-    );
 
-    snapshot.forEach(item => {
+    const snapshot =
+      await getDocs(
+        query(
+          memoriesRef,
+          orderBy(
+            "createdAt",
+            "asc"
+          )
+        )
+      );
 
-      const data = item.data();
 
-      if (
-        typeof data.text === "string" &&
-        data.text.trim()
-      ) {
-        memories.push(data.text.trim());
+    snapshot.forEach(
+      item => {
+
+        const data =
+          item.data();
+
+        if (
+          typeof data.text === "string" &&
+          data.text.trim()
+        ) {
+
+          memories.push(
+            data.text.trim()
+          );
+
+        }
+
       }
+    );
 
-    });
 
   } catch (error) {
 
@@ -862,20 +1064,32 @@ async function loadMemories() {
     );
 
   }
+
 }
 
 
 function extractMemory(text) {
 
-  if (!/^remember\b/i.test(text)) {
+  if (
+    !/^remember\b/i.test(text)
+  ) {
+
     return null;
+
   }
 
-  const memoryText = text
-    .replace(/^remember\b\s*(that)?\s*/i, "")
-    .trim();
+
+  const memoryText =
+    text
+      .replace(
+        /^remember\b\s*(that)?\s*/i,
+        ""
+      )
+      .trim();
+
 
   return memoryText || null;
+
 }
 
 
@@ -889,52 +1103,77 @@ async function saveChatToCloud() {
     !auth.currentUser ||
     messages.length === 0
   ) {
+
     return;
+
   }
+
 
   try {
 
-    const chatsRef = collection(
-      db,
-      "users",
-      auth.currentUser.uid,
-      "chats"
-    );
-
-    if (!currentChatId) {
-
-      const newChat = doc(chatsRef);
-
-      currentChatId = newChat.id;
-
-      await setDoc(newChat, {
-        title:
-          messages.find(
-            message => message.role === "user"
-          )?.content?.slice(0, 45) ||
-          "New chat",
-
-        messages,
-
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-
-    } else {
-
-      const chatRef = doc(
+    const chatsRef =
+      collection(
         db,
         "users",
         auth.currentUser.uid,
-        "chats",
-        currentChatId
+        "chats"
       );
+
+
+    if (!currentChatId) {
+
+      const newChat =
+        doc(chatsRef);
+
+      currentChatId =
+        newChat.id;
+
+
+      await setDoc(
+        newChat,
+        {
+
+          title:
+            messages.find(
+              message =>
+                message.role === "user"
+            )?.content
+              ?.slice(0, 45) ||
+            "New chat",
+
+          messages,
+
+          createdAt:
+            serverTimestamp(),
+
+          updatedAt:
+            serverTimestamp()
+
+        }
+      );
+
+
+    } else {
+
+      const chatRef =
+        doc(
+          db,
+          "users",
+          auth.currentUser.uid,
+          "chats",
+          currentChatId
+        );
+
 
       await setDoc(
         chatRef,
         {
+
           messages,
-          updatedAt: serverTimestamp()
+
+          updatedAt:
+            serverTimestamp()
+
         },
         {
           merge: true
@@ -951,6 +1190,7 @@ async function saveChatToCloud() {
     );
 
   }
+
 }
 
 
@@ -959,30 +1199,44 @@ async function loadCloudHistory() {
   historyList.innerHTML = "";
 
   if (!auth.currentUser) {
+
     return;
+
   }
+
 
   try {
 
-    const chatsRef = collection(
-      db,
-      "users",
-      auth.currentUser.uid,
-      "chats"
-    );
+    const chatsRef =
+      collection(
+        db,
+        "users",
+        auth.currentUser.uid,
+        "chats"
+      );
 
-    const snapshot = await getDocs(chatsRef);
+
+    const snapshot =
+      await getDocs(chatsRef);
+
 
     const chats = [];
 
-    snapshot.forEach(item => {
 
-      chats.push({
-        id: item.id,
-        ...item.data()
-      });
+    snapshot.forEach(
+      item => {
 
-    });
+        chats.push({
+
+          id: item.id,
+
+          ...item.data()
+
+        });
+
+      }
+    );
+
 
     chats.sort(
       (a, b) => {
@@ -998,24 +1252,38 @@ async function loadCloudHistory() {
       }
     );
 
-    chats.forEach(chat => {
 
-      const item =
-        document.createElement("div");
+    chats.forEach(
+      chat => {
 
-      item.className = "historyItem";
+        const item =
+          document.createElement(
+            "div"
+          );
 
-      item.textContent =
-        chat.title || "New chat";
 
-      item.addEventListener(
-        "click",
-        () => loadCloudChat(chat)
-      );
+        item.className =
+          "historyItem";
 
-      historyList.appendChild(item);
 
-    });
+        item.textContent =
+          chat.title ||
+          "New chat";
+
+
+        item.addEventListener(
+          "click",
+          () => loadCloudChat(chat)
+        );
+
+
+        historyList.appendChild(
+          item
+        );
+
+      }
+    );
+
 
   } catch (error) {
 
@@ -1025,44 +1293,60 @@ async function loadCloudHistory() {
     );
 
   }
+
 }
 
 
 function saveCurrentChatLocally() {
 
   if (!messages.length) {
+
     return;
+
   }
 
-  const chats = getLocalChats();
+
+  const chats =
+    getLocalChats();
+
 
   if (!currentChatId) {
 
     currentChatId =
-      "local-" + Date.now();
+      "local-" +
+      Date.now();
 
   }
 
+
   const existingIndex =
     chats.findIndex(
-      chat => chat.id === currentChatId
+      chat =>
+        chat.id ===
+        currentChatId
     );
+
 
   const chatData = {
 
-    id: currentChatId,
+    id:
+      currentChatId,
 
     title:
       messages.find(
-        message => message.role === "user"
-      )?.content?.slice(0, 45) ||
+        message =>
+          message.role === "user"
+      )?.content
+        ?.slice(0, 45) ||
       "New chat",
 
     messages,
 
-    updatedAt: Date.now()
+    updatedAt:
+      Date.now()
 
   };
+
 
   if (existingIndex >= 0) {
 
@@ -1071,9 +1355,12 @@ function saveCurrentChatLocally() {
 
   } else {
 
-    chats.unshift(chatData);
+    chats.unshift(
+      chatData
+    );
 
   }
+
 
   saveLocalChats(chats);
 
@@ -1092,12 +1379,13 @@ async function saveCurrentChat() {
 
 
 /* =========================
-   LOAD CHAT
+   RENDER MESSAGES
 ========================= */
 
 function renderMessages() {
 
   chatContent.innerHTML = "";
+
 
   if (!messages.length) {
 
@@ -1106,13 +1394,18 @@ function renderMessages() {
     );
 
     return;
+
   }
+
 
   messages.forEach(
     message => {
 
       const wrapper =
-        document.createElement("div");
+        document.createElement(
+          "div"
+        );
+
 
       wrapper.className =
         "message " +
@@ -1122,47 +1415,49 @@ function renderMessages() {
             : "assistant"
         );
 
+
       const bubble =
-        document.createElement("div");
+        document.createElement(
+          "div"
+        );
+
 
       bubble.className =
         "messageBubble";
 
+
       bubble.textContent =
         message.content || "";
 
-      wrapper.appendChild(bubble);
 
-      chatContent.appendChild(wrapper);
+      wrapper.appendChild(
+        bubble
+      );
+
+
+      chatContent.appendChild(
+        wrapper
+      );
 
     }
   );
 
+
   chatArea.scrollTop =
     chatArea.scrollHeight;
-}
-
-
-function loadLocalChat(chat) {
-
-  currentChatId = chat.id;
-
-  messages =
-    Array.isArray(chat.messages)
-      ? chat.messages
-      : [];
-
-  renderMessages();
 
 }
 
 
 function loadCloudChat(chat) {
 
-  currentChatId = chat.id;
+  currentChatId =
+    chat.id;
 
   messages =
-    Array.isArray(chat.messages)
+    Array.isArray(
+      chat.messages
+    )
       ? chat.messages
       : [];
 
@@ -1189,6 +1484,8 @@ function newChat() {
 
   renderMessages();
 
+  messageInput.focus();
+
 }
 
 
@@ -1201,12 +1498,20 @@ async function sendMessage() {
   const text =
     messageInput.value.trim();
 
-  if (!text && !selectedFile) {
+
+  if (
+    !text &&
+    !selectedFile
+  ) {
+
     return;
+
   }
+
 
   const memoryText =
     extractMemory(text);
+
 
   if (memoryText) {
 
@@ -1227,6 +1532,7 @@ async function sendMessage() {
 
   }
 
+
   const userMessage = {
 
     role: "user",
@@ -1237,28 +1543,41 @@ async function sendMessage() {
 
   };
 
-  messages.push(userMessage);
+
+  messages.push(
+    userMessage
+  );
+
 
   renderMessages();
 
+
   messageInput.value = "";
+
 
   sendButton.disabled = true;
 
 
   let filePayload = null;
 
+
   if (selectedFile) {
 
     try {
 
       filePayload = {
-        name: selectedFile.name,
-        mimeType: selectedFile.type,
+
+        name:
+          selectedFile.name,
+
+        mimeType:
+          selectedFile.type,
+
         data:
           await readFileAsDataURL(
             selectedFile
           )
+
       };
 
     } catch (error) {
@@ -1268,7 +1587,8 @@ async function sendMessage() {
         error
       );
 
-      sendButton.disabled = false;
+      sendButton.disabled =
+        false;
 
       return;
 
@@ -1280,39 +1600,47 @@ async function sendMessage() {
   try {
 
     const response =
-      await fetch("/api/chat", {
+      await fetch(
+        "/api/chat",
+        {
 
-        method: "POST",
+          method: "POST",
 
-        headers: {
-          "Content-Type":
-            "application/json"
-        },
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
 
-        body: JSON.stringify({
+          body:
+            JSON.stringify({
 
-          message: text,
+              message:
+                text,
 
-          userId,
+              userId,
 
-          memories,
+              memories,
 
-          conversation:
-            messages
-              .slice(0, -1)
-              .map(message => ({
-                role:
-                  message.role,
-                text:
-                  message.content
-              })),
+              conversation:
+                messages
+                  .slice(0, -1)
+                  .map(
+                    message => ({
+                      role:
+                        message.role,
 
-          file:
-            filePayload
+                      text:
+                        message.content
+                    })
+                  ),
 
-        })
+              file:
+                filePayload
 
-      });
+            })
+
+        }
+      );
 
 
     const data =
@@ -1342,6 +1670,7 @@ async function sendMessage() {
 
     renderMessages();
 
+
     await saveCurrentChat();
 
 
@@ -1351,6 +1680,7 @@ async function sendMessage() {
       "Chat error:",
       error
     );
+
 
     messages.push({
 
@@ -1362,7 +1692,9 @@ async function sendMessage() {
 
     });
 
+
     renderMessages();
+
 
   } finally {
 
@@ -1370,7 +1702,8 @@ async function sendMessage() {
 
     fileName.textContent = "";
 
-    sendButton.disabled = false;
+    sendButton.disabled =
+      false;
 
   }
 
@@ -1389,15 +1722,21 @@ function readFileAsDataURL(file) {
       const reader =
         new FileReader();
 
+
       reader.onload =
-        () => resolve(
-          reader.result
-        );
+        () =>
+          resolve(
+            reader.result
+          );
+
 
       reader.onerror =
         reject;
 
-      reader.readAsDataURL(file);
+
+      reader.readAsDataURL(
+        file
+      );
 
     }
   );
@@ -1414,6 +1753,7 @@ async function createImage() {
   const prompt =
     messageInput.value.trim();
 
+
   if (!prompt) {
 
     alert(
@@ -1424,11 +1764,15 @@ async function createImage() {
 
   }
 
+
   attachMenu.classList.add(
     "hidden"
   );
 
-  sendButton.disabled = true;
+
+  sendButton.disabled =
+    true;
+
 
   try {
 
@@ -1436,6 +1780,7 @@ async function createImage() {
       await fetch(
         "/api/generate-image",
         {
+
           method: "POST",
 
           headers: {
@@ -1443,14 +1788,18 @@ async function createImage() {
               "application/json"
           },
 
-          body: JSON.stringify({
-            prompt
-          })
+          body:
+            JSON.stringify({
+              prompt
+            })
+
         }
       );
 
+
     const data =
       await response.json();
+
 
     if (!response.ok) {
 
@@ -1461,42 +1810,63 @@ async function createImage() {
 
     }
 
+
     messages.push({
+
       role: "user",
+
       content:
         "Create an image: " +
         prompt
+
     });
 
+
     messages.push({
+
       role: "assistant",
+
       content:
         "Image created successfully."
+
     });
+
 
     renderMessages();
 
-    const image =
-      document.createElement("img");
 
-    image.src = data.image;
+    const image =
+      document.createElement(
+        "img"
+      );
+
+
+    image.src =
+      data.image;
+
 
     image.style.maxWidth =
       "100%";
 
+
     image.style.borderRadius =
       "12px";
 
+
     image.style.marginTop =
       "10px";
+
 
     chatContent.appendChild(
       image
     );
 
+
     messageInput.value = "";
 
+
     await saveCurrentChat();
+
 
   } catch (error) {
 
@@ -1505,11 +1875,16 @@ async function createImage() {
       error
     );
 
-    alert(error.message);
+
+    alert(
+      error.message
+    );
+
 
   } finally {
 
-    sendButton.disabled = false;
+    sendButton.disabled =
+      false;
 
   }
 
@@ -1573,14 +1948,21 @@ photoInput.addEventListener(
     const file =
       photoInput.files?.[0];
 
+
     if (!file) {
+
       return;
+
     }
 
-    selectedFile = file;
+
+    selectedFile =
+      file;
+
 
     fileName.textContent =
-      "Selected: " + file.name;
+      "Selected: " +
+      file.name;
 
   }
 );
@@ -1593,21 +1975,28 @@ fileInput.addEventListener(
     const file =
       fileInput.files?.[0];
 
+
     if (!file) {
+
       return;
+
     }
 
-    selectedFile = file;
+
+    selectedFile =
+      file;
+
 
     fileName.textContent =
-      "Selected: " + file.name;
+      "Selected: " +
+      file.name;
 
   }
 );
 
 
 /* =========================
-   MESSAGE INPUT
+   INPUT
 ========================= */
 
 sendButton.addEventListener(
@@ -1642,6 +2031,7 @@ messageInput.addEventListener(
     messageInput.style.height =
       "auto";
 
+
     messageInput.style.height =
       Math.min(
         messageInput.scrollHeight,
@@ -1653,7 +2043,7 @@ messageInput.addEventListener(
 
 
 /* =========================
-   NEW CHAT
+   NEW CHAT BUTTON
 ========================= */
 
 newChatButton.addEventListener(
@@ -1672,15 +2062,19 @@ googleLogin.addEventListener(
 
     try {
 
-      authMessage.textContent = "";
+      authMessage.textContent =
+        "";
+
 
       const provider =
         new GoogleAuthProvider();
+
 
       await signInWithPopup(
         auth,
         provider
       );
+
 
     } catch (error) {
 
@@ -1688,6 +2082,7 @@ googleLogin.addEventListener(
         "Google login error:",
         error
       );
+
 
       authMessage.textContent =
         error.message;
@@ -1704,7 +2099,9 @@ emailLogin.addEventListener(
 
     try {
 
-      authMessage.textContent = "";
+      authMessage.textContent =
+        "";
+
 
       await signInWithEmailAndPassword(
         auth,
@@ -1712,12 +2109,14 @@ emailLogin.addEventListener(
         passwordInput.value
       );
 
+
     } catch (error) {
 
       console.error(
         "Email login error:",
         error
       );
+
 
       authMessage.textContent =
         error.message;
@@ -1734,7 +2133,9 @@ emailSignup.addEventListener(
 
     try {
 
-      authMessage.textContent = "";
+      authMessage.textContent =
+        "";
+
 
       await createUserWithEmailAndPassword(
         auth,
@@ -1742,12 +2143,14 @@ emailSignup.addEventListener(
         passwordInput.value
       );
 
+
     } catch (error) {
 
       console.error(
         "Account creation error:",
         error
       );
+
 
       authMessage.textContent =
         error.message;
@@ -1778,11 +2181,14 @@ onAuthStateChanged(
 
     if (user) {
 
-      userId = user.uid;
+      userId =
+        user.uid;
+
 
       authScreen.classList.add(
         "hidden"
       );
+
 
       app.classList.remove(
         "hidden"
@@ -1792,6 +2198,7 @@ onAuthStateChanged(
       accountName.textContent =
         user.displayName ||
         "Zed AI User";
+
 
       accountEmail.textContent =
         user.email ||
@@ -1831,15 +2238,20 @@ onAuthStateChanged(
 
       await loadCloudHistory();
 
+
     } else {
 
-      userId = "guest";
+      userId =
+        "guest";
+
 
       memories = [];
+
 
       authScreen.classList.remove(
         "hidden"
       );
+
 
       app.classList.add(
         "hidden"
@@ -1857,6 +2269,7 @@ onAuthStateChanged(
 
 let recognition = null;
 
+
 if (
   "webkitSpeechRecognition" in window ||
   "SpeechRecognition" in window
@@ -1866,14 +2279,18 @@ if (
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
 
+
   recognition =
     new SpeechRecognition();
+
 
   recognition.lang =
     "en-US";
 
+
   recognition.interimResults =
     false;
+
 
   recognition.continuous =
     false;
@@ -1883,7 +2300,9 @@ if (
     event => {
 
       const transcript =
-        event.results[0][0].transcript;
+        event.results[0][0]
+          .transcript;
+
 
       messageInput.value =
         transcript;
@@ -1917,6 +2336,7 @@ micButton.addEventListener(
       return;
 
     }
+
 
     recognition.start();
 

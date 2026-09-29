@@ -8,6 +8,10 @@ import {
   shouldSearchWeb
 } from "./web-search.js";
 
+import {
+  footballFeature
+} from "./features/football.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -72,23 +76,166 @@ CURRENT INFORMATION:
 When CURRENT WEB SEARCH RESULTS are supplied in the user's
 message, use those results as the source of current information.
 
+When WORLDWIDE FOOTBALL DATA is supplied in the user's
+message, use that football data when answering football
+questions.
+
 Never say that you cannot browse the internet when current
-web search results have been supplied.
+web search results or football data have been supplied.
 
 Never invent current information.
 
-For football questions, use the football results supplied by
-the web search.
+For football questions, use the supplied football data.
 
 Do not invent football scores, teams, dates, fixtures,
 standings or results.
 
-If the supplied search information is incomplete, say so.
+If the supplied football information is incomplete, say so.
 
 For normal questions, answer normally.
 
 Keep answers useful and easy to understand.
 `;
+
+// ======================================================
+// FOOTBALL DETECTION
+// ======================================================
+
+function shouldUseFootball(userMessage = "") {
+  const text =
+    String(userMessage)
+      .toLowerCase()
+      .trim();
+
+  if (!text) {
+    return false;
+  }
+
+  const footballWords = [
+    "football",
+    "soccer",
+    "match",
+    "matches",
+    "fixture",
+    "fixtures",
+    "score",
+    "scores",
+    "result",
+    "results",
+    "league",
+    "premier league",
+    "champions league",
+    "europa league",
+    "conference league",
+    "la liga",
+    "serie a",
+    "bundesliga",
+    "ligue 1",
+    "mls",
+    "super league",
+    "world cup",
+    "afcon",
+    "africa cup",
+    "caf",
+    "fifa",
+    "uefa",
+    "arsenal",
+    "chelsea",
+    "liverpool",
+    "manchester united",
+    "man united",
+    "manchester city",
+    "tottenham",
+    "newcastle",
+    "aston villa",
+    "barcelona",
+    "real madrid",
+    "atletico madrid",
+    "bayern",
+    "borussia dortmund",
+    "juventus",
+    "inter milan",
+    "ac milan",
+    "psg",
+    "paris saint-germain",
+    "zambia",
+    "chipolopolo",
+    "malawi",
+    "ghana",
+    "nigeria",
+    "south africa",
+    "egypt",
+    "morocco",
+    "brazil",
+    "argentina",
+    "france",
+    "germany",
+    "spain",
+    "italy",
+    "england",
+    "portugal",
+    "netherlands",
+    "usa",
+    "saudi",
+    "japan",
+    "korea",
+    "australia"
+  ];
+
+  return footballWords.some(
+    (word) =>
+      text === word ||
+      text.includes(word)
+  );
+}
+
+// ======================================================
+// FOOTBALL DATE DETECTION
+// ======================================================
+
+function getFootballRequestType(userMessage = "") {
+  const text =
+    String(userMessage)
+      .toLowerCase()
+      .trim();
+
+  if (
+    text.includes("live") ||
+    text.includes("playing now") ||
+    text.includes("playing today")
+  ) {
+    return "live";
+  }
+
+  if (
+    text.includes("result") ||
+    text.includes("results") ||
+    text.includes("finished") ||
+    text.includes("yesterday")
+  ) {
+    return "results";
+  }
+
+  if (
+    text.includes("upcoming") ||
+    text.includes("next match") ||
+    text.includes("next game") ||
+    text.includes("tomorrow")
+  ) {
+    return "upcoming";
+  }
+
+  if (
+    text.includes("today") ||
+    text.includes("tonight") ||
+    text.includes("matches today") ||
+    text.includes("games today")
+  ) {
+    return "today";
+  }
+
+  return "general";
+}
 
 // ======================================================
 // GEMINI
@@ -376,6 +523,8 @@ app.get("/health", (req, res) => {
       "gemini-with-groq-and-openrouter-fallback",
     geminiModel,
     webSearch: true,
+    football: true,
+    footballScope: "worldwide",
     fileAnalysis: true,
     imageGeneration:
       Boolean(
@@ -516,6 +665,85 @@ app.post(
           : [];
 
       // ====================================================
+      // WORLDWIDE FOOTBALL
+      // ====================================================
+
+      let footballContext = "";
+      let footballUsed = false;
+
+      if (
+        shouldUseFootball(
+          userMessage
+        )
+      ) {
+        console.log(
+          "Football question detected."
+        );
+
+        try {
+          const footballType =
+            getFootballRequestType(
+              userMessage
+            );
+
+          console.log(
+            "Football request type:",
+            footballType
+          );
+
+          const football =
+            await footballFeature();
+
+          if (
+            football &&
+            typeof football.text === "string" &&
+            football.text.trim().length > 0
+          ) {
+            footballUsed = true;
+
+            footballContext = `
+
+WORLDWIDE FOOTBALL DATA:
+
+${football.text.trim()}
+
+END WORLDWIDE FOOTBALL DATA.
+
+IMPORTANT FOOTBALL INSTRUCTIONS:
+Use the supplied football data when answering the user's
+football question.
+
+Do not invent football scores, fixtures, dates, teams,
+results or match status.
+
+If the requested information is not present in the supplied
+football data, clearly say that the available football data
+does not contain the requested information.
+
+Times in the football data are displayed in Zambia time.
+`;
+
+            console.log(
+              "Worldwide football data returned."
+            );
+          } else {
+            console.log(
+              "Football feature returned no usable data."
+            );
+          }
+        } catch (error) {
+          console.error(
+            "Football feature failed:",
+            error.message
+          );
+        }
+      } else {
+        console.log(
+          "Football search not required."
+        );
+      }
+
+      // ====================================================
       // WEB SEARCH
       // ====================================================
 
@@ -630,6 +858,10 @@ ${cleanMemories.join("\n")}
 
       if (memoryText) {
         finalMessage += memoryText;
+      }
+
+      if (footballContext) {
+        finalMessage += footballContext;
       }
 
       if (searchContext) {
@@ -772,6 +1004,11 @@ Analyze the attached file when answering the question.
       );
 
       console.log(
+        "Football used:",
+        footballUsed
+      );
+
+      console.log(
         "================================="
       );
 
@@ -779,7 +1016,8 @@ Analyze the attached file when answering the question.
         ok: true,
         answer,
         provider,
-        webSearch: searchUsed
+        webSearch: searchUsed,
+        football: footballUsed
       });
 
     } catch (error) {
@@ -828,6 +1066,10 @@ app.listen(
 
     console.log(
       "Web search: enabled"
+    );
+
+    console.log(
+      "Worldwide football: enabled"
     );
 
     console.log(

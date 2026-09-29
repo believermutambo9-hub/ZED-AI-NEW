@@ -7,841 +7,539 @@ function cleanText(value = "") {
     .trim();
 }
 
-function cleanUrl(value = "") {
-  try {
-    const url = new URL(value);
-
-    if (!["http:", "https:"].includes(url.protocol)) {
-      return "";
-    }
-
-    return url.toString();
-  } catch {
-    return "";
-  }
+function formatDateForZambia() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Lusaka",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
 }
 
-function addResult(results, seen, item) {
-  const title = cleanText(item.title);
-  const snippet = cleanText(item.snippet);
-  const link = cleanUrl(item.link);
-
-  if (!title) {
-    return;
-  }
-
-  const id = item.id
-    ? String(item.id)
-    : `${title.toLowerCase()}|${link}`.slice(0, 1000);
-
-  if (seen.has(id)) {
-    return;
-  }
-
-  seen.add(id);
-
-  results.push({
-    id,
-    title,
-    snippet,
-    link
-  });
-}
-
-/* =========================================================
-   FOOTBALL DETECTION
-   ========================================================= */
-
-function isFootballQuestion(query = "") {
-  const text = query.toLowerCase();
+function isFootballQuestion(message = "") {
+  const text = String(message).toLowerCase();
 
   const footballWords = [
     "football",
     "soccer",
-    "football results",
-    "football scores",
-    "soccer results",
-    "soccer scores",
-    "football matches",
-    "soccer matches",
-    "match result",
-    "match results",
-    "match score",
-    "match scores",
-    "live score",
-    "live scores",
+    "match",
+    "matches",
+    "fixture",
+    "fixtures",
+    "result",
+    "results",
+    "score",
+    "scores",
     "premier league",
     "champions league",
     "europa league",
     "conference league",
     "la liga",
-    "bundesliga",
     "serie a",
+    "bundesliga",
     "ligue 1",
-    "fa cup",
-    "carabao cup",
+    "mls",
     "world cup",
-    "afcon",
-    "caf",
-    "mtn super league",
-    "chipolopolo",
-    "zambia national team"
+    "arsenal",
+    "chelsea",
+    "liverpool",
+    "manchester united",
+    "manchester city",
+    "barcelona",
+    "real madrid",
+    "juventus",
+    "bayern",
+    "psg"
   ];
 
-  return footballWords.some((word) =>
-    text.includes(word)
+  return footballWords.some(word => text.includes(word));
+}
+
+function shouldSearchWeb(message = "") {
+  const text = String(message).toLowerCase();
+
+  const currentWords = [
+    "today",
+    "today's",
+    "todays",
+    "tonight",
+    "now",
+    "latest",
+    "current",
+    "currently",
+    "live",
+    "recent",
+    "yesterday",
+    "tomorrow",
+    "this week",
+    "this weekend",
+    "news",
+    "result",
+    "results",
+    "score",
+    "scores",
+    "fixture",
+    "fixtures",
+    "weather",
+    "price",
+    "prices",
+    "exchange rate",
+    "who won",
+    "what happened"
+  ];
+
+  if (isFootballQuestion(text)) {
+    return true;
+  }
+
+  return currentWords.some(word => text.includes(word));
+}
+
+async function fetchJson(url) {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 Zed-AI"
+      }
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        status: response.status,
+        data: null
+      };
+    }
+
+    try {
+      return {
+        ok: true,
+        status: response.status,
+        data: JSON.parse(text)
+      };
+    } catch {
+      return {
+        ok: true,
+        status: response.status,
+        data: null
+      };
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      data: null,
+      error: error.message
+    };
+  }
+}
+
+function getTeamName(team = {}) {
+  return (
+    team.displayName ||
+    team.shortDisplayName ||
+    team.name ||
+    team.abbreviation ||
+    team.shortName ||
+    "Unknown team"
   );
 }
 
-/* =========================================================
-   DATE
-   ========================================================= */
+function getScore(competitor = {}) {
+  if (competitor.score !== undefined && competitor.score !== null) {
+    return String(competitor.score);
+  }
 
-function getZambiaDate() {
-  const now = new Date();
+  if (competitor.score?.displayValue) {
+    return String(competitor.score.displayValue);
+  }
 
-  const zambia = new Date(
-    now.toLocaleString("en-US", {
-      timeZone: "Africa/Lusaka"
-    })
-  );
-
-  const year = zambia.getFullYear();
-  const month = String(
-    zambia.getMonth() + 1
-  ).padStart(2, "0");
-
-  const day = String(
-    zambia.getDate()
-  ).padStart(2, "0");
-
-  return {
-    display: `${year}-${month}-${day}`,
-    api: `${year}${month}${day}`
-  };
+  return "-";
 }
 
-/* =========================================================
-   FOOTBALL LEAGUES
-   ========================================================= */
+function getMatchStatus(event = {}) {
+  const status = event.status || {};
+  const type = status.type || {};
 
-const FOOTBALL_LEAGUES = [
-  {
-    id: "eng.1",
-    name: "English Premier League"
-  },
-  {
-    id: "esp.1",
-    name: "La Liga"
-  },
-  {
-    id: "ita.1",
-    name: "Serie A"
-  },
-  {
-    id: "ger.1",
-    name: "Bundesliga"
-  },
-  {
-    id: "fra.1",
-    name: "Ligue 1"
-  },
-  {
-    id: "usa.1",
-    name: "MLS"
-  },
-  {
-    id: "uefa.champions",
-    name: "UEFA Champions League"
-  },
-  {
-    id: "uefa.europa",
-    name: "UEFA Europa League"
-  },
-  {
-    id: "uefa.europa.conf",
-    name: "UEFA Conference League"
-  },
-  {
-    id: "fifa.world",
-    name: "FIFA World Cup"
-  }
-];
-
-/* =========================================================
-   MATCH STATUS
-   ========================================================= */
-
-function getMatchState(status = {}) {
-  const state = String(
-    status.state || ""
-  ).toLowerCase();
-
-  if (state === "in") {
-    return "LIVE";
-  }
-
-  if (state === "post") {
+  if (type.completed === true) {
     return "Finished";
   }
 
-  return "Scheduled";
-}
-
-function getMatchStatus(status = {}) {
-  const state = String(
-    status.state || ""
-  ).toLowerCase();
-
-  if (state === "in") {
-    return (
-      cleanText(status.detail) ||
-      cleanText(status.shortDetail) ||
-      "LIVE"
-    );
+  if (
+    type.state === "in" ||
+    type.name === "STATUS_IN_PROGRESS" ||
+    type.shortDetail === "LIVE"
+  ) {
+    return "LIVE";
   }
 
-  if (state === "post") {
-    return (
-      cleanText(status.detail) ||
-      cleanText(status.shortDetail) ||
-      "Finished"
-    );
+  if (
+    type.state === "post" ||
+    type.name === "STATUS_FINAL"
+  ) {
+    return "Finished";
   }
 
   return (
-    cleanText(status.detail) ||
-    cleanText(status.shortDetail) ||
+    type.shortDetail ||
+    type.detail ||
+    type.description ||
     "Scheduled"
   );
 }
 
-/* =========================================================
-   TEAM INFORMATION
-   ========================================================= */
-
-function getTeamName(team = {}) {
-  return cleanText(
-    team.team?.displayName ||
-    team.team?.shortDisplayName ||
-    team.team?.name ||
-    team.name ||
-    "Unknown"
+function getEventTime(event = {}) {
+  return (
+    event.date ||
+    event.startDate ||
+    event.startTime ||
+    event.competitions?.[0]?.date ||
+    ""
   );
 }
 
-function getTeamScore(team = {}) {
-  if (
-    team.score === undefined ||
-    team.score === null ||
-    team.score === ""
-  ) {
-    return null;
-  }
+function getEventLink(event = {}) {
+  if (event.links && Array.isArray(event.links)) {
+    const link = event.links.find(item =>
+      item?.href?.includes("/soccer/")
+    );
 
-  return String(team.score);
-}
+    if (link?.href) {
+      return link.href;
+    }
 
-/* =========================================================
-   TIME
-   ========================================================= */
-
-function getMatchTime(event = {}) {
-  if (!event.date) {
-    return "";
-  }
-
-  try {
-    return new Date(
-      event.date
-    ).toLocaleString("en-ZM", {
-      timeZone: "Africa/Lusaka",
-      dateStyle: "medium",
-      timeStyle: "short"
-    });
-  } catch {
-    return cleanText(event.date);
-  }
-}
-
-/* =========================================================
-   MATCH LINK
-   ========================================================= */
-
-function getMatchLink(event = {}) {
-  if (
-    Array.isArray(event.links)
-  ) {
-    for (const link of event.links) {
-      const href = cleanUrl(link?.href);
-
-      if (href) {
-        return href;
-      }
+    if (event.links[0]?.href) {
+      return event.links[0].href;
     }
   }
 
   if (event.id) {
-    return (
-      "https://www.espn.com/soccer/match/_/gameId/" +
-      event.id
-    );
+    return `https://www.espn.com/soccer/match/_/gameId/${event.id}`;
   }
 
-  return "https://www.espn.com/soccer/";
+  return "";
 }
 
-/* =========================================================
-   CHECK TEAM QUERY
-   ========================================================= */
-
-function eventMatchesQuery(event, query = "") {
-  const text =
-    query.toLowerCase().trim();
-
-  /*
-   * For broad questions like:
-   * "today's football results"
-   * show all available football matches.
-   */
-
-  if (
-    text.includes("football") ||
-    text.includes("soccer") ||
-    text.includes("results") ||
-    text.includes("scores") ||
-    text.includes("matches")
-  ) {
-    return true;
-  }
-
-  const competitors =
-    event.competitions?.[0]?.competitors || [];
-
-  for (const competitor of competitors) {
-    const name =
-      getTeamName(competitor)
-        .toLowerCase();
-
-    if (
-      name &&
-      text.includes(name)
-    ) {
-      return true;
+function extractCompetitors(event = {}) {
+  if (Array.isArray(event.competitions)) {
+    for (const competition of event.competitions) {
+      if (Array.isArray(competition.competitors)) {
+        if (competition.competitors.length >= 2) {
+          return competition.competitors;
+        }
+      }
     }
   }
 
-  return false;
+  if (Array.isArray(event.competitors)) {
+    return event.competitors;
+  }
+
+  return [];
 }
 
-/* =========================================================
-   FETCH ONE FOOTBALL LEAGUE
-   ========================================================= */
+function convertEvent(event, leagueName) {
+  if (!event || typeof event !== "object") {
+    return null;
+  }
 
-async function fetchFootballLeague(
-  league,
-  date
-) {
-  try {
+  const competitors = extractCompetitors(event);
+
+  if (competitors.length < 2) {
+    return null;
+  }
+
+  const home =
+    competitors.find(team => team.homeAway === "home") ||
+    competitors[0];
+
+  const away =
+    competitors.find(team => team.homeAway === "away") ||
+    competitors[1];
+
+  const homeTeam = home?.team || home;
+  const awayTeam = away?.team || away;
+
+  const homeName = getTeamName(homeTeam);
+  const awayName = getTeamName(awayTeam);
+
+  if (
+    !homeName ||
+    !awayName ||
+    homeName === "Unknown team" ||
+    awayName === "Unknown team"
+  ) {
+    return null;
+  }
+
+  const status = getMatchStatus(event);
+
+  const homeScore = getScore(home);
+  const awayScore = getScore(away);
+
+  const date = getEventTime(event);
+
+  let timeText = "";
+
+  if (date) {
+    try {
+      timeText = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Africa/Lusaka",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).format(new Date(date));
+    } catch {
+      timeText = "";
+    }
+  }
+
+  return {
+    source: "ESPN",
+    type: "football",
+    league: leagueName,
+    homeTeam: homeName,
+    awayTeam: awayName,
+    homeScore,
+    awayScore,
+    status,
+    time: timeText,
+    date,
+    link: getEventLink(event)
+  };
+}
+
+/*
+  ESPN sometimes changes where scoreboard events appear.
+
+  This function searches the returned JSON recursively instead of
+  assuming everything is always exactly data.events.
+*/
+function findFootballEvents(value, found = []) {
+  if (!value || typeof value !== "object") {
+    return found;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      findFootballEvents(item, found);
+    }
+
+    return found;
+  }
+
+  if (
+    value.id &&
+    (
+      Array.isArray(value.competitions) ||
+      Array.isArray(value.competitors)
+    )
+  ) {
+    found.push(value);
+  }
+
+  for (const key of Object.keys(value)) {
+    findFootballEvents(value[key], found);
+  }
+
+  return found;
+}
+
+async function searchESPNFootball(date) {
+  const leagues = [
+    {
+      name: "English Premier League",
+      id: "eng.1"
+    },
+    {
+      name: "La Liga",
+      id: "esp.1"
+    },
+    {
+      name: "Serie A",
+      id: "ita.1"
+    },
+    {
+      name: "Bundesliga",
+      id: "ger.1"
+    },
+    {
+      name: "Ligue 1",
+      id: "fra.1"
+    },
+    {
+      name: "MLS",
+      id: "usa.1"
+    },
+    {
+      name: "UEFA Champions League",
+      id: "uefa.champions"
+    },
+    {
+      name: "UEFA Europa League",
+      id: "uefa.europa"
+    },
+    {
+      name: "UEFA Conference League",
+      id: "uefa.europa.conf"
+    },
+    {
+      name: "FIFA World Cup",
+      id: "fifa.world"
+    }
+  ];
+
+  const allMatches = [];
+
+  for (const league of leagues) {
+    console.log(`Checking football: ${league.name}`);
+
     const url =
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/${league.id}/scoreboard?dates=${date}`;
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/` +
+      `${league.id}/scoreboard?dates=${date}`;
+
+    const result = await fetchJson(url);
 
     console.log(
-      "Checking football:",
-      league.name
+      `${league.name} status: ${result.status}`
     );
+
+    if (!result.ok || !result.data) {
+      continue;
+    }
+
+    /*
+      First try the normal ESPN events array.
+    */
+    let events = [];
+
+    if (Array.isArray(result.data.events)) {
+      events = result.data.events;
+    }
+
+    /*
+      If ESPN changes its response structure, search the
+      entire JSON response for match objects.
+    */
+    if (events.length === 0) {
+      events = findFootballEvents(result.data);
+    }
+
+    console.log(
+      `${league.name} events found: ${events.length}`
+    );
+
+    for (const event of events) {
+      const match = convertEvent(event, league.name);
+
+      if (match) {
+        allMatches.push(match);
+      }
+    }
+  }
+
+  console.log(
+    `Football events collected: ${allMatches.length}`
+  );
+
+  /*
+    Remove duplicate matches.
+  */
+  const unique = [];
+  const seen = new Set();
+
+  for (const match of allMatches) {
+    const key = [
+      match.homeTeam,
+      match.awayTeam,
+      match.date || match.time,
+      match.league
+    ]
+      .join("|")
+      .toLowerCase();
+
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(match);
+    }
+  }
+
+  console.log(
+    `Unique football matches: ${unique.length}`
+  );
+
+  return unique;
+}
+
+async function searchDuckDuckGo(query) {
+  try {
+    const url =
+      "https://html.duckduckgo.com/html/?q=" +
+      encodeURIComponent(query);
 
     const response = await fetch(url, {
       headers: {
-        /*
-         * Do NOT pretend to be a browser.
-         * ESPN's endpoint can reject browser-style requests.
-         */
-        "User-Agent": "Zed/1.0",
-        "Accept": "application/json"
+        "User-Agent": "Mozilla/5.0 Zed-AI"
       }
     });
 
-    console.log(
-      league.name,
-      "status:",
-      response.status
-    );
-
     if (!response.ok) {
       return [];
     }
 
-    const data =
-      await response.json();
-
-    if (
-      !data ||
-      !Array.isArray(data.events)
-    ) {
-      return [];
-    }
-
-    return data.events;
-  } catch (error) {
-    console.log(
-      "Football league error:",
-      league.name,
-      error.message
-    );
-
-    return [];
-  }
-}
-
-/* =========================================================
-   SEARCH FOOTBALL
-   ========================================================= */
-
-async function searchFootballScores(
-  query = ""
-) {
-  const date =
-    getZambiaDate();
-
-  console.log(
-    "Football date:",
-    date.display
-  );
-
-  const allEvents = [];
-
-  /*
-   * Check the leagues separately.
-   *
-   * This is important because ESPN's soccer
-   * endpoint is league-specific.
-   */
-
-  for (const league of FOOTBALL_LEAGUES) {
-    const events =
-      await fetchFootballLeague(
-        league,
-        date.api
-      );
-
-    for (const event of events) {
-      allEvents.push({
-        event,
-        league
-      });
-    }
-  }
-
-  console.log(
-    "Football events collected:",
-    allEvents.length
-  );
-
-  const results = [];
-
-  /*
-   * TWO duplicate protections:
-   *
-   * 1. ESPN event ID
-   * 2. Team/date combination
-   */
-
-  const seenEventIds =
-    new Set();
-
-  const seenMatches =
-    new Set();
-
-  for (const item of allEvents) {
-    const event =
-      item.event;
-
-    const league =
-      item.league;
-
-    if (!event?.id) {
-      continue;
-    }
-
-    const eventId =
-      String(event.id);
-
-    /*
-     * Never show the same ESPN event twice.
-     */
-
-    if (
-      seenEventIds.has(eventId)
-    ) {
-      continue;
-    }
-
-    seenEventIds.add(eventId);
-
-    /*
-     * If the user asked for a specific team,
-     * filter the result.
-     */
-
-    if (
-      !eventMatchesQuery(
-        event,
-        query
-      )
-    ) {
-      continue;
-    }
-
-    const competition =
-      event.competitions?.[0];
-
-    const competitors =
-      competition?.competitors || [];
-
-    if (
-      competitors.length < 2
-    ) {
-      continue;
-    }
-
-    const home =
-      competitors.find(
-        (team) =>
-          team.homeAway === "home"
-      ) ||
-      competitors[0];
-
-    const away =
-      competitors.find(
-        (team) =>
-          team.homeAway === "away"
-      ) ||
-      competitors[1];
-
-    const homeName =
-      getTeamName(home);
-
-    const awayName =
-      getTeamName(away);
-
-    if (
-      homeName === "Unknown" ||
-      awayName === "Unknown"
-    ) {
-      continue;
-    }
-
-    /*
-     * Extra duplicate protection.
-     */
-
-    const matchKey =
-      [
-        homeName.toLowerCase(),
-        awayName.toLowerCase(),
-        event.date
-          ? String(event.date).slice(0, 10)
-          : ""
-      ].join("|");
-
-    if (
-      seenMatches.has(matchKey)
-    ) {
-      continue;
-    }
-
-    seenMatches.add(matchKey);
-
-    const homeScore =
-      getTeamScore(home);
-
-    const awayScore =
-      getTeamScore(away);
-
-    const status =
-      event.status?.type || {};
-
-    const state =
-      getMatchState(status);
-
-    const statusText =
-      getMatchStatus(status);
-
-    const matchTime =
-      getMatchTime(event);
-
-    let score;
-
-    if (
-      homeScore !== null &&
-      awayScore !== null
-    ) {
-      score =
-        `${homeName} ${homeScore} - ${awayScore} ${awayName}`;
-    } else {
-      score =
-        `${homeName} vs ${awayName}`;
-    }
-
-    const title =
-      `${score} — ${state}`;
-
-    const snippet =
-      [
-        `Status: ${statusText}`,
-        `Competition: ${league.name}`,
-        matchTime
-          ? `Zambia time: ${matchTime}`
-          : ""
-      ]
-        .filter(Boolean)
-        .join(". ") + ".";
-
-    addResult(
-      results,
-      new Set(),
-      {
-        id: eventId,
-        title,
-        snippet,
-        link: getMatchLink(event)
-      }
-    );
-  }
-
-  /*
-   * Sort:
-   * LIVE first
-   * Finished second
-   * Scheduled last
-   */
-
-  results.sort((a, b) => {
-    const getPriority = (title) => {
-      if (title.includes("LIVE")) {
-        return 1;
-      }
-
-      if (title.includes("Finished")) {
-        return 2;
-      }
-
-      return 3;
-    };
-
-    return (
-      getPriority(a.title) -
-      getPriority(b.title)
-    );
-  });
-
-  console.log(
-    "Unique football matches:",
-    results.length
-  );
-
-  return results;
-}
-
-/* =========================================================
-   DUCKDUCKGO HTML SEARCH
-   ========================================================= */
-
-async function searchDuckDuckGo(
-  query
-) {
-  try {
-    const url =
-      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(
-        query
-      )}`;
-
-    const response =
-      await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Zed/1.0",
-          "Accept":
-            "text/html"
-        }
-      });
-
-    if (!response.ok) {
-      console.log(
-        "DuckDuckGo status:",
-        response.status
-      );
-
-      return [];
-    }
-
-    const html =
-      await response.text();
+    const html = await response.text();
 
     const results = [];
-    const seen = new Set();
 
-    /*
-     * Find result links.
-     */
+    const blocks = html.split("result__body");
 
-    const regex =
-      /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    for (let i = 1; i < blocks.length; i++) {
+      const block = blocks[i];
 
-    let match;
+      const titleMatch =
+        block.match(
+          /result__a[^>]*>([\s\S]*?)<\/a>/
+        );
 
-    while (
-      (match = regex.exec(html)) !== null
-    ) {
-      let link =
-        match[1];
-
-      try {
-        link =
-          decodeURIComponent(link);
-      } catch {
-        // Keep original.
-      }
-
-      const title =
-        cleanText(match[2]);
-
-      if (
-        !title ||
-        !link
-      ) {
-        continue;
-      }
-
-      /*
-       * Try to extract a nearby snippet.
-       */
-
-      const after =
-        html.slice(
-          match.index,
-          match.index + 5000
+      const urlMatch =
+        block.match(
+          /result__a[^>]*href="([^"]+)"/
         );
 
       const snippetMatch =
-        after.match(
-          /class="result__snippet"[^>]*>([\s\S]*?)<\/(?:a|div)>/i
+        block.match(
+          /result__snippet[^>]*>([\s\S]*?)<\/a>/
+        ) ||
+        block.match(
+          /result__snippet[^>]*>([\s\S]*?)<\/div>/
         );
 
-      const snippet =
-        cleanText(
-          snippetMatch?.[1] || ""
-        );
+      if (!titleMatch) {
+        continue;
+      }
 
-      addResult(
-        results,
-        seen,
-        {
+      const title = cleanText(titleMatch[1]);
+
+      const resultUrl = urlMatch
+        ? cleanText(urlMatch[1])
+        : "";
+
+      const snippet = snippetMatch
+        ? cleanText(snippetMatch[1])
+        : "";
+
+      if (title) {
+        results.push({
+          source: "DuckDuckGo",
           title,
           snippet,
-          link
-        }
-      );
-
-      if (
-        results.length >= 20
-      ) {
-        break;
-      }
-    }
-
-    console.log(
-      "DuckDuckGo results:",
-      results.length
-    );
-
-    return results;
-  } catch (error) {
-    console.log(
-      "DuckDuckGo error:",
-      error.message
-    );
-
-    return [];
-  }
-}
-
-/* =========================================================
-   DUCKDUCKGO LITE FALLBACK
-   ========================================================= */
-
-async function searchDuckDuckGoLite(
-  query
-) {
-  try {
-    const url =
-      `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(
-        query
-      )}`;
-
-    const response =
-      await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Zed/1.0",
-          "Accept":
-            "text/html"
-        }
-      });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const html =
-      await response.text();
-
-    const results = [];
-    const seen = new Set();
-
-    const regex =
-      /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-
-    let match;
-
-    while (
-      (match = regex.exec(html)) !== null
-    ) {
-      const link =
-        cleanUrl(match[1]);
-
-      const title =
-        cleanText(match[2]);
-
-      if (
-        !link ||
-        !title
-      ) {
-        continue;
+          url: resultUrl
+        });
       }
 
-      if (
-        link.includes(
-          "duckduckgo.com"
-        )
-      ) {
-        continue;
-      }
-
-      addResult(
-        results,
-        seen,
-        {
-          title,
-          snippet: "",
-          link
-        }
-      );
-
-      if (
-        results.length >= 20
-      ) {
+      if (results.length >= 10) {
         break;
       }
     }
@@ -849,7 +547,7 @@ async function searchDuckDuckGoLite(
     return results;
   } catch (error) {
     console.log(
-      "DuckDuckGo Lite error:",
+      "DuckDuckGo search error:",
       error.message
     );
 
@@ -857,102 +555,55 @@ async function searchDuckDuckGoLite(
   }
 }
 
-/* =========================================================
-   GOOGLE NEWS RSS
-   ========================================================= */
-
-async function searchGoogleNews(
-  query
-) {
+async function searchGoogleNews(query) {
   try {
     const url =
-      `https://news.google.com/rss/search?q=${encodeURIComponent(
-        query
-      )}&hl=en&gl=US&ceid=US:en`;
+      "https://news.google.com/rss/search?q=" +
+      encodeURIComponent(query) +
+      "&hl=en-US&gl=US&ceid=US:en";
 
-    const response =
-      await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Zed/1.0",
-          "Accept":
-            "application/rss+xml, application/xml, text/xml"
-        }
-      });
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 Zed-AI"
+      }
+    });
 
     if (!response.ok) {
       return [];
     }
 
-    const xml =
-      await response.text();
-
-    const results = [];
-    const seen = new Set();
+    const xml = await response.text();
 
     const items =
-      xml.match(
-        /<item>[\s\S]*?<\/item>/gi
-      ) || [];
+      xml.match(/<item>[\s\S]*?<\/item>/g) || [];
 
-    for (const item of items) {
-      const titleMatch =
-        item.match(
-          /<title>([\s\S]*?)<\/title>/i
-        );
-
-      const linkMatch =
-        item.match(
-          /<link>([\s\S]*?)<\/link>/i
-        );
-
-      const descriptionMatch =
-        item.match(
-          /<description>([\s\S]*?)<\/description>/i
-        );
-
+    return items.slice(0, 10).map(item => {
       const title =
-        cleanText(
-          titleMatch?.[1] || ""
-        );
+        item.match(/<title>([\s\S]*?)<\/title>/)?.[1] ||
+        "";
 
       const link =
-        cleanUrl(
-          cleanText(
-            linkMatch?.[1] || ""
-          )
-        );
+        item.match(/<link>([\s\S]*?)<\/link>/)?.[1] ||
+        "";
 
-      const snippet =
-        cleanText(
-          descriptionMatch?.[1] || ""
-        );
+      const description =
+        item.match(
+          /<description>([\s\S]*?)<\/description>/
+        )?.[1] || "";
 
-      if (
-        !title ||
-        !link
-      ) {
-        continue;
-      }
+      const pubDate =
+        item.match(
+          /<pubDate>([\s\S]*?)<\/pubDate>/
+        )?.[1] || "";
 
-      addResult(
-        results,
-        seen,
-        {
-          title,
-          snippet,
-          link
-        }
-      );
-
-      if (
-        results.length >= 20
-      ) {
-        break;
-      }
-    }
-
-    return results;
+      return {
+        source: "Google News",
+        title: cleanText(title),
+        snippet: cleanText(description),
+        url: cleanText(link),
+        published: cleanText(pubDate)
+      };
+    });
   } catch (error) {
     console.log(
       "Google News error:",
@@ -963,222 +614,91 @@ async function searchGoogleNews(
   }
 }
 
-/* =========================================================
-   MAIN WEB SEARCH
-   ========================================================= */
+async function webSearch(query) {
+  const userQuery = String(query || "").trim();
 
-export async function webSearch(
-  query = ""
-) {
-  const text =
-    String(query || "").trim();
-
-  if (!text) {
+  if (!userQuery) {
     return [];
   }
 
   console.log(
-    "================================="
-  );
-
-  console.log(
-    "Zed web search:",
-    text
-  );
-
-  console.log(
-    "================================="
+    `Zed web search: ${userQuery}`
   );
 
   /*
-   * FOOTBALL
-   */
+    FOOTBALL SEARCH
+  */
+  if (isFootballQuestion(userQuery)) {
+    const date = formatDateForZambia();
 
-  if (
-    isFootballQuestion(text)
-  ) {
+    console.log(
+      `Football date: ${date}`
+    );
+
     const footballResults =
-      await searchFootballScores(
-        text
-      );
+      await searchESPNFootball(date);
 
-    if (
-      footballResults.length > 0
-    ) {
+    if (footballResults.length > 0) {
       console.log(
-        "Football search successful:",
-        footballResults.length
+        `Football search successful: ${footballResults.length}`
       );
 
-      return footballResults.slice(
-        0,
-        30
-      );
+      return footballResults;
     }
 
     console.log(
-      "Football API returned no matches."
-    );
-  }
-
-  /*
-   * NORMAL WEB SEARCH
-   */
-
-  let results =
-    await searchDuckDuckGo(
-      text
+      "Football search returned no ESPN matches. " +
+      "Trying general web search."
     );
 
-  if (
-    results.length === 0
-  ) {
-    results =
-      await searchDuckDuckGoLite(
-        text
-      );
-  }
+    const fallbackQueries = [
+      `${userQuery} ${date}`,
+      `football results ${date}`,
+      `soccer results ${date}`
+    ];
 
-  /*
-   * NEWS FALLBACK
-   */
+    const fallbackResults = [];
 
-  if (
-    results.length === 0
-  ) {
-    results =
+    for (const q of fallbackQueries) {
+      const results =
+        await searchDuckDuckGo(q);
+
+      fallbackResults.push(...results);
+
+      if (fallbackResults.length >= 10) {
+        break;
+      }
+    }
+
+    if (fallbackResults.length > 0) {
+      return fallbackResults.slice(0, 20);
+    }
+
+    const newsResults =
       await searchGoogleNews(
-        text
+        `${userQuery} ${date}`
       );
+
+    return newsResults;
   }
 
-  console.log(
-    "Final web results:",
-    results.length
-  );
+  /*
+    GENERAL WEB SEARCH
+  */
+  const duckResults =
+    await searchDuckDuckGo(userQuery);
 
-  return results.slice(
-    0,
-    20
-  );
-}
-
-/* =========================================================
-   SHOULD ZED SEARCH THE WEB?
-   ========================================================= */
-
-export function shouldSearchWeb(
-  query = ""
-) {
-  const text =
-    String(query || "")
-      .toLowerCase()
-      .trim();
-
-  if (!text) {
-    return false;
+  if (duckResults.length > 0) {
+    return duckResults.slice(0, 20);
   }
 
-  const triggers = [
-    /*
-     * Current information
-     */
-    "today",
-    "tonight",
-    "right now",
-    "now",
-    "currently",
-    "current",
-    "latest",
-    "recent",
-    "yesterday",
-    "tomorrow",
-    "this week",
-    "this month",
+  const newsResults =
+    await searchGoogleNews(userQuery);
 
-    /*
-     * News
-     */
-    "news",
-    "breaking news",
-    "what happened",
-
-    /*
-     * Football
-     */
-    "football",
-    "soccer",
-    "football results",
-    "football scores",
-    "soccer results",
-    "soccer scores",
-    "football matches",
-    "soccer matches",
-    "match result",
-    "match results",
-    "live score",
-    "live scores",
-    "premier league",
-    "champions league",
-    "europa league",
-    "conference league",
-    "la liga",
-    "bundesliga",
-    "serie a",
-    "ligue 1",
-    "fa cup",
-    "carabao cup",
-    "world cup",
-    "afcon",
-    "caf",
-    "mtn super league",
-    "chipolopolo",
-
-    /*
-     * Social / internet
-     */
-    "youtube",
-    "facebook",
-    "tiktok",
-    "instagram",
-    "twitter",
-    "x.com",
-    "social media",
-    "website",
-    "online",
-
-    /*
-     * Business / shopping
-     */
-    "price",
-    "prices",
-    "cost",
-    "costs",
-    "available",
-    "availability",
-    "buy",
-    "selling",
-    "market",
-
-    /*
-     * Public/current affairs
-     */
-    "president",
-    "government",
-    "election",
-    "elections",
-    "minister",
-    "politics",
-    "political",
-    "law",
-    "laws",
-    "new law",
-    "announcement"
-  ];
-
-  return triggers.some(
-    (trigger) =>
-      text === trigger ||
-      text.includes(trigger)
-  );
+  return newsResults.slice(0, 20);
 }
+
+export {
+  webSearch,
+  shouldSearchWeb
+};

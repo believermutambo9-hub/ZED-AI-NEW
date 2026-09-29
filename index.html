@@ -6,7 +6,6 @@
 <meta name="theme-color" content="#171717">
 <title>Zed</title>
 
-<!-- Zed typography -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -61,7 +60,6 @@ button {
   user-select: none;
 }
 
-/* ALL ZED LETTERS ORANGE */
 .zedLogo .z,
 .zedLogo .e,
 .zedLogo .d,
@@ -1364,7 +1362,6 @@ function closeMenu() {
 menuButton.addEventListener(
   "click",
   () => {
-
     if (
       menuOverlay.classList.contains(
         "closed"
@@ -1374,7 +1371,6 @@ menuButton.addEventListener(
     } else {
       closeMenu();
     }
-
   }
 );
 
@@ -1386,14 +1382,12 @@ drawerClose.addEventListener(
 menuOverlay.addEventListener(
   "click",
   event => {
-
     if (
       event.target ===
       menuOverlay
     ) {
       closeMenu();
     }
-
   }
 );
 
@@ -1402,30 +1396,22 @@ menuOverlay.addEventListener(
 ========================================= */
 
 function getLocalChats() {
-
   try {
-
     return JSON.parse(
       localStorage.getItem(
         "zed_chats"
       ) || "[]"
     );
-
   } catch {
-
     return [];
-
   }
-
 }
 
 function saveLocalChats(chats) {
-
   localStorage.setItem(
     "zed_chats",
     JSON.stringify(chats)
   );
-
 }
 
 /* =========================================
@@ -1511,11 +1497,9 @@ async function loadMemories() {
           typeof data.text === "string" &&
           data.text.trim()
         ) {
-
           memories.push(
             data.text.trim()
           );
-
         }
 
       }
@@ -1529,7 +1513,6 @@ async function loadMemories() {
     );
 
   }
-
 }
 
 function extractMemory(text) {
@@ -1549,7 +1532,6 @@ function extractMemory(text) {
       .trim();
 
   return memoryText || null;
-
 }
 
 /* =========================================
@@ -1638,7 +1620,6 @@ async function saveChatToCloud() {
     );
 
   }
-
 }
 
 /* =========================================
@@ -1667,10 +1648,8 @@ function renderHistory(chats) {
       item.addEventListener(
         "click",
         () => {
-
           loadCloudChat(chat);
           closeMenu();
-
         }
       );
 
@@ -1680,7 +1659,6 @@ function renderHistory(chats) {
 
     }
   );
-
 }
 
 async function loadCloudHistory() {
@@ -1713,7 +1691,6 @@ async function loadCloudHistory() {
         allHistoryChats.push({
           id:
             item.id,
-
           ...item.data()
         });
 
@@ -1746,7 +1723,6 @@ async function loadCloudHistory() {
     );
 
   }
-
 }
 
 searchChats.addEventListener(
@@ -1765,7 +1741,6 @@ searchChats.addEventListener(
       );
 
       return;
-
     }
 
     const filtered =
@@ -1847,7 +1822,6 @@ function saveCurrentChatLocally() {
   }
 
   saveLocalChats(chats);
-
 }
 
 async function saveCurrentChat() {
@@ -1857,7 +1831,6 @@ async function saveCurrentChat() {
   await saveChatToCloud();
 
   await loadCloudHistory();
-
 }
 
 /* =========================================
@@ -1875,7 +1848,6 @@ function renderMessages() {
     );
 
     return;
-
   }
 
   messages.forEach(
@@ -1944,13 +1916,10 @@ function renderMessages() {
 
   requestAnimationFrame(
     () => {
-
       chatArea.scrollTop =
         chatArea.scrollHeight;
-
     }
   );
-
 }
 
 function loadCloudChat(chat) {
@@ -1966,7 +1935,6 @@ function loadCloudChat(chat) {
       : [];
 
   renderMessages();
-
 }
 
 /* =========================================
@@ -1993,7 +1961,6 @@ function newChat() {
   closeMenu();
 
   messageInput.focus();
-
 }
 
 newChatButton.addEventListener(
@@ -2033,7 +2000,6 @@ function readFileAsDataURL(file) {
 
     }
   );
-
 }
 
 /* =========================================
@@ -2071,7 +2037,6 @@ async function sendMessage() {
       );
 
     }
-
   }
 
   const userMessage = {
@@ -2130,9 +2095,7 @@ async function sendMessage() {
         false;
 
       return;
-
     }
-
   }
 
   try {
@@ -2163,13 +2126,11 @@ async function sendMessage() {
                   .slice(0, -1)
                   .map(
                     message => ({
-
                       role:
                         message.role,
 
                       text:
                         message.content
-
                     })
                   ),
 
@@ -2236,7 +2197,6 @@ async function sendMessage() {
       false;
 
   }
-
 }
 
 /* =========================================
@@ -2255,7 +2215,6 @@ async function createImage() {
     );
 
     return;
-
   }
 
   attachMenu.classList.add(
@@ -2343,10 +2302,8 @@ async function createImage() {
 
     requestAnimationFrame(
       () => {
-
         chatArea.scrollTop =
           chatArea.scrollHeight;
-
       }
     );
 
@@ -2367,7 +2324,6 @@ async function createImage() {
       false;
 
   }
-
 }
 
 /* =========================================
@@ -2650,22 +2606,17 @@ onAuthStateChanged(
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="80"
                  height="80">
-
-              <rect
-                width="100%"
-                height="100%"
-                fill="#444"/>
-
-              <text
-                x="50%"
-                y="57%"
-                text-anchor="middle"
-                fill="white"
-                font-family="Arial"
-                font-size="30">
+              <rect width="100%"
+                    height="100%"
+                    fill="#444"/>
+              <text x="50%"
+                    y="57%"
+                    text-anchor="middle"
+                    fill="white"
+                    font-family="Arial"
+                    font-size="30">
                 Z
               </text>
-
             </svg>
           `);
 
@@ -2763,7 +2714,6 @@ micButton.addEventListener(
       );
 
       return;
-
     }
 
     try {

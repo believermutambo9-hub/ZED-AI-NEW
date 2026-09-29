@@ -1,6 +1,5 @@
-// Zed web search
-// Free search with multiple fallbacks.
-// No paid API key required.
+// Zed Web Search
+// Free web search + football results + news search
 
 function cleanText(value = "") {
   return String(value)
@@ -15,9 +14,7 @@ function cleanText(value = "") {
 }
 
 function cleanUrl(value = "") {
-  let url = String(value).trim();
-
-  if (!url) return "";
+  let url = String(value || "").trim();
 
   if (url.startsWith("//")) {
     url = "https:" + url;
@@ -26,10 +23,34 @@ function cleanUrl(value = "") {
   return url;
 }
 
-function buildSearchQuery(query) {
-  const text = cleanText(query);
+function addResult(results, title, link, snippet = "") {
+  title = cleanText(title);
+  link = cleanUrl(link);
+  snippet = cleanText(snippet);
 
-  const lower = text.toLowerCase();
+  if (!title || !link) return;
+
+  if (
+    link.includes("duckduckgo.com") ||
+    link.includes("google.com/search") ||
+    link.includes("bing.com/search")
+  ) {
+    return;
+  }
+
+  if (results.some(item => item.link === link)) {
+    return;
+  }
+
+  results.push({
+    title,
+    link,
+    snippet
+  });
+}
+
+function isFootballQuestion(query) {
+  const text = String(query || "").toLowerCase();
 
   const footballWords = [
     "football",
@@ -55,48 +76,24 @@ function buildSearchQuery(query) {
     "transfers"
   ];
 
-  const isFootball = footballWords.some(word =>
-    lower.includes(word)
+  return footballWords.some(word =>
+    text.includes(word)
   );
+}
 
-  if (isFootball) {
-    return `${text} football results scores fixtures today`;
+function buildSearchQuery(query) {
+  const text = cleanText(query);
+
+  if (isFootballQuestion(text)) {
+    return `${text} football results scores fixtures`;
   }
 
   return text;
 }
 
-function addResult(results, title, link, snippet = "") {
-  title = cleanText(title);
-  link = cleanUrl(link);
-  snippet = cleanText(snippet);
-
-  if (!title || !link) return;
-
-  if (
-    link.includes("duckduckgo.com") ||
-    link.includes("google.com/search") ||
-    link.includes("bing.com/search")
-  ) {
-    return;
-  }
-
-  const alreadyExists = results.some(
-    item => item.link === link
-  );
-
-  if (alreadyExists) return;
-
-  results.push({
-    title,
-    link,
-    snippet
-  });
-}
-
-/* -------------------------------------------------------
-   DuckDuckGo HTML
-------------------------------------------------------- */
+/* ======================================================
+   DUCKDUCKGO HTML SEARCH
+====================================================== */
 
 async function searchDuckDuckGo(query) {
   const results = [];
@@ -120,7 +117,7 @@ async function searchDuckDuckGo(query) {
     });
 
     console.log(
-      `[Zed Search] DuckDuckGo status: ${response.status}`
+      `[Zed Search] DuckDuckGo HTTP ${response.status}`
     );
 
     if (!response.ok) {
@@ -130,64 +127,24 @@ async function searchDuckDuckGo(query) {
     const html = await response.text();
 
     console.log(
-      `[Zed Search] DuckDuckGo response length: ${html.length}`
+      `[Zed Search] DuckDuckGo page length: ${html.length}`
     );
 
-    // Normal DuckDuckGo result blocks.
-    const resultBlocks = html.match(
-      /<div[^>]+class="[^"]*result[^"]*"[\s\S]*?<\/div>\s*<\/div>/gi
-    ) || [];
+    const regex =
+      /<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
 
-    for (const block of resultBlocks) {
-      const titleMatch =
-        block.match(
-          /class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i
-        ) ||
-        block.match(
-          /<a[^>]+href="([^"]+)"[^>]*class="[^"]*result__a[^"]*"[^>]*>([\s\S]*?)<\/a>/i
-        );
+    let match;
 
-      if (!titleMatch) continue;
-
-      const link = titleMatch[1];
-      const title = titleMatch[2];
-
-      const snippetMatch =
-        block.match(
-          /class="result__snippet"[^>]*>([\s\S]*?)<\/(?:a|div)/i
-        );
-
-      const snippet =
-        snippetMatch ? snippetMatch[1] : "";
-
+    while ((match = regex.exec(html)) !== null) {
       addResult(
         results,
-        title,
-        link,
-        snippet
+        match[2],
+        match[1],
+        ""
       );
 
-      if (results.length >= 8) break;
-    }
-
-    // Fallback: find result__a anchors directly.
-    if (results.length === 0) {
-      const anchorRegex =
-        /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-
-      let match;
-
-      while (
-        (match = anchorRegex.exec(html)) !== null
-      ) {
-        addResult(
-          results,
-          match[2],
-          match[1],
-          ""
-        );
-
-        if (results.length >= 8) break;
+      if (results.length >= 10) {
+        break;
       }
     }
 
@@ -206,9 +163,9 @@ async function searchDuckDuckGo(query) {
   }
 }
 
-/* -------------------------------------------------------
-   DuckDuckGo Lite
-------------------------------------------------------- */
+/* ======================================================
+   DUCKDUCKGO LITE SEARCH
+====================================================== */
 
 async function searchDuckDuckGoLite(query) {
   const results = [];
@@ -232,7 +189,7 @@ async function searchDuckDuckGoLite(query) {
     });
 
     console.log(
-      `[Zed Search] DuckDuckGo Lite status: ${response.status}`
+      `[Zed Search] DuckDuckGo Lite HTTP ${response.status}`
     );
 
     if (!response.ok) {
@@ -241,26 +198,12 @@ async function searchDuckDuckGoLite(query) {
 
     const html = await response.text();
 
-    console.log(
-      `[Zed Search] DuckDuckGo Lite response length: ${html.length}`
-    );
-
-    /*
-      DuckDuckGo Lite normally uses:
-
-      <a rel="nofollow" class="result-link" href="...">
-        Title
-      </a>
-    */
-
     const regex =
       /<a[^>]+class="[^"]*result-link[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
 
     let match;
 
-    while (
-      (match = regex.exec(html)) !== null
-    ) {
+    while ((match = regex.exec(html)) !== null) {
       addResult(
         results,
         match[2],
@@ -268,7 +211,9 @@ async function searchDuckDuckGoLite(query) {
         ""
       );
 
-      if (results.length >= 8) break;
+      if (results.length >= 10) {
+        break;
+      }
     }
 
     console.log(
@@ -286,43 +231,14 @@ async function searchDuckDuckGoLite(query) {
   }
 }
 
-/* -------------------------------------------------------
-   ESPN Football / Soccer
-   Free public scoreboard endpoint.
-------------------------------------------------------- */
+/* ======================================================
+   FOOTBALL SCORE SEARCH
+====================================================== */
 
 async function searchFootballScores(query) {
   const results = [];
 
-  const lower = query.toLowerCase();
-
-  const footballWords = [
-    "football",
-    "soccer",
-    "score",
-    "scores",
-    "result",
-    "results",
-    "fixture",
-    "fixtures",
-    "match",
-    "matches",
-    "premier league",
-    "champions league",
-    "europa league",
-    "conference league",
-    "afcon",
-    "world cup",
-    "super league",
-    "league table",
-    "standings"
-  ];
-
-  const isFootball = footballWords.some(word =>
-    lower.includes(word)
-  );
-
-  if (!isFootball) {
+  if (!isFootballQuestion(query)) {
     return results;
   }
 
@@ -337,7 +253,8 @@ async function searchFootballScores(query) {
       now.getUTCDate()
     ).padStart(2, "0");
 
-    const date = `${year}${month}${day}`;
+    const date =
+      `${year}${month}${day}`;
 
     const url =
       "https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard?dates=" +
@@ -346,13 +263,12 @@ async function searchFootballScores(query) {
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "User-Agent":
-          "Mozilla/5.0"
+        "User-Agent": "Zed/1.0"
       }
     });
 
     console.log(
-      `[Zed Search] ESPN status: ${response.status}`
+      `[Zed Football] ESPN HTTP ${response.status}`
     );
 
     if (!response.ok) {
@@ -367,14 +283,16 @@ async function searchFootballScores(query) {
         : [];
 
     console.log(
-      `[Zed Search] ESPN football events: ${events.length}`
+      `[Zed Football] Events found: ${events.length}`
     );
 
     for (const event of events) {
       const competition =
         event.competitions?.[0];
 
-      if (!competition) continue;
+      if (!competition) {
+        continue;
+      }
 
       const competitors =
         Array.isArray(
@@ -385,61 +303,82 @@ async function searchFootballScores(query) {
 
       const home =
         competitors.find(
-          team => team.homeAway === "home"
+          team =>
+            team.homeAway === "home"
         );
 
       const away =
         competitors.find(
-          team => team.homeAway === "away"
+          team =>
+            team.homeAway === "away"
         );
 
+      if (!home || !away) {
+        continue;
+      }
+
       const homeName =
-        home?.team?.displayName ||
-        home?.team?.name ||
+        home.team?.displayName ||
+        home.team?.name ||
         "Home";
 
       const awayName =
-        away?.team?.displayName ||
-        away?.team?.name ||
+        away.team?.displayName ||
+        away.team?.name ||
         "Away";
 
       const homeScore =
-        home?.score ?? "-";
+        home.score ?? "-";
 
       const awayScore =
-        away?.score ?? "-";
+        away.score ?? "-";
 
-      const status =
-        event.status?.type?.shortDetail ||
-        event.status?.type?.detail ||
+      const statusType =
+        event.status?.type;
+
+      let status =
+        statusType?.shortDetail ||
+        statusType?.detail ||
         "Scheduled";
 
+      const state =
+        statusType?.state ||
+        "";
+
+      if (state === "post") {
+        status = "Finished";
+      } else if (state === "in") {
+        status = "LIVE";
+      } else if (state === "pre") {
+        status = "Scheduled";
+      }
+
       const league =
-        event.leagues?.[0]?.name ||
         event.league?.name ||
+        event.leagues?.[0]?.name ||
         "Football";
+
+      const eventTime =
+        event.date
+          ? new Date(event.date).toISOString()
+          : "";
 
       const title =
         `${homeName} ${homeScore} - ${awayScore} ${awayName}`;
 
       const snippet =
-        `${league} — ${status}. ` +
-        `Football match information for ${date}.`;
+        `Status: ${status}. ` +
+        `Competition: ${league}. ` +
+        `Match time: ${eventTime}.`;
 
       addResult(
         results,
         title,
-        `https://www.espn.com/soccer/`,
+        "https://www.espn.com/soccer/",
         snippet
       );
 
-      /*
-        We use the ESPN page as the source link.
-        The actual score is placed in the title/snippet
-        so Zed can answer the user directly.
-      */
-
-      if (results.length >= 15) {
+      if (results.length >= 20) {
         break;
       }
     }
@@ -447,7 +386,7 @@ async function searchFootballScores(query) {
     return results;
   } catch (error) {
     console.log(
-      "[Zed Search] ESPN football error:",
+      "[Zed Football] Error:",
       error.message
     );
 
@@ -455,10 +394,9 @@ async function searchFootballScores(query) {
   }
 }
 
-/* -------------------------------------------------------
-   Google News RSS
-   Useful for current news and updates.
-------------------------------------------------------- */
+/* ======================================================
+   GOOGLE NEWS RSS
+====================================================== */
 
 async function searchGoogleNews(query) {
   const results = [];
@@ -473,27 +411,25 @@ async function searchGoogleNews(query) {
       method: "GET",
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-          "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+          "Mozilla/5.0"
       }
     });
 
     console.log(
-      `[Zed Search] Google News status: ${response.status}`
+      `[Zed News] Google News HTTP ${response.status}`
     );
 
     if (!response.ok) {
       return results;
     }
 
-    const xml = await response.text();
-
-    console.log(
-      `[Zed Search] Google News response length: ${xml.length}`
-    );
+    const xml =
+      await response.text();
 
     const items =
-      xml.match(/<item>[\s\S]*?<\/item>/gi) || [];
+      xml.match(
+        /<item>[\s\S]*?<\/item>/gi
+      ) || [];
 
     for (const item of items) {
       const titleMatch =
@@ -530,19 +466,19 @@ async function searchGoogleNews(query) {
           : ""
       );
 
-      if (results.length >= 8) {
+      if (results.length >= 10) {
         break;
       }
     }
 
     console.log(
-      `[Zed Search] Google News results: ${results.length}`
+      `[Zed News] Results: ${results.length}`
     );
 
     return results;
   } catch (error) {
     console.log(
-      "[Zed Search] Google News error:",
+      "[Zed News] Error:",
       error.message
     );
 
@@ -550,12 +486,13 @@ async function searchGoogleNews(query) {
   }
 }
 
-/* -------------------------------------------------------
-   Main search function
-------------------------------------------------------- */
+/* ======================================================
+   MAIN WEB SEARCH
+====================================================== */
 
 export async function webSearch(query) {
-  const cleanQuery = cleanText(query);
+  const cleanQuery =
+    cleanText(query);
 
   if (!cleanQuery) {
     return {
@@ -565,26 +502,29 @@ export async function webSearch(query) {
     };
   }
 
+  console.log(
+    `[Zed Search] Query: ${cleanQuery}`
+  );
+
   const searchQuery =
     buildSearchQuery(cleanQuery);
-
-  console.log(
-    `[Zed Search] Searching for: ${searchQuery}`
-  );
 
   let results = [];
 
   /*
-    Football gets the dedicated sports source first.
+    Football questions use the dedicated
+    football source first.
   */
-  const footballResults =
-    await searchFootballScores(
-      cleanQuery
-    );
+  if (isFootballQuestion(cleanQuery)) {
+    const footballResults =
+      await searchFootballScores(
+        cleanQuery
+      );
 
-  results.push(
-    ...footballResults
-  );
+    results.push(
+      ...footballResults
+    );
+  }
 
   /*
     General web search.
@@ -615,7 +555,7 @@ export async function webSearch(query) {
   }
 
   /*
-    News fallback for current/news questions.
+    News fallback.
   */
   if (
     results.length === 0 &&
@@ -633,15 +573,14 @@ export async function webSearch(query) {
     );
   }
 
-  /*
-    Remove duplicates.
-  */
   const uniqueResults = [];
 
   for (const result of results) {
     if (
       !uniqueResults.some(
-        item => item.link === result.link
+        item =>
+          item.link === result.link &&
+          item.title === result.title
       )
     ) {
       uniqueResults.push(result);
@@ -649,22 +588,23 @@ export async function webSearch(query) {
   }
 
   const finalResults =
-    uniqueResults.slice(0, 15);
+    uniqueResults.slice(0, 20);
 
   console.log(
     `[Zed Search] FINAL RESULTS: ${finalResults.length}`
   );
 
   return {
-    ok: finalResults.length > 0,
+    ok:
+      finalResults.length > 0,
     query: cleanQuery,
     results: finalResults
   };
 }
 
-/* -------------------------------------------------------
-   Decide whether Zed should search the web.
-------------------------------------------------------- */
+/* ======================================================
+   WHEN SHOULD ZED SEARCH?
+====================================================== */
 
 export function shouldSearchWeb(message) {
   const text =
@@ -676,7 +616,8 @@ export function shouldSearchWeb(message) {
     return false;
   }
 
-  const currentInformationWords = [
+  const triggers = [
+    // Current information
     "latest",
     "today",
     "tonight",
@@ -697,10 +638,8 @@ export function shouldSearchWeb(message) {
     "what happened",
     "what's happening",
     "whats happening",
-    "happening today"
-  ];
 
-  const footballWords = [
+    // Football
     "football",
     "soccer",
     "score",
@@ -721,10 +660,9 @@ export function shouldSearchWeb(message) {
     "league table",
     "standings",
     "transfer",
-    "transfers"
-  ];
+    "transfers",
 
-  const internetWords = [
+    // Internet
     "youtube",
     "facebook",
     "tiktok",
@@ -735,10 +673,9 @@ export function shouldSearchWeb(message) {
     "online",
     "search",
     "look up",
-    "find online"
-  ];
+    "find online",
 
-  const businessWords = [
+    // Current business information
     "price",
     "prices",
     "cost",
@@ -752,10 +689,9 @@ export function shouldSearchWeb(message) {
     "store",
     "business",
     "near me",
-    "nearby"
-  ];
+    "nearby",
 
-  const publicFigureWords = [
+    // Public/current information
     "president",
     "minister",
     "government",
@@ -765,15 +701,7 @@ export function shouldSearchWeb(message) {
     "donald trump"
   ];
 
-  const allTriggers = [
-    ...currentInformationWords,
-    ...footballWords,
-    ...internetWords,
-    ...businessWords,
-    ...publicFigureWords
-  ];
-
-  return allTriggers.some(
+  return triggers.some(
     word => text.includes(word)
   );
 }

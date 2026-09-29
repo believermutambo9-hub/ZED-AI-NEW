@@ -3,9 +3,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
 
-const memory = new Map();
-const interactions = new Map();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -32,16 +29,13 @@ const ALLOWED_FILE_TYPES = new Set([
 app.use(express.json({ limit: "20mb" }));
 app.use(express.static(__dirname));
 
-/* =========================
-   HOME
-========================= */
-
 app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+
 /* =========================
-   HEALTH
+   HEALTH CHECK
 ========================= */
 
 app.get("/health", (_req, res) => {
@@ -51,51 +45,16 @@ app.get("/health", (_req, res) => {
     provider: "gemini-with-groq-and-openrouter-fallback",
     geminiModel,
     fileAnalysis: true,
-    imageGeneration:
-      "cloudflare-flux-1-schnell"
+    imageGeneration: "cloudflare-flux-1-schnell"
   });
 });
 
-/* =========================
-   MEMORY API
-========================= */
-
-app.post("/api/memory", (req, res) => {
-  const userId =
-    typeof req.body?.userId === "string"
-      ? req.body.userId.trim()
-      : "";
-
-  const text =
-    typeof req.body?.text === "string"
-      ? req.body.text.trim()
-      : "";
-
-  if (!userId || !text) {
-    return res.status(400).json({
-      error: "Memory information is missing."
-    });
-  }
-
-  const memories = memory.get(userId) || [];
-
-  if (!memories.includes(text)) {
-    memories.push(text);
-  }
-
-  memory.set(userId, memories);
-
-  return res.json({
-    ok: true,
-    memories
-  });
-});
 
 /* =========================
-   GEMINI SYSTEM PROMPT
+   SYSTEM PROMPT
 ========================= */
 
-function systemPrompt(memoryText) {
+function systemPrompt(memoryText = "") {
   return (
     "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
     "Always explain things using simple, clear and easy-to-understand English. " +
@@ -104,48 +63,35 @@ function systemPrompt(memoryText) {
     "Zambian context, currency (ZMW/Kwacha), and everyday examples. " +
     "You may communicate in a Zambian local language when appropriate, " +
     "but never guess the user's local language. " +
-    "When responding, make sure you summarize your answers. " +
+    "When responding, make sure you summarize your answers when useful. " +
     "Do not claim to be human. " +
     "When a user uploads an image or PDF, inspect the uploaded content " +
     "carefully and answer based on the actual file. " +
-    "Do not pretend you analyzed a file if you could not process it.\n" +
+    "Do not pretend you analyzed a file if you could not process it.\n\n" +
     "Saved memories:\n" +
     (memoryText || "No saved memories yet.")
   );
 }
 
-/* =========================
-   GEMINI NEW
-========================= */
-
-async function askGeminiNew(prompt) {
-  const response = await ai.models.generateContent({
-    model: geminiModel,
-    contents: prompt
-  });
-
-  return response.text;
-}
 
 /* =========================
-   GEMINI CHAT + FILE ANALYSIS
+   GEMINI
 ========================= */
 
 async function askGemini(
-  messages,
+  conversation,
+  memories,
   apiKey,
   file = null
 ) {
-  const memoryText = messages
-    .filter(message => message.role === "memory")
-    .map(message => message.text)
+
+  const memoryText = memories
+    .filter(item => typeof item === "string")
+    .map(item => item.trim())
+    .filter(Boolean)
     .join("\n");
 
-  const normalMessages = messages.filter(
-    message => message.role !== "memory"
-  );
-
-  const contents = normalMessages.map(message => ({
+  const contents = conversation.map(message => ({
     role:
       message.role === "assistant"
         ? "model"
@@ -158,19 +104,19 @@ async function askGemini(
     ]
   }));
 
-  /* =========================
-     ATTACH FILE
-  ========================= */
-
   if (file) {
-    const base64Data = file.data
-      .replace(/^data:[^;]+;base64,/, "")
-      .replace(/\s/g, "");
+
+    const base64Data =
+      file.data
+        .replace(/^data:[^;]+;base64,/, "")
+        .replace(/\s/g, "");
 
     const lastUserMessage =
       [...contents]
         .reverse()
-        .find(item => item.role === "user");
+        .find(
+          item => item.role === "user"
+        );
 
     if (!lastUserMessage) {
       throw new Error(
@@ -187,9 +133,7 @@ async function askGemini(
   }
 
   const endpoint =
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      geminiModel
-    )}:generateContent`;
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`;
 
   const response = await fetch(
     endpoint,
@@ -215,7 +159,8 @@ async function askGemini(
     }
   );
 
-  const data = await response.json();
+  const data =
+    await response.json();
 
   return {
     response,
@@ -223,14 +168,50 @@ async function askGemini(
   };
 }
 
+
 /* =========================
-   GROQ
+   GROQ FALLBACK
 ========================= */
 
 async function askGroq(
-  message,
+  conversation,
+  memories,
   apiKey
 ) {
+
+  const memoryText = memories
+    .filter(item => typeof item === "string")
+    .map(item => item.trim())
+    .filter(Boolean)
+    .join("\n");
+
+  const groqMessages = [
+    {
+      role: "system",
+      content: systemPrompt(memoryText)
+    }
+  ];
+
+  for (const message of conversation) {
+
+    if (
+      message.role !== "user" &&
+      message.role !== "assistant"
+    ) {
+      continue;
+    }
+
+    groqMessages.push({
+      role:
+        message.role === "assistant"
+          ? "assistant"
+          : "user",
+
+      content:
+        String(message.text || "")
+    });
+  }
+
   const response = await fetch(
     "https://api.groq.com/openai/v1/chat/completions",
     {
@@ -238,46 +219,72 @@ async function askGroq(
 
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+
+        "Authorization":
+          `Bearer ${apiKey}`
       },
 
       body: JSON.stringify({
         model: "openai/gpt-oss-120b",
 
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
-              "Always give clear, practical and accurate answers. " +
-              "Use simple English unless technical detail is requested. " +
-              "When relevant, use Zambian context, ZMW/Kwacha, and everyday examples. " +
-              "Do not claim to be human."
-          },
-
-          {
-            role: "user",
-            content: message
-          }
-        ]
+        messages: groqMessages
       })
     }
   );
 
+  const data =
+    await response.json();
+
   return {
     response,
-    data: await response.json()
+    data
   };
 }
 
+
 /* =========================
-   OPENROUTER
+   OPENROUTER FALLBACK
 ========================= */
 
 async function askOpenRouter(
-  message,
+  conversation,
+  memories,
   apiKey
 ) {
+
+  const memoryText = memories
+    .filter(item => typeof item === "string")
+    .map(item => item.trim())
+    .filter(Boolean)
+    .join("\n");
+
+  const routerMessages = [
+    {
+      role: "system",
+      content: systemPrompt(memoryText)
+    }
+  ];
+
+  for (const message of conversation) {
+
+    if (
+      message.role !== "user" &&
+      message.role !== "assistant"
+    ) {
+      continue;
+    }
+
+    routerMessages.push({
+      role:
+        message.role === "assistant"
+          ? "assistant"
+          : "user",
+
+      content:
+        String(message.text || "")
+    });
+  }
+
   const response = await fetch(
     "https://openrouter.ai/api/v1/chat/completions",
     {
@@ -285,46 +292,43 @@ async function askOpenRouter(
 
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+
+        "Authorization":
+          `Bearer ${apiKey}`,
+
         "HTTP-Referer":
           "https://zed-ai-h7h4.onrender.com",
-        "X-Title": "Zed AI"
+
+        "X-Title":
+          "Zed AI"
       },
 
       body: JSON.stringify({
         model: "openrouter/free",
 
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are Zed AI, a helpful, friendly and intelligent AI assistant. " +
-              "Always give clear, practical and accurate answers. " +
-              "Use simple English unless technical detail is requested. " +
-              "When relevant, use Zambian context, ZMW/Kwacha, and everyday examples. " +
-              "Do not claim to be human."
-          },
-
-          {
-            role: "user",
-            content: message
-          }
-        ]
+        messages: routerMessages
       })
     }
   );
 
+  const data =
+    await response.json();
+
   return {
     response,
-    data: await response.json()
+    data
   };
 }
+
 
 /* =========================
    CLOUDFLARE IMAGE GENERATION
 ========================= */
 
-async function generateCloudflareImage(prompt) {
+async function generateCloudflareImage(
+  prompt
+) {
+
   const accountId =
     process.env.CLOUDFLARE_ACCOUNT_ID;
 
@@ -355,8 +359,11 @@ async function generateCloudflareImage(prompt) {
       method: "POST",
 
       headers: {
-        "Authorization": `Bearer ${apiToken}`,
-        "Content-Type": "application/json"
+        "Authorization":
+          `Bearer ${apiToken}`,
+
+        "Content-Type":
+          "application/json"
       },
 
       body: JSON.stringify({
@@ -366,7 +373,8 @@ async function generateCloudflareImage(prompt) {
     }
   );
 
-  const data = await response.json();
+  const data =
+    await response.json();
 
   return {
     response,
@@ -374,12 +382,17 @@ async function generateCloudflareImage(prompt) {
   };
 }
 
+
 /* =========================
    FILE VALIDATION
 ========================= */
 
 function validateFile(file) {
-  if (!file || typeof file !== "object") {
+
+  if (
+    !file ||
+    typeof file !== "object"
+  ) {
     return {
       valid: false,
       error:
@@ -411,9 +424,7 @@ function validateFile(file) {
   }
 
   if (
-    !ALLOWED_FILE_TYPES.has(
-      mimeType
-    )
+    !ALLOWED_FILE_TYPES.has(mimeType)
   ) {
     return {
       valid: false,
@@ -430,12 +441,10 @@ function validateFile(file) {
     };
   }
 
-  const base64Data = data
-    .replace(
-      /^data:[^;]+;base64,/,
-      ""
-    )
-    .replace(/\s/g, "");
+  const base64Data =
+    data
+      .replace(/^data:[^;]+;base64,/, "")
+      .replace(/\s/g, "");
 
   const estimatedSize =
     Math.floor(
@@ -464,24 +473,29 @@ function validateFile(file) {
   };
 }
 
+
 /* =========================
-   IMAGE GENERATION API
+   IMAGE API
 ========================= */
 
 app.post(
   "/api/generate-image",
   async (req, res) => {
+
     try {
+
       const prompt =
         typeof req.body?.prompt === "string"
           ? req.body.prompt.trim()
           : "";
 
       if (!prompt) {
+
         return res.status(400).json({
           error:
             "Please enter an image description."
         });
+
       }
 
       const result =
@@ -490,6 +504,7 @@ app.post(
         );
 
       if (!result.response.ok) {
+
         console.error(
           "Cloudflare image API error:",
           result.response.status,
@@ -504,28 +519,27 @@ app.post(
         return res.status(502).json({
           error: cloudflareError
         });
+
       }
 
       let base64Image =
         result.data?.result?.image;
 
-      /*
-       * Some Workers AI responses
-       * may return the result directly.
-       */
-
       if (
         typeof base64Image !== "string" &&
         typeof result.data?.result === "string"
       ) {
+
         base64Image =
           result.data.result;
+
       }
 
       if (
         typeof base64Image !== "string" ||
         !base64Image
       ) {
+
         console.error(
           "Cloudflare returned no image:",
           result.data
@@ -535,6 +549,7 @@ app.post(
           error:
             "Cloudflare did not return an image."
         });
+
       }
 
       const imageData =
@@ -550,6 +565,7 @@ app.post(
       });
 
     } catch (error) {
+
       console.error(
         "Cloudflare image generation error:",
         error
@@ -560,27 +576,35 @@ app.post(
           error.message ||
           "Zed AI could not generate the image."
       });
+
     }
+
   }
 );
 
+
 /* =========================
-   GEMINI INTERACTIONS TEST
+   GEMINI TEST
 ========================= */
 
 app.post(
   "/api/gemini-test",
   async (req, res) => {
+
     try {
+
       const prompt =
         typeof req.body?.message === "string"
           ? req.body.message.trim()
           : "";
 
       if (!prompt) {
+
         return res.status(400).json({
-          error: "Please enter a message."
+          error:
+            "Please enter a message."
         });
+
       }
 
       const result =
@@ -590,21 +614,28 @@ app.post(
         });
 
       return res.json({
+
         ok: true,
-        interactionId: result.id,
-        text: result.outputs
-          ?.filter(
-            output =>
-              output.type === "text"
-          )
-          ?.map(
-            output =>
-              output.text
-          )
-          ?.join("") || ""
+
+        interactionId:
+          result.id,
+
+        text:
+          result.outputs
+            ?.filter(
+              output =>
+                output.type === "text"
+            )
+            ?.map(
+              output =>
+                output.text
+            )
+            ?.join("") || ""
+
       });
 
     } catch (error) {
+
       console.error(
         "Gemini Interactions test error:",
         error
@@ -615,18 +646,23 @@ app.post(
           error.message ||
           "Gemini Interactions request failed."
       });
+
     }
+
   }
 );
 
+
 /* =========================
-   CHAT API
+   MAIN CHAT
 ========================= */
 
 app.post(
   "/api/chat",
   async (req, res) => {
+
     try {
+
       const message =
         typeof req.body?.message === "string"
           ? req.body.message.trim()
@@ -638,11 +674,6 @@ app.post(
         )
           ? req.body.conversation
           : [];
-
-      const userId =
-        typeof req.body?.userId === "string"
-          ? req.body.userId.trim()
-          : "";
 
       const clientMemories =
         Array.isArray(
@@ -660,23 +691,25 @@ app.post(
               .filter(Boolean)
           : [];
 
-      /* =========================
-         FILE
-      ========================= */
-
       let uploadedFile = null;
 
+
+      /* FILE */
+
       if (req.body?.file) {
+
         const validation =
           validateFile(
             req.body.file
           );
 
         if (!validation.valid) {
+
           return res.status(400).json({
             error:
               validation.error
           });
+
         }
 
         uploadedFile =
@@ -687,55 +720,42 @@ app.post(
           uploadedFile.name,
           uploadedFile.mimeType
         );
+
       }
+
+
+      /* MESSAGE CHECK */
 
       if (
         !message &&
         !uploadedFile
       ) {
+
         return res.status(400).json({
           error:
             "Please enter a message or upload a file."
         });
+
       }
 
-      /* =========================
-         REMEMBER
-      ========================= */
 
-      if (
-        userId &&
-        message &&
-        /^remember\b/i.test(message)
-      ) {
-        const memoryText =
-          message
-            .replace(
-              /^remember\b\s*(that)?\s*/i,
-              ""
-            )
-            .trim();
+      /*
+       * Build one conversation containing
+       * the previous messages plus the
+       * current user message.
+       */
 
-        if (memoryText) {
-          const existing =
-            memory.get(userId) || [];
+      const fullConversation = [
+        ...conversation,
 
-          if (
-            !existing.includes(
-              memoryText
-            )
-          ) {
-            existing.push(
-              memoryText
-            );
-          }
-
-          memory.set(
-            userId,
-            existing
-          );
+        {
+          role: "user",
+          text:
+            message ||
+            "Please analyze the uploaded file and tell me what you find."
         }
-      }
+      ];
+
 
       /* =========================
          GEMINI
@@ -745,35 +765,21 @@ app.post(
         process.env.GEMINI_API_KEY;
 
       if (geminiKey) {
+
         try {
+
           const gemini =
             await askGemini(
-              [
-                ...clientMemories.map(
-                  text => ({
-                    role: "memory",
-                    text
-                  })
-                ),
-
-                ...conversation,
-
-                {
-                  role: "user",
-                  text:
-                    message ||
-                    "Please analyze the uploaded file and tell me what you find."
-                }
-              ],
-
+              fullConversation,
+              clientMemories,
               geminiKey,
-
               uploadedFile
             );
 
           if (
             gemini.response.ok
           ) {
+
             const reply =
               gemini.data
                 ?.candidates?.[0]
@@ -782,88 +788,102 @@ app.post(
                   part =>
                     part.text || ""
                 )
-                .join("")
-                .trim();
+                ?.join("")
+                ?.trim();
 
             if (reply) {
+
               return res.json({
                 reply,
-                provider:
-                  "gemini",
+                provider: "gemini",
                 fileAnalyzed:
                   Boolean(
                     uploadedFile
                   )
               });
+
             }
+
           }
 
           console.error(
             "Gemini unavailable:",
             gemini.response.status,
-            gemini.data
-              ?.error?.message
+            gemini.data?.error?.message
           );
 
+
           /*
-           * Do not fall back to a
-           * text-only AI when a file
-           * was uploaded.
+           * Uploaded files require Gemini.
+           * Do not send a file to a text-only
+           * fallback.
            */
 
           if (uploadedFile) {
+
             return res.status(502).json({
               error:
-                gemini.data?.error
-                  ?.message ||
+                gemini.data?.error?.message ||
                 "Gemini could not analyze the uploaded file. Please try again."
             });
+
           }
 
         } catch (error) {
+
           console.error(
             "Gemini request failed:",
             error
           );
 
           if (uploadedFile) {
+
             return res.status(502).json({
               error:
                 error.message ||
                 "Zed AI could not analyze the uploaded file."
             });
+
           }
+
         }
 
       } else if (uploadedFile) {
+
         return res.status(500).json({
           error:
             "Gemini API key is not configured. File analysis requires Gemini."
         });
+
       }
 
+
       /* =========================
-         GROQ FALLBACK
+         GROQ BACKUP
       ========================= */
 
       const groqKey =
         process.env.GROQ_API_KEY;
 
       if (groqKey) {
+
         try {
+
           console.log(
             "Using Groq backup."
           );
 
           const groq =
             await askGroq(
-              message,
+              fullConversation,
+              clientMemories,
               groqKey
             );
 
           if (
             groq.response.ok
           ) {
+
             const reply =
               groq.data
                 ?.choices?.[0]
@@ -872,12 +892,14 @@ app.post(
                 ?.trim();
 
             if (reply) {
+
               return res.json({
                 reply,
-                provider:
-                  "groq"
+                provider: "groq"
               });
+
             }
+
           }
 
           console.error(
@@ -887,35 +909,43 @@ app.post(
           );
 
         } catch (error) {
+
           console.error(
             "Groq request failed:",
             error
           );
+
         }
+
       }
 
+
       /* =========================
-         OPENROUTER FALLBACK
+         OPENROUTER BACKUP
       ========================= */
 
       const openRouterKey =
         process.env.OPENROUTER_API_KEY;
 
       if (openRouterKey) {
+
         try {
+
           console.log(
             "Using OpenRouter backup."
           );
 
           const openRouter =
             await askOpenRouter(
-              message,
+              fullConversation,
+              clientMemories,
               openRouterKey
             );
 
           if (
             openRouter.response.ok
           ) {
+
             const reply =
               openRouter.data
                 ?.choices?.[0]
@@ -924,12 +954,15 @@ app.post(
                 ?.trim();
 
             if (reply) {
+
               return res.json({
                 reply,
                 provider:
                   "openrouter"
               });
+
             }
+
           }
 
           console.error(
@@ -939,19 +972,29 @@ app.post(
           );
 
         } catch (error) {
+
           console.error(
             "OpenRouter request failed:",
             error
           );
+
         }
+
       }
+
+
+      /* =========================
+         EVERYTHING FAILED
+      ========================= */
 
       return res.status(502).json({
         error:
           "All AI services are currently unavailable. Please try again."
       });
 
+
     } catch (error) {
+
       console.error(
         "Zed AI server error:",
         error
@@ -961,9 +1004,12 @@ app.post(
         error:
           "Zed AI could not complete the request. Please try again."
       });
+
     }
+
   }
 );
+
 
 /* =========================
    START SERVER
@@ -973,8 +1019,10 @@ app.listen(
   port,
   "0.0.0.0",
   () => {
+
     console.log(
       `Zed AI running on port ${port}`
     );
+
   }
 );

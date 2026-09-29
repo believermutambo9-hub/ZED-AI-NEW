@@ -9,7 +9,12 @@ import {
 } from "./web-search.js";
 
 import {
-  footballFeature
+  footballFeature,
+  footballTeamFeature,
+  footballLeagueFeature,
+  detectFootballTeam,
+  detectFootballLeague,
+  getFootballRequestType
 } from "./features/football.js";
 
 const __filename = fileURLToPath(import.meta.url);

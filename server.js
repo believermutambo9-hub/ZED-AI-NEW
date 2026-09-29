@@ -14,9 +14,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 10000;
 
-// ============================================================
-// CONFIGURATION
-// ============================================================
+// ======================================================
+// SETTINGS
+// ======================================================
 
 const geminiModel =
   process.env.GEMINI_MODEL || "gemini-3.8-flash";
@@ -40,9 +40,9 @@ const cloudflareImageModel =
   process.env.CLOUDFLARE_IMAGE_MODEL ||
   "@cf/black-forest-labs/flux-1-schnell";
 
-// ============================================================
-// APP SETTINGS
-// ============================================================
+// ======================================================
+// EXPRESS
+// ======================================================
 
 app.use(
   express.json({
@@ -57,96 +57,61 @@ app.use(
   })
 );
 
-app.use(
-  express.static(
-    path.join(__dirname)
-  )
-);
+app.use(express.static(__dirname));
 
-// ============================================================
-// SIMPLE SERVER MEMORY
-// ============================================================
-
-const memory = new Map();
-
-const MAX_MEMORY_MESSAGES = 20;
-
-// ============================================================
-// SYSTEM PROMPT
-// ============================================================
+// ======================================================
+// ZED SYSTEM PROMPT
+// ======================================================
 
 const systemPrompt = `
 You are Zed, a helpful AI assistant.
 
-Your job is to answer the user's questions accurately, clearly,
-and naturally.
+Answer the user naturally, accurately and clearly.
 
-IMPORTANT WEB SEARCH RULES:
+CURRENT INFORMATION:
+When CURRENT WEB SEARCH RESULTS are supplied in the user's
+message, use those results as the source of current information.
 
-If CURRENT WEB SEARCH RESULTS are provided in the conversation,
-use them when answering the user's question.
+Never say that you cannot browse the internet when current
+web search results have been supplied.
 
-Do NOT say that you cannot browse the internet if web search
-results were provided.
+Never invent current information.
 
-Do NOT claim that you have no live internet search capability
-when current search information has been supplied to you.
+For football questions, use the football results supplied by
+the web search.
 
-Use the supplied search results as your source of current
-information.
+Do not invent football scores, teams, dates, fixtures,
+standings or results.
 
-If the search results do not contain enough information,
-say clearly that the available search information is limited.
+If the supplied search information is incomplete, say so.
 
-Never invent facts, football scores, dates, teams, players,
-events, prices, news, or statistics.
+For normal questions, answer normally.
 
-For football questions, use the current football search results
-provided by the system.
-
-For general questions, answer normally.
-
-Be helpful, concise, and conversational.
-
-If the user asks for an explanation, explain things simply.
-
-If the user asks for steps, give clear numbered steps.
-
-If the user asks about something current and web results are
-available, prioritize those current results over old knowledge.
-
-Never pretend that you searched something if no search results
-were provided.
-
-You are called Zed.
+Keep answers useful and easy to understand.
 `;
 
-// ============================================================
+// ======================================================
 // GEMINI
-// ============================================================
+// ======================================================
 
 async function askGemini(messages) {
   if (!geminiApiKey) {
-    throw new Error(
-      "GEMINI_API_KEY is not configured."
-    );
+    throw new Error("GEMINI_API_KEY is missing.");
   }
 
   const ai = new GoogleGenAI({
     apiKey: geminiApiKey
   });
 
-  const contents = messages.map((message) => ({
+  const contents = messages.map((item) => ({
     role:
-      message.role === "assistant"
+      item.role === "assistant"
         ? "model"
         : "user",
 
     parts: [
       {
-        text: String(
-          message.text || ""
-        )
+        text: String(item.text || "")
       }
     ]
   }));
@@ -158,40 +123,33 @@ async function askGemini(messages) {
       contents,
 
       config: {
-        systemInstruction:
-          systemPrompt,
-
+        systemInstruction: systemPrompt,
         temperature: 0.7,
-
         maxOutputTokens: 4096
       }
     });
 
-  const text =
+  const answer =
     response?.text ||
     response?.candidates?.[0]?.content?.parts
       ?.map((part) => part.text || "")
       .join("") ||
     "";
 
-  if (!text.trim()) {
-    throw new Error(
-      "Gemini returned an empty response."
-    );
+  if (!answer.trim()) {
+    throw new Error("Gemini returned an empty response.");
   }
 
-  return text.trim();
+  return answer.trim();
 }
 
-// ============================================================
-// GROQ FALLBACK
-// ============================================================
+// ======================================================
+// GROQ
+// ======================================================
 
 async function askGroq(messages) {
   if (!groqApiKey) {
-    throw new Error(
-      "GROQ_API_KEY is not configured."
-    );
+    throw new Error("GROQ_API_KEY is missing.");
   }
 
   const groqMessages = [
@@ -200,15 +158,13 @@ async function askGroq(messages) {
       content: systemPrompt
     },
 
-    ...messages.map((message) => ({
+    ...messages.map((item) => ({
       role:
-        message.role === "assistant"
+        item.role === "assistant"
           ? "assistant"
           : "user",
 
-      content: String(
-        message.text || ""
-      )
+      content: String(item.text || "")
     }))
   ];
 
@@ -218,11 +174,8 @@ async function askGroq(messages) {
       method: "POST",
 
       headers: {
-        "Content-Type":
-          "application/json",
-
-        Authorization:
-          `Bearer ${groqApiKey}`
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${groqApiKey}`
       },
 
       body: JSON.stringify({
@@ -240,39 +193,32 @@ async function askGroq(messages) {
   );
 
   if (!response.ok) {
-    const errorText =
-      await response.text();
+    const error = await response.text();
 
     throw new Error(
-      `Groq error ${response.status}: ${errorText}`
+      `Groq ${response.status}: ${error}`
     );
   }
 
-  const data =
-    await response.json();
+  const data = await response.json();
 
-  const text =
-    data?.choices?.[0]?.message?.content ||
-    "";
+  const answer =
+    data?.choices?.[0]?.message?.content || "";
 
-  if (!text.trim()) {
-    throw new Error(
-      "Groq returned an empty response."
-    );
+  if (!answer.trim()) {
+    throw new Error("Groq returned an empty response.");
   }
 
-  return text.trim();
+  return answer.trim();
 }
 
-// ============================================================
-// OPENROUTER FALLBACK
-// ============================================================
+// ======================================================
+// OPENROUTER
+// ======================================================
 
 async function askOpenRouter(messages) {
   if (!openRouterApiKey) {
-    throw new Error(
-      "OPENROUTER_API_KEY is not configured."
-    );
+    throw new Error("OPENROUTER_API_KEY is missing.");
   }
 
   const routerMessages = [
@@ -281,15 +227,13 @@ async function askOpenRouter(messages) {
       content: systemPrompt
     },
 
-    ...messages.map((message) => ({
+    ...messages.map((item) => ({
       role:
-        message.role === "assistant"
+        item.role === "assistant"
           ? "assistant"
           : "user",
 
-      content: String(
-        message.text || ""
-      )
+      content: String(item.text || "")
     }))
   ];
 
@@ -299,8 +243,7 @@ async function askOpenRouter(messages) {
       method: "POST",
 
       headers: {
-        "Content-Type":
-          "application/json",
+        "Content-Type": "application/json",
 
         Authorization:
           `Bearer ${openRouterApiKey}`,
@@ -308,8 +251,7 @@ async function askOpenRouter(messages) {
         "HTTP-Referer":
           "https://zed-ai-h7h4.onrender.com",
 
-        "X-Title":
-          "Zed"
+        "X-Title": "Zed"
       },
 
       body: JSON.stringify({
@@ -317,8 +259,7 @@ async function askOpenRouter(messages) {
           process.env.OPENROUTER_MODEL ||
           "meta-llama/llama-3.3-70b-instruct:free",
 
-        messages:
-          routerMessages,
+        messages: routerMessages,
 
         temperature: 0.7,
 
@@ -328,109 +269,30 @@ async function askOpenRouter(messages) {
   );
 
   if (!response.ok) {
-    const errorText =
-      await response.text();
+    const error = await response.text();
 
     throw new Error(
-      `OpenRouter error ${response.status}: ${errorText}`
+      `OpenRouter ${response.status}: ${error}`
     );
   }
 
-  const data =
-    await response.json();
+  const data = await response.json();
 
-  const text =
-    data?.choices?.[0]?.message?.content ||
-    "";
+  const answer =
+    data?.choices?.[0]?.message?.content || "";
 
-  if (!text.trim()) {
+  if (!answer.trim()) {
     throw new Error(
       "OpenRouter returned an empty response."
     );
   }
 
-  return text.trim();
+  return answer.trim();
 }
 
-// ============================================================
-// FILE HELPERS
-// ============================================================
-
-const allowedFileTypes = [
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "text/plain",
-  "text/csv"
-];
-
-const MAX_FILE_SIZE =
-  15 * 1024 * 1024;
-
-function validateFile(file) {
-  if (!file) {
-    return {
-      ok: true
-    };
-  }
-
-  if (
-    !allowedFileTypes.includes(
-      file.mimeType
-    )
-  ) {
-    return {
-      ok: false,
-      error:
-        "This file type is not supported."
-    };
-  }
-
-  if (
-    Number(file.size || 0) >
-    MAX_FILE_SIZE
-  ) {
-    return {
-      ok: false,
-      error:
-        "The file is too large. Maximum size is 15MB."
-    };
-  }
-
-  return {
-    ok: true
-  };
-}
-
-// ============================================================
-// FILE TO GEMINI CONTENT
-// ============================================================
-
-function buildFilePart(file) {
-  if (
-    !file ||
-    !file.base64 ||
-    !file.mimeType
-  ) {
-    return null;
-  }
-
-  return {
-    inlineData: {
-      mimeType:
-        file.mimeType,
-
-      data:
-        file.base64
-    }
-  };
-}
-
-// ============================================================
+// ======================================================
 // IMAGE GENERATION
-// ============================================================
+// ======================================================
 
 async function generateImage(prompt) {
   if (
@@ -445,60 +307,46 @@ async function generateImage(prompt) {
   const url =
     `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/ai/run/${cloudflareImageModel}`;
 
-  const response =
-    await fetch(url, {
-      method: "POST",
+  const response = await fetch(url, {
+    method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json",
+    headers: {
+      "Content-Type": "application/json",
 
-        Authorization:
-          `Bearer ${cloudflareApiToken}`
-      },
+      Authorization:
+        `Bearer ${cloudflareApiToken}`
+    },
 
-      body: JSON.stringify({
-        prompt
-      })
-    });
+    body: JSON.stringify({
+      prompt
+    })
+  });
 
   if (!response.ok) {
-    const errorText =
-      await response.text();
+    const error = await response.text();
 
     throw new Error(
-      `Image generation error ${response.status}: ${errorText}`
+      `Cloudflare image error ${response.status}: ${error}`
     );
   }
 
   const contentType =
-    response.headers.get(
-      "content-type"
-    ) || "";
+    response.headers.get("content-type") || "";
 
   if (
-    contentType.includes(
-      "application/json"
-    )
+    contentType.includes("application/json")
   ) {
-    const data =
-      await response.json();
+    const data = await response.json();
 
-    if (
-      data?.result?.image
-    ) {
+    if (data?.result?.image) {
       return {
-        image:
-          data.result.image
+        image: data.result.image
       };
     }
 
-    if (
-      data?.result?.image_url
-    ) {
+    if (data?.result?.image_url) {
       return {
-        imageUrl:
-          data.result.image_url
+        imageUrl: data.result.image_url
       };
     }
 
@@ -507,89 +355,70 @@ async function generateImage(prompt) {
     );
   }
 
-  const arrayBuffer =
-    await response.arrayBuffer();
-
-  const buffer =
-    Buffer.from(arrayBuffer);
+  const buffer = Buffer.from(
+    await response.arrayBuffer()
+  );
 
   return {
-    image:
-      buffer.toString(
-        "base64"
-      )
+    image: buffer.toString("base64")
   };
 }
 
-// ============================================================
-// HEALTH
-// ============================================================
+// ======================================================
+// HEALTH CHECK
+// ======================================================
 
-app.get(
-  "/health",
-  (req, res) => {
+app.get("/health", (req, res) => {
+  res.json({
+    ok: true,
+    service: "zed",
+    provider:
+      "gemini-with-groq-and-openrouter-fallback",
+    geminiModel,
+    webSearch: true,
+    fileAnalysis: true,
+    imageGeneration:
+      Boolean(
+        cloudflareAccountId &&
+        cloudflareApiToken
+      )
+  });
+});
+
+// ======================================================
+// GEMINI TEST
+// ======================================================
+
+app.get("/api/gemini-test", async (req, res) => {
+  try {
+    const answer = await askGemini([
+      {
+        role: "user",
+        text:
+          "Reply with exactly: Zed Gemini test successful."
+      }
+    ]);
+
     res.json({
       ok: true,
+      answer
+    });
+  } catch (error) {
+    console.error(
+      "Gemini test failed:",
+      error
+    );
 
-      service: "zed",
-
-      provider:
-        "gemini-with-groq-and-openrouter-fallback",
-
-      geminiModel,
-
-      webSearch: true,
-
-      imageGeneration:
-        Boolean(
-          cloudflareAccountId &&
-          cloudflareApiToken
-        ),
-
-      fileAnalysis: true
+    res.status(500).json({
+      ok: false,
+      error: error.message
     });
   }
-);
+});
 
-// ============================================================
-// GEMINI TEST
-// ============================================================
-
-app.get(
-  "/api/gemini-test",
-  async (req, res) => {
-    try {
-      const answer =
-        await askGemini([
-          {
-            role: "user",
-            text:
-              "Reply with exactly: Zed Gemini test successful."
-          }
-        ]);
-
-      res.json({
-        ok: true,
-        answer
-      });
-    } catch (error) {
-      console.error(
-        "Gemini test failed:",
-        error
-      );
-
-      res.status(500).json({
-        ok: false,
-        error:
-          error.message
-      });
-    }
-  }
-);
-
-// ============================================================
+// ======================================================
 // IMAGE API
-// ============================================================
+// ======================================================
 
 app.post(
   "/api/generate-image",
@@ -609,14 +438,12 @@ app.post(
       }
 
       console.log(
-        "Image generation request:",
+        "Image generation:",
         prompt
       );
 
       const result =
-        await generateImage(
-          prompt
-        );
+        await generateImage(prompt);
 
       res.json({
         ok: true,
@@ -630,17 +457,15 @@ app.post(
 
       res.status(500).json({
         ok: false,
-        error:
-          error.message ||
-          "Image generation failed."
+        error: error.message
       });
     }
   }
 );
 
-// ============================================================
+// ======================================================
 // CHAT API
-// ============================================================
+// ======================================================
 
 app.post(
   "/api/chat",
@@ -648,9 +473,8 @@ app.post(
     try {
       const {
         message,
-        userId,
-        memories = [],
         conversation = [],
+        memories = [],
         file = null
       } = req.body || {};
 
@@ -676,76 +500,27 @@ app.post(
         userMessage
       );
 
-      console.log(
-        "User:",
-        userId || "anonymous"
-      );
-
-      // --------------------------------------------------------
-      // FILE VALIDATION
-      // --------------------------------------------------------
-
-      const fileCheck =
-        validateFile(file);
-
-      if (!fileCheck.ok) {
-        return res.status(400).json({
-          ok: false,
-          error:
-            fileCheck.error
-        });
-      }
-
-      // --------------------------------------------------------
-      // MEMORY
-      // --------------------------------------------------------
-
-      const storedMemory =
-        userId
-          ? memory.get(userId) || []
-          : [];
-
-      const combinedMemory = [
-        ...storedMemory,
-        ...Array.isArray(memories)
-          ? memories
-          : []
-      ];
-
-      const uniqueMemory =
-        [...new Set(
-          combinedMemory
-            .map(item =>
-              String(item || "").trim()
-            )
-            .filter(Boolean)
-        )].slice(-20);
-
-      // --------------------------------------------------------
+      // ====================================================
       // CONVERSATION
-      // --------------------------------------------------------
+      // ====================================================
 
       const cleanConversation =
         Array.isArray(conversation)
           ? conversation
               .filter(
-                item =>
+                (item) =>
                   item &&
                   item.text
               )
-              .slice(
-                -MAX_MEMORY_MESSAGES
-              )
+              .slice(-20)
           : [];
 
-      // --------------------------------------------------------
+      // ====================================================
       // WEB SEARCH
-      // --------------------------------------------------------
+      // ====================================================
 
       let searchContext = "";
-
-      let searchWasUsed =
-        false;
+      let searchUsed = false;
 
       if (
         shouldSearchWeb(
@@ -762,20 +537,27 @@ app.post(
               userMessage
             );
 
-          // IMPORTANT:
-          // webSearch() returns a STRING.
-          // Do not expect search.ok or search.results.
+          /*
+           IMPORTANT:
+
+           web-search.js returns a STRING.
+
+           It does NOT return:
+           {
+             ok: true,
+             results: [...]
+           }
+
+           Therefore we check for a string here.
+          */
 
           if (
-            typeof search ===
-              "string" &&
-            search.trim()
+            typeof search === "string" &&
+            search.trim().length > 0
           ) {
-            searchWasUsed =
-              true;
+            searchUsed = true;
 
-            searchContext =
-              `
+            searchContext = `
 
 CURRENT WEB SEARCH RESULTS:
 
@@ -783,9 +565,9 @@ ${search.trim()}
 
 END CURRENT WEB SEARCH RESULTS.
 
-Use these current search results when answering the user's question.
-Do not say that you cannot browse the internet when these results are available.
-Do not invent information that is not supported by the results.
+Use the current web search results above when answering.
+Do not say that you cannot browse the internet.
+Do not invent information that is not supported by these results.
 `;
 
             console.log(
@@ -796,10 +578,10 @@ Do not invent information that is not supported by the results.
               "Web search returned no usable results."
             );
           }
-        } catch (searchError) {
+        } catch (error) {
           console.error(
             "Web search failed:",
-            searchError.message
+            error.message
           );
         }
       } else {
@@ -808,81 +590,76 @@ Do not invent information that is not supported by the results.
         );
       }
 
-      // --------------------------------------------------------
-      // BUILD USER MESSAGE
-      // --------------------------------------------------------
+      // ====================================================
+      // MEMORIES
+      // ====================================================
 
-      let enhancedMessage =
-        userMessage;
+      let memoryText = "";
 
       if (
-        uniqueMemory.length > 0
+        Array.isArray(memories) &&
+        memories.length > 0
       ) {
-        enhancedMessage += `
+        const cleanMemories =
+          memories
+            .map(
+              (item) =>
+                String(item || "").trim()
+            )
+            .filter(Boolean)
+            .slice(-20);
+
+        if (
+          cleanMemories.length > 0
+        ) {
+          memoryText = `
 
 USER MEMORY:
 
-${uniqueMemory.join("\n")}
+${cleanMemories.join("\n")}
 `;
+        }
+      }
+
+      // ====================================================
+      // FINAL USER MESSAGE
+      // ====================================================
+
+      let finalMessage =
+        userMessage;
+
+      if (memoryText) {
+        finalMessage += memoryText;
       }
 
       if (searchContext) {
-        enhancedMessage +=
-          searchContext;
+        finalMessage += searchContext;
       }
 
-      // --------------------------------------------------------
-      // FILE INFORMATION
-      // --------------------------------------------------------
-
-      const filePart =
-        buildFilePart(file);
-
-      if (filePart) {
-        enhancedMessage += `
+      if (file) {
+        finalMessage += `
 
 The user attached a file.
-Analyze the attached file carefully and answer the user's question about it.
+Analyze the attached file when answering the question.
 `;
       }
 
-      // --------------------------------------------------------
-      // BUILD MODEL MESSAGES
-      // --------------------------------------------------------
+      // ====================================================
+      // MODEL MESSAGES
+      // ====================================================
 
       const modelMessages = [
         ...cleanConversation,
 
         {
           role: "user",
-          text:
-            enhancedMessage
+          text: finalMessage
         }
       ];
 
-      // --------------------------------------------------------
-      // SAVE MEMORY
-      // --------------------------------------------------------
-
-      if (userId) {
-        memory.set(
-          userId,
-          modelMessages
-            .slice(
-              -MAX_MEMORY_MESSAGES
-            )
-            .map(item => ({
-              role:
-                item.role,
-              text:
-                item.text
-            }))
-        );
-      }
-
-      // --------------------------------------------------------
+      // ====================================================
       // GEMINI
-      // --------------------------------------------------------
+      // ====================================================
 
       let answer = "";
       let provider = "";
@@ -892,101 +669,15 @@ Analyze the attached file carefully and answer the user's question about it.
           "Trying Gemini..."
         );
 
-        if (filePart) {
-          if (!geminiApiKey) {
-            throw new Error(
-              "Gemini API key is not configured."
-            );
-          }
-
-          const ai =
-            new GoogleGenAI({
-              apiKey:
-                geminiApiKey
-            });
-
-          const contents =
-            modelMessages.map(
-              item => ({
-                role:
-                  item.role ===
-                  "assistant"
-                    ? "model"
-                    : "user",
-
-                parts: [
-                  {
-                    text:
-                      String(
-                        item.text ||
-                          ""
-                      )
-                  }
-                ]
-              })
-            );
-
-          contents[
-            contents.length - 1
-          ].parts.push(
-            filePart
+        answer =
+          await askGemini(
+            modelMessages
           );
 
-          const response =
-            await ai.models.generateContent(
-              {
-                model:
-                  geminiModel,
-
-                contents,
-
-                config: {
-                  systemInstruction:
-                    systemPrompt,
-
-                  temperature:
-                    0.7,
-
-                  maxOutputTokens:
-                    4096
-                }
-              }
-            );
-
-          answer =
-            response?.text ||
-            response?.candidates?.[0]
-              ?.content?.parts
-              ?.map(
-                part =>
-                  part.text || ""
-              )
-              .join("") ||
-            "";
-
-          if (!answer.trim()) {
-            throw new Error(
-              "Gemini returned an empty response."
-            );
-          }
-
-          answer =
-            answer.trim();
-
-          provider =
-            "gemini";
-        } else {
-          answer =
-            await askGemini(
-              modelMessages
-            );
-
-          provider =
-            "gemini";
-        }
+        provider = "gemini";
 
         console.log(
-          "Gemini response successful."
+          "Gemini successful."
         );
       } catch (geminiError) {
         console.error(
@@ -994,13 +685,13 @@ Analyze the attached file carefully and answer the user's question about it.
           geminiError.message
         );
 
-        // ------------------------------------------------------
+        // ==================================================
         // GROQ
-        // ------------------------------------------------------
+        // ==================================================
 
         try {
           console.log(
-            "Trying Groq fallback..."
+            "Trying Groq..."
           );
 
           answer =
@@ -1008,11 +699,10 @@ Analyze the attached file carefully and answer the user's question about it.
               modelMessages
             );
 
-          provider =
-            "groq";
+          provider = "groq";
 
           console.log(
-            "Groq response successful."
+            "Groq successful."
           );
         } catch (groqError) {
           console.error(
@@ -1020,13 +710,13 @@ Analyze the attached file carefully and answer the user's question about it.
             groqError.message
           );
 
-          // ----------------------------------------------------
+          // ================================================
           // OPENROUTER
-          // ----------------------------------------------------
+          // ================================================
 
           try {
             console.log(
-              "Trying OpenRouter fallback..."
+              "Trying OpenRouter..."
             );
 
             answer =
@@ -1038,7 +728,7 @@ Analyze the attached file carefully and answer the user's question about it.
               "openrouter";
 
             console.log(
-              "OpenRouter response successful."
+              "OpenRouter successful."
             );
           } catch (openRouterError) {
             console.error(
@@ -1067,18 +757,18 @@ Analyze the attached file carefully and answer the user's question about it.
         }
       }
 
-      // --------------------------------------------------------
+      // ====================================================
       // RESPONSE
-      // --------------------------------------------------------
+      // ====================================================
 
       console.log(
-        "Zed response provider:",
+        "Provider:",
         provider
       );
 
       console.log(
         "Web search used:",
-        searchWasUsed
+        searchUsed
       );
 
       console.log(
@@ -1087,50 +777,43 @@ Analyze the attached file carefully and answer the user's question about it.
 
       return res.json({
         ok: true,
-
         answer,
-
         provider,
-
-        webSearch:
-          searchWasUsed
+        webSearch: searchUsed
       });
+
     } catch (error) {
       console.error(
-        "Chat API error:",
+        "CHAT ERROR:",
         error
       );
 
       return res.status(500).json({
         ok: false,
-
         error:
           error.message ||
-          "Something went wrong while processing your message."
+          "Something went wrong."
       });
     }
   }
 );
 
-// ============================================================
-// FALLBACK ROUTE
-// ============================================================
+// ======================================================
+// SERVE INDEX.HTML
+// ======================================================
 
-app.get(
-  "*",
-  (req, res) => {
-    res.sendFile(
-      path.join(
-        __dirname,
-        "index.html"
-      )
-    );
-  }
-);
+app.get("/", (req, res) => {
+  res.sendFile(
+    path.join(
+      __dirname,
+      "index.html"
+    )
+  );
+});
 
-// ============================================================
-// START SERVER
-// ============================================================
+// ======================================================
+// START
+// ======================================================
 
 app.listen(
   port,
@@ -1144,16 +827,11 @@ app.listen(
     );
 
     console.log(
-      `Web search: enabled`
+      "Web search: enabled"
     );
 
     console.log(
-      `Image generation: ${
-        cloudflareAccountId &&
-        cloudflareApiToken
-          ? "enabled"
-          : "not configured"
-      }`
+      "Zed is ready."
     );
   }
 );

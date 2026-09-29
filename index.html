@@ -2946,8 +2946,8 @@ async function sendMessage() {
 
       content:
         data.reply ||
-        "I received your message."
-
+        data.answer ||
+         "Zed did not receive an answer from the server."
     });
 
     renderMessages();

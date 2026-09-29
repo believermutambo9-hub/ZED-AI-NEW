@@ -3,8 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#212121">
-<title>Zed AI</title>
+<meta name="theme-color" content="#171717">
+<title>Zed</title>
+
+<!-- Distinctive modern typeface -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
 * {
@@ -17,9 +22,9 @@ body {
   padding: 0;
   width: 100%;
   height: 100%;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Space Grotesk", Arial, sans-serif;
   background: #212121;
-  color: #fff;
+  color: #f5f5f5;
 }
 
 body {
@@ -40,171 +45,394 @@ button {
   display: none !important;
 }
 
-/* =========================
-   AUTH
-========================= */
+/* =========================================
+   AUTHENTICATION
+========================================= */
 
 #authScreen {
   position: fixed;
   inset: 0;
-  background: #212121;
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
   padding: 20px;
+  background: #171717;
 }
 
 .authBox {
   width: 100%;
-  max-width: 420px;
-  background: #2b2b2b;
-  border-radius: 18px;
-  padding: 30px;
-  box-shadow: 0 15px 50px rgba(0,0,0,.4);
+  max-width: 400px;
+  padding: 36px;
+  border: 1px solid #333;
+  border-radius: 20px;
+  background: #212121;
+  box-shadow: 0 25px 70px rgba(0,0,0,.45);
 }
 
-.authLogo {
+.authBrand {
   text-align: center;
-  margin-bottom: 25px;
+  margin-bottom: 32px;
 }
 
-.authLogo h1 {
-  margin: 0;
-  font-size: 32px;
+/* Zambian-inspired Zed wordmark */
+.zedLogo {
+  display: inline-flex;
+  align-items: center;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -2.5px;
+  line-height: 1;
 }
 
-.authLogo p {
-  margin: 8px 0 0;
-  color: #aaa;
+.zedLogo .z {
+  color: #198a43;
+}
+
+.zedLogo .e {
+  color: #d62828;
+}
+
+.zedLogo .d {
+  color: #111;
+  text-shadow:
+    1px 0 #f28c28,
+    -1px 0 #f28c28,
+    0 1px #f28c28,
+    0 -1px #f28c28;
+}
+
+.authSubtitle {
+  margin-top: 12px;
+  color: #8d8d8d;
+  font-size: 14px;
 }
 
 .authInput {
   width: 100%;
-  padding: 14px;
+  height: 48px;
+  padding: 0 14px;
   margin-bottom: 12px;
-  border: 1px solid #444;
+  border: 1px solid #3d3d3d;
   border-radius: 10px;
-  background: #1f1f1f;
-  color: white;
   outline: none;
+  background: #181818;
+  color: #fff;
 }
 
 .authInput:focus {
-  border-color: #777;
+  border-color: #666;
 }
 
 .authButton {
   width: 100%;
+  height: 46px;
+  margin-top: 7px;
   border: none;
   border-radius: 10px;
-  padding: 13px;
-  margin-top: 8px;
-  background: #fff;
+  background: #f5f5f5;
   color: #111;
-  font-weight: bold;
+  font-weight: 600;
 }
 
-.googleButton {
-  background: #fff;
-  color: #111;
+.authButton:hover {
+  background: #ddd;
 }
 
-.authSwitch {
+.authButton.secondary {
+  background: #303030;
+  color: #fff;
+  border: 1px solid #414141;
+}
+
+.authButton.secondary:hover {
+  background: #383838;
+}
+
+.authDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: #777;
+  font-size: 12px;
+}
+
+.authDivider::before,
+.authDivider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #363636;
+}
+
+#authMessage {
+  min-height: 18px;
+  margin-top: 12px;
   text-align: center;
-  margin-top: 18px;
-  color: #aaa;
-  font-size: 14px;
+  color: #ff8585;
+  font-size: 12px;
 }
 
-.authSwitch button {
-  border: none;
-  background: none;
-  color: #72e6a4;
-}
-
-/* =========================
-   APP
-========================= */
+/* =========================================
+   APPLICATION
+========================================= */
 
 #app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* =========================================
+   MAIN CHAT
+========================================= */
+
+.main {
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
+  background: #212121;
 }
 
-/* =========================
-   SIDEBAR
-========================= */
+/* =========================================
+   TOP BAR
+========================================= */
 
-.sidebar {
-  width: 260px;
+.topBar {
+  position: relative;
+  z-index: 20;
+  height: 58px;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border-bottom: 1px solid #303030;
+  background: rgba(33,33,33,.96);
+}
+
+.topLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menuButton,
+.topActionButton {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #d7d7d7;
+  font-size: 20px;
+}
+
+.menuButton:hover,
+.topActionButton:hover {
+  background: #303030;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Smaller version of the unique Zed wordmark */
+.brandZed {
+  display: inline-flex;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -1.3px;
+}
+
+.brandZed .z {
+  color: #198a43;
+}
+
+.brandZed .e {
+  color: #d62828;
+}
+
+.brandZed .d {
+  color: #111;
+  text-shadow:
+    1px 0 #f28c28,
+    -1px 0 #f28c28,
+    0 1px #f28c28,
+    0 -1px #f28c28;
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #36b866;
+}
+
+/* =========================================
+   MENU DRAWER
+========================================= */
+
+.menuOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0,0,0,.48);
+  opacity: 1;
+  transition: opacity .2s ease;
+}
+
+.menuDrawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 300px;
+  max-width: 84vw;
   height: 100%;
-  background: #171717;
-  border-right: 1px solid #303030;
   display: flex;
   flex-direction: column;
   padding: 12px;
+  background: #171717;
+  border-right: 1px solid #303030;
+  box-shadow: 18px 0 50px rgba(0,0,0,.3);
+  transform: translateX(0);
+  transition: transform .22s ease;
+}
+
+.menuOverlay.closed {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.menuOverlay.closed .menuDrawer {
+  transform: translateX(-100%);
+}
+
+.drawerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 12px;
+}
+
+.drawerBrand {
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+}
+
+.drawerClose {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #ccc;
+  font-size: 22px;
+}
+
+.drawerClose:hover {
+  background: #2b2b2b;
 }
 
 .newChatButton {
   width: 100%;
-  padding: 12px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 14px;
+  border: 1px solid #3c3c3c;
   border-radius: 10px;
-  border: 1px solid #444;
-  background: #212121;
-  color: white;
+  background: #222;
+  color: #fff;
   text-align: left;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .newChatButton:hover {
   background: #2b2b2b;
 }
 
-.sidebarTitle {
-  color: #888;
-  font-size: 12px;
-  margin: 8px 8px 10px;
+.newChatPlus {
+  font-size: 21px;
+  font-weight: 300;
+}
+
+.searchChats {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  margin-bottom: 17px;
+  border: 1px solid #333;
+  border-radius: 9px;
+  outline: none;
+  background: #202020;
+  color: #fff;
+}
+
+.searchChats::placeholder {
+  color: #777;
+}
+
+.drawerSectionTitle {
+  padding: 0 8px 8px;
+  color: #777;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .6px;
   text-transform: uppercase;
 }
 
 #historyList {
   flex: 1;
   overflow-y: auto;
+  padding-right: 2px;
 }
 
 .historyItem {
-  padding: 10px;
-  margin-bottom: 4px;
+  width: 100%;
+  padding: 10px 11px;
+  margin-bottom: 3px;
   border-radius: 8px;
-  color: #ddd;
+  color: #d4d4d4;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 13px;
 }
 
 .historyItem:hover {
-  background: #2b2b2b;
+  background: #292929;
 }
 
 .accountBox {
-  border-top: 1px solid #333;
   padding-top: 12px;
   margin-top: 10px;
+  border-top: 1px solid #303030;
 }
 
 .accountInfo {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  padding: 7px 4px 10px;
 }
 
 .profilePhoto {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   object-fit: cover;
   background: #444;
@@ -216,15 +444,17 @@ button {
 }
 
 .accountName {
-  font-size: 14px;
+  color: #eee;
+  font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .accountEmail {
-  font-size: 11px;
-  color: #888;
+  margin-top: 2px;
+  color: #777;
+  font-size: 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -232,161 +462,206 @@ button {
 
 .logoutButton {
   width: 100%;
-  border: 1px solid #444;
-  background: transparent;
-  color: #ccc;
-  padding: 8px;
+  height: 38px;
+  border: 1px solid #383838;
   border-radius: 8px;
+  background: transparent;
+  color: #aaa;
 }
 
-/* =========================
-   MAIN
-========================= */
-
-.main {
-  flex: 1;
-  height: 100%;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+.logoutButton:hover {
+  background: #292929;
+  color: #fff;
 }
 
-.topBar {
-  height: 58px;
-  border-bottom: 1px solid #303030;
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-}
-
-.brand {
-  font-weight: bold;
-  font-size: 18px;
-}
-
-.online {
-  width: 8px;
-  height: 8px;
-  background: #72e6a4;
-  border-radius: 50%;
-  display: inline-block;
-  margin-left: 8px;
-}
+/* =========================================
+   CHAT AREA
+========================================= */
 
 .chatArea {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 30px 20px 150px;
+  scroll-behavior: smooth;
 }
 
 .chatContent {
-  max-width: 850px;
+  width: 100%;
+  max-width: 900px;
+  min-height: 100%;
   margin: 0 auto;
+  padding: 40px 24px 170px;
 }
 
+/* =========================================
+   WELCOME
+========================================= */
+
 .welcome {
+  min-height: calc(100vh - 230px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  margin-top: 100px;
+  padding-bottom: 40px;
+}
+
+.welcomeLogo {
+  margin-bottom: 22px;
+}
+
+.welcomeLogo .zedLogo {
+  font-size: 48px;
 }
 
 .welcome h1 {
-  font-size: 34px;
-  margin-bottom: 8px;
+  margin: 0;
+  color: #f3f3f3;
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: -.8px;
 }
 
 .welcome p {
-  color: #999;
+  margin: 10px 0 0;
+  color: #858585;
+  font-size: 14px;
 }
 
-/* =========================
+/* =========================================
    MESSAGES
-========================= */
+========================================= */
 
 .message {
+  width: 100%;
   display: flex;
-  margin-bottom: 22px;
-  gap: 12px;
+  margin-bottom: 28px;
 }
 
 .message.user {
   justify-content: flex-end;
 }
 
-.messageBubble {
-  max-width: 78%;
-  padding: 12px 15px;
-  border-radius: 16px;
-  line-height: 1.5;
+.message.assistant {
+  justify-content: flex-start;
+}
+
+.messageInner {
+  max-width: 80%;
+  line-height: 1.65;
+  font-size: 15px;
   white-space: pre-wrap;
-  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
-.message.assistant .messageBubble {
-  background: #2b2b2b;
-  border-top-left-radius: 5px;
-}
-
-.message.user .messageBubble {
+.message.user .messageInner {
+  padding: 11px 15px;
+  border-radius: 17px;
   background: #303030;
-  border-top-right-radius: 5px;
+  color: #f2f2f2;
 }
 
-/* =========================
+.message.assistant .messageInner {
+  padding: 2px 0;
+  color: #e3e3e3;
+}
+
+.messageLabel {
+  margin-bottom: 5px;
+  color: #777;
+  font-size: 11px;
+}
+
+/* =========================================
    COMPOSER
-========================= */
+========================================= */
 
 .composerArea {
   position: absolute;
-  bottom: 0;
+  z-index: 15;
   left: 0;
   right: 0;
+  bottom: 0;
   padding: 15px 20px 20px;
-  background: linear-gradient(transparent, #212121 25%);
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(33,33,33,0),
+      #212121 28%
+    );
+}
+
+.composerContainer {
+  width: 100%;
+  max-width: 850px;
+  margin: 0 auto;
+}
+
+.fileName {
+  min-height: 0;
+  margin: 0 auto 7px;
+  padding-left: 10px;
+  color: #999;
+  font-size: 11px;
 }
 
 .composer {
-  max-width: 850px;
-  margin: 0 auto;
-  background: #2f2f2f;
-  border: 1px solid #444;
-  border-radius: 18px;
-  padding: 8px;
+  min-height: 58px;
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-}
-
-textarea {
-  flex: 1;
-  resize: none;
-  max-height: 160px;
-  min-height: 42px;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: white;
-  padding: 10px;
+  gap: 5px;
+  padding: 7px;
+  border: 1px solid #454545;
+  border-radius: 19px;
+  background: #2f2f2f;
+  box-shadow: 0 4px 20px rgba(0,0,0,.15);
 }
 
 .iconButton {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   background: transparent;
-  color: #ccc;
-  font-size: 18px;
+  color: #c9c9c9;
+  font-size: 20px;
 }
 
 .iconButton:hover {
   background: #414141;
 }
 
+.messageInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  max-height: 150px;
+  resize: none;
+  padding: 10px 8px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #fff;
+  line-height: 1.4;
+}
+
+.messageInput::placeholder {
+  color: #888;
+}
+
 .sendButton {
-  background: white;
-  color: black;
-  border-radius: 12px;
+  background: #f2f2f2;
+  color: #111;
+  font-size: 21px;
+}
+
+.sendButton:hover {
+  background: #fff;
 }
 
 .sendButton:disabled {
@@ -394,104 +669,186 @@ textarea {
   cursor: not-allowed;
 }
 
+.composerHint {
+  margin-top: 7px;
+  text-align: center;
+  color: #686868;
+  font-size: 10px;
+}
+
+/* =========================================
+   ATTACHMENT MENU
+========================================= */
+
 .attachMenu {
   position: absolute;
-  bottom: 82px;
-  left: calc(50% - 425px);
-  background: #303030;
+  left: max(calc(50% - 425px), 20px);
+  bottom: 88px;
+  width: 210px;
+  padding: 6px;
   border: 1px solid #444;
   border-radius: 12px;
-  padding: 6px;
-  width: 190px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  background: #303030;
+  box-shadow: 0 15px 40px rgba(0,0,0,.45);
 }
 
 .attachMenu button {
   width: 100%;
-  text-align: left;
-  padding: 10px;
+  height: 40px;
+  padding: 0 11px;
   border: none;
-  background: transparent;
-  color: white;
   border-radius: 8px;
+  background: transparent;
+  color: #eee;
+  text-align: left;
+  font-size: 13px;
 }
 
 .attachMenu button:hover {
   background: #414141;
 }
 
-.fileName {
-  max-width: 850px;
-  margin: 0 auto 6px;
-  color: #aaa;
-  font-size: 12px;
+/* =========================================
+   IMAGE RESULTS
+========================================= */
+
+.generatedImage {
+  display: block;
+  max-width: 100%;
+  max-height: 600px;
+  margin-top: 10px;
+  border-radius: 14px;
 }
 
-/* =========================
+/* =========================================
+   SCROLLBARS
+========================================= */
+
+*::-webkit-scrollbar {
+  width: 7px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #3c3c3c;
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #505050;
+}
+
+/* =========================================
    MOBILE
-========================= */
+========================================= */
 
 @media (max-width: 700px) {
 
-  .sidebar {
-    width: 68px;
-    display: flex;
-    padding: 8px;
-    flex-shrink: 0;
-  }
-
-  .sidebarTitle,
-  #historyList,
-  .accountBox {
-    display: none;
-  }
-
-  .newChatButton {
-    width: 52px;
-    height: 52px;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-size: 0;
-  }
-
-  .newChatButton::after {
-    content: "＋";
-    font-size: 28px;
-    line-height: 1;
-  }
-
   .topBar {
-    padding: 0 14px;
+    height: 56px;
+    min-height: 56px;
+    padding: 0 9px;
   }
 
-  .chatArea {
-    padding: 20px 10px 150px;
+  .topLeft {
+    gap: 7px;
   }
 
-  .composerArea {
-    padding-left: 8px;
-    padding-right: 8px;
+  .menuButton,
+  .topActionButton {
+    width: 40px;
+    height: 40px;
   }
 
-  .messageBubble {
-    max-width: 90%;
+  .brandZed {
+    font-size: 19px;
   }
 
-  .attachMenu {
-    left: 10px;
-    bottom: 82px;
+  .chatContent {
+    padding: 25px 15px 160px;
   }
 
   .welcome {
-    margin-top: 80px;
+    min-height: calc(100vh - 210px);
+  }
+
+  .welcomeLogo .zedLogo {
+    font-size: 43px;
   }
 
   .welcome h1 {
-    font-size: 28px;
+    font-size: 25px;
+  }
+
+  .messageInner {
+    max-width: 91%;
+    font-size: 14px;
+  }
+
+  .composerArea {
+    padding: 10px 8px 12px;
+  }
+
+  .composerContainer {
+    max-width: none;
+  }
+
+  .composer {
+    min-height: 55px;
+    border-radius: 18px;
+  }
+
+  .iconButton {
+    width: 39px;
+    height: 39px;
+    flex-basis: 39px;
+  }
+
+  .messageInput {
+    min-height: 39px;
+  }
+
+  .composerHint {
+    display: none;
+  }
+
+  .attachMenu {
+    left: 8px;
+    bottom: 78px;
+  }
+
+  .menuDrawer {
+    width: 285px;
+  }
+
+  .authBox {
+    padding: 30px 22px;
+  }
+}
+
+/* =========================================
+   SMALL PHONES
+========================================= */
+
+@media (max-width: 380px) {
+
+  .brandZed {
+    font-size: 18px;
+  }
+
+  .welcomeLogo .zedLogo {
+    font-size: 39px;
+  }
+
+  .welcome h1 {
+    font-size: 23px;
+  }
+
+  .messageInner {
+    max-width: 94%;
   }
 }
 </style>
@@ -499,42 +856,47 @@ textarea {
 
 <body>
 
-<!-- =========================
-     AUTH SCREEN
-========================= -->
+<!-- =========================================
+     AUTHENTICATION
+========================================= -->
 
 <div id="authScreen">
 
   <div class="authBox">
 
-    <div class="authLogo">
-      <h1>Zed AI</h1>
-      <p>Your intelligent assistant</p>
+    <div class="authBrand">
+
+      <div class="zedLogo">
+        <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+      </div>
+
+      <div class="authSubtitle">
+        A smarter way to get things done
+      </div>
+
     </div>
 
     <button
       id="googleLogin"
-      class="authButton googleButton">
+      class="authButton">
       Continue with Google
     </button>
 
-    <div style="text-align:center;color:#777;margin:15px 0;">
-      or
+    <div class="authDivider">
+      or continue with email
     </div>
 
     <input
       id="emailInput"
       class="authInput"
       type="email"
-      placeholder="Email"
-    >
+      placeholder="Email">
 
     <input
       id="passwordInput"
       class="authInput"
       type="password"
-      placeholder="Password"
-    >
+      placeholder="Password">
 
     <button
       id="emailLogin"
@@ -544,92 +906,63 @@ textarea {
 
     <button
       id="emailSignup"
-      class="authButton"
-      style="background:#3a3a3a;color:white;">
+      class="authButton secondary">
       Create account
     </button>
 
-    <div
-      id="authMessage"
-      style="margin-top:12px;text-align:center;color:#ff8a8a;font-size:13px;">
-    </div>
+    <div id="authMessage"></div>
 
   </div>
 
 </div>
 
 
-<!-- =========================
-     MAIN APP
-========================= -->
+<!-- =========================================
+     APPLICATION
+========================================= -->
 
 <div id="app" class="hidden">
 
-  <aside class="sidebar">
+  <main class="main">
 
-    <button
-      id="newChatButton"
-      class="newChatButton">
-      ＋ New chat
-    </button>
+    <!-- TOP BAR -->
 
-    <div class="sidebarTitle">
-      Recent chats
-    </div>
+    <header class="topBar">
 
-    <div id="historyList"></div>
+      <div class="topLeft">
 
-    <div class="accountBox">
+        <button
+          id="menuButton"
+          class="menuButton"
+          title="Open menu"
+          aria-label="Open menu">
+          ☰
+        </button>
 
-      <div class="accountInfo">
+        <div class="brand">
 
-        <img
-          id="profilePhoto"
-          class="profilePhoto"
-          src=""
-          alt="Profile"
-        >
-
-        <div class="accountText">
-
-          <div
-            id="accountName"
-            class="accountName">
-            Guest
+          <div class="brandZed">
+            <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
           </div>
 
-          <div
-            id="accountEmail"
-            class="accountEmail">
-            Not signed in
-          </div>
+          <span class="statusDot"></span>
 
         </div>
 
       </div>
 
       <button
-        id="logoutButton"
-        class="logoutButton">
-        Log out
+        id="newChatTopButton"
+        class="topActionButton"
+        title="New chat"
+        aria-label="New chat">
+        +
       </button>
 
-    </div>
-
-  </aside>
+    </header>
 
 
-  <main class="main">
-
-    <div class="topBar">
-
-      <div class="brand">
-        Zed AI
-        <span class="online"></span>
-      </div>
-
-    </div>
-
+    <!-- CHAT -->
 
     <div
       id="chatArea"
@@ -643,12 +976,20 @@ textarea {
           id="welcome"
           class="welcome">
 
+          <div class="welcomeLogo">
+
+            <div class="zedLogo">
+              <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+            </div>
+
+          </div>
+
           <h1>
             How can I help you?
           </h1>
 
           <p>
-            Zed AI is online
+            Ask anything, write something, learn something new, or get things done.
           </p>
 
         </div>
@@ -658,93 +999,197 @@ textarea {
     </div>
 
 
+    <!-- COMPOSER -->
+
     <div class="composerArea">
 
-      <div
-        id="fileName"
-        class="fileName">
+      <div class="composerContainer">
+
+        <div
+          id="fileName"
+          class="fileName">
+        </div>
+
+        <div
+          id="attachMenu"
+          class="attachMenu hidden">
+
+          <button id="uploadPhotoButton">
+            Upload photo
+          </button>
+
+          <button id="uploadFileButton">
+            Upload PDF
+          </button>
+
+          <button id="createImageButton">
+            Create image
+          </button>
+
+        </div>
+
+        <div class="composer">
+
+          <button
+            id="attachButton"
+            class="iconButton"
+            title="Attach"
+            aria-label="Attach">
+            +
+          </button>
+
+          <textarea
+            id="messageInput"
+            class="messageInput"
+            rows="1"
+            placeholder="Message Zed..."></textarea>
+
+          <button
+            id="micButton"
+            class="iconButton"
+            title="Voice input"
+            aria-label="Voice input">
+            ◉
+          </button>
+
+          <button
+            id="sendButton"
+            class="iconButton sendButton"
+            title="Send"
+            aria-label="Send">
+            ↑
+          </button>
+
+        </div>
+
+        <div class="composerHint">
+          Zed can make mistakes. Check important information.
+        </div>
+
       </div>
-
-
-      <div
-        id="attachMenu"
-        class="attachMenu hidden">
-
-        <button
-          id="uploadPhotoButton">
-          🖼 Upload photo
-        </button>
-
-        <button
-          id="uploadFileButton">
-          📎 Upload file
-        </button>
-
-        <button
-          id="createImageButton">
-          🎨 Create image
-        </button>
-
-      </div>
-
-
-      <div class="composer">
-
-        <button
-          id="attachButton"
-          class="iconButton"
-          title="Attach">
-          ＋
-        </button>
-
-        <textarea
-          id="messageInput"
-          rows="1"
-          placeholder="Message Zed AI..."></textarea>
-
-        <button
-          id="micButton"
-          class="iconButton"
-          title="Voice">
-          🎤
-        </button>
-
-        <button
-          id="sendButton"
-          class="iconButton sendButton"
-          title="Send">
-          ↑
-        </button>
-
-      </div>
-
 
       <input
         id="photoInput"
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
-        class="hidden"
-      >
+        class="hidden">
 
       <input
         id="fileInput"
         type="file"
-        accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx"
-        class="hidden"
-      >
+        accept=".pdf,application/pdf"
+        class="hidden">
 
     </div>
 
   </main>
+
+
+  <!-- =========================================
+       TEMPORARY MENU
+  ========================================= -->
+
+  <div
+    id="menuOverlay"
+    class="menuOverlay closed">
+
+    <aside
+      id="menuDrawer"
+      class="menuDrawer">
+
+      <div class="drawerTop">
+
+        <div class="drawerBrand">
+
+          <div class="brandZed">
+            <span class="z">Z</span><span class="e">e</span><span class="d">d</span>
+          </div>
+
+        </div>
+
+        <button
+          id="drawerClose"
+          class="drawerClose"
+          aria-label="Close menu">
+          ×
+        </button>
+
+      </div>
+
+
+      <button
+        id="newChatButton"
+        class="newChatButton">
+
+        <span class="newChatPlus">+</span>
+        <span>New chat</span>
+
+      </button>
+
+
+      <input
+        id="searchChats"
+        class="searchChats"
+        type="search"
+        placeholder="Search chats...">
+
+
+      <div class="drawerSectionTitle">
+        Recent chats
+      </div>
+
+
+      <div id="historyList"></div>
+
+
+      <div class="accountBox">
+
+        <div class="accountInfo">
+
+          <img
+            id="profilePhoto"
+            class="profilePhoto"
+            src=""
+            alt="Profile">
+
+          <div class="accountText">
+
+            <div
+              id="accountName"
+              class="accountName">
+              Guest
+            </div>
+
+            <div
+              id="accountEmail"
+              class="accountEmail">
+              Not signed in
+            </div>
+
+          </div>
+
+        </div>
+
+        <button
+          id="logoutButton"
+          class="logoutButton">
+          Log out
+        </button>
+
+      </div>
+
+    </aside>
+
+  </div>
 
 </div>
 
 
 <script type="module">
 
-/* =========================
+/* =========================================
    FIREBASE
-========================= */
+========================================= */
 
 import {
   initializeApp
@@ -809,9 +1254,9 @@ const db =
   getFirestore(firebaseApp);
 
 
-/* =========================
+/* =========================================
    ELEMENTS
-========================= */
+========================================= */
 
 const authScreen =
   document.getElementById("authScreen");
@@ -849,11 +1294,26 @@ const accountEmail =
 const profilePhoto =
   document.getElementById("profilePhoto");
 
+const menuButton =
+  document.getElementById("menuButton");
+
+const menuOverlay =
+  document.getElementById("menuOverlay");
+
+const drawerClose =
+  document.getElementById("drawerClose");
+
 const newChatButton =
   document.getElementById("newChatButton");
 
+const newChatTopButton =
+  document.getElementById("newChatTopButton");
+
 const historyList =
   document.getElementById("historyList");
+
+const searchChats =
+  document.getElementById("searchChats");
 
 const chatArea =
   document.getElementById("chatArea");
@@ -898,9 +1358,9 @@ const micButton =
   document.getElementById("micButton");
 
 
-/* =========================
+/* =========================================
    STATE
-========================= */
+========================================= */
 
 let messages = [];
 
@@ -912,10 +1372,79 @@ let userId = "guest";
 
 let currentChatId = null;
 
+let allHistoryChats = [];
 
-/* =========================
+
+/* =========================================
+   MENU
+========================================= */
+
+function openMenu() {
+
+  menuOverlay.classList.remove(
+    "closed"
+  );
+
+}
+
+
+function closeMenu() {
+
+  menuOverlay.classList.add(
+    "closed"
+  );
+
+}
+
+
+menuButton.addEventListener(
+  "click",
+  () => {
+
+    if (
+      menuOverlay.classList.contains(
+        "closed"
+      )
+    ) {
+
+      openMenu();
+
+    } else {
+
+      closeMenu();
+
+    }
+
+  }
+);
+
+
+drawerClose.addEventListener(
+  "click",
+  closeMenu
+);
+
+
+menuOverlay.addEventListener(
+  "click",
+  event => {
+
+    if (
+      event.target ===
+      menuOverlay
+    ) {
+
+      closeMenu();
+
+    }
+
+  }
+);
+
+
+/* =========================================
    LOCAL STORAGE
-========================= */
+========================================= */
 
 function getLocalChats() {
 
@@ -923,7 +1452,7 @@ function getLocalChats() {
 
     return JSON.parse(
       localStorage.getItem(
-        "zed_ai_chats"
+        "zed_chats"
       ) || "[]"
     );
 
@@ -939,16 +1468,16 @@ function getLocalChats() {
 function saveLocalChats(chats) {
 
   localStorage.setItem(
-    "zed_ai_chats",
+    "zed_chats",
     JSON.stringify(chats)
   );
 
 }
 
 
-/* =========================
+/* =========================================
    MEMORY
-========================= */
+========================================= */
 
 async function saveMemoryToFirestore(text) {
 
@@ -962,6 +1491,21 @@ async function saveMemoryToFirestore(text) {
   }
 
 
+  const exists =
+    memories.some(
+      item =>
+        item.toLowerCase() ===
+        text.toLowerCase()
+    );
+
+
+  if (exists) {
+
+    return;
+
+  }
+
+
   const memoriesRef =
     collection(
       db,
@@ -969,21 +1513,6 @@ async function saveMemoryToFirestore(text) {
       auth.currentUser.uid,
       "memories"
     );
-
-
-  const existing =
-    memories.find(
-      item =>
-        item.toLowerCase() ===
-        text.toLowerCase()
-    );
-
-
-  if (existing) {
-
-    return;
-
-  }
 
 
   await addDoc(
@@ -1055,7 +1584,6 @@ async function loadMemories() {
       }
     );
 
-
   } catch (error) {
 
     console.error(
@@ -1093,9 +1621,9 @@ function extractMemory(text) {
 }
 
 
-/* =========================
-   CHAT HISTORY
-========================= */
+/* =========================================
+   CLOUD CHAT STORAGE
+========================================= */
 
 async function saveChatToCloud() {
 
@@ -1152,7 +1680,6 @@ async function saveChatToCloud() {
         }
       );
 
-
     } else {
 
       const chatRef =
@@ -1194,9 +1721,59 @@ async function saveChatToCloud() {
 }
 
 
+/* =========================================
+   HISTORY
+========================================= */
+
+function renderHistory(chats) {
+
+  historyList.innerHTML = "";
+
+  chats.forEach(
+    chat => {
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+
+      item.className =
+        "historyItem";
+
+
+      item.textContent =
+        chat.title ||
+        "New chat";
+
+
+      item.addEventListener(
+        "click",
+        () => {
+
+          loadCloudChat(chat);
+
+          closeMenu();
+
+        }
+      );
+
+
+      historyList.appendChild(
+        item
+      );
+
+    }
+  );
+
+}
+
+
 async function loadCloudHistory() {
 
   historyList.innerHTML = "";
+
+  allHistoryChats = [];
 
   if (!auth.currentUser) {
 
@@ -1217,18 +1794,18 @@ async function loadCloudHistory() {
 
 
     const snapshot =
-      await getDocs(chatsRef);
-
-
-    const chats = [];
+      await getDocs(
+        chatsRef
+      );
 
 
     snapshot.forEach(
       item => {
 
-        chats.push({
+        allHistoryChats.push({
 
-          id: item.id,
+          id:
+            item.id,
 
           ...item.data()
 
@@ -1238,7 +1815,7 @@ async function loadCloudHistory() {
     );
 
 
-    chats.sort(
+    allHistoryChats.sort(
       (a, b) => {
 
         const aTime =
@@ -1253,37 +1830,9 @@ async function loadCloudHistory() {
     );
 
 
-    chats.forEach(
-      chat => {
-
-        const item =
-          document.createElement(
-            "div"
-          );
-
-
-        item.className =
-          "historyItem";
-
-
-        item.textContent =
-          chat.title ||
-          "New chat";
-
-
-        item.addEventListener(
-          "click",
-          () => loadCloudChat(chat)
-        );
-
-
-        historyList.appendChild(
-          item
-        );
-
-      }
+    renderHistory(
+      allHistoryChats
     );
-
 
   } catch (error) {
 
@@ -1296,6 +1845,50 @@ async function loadCloudHistory() {
 
 }
 
+
+searchChats.addEventListener(
+  "input",
+  () => {
+
+    const search =
+      searchChats.value
+        .trim()
+        .toLowerCase();
+
+
+    if (!search) {
+
+      renderHistory(
+        allHistoryChats
+      );
+
+      return;
+
+    }
+
+
+    const filtered =
+      allHistoryChats.filter(
+        chat =>
+          String(
+            chat.title || ""
+          )
+            .toLowerCase()
+            .includes(search)
+      );
+
+
+    renderHistory(
+      filtered
+    );
+
+  }
+);
+
+
+/* =========================================
+   SAVE CHAT
+========================================= */
 
 function saveCurrentChatLocally() {
 
@@ -1378,9 +1971,9 @@ async function saveCurrentChat() {
 }
 
 
-/* =========================
+/* =========================================
    RENDER MESSAGES
-========================= */
+========================================= */
 
 function renderMessages() {
 
@@ -1416,22 +2009,52 @@ function renderMessages() {
         );
 
 
-      const bubble =
+      const inner =
         document.createElement(
           "div"
         );
 
 
-      bubble.className =
-        "messageBubble";
+      inner.className =
+        "messageInner";
 
 
-      bubble.textContent =
+      const label =
+        document.createElement(
+          "div"
+        );
+
+
+      label.className =
+        "messageLabel";
+
+
+      label.textContent =
+        message.role === "user"
+          ? "You"
+          : "Zed";
+
+
+      const content =
+        document.createElement(
+          "div"
+        );
+
+
+      content.textContent =
         message.content || "";
 
 
+      inner.appendChild(
+        label
+      );
+
+      inner.appendChild(
+        content
+      );
+
       wrapper.appendChild(
-        bubble
+        inner
       );
 
 
@@ -1443,8 +2066,14 @@ function renderMessages() {
   );
 
 
-  chatArea.scrollTop =
-    chatArea.scrollHeight;
+  requestAnimationFrame(
+    () => {
+
+      chatArea.scrollTop =
+        chatArea.scrollHeight;
+
+    }
+  );
 
 }
 
@@ -1466,9 +2095,9 @@ function loadCloudChat(chat) {
 }
 
 
-/* =========================
+/* =========================================
    NEW CHAT
-========================= */
+========================================= */
 
 function newChat() {
 
@@ -1482,16 +2111,67 @@ function newChat() {
 
   messageInput.value = "";
 
+  messageInput.style.height =
+    "auto";
+
   renderMessages();
+
+  closeMenu();
 
   messageInput.focus();
 
 }
 
 
-/* =========================
+newChatButton.addEventListener(
+  "click",
+  newChat
+);
+
+
+newChatTopButton.addEventListener(
+  "click",
+  newChat
+);
+
+
+/* =========================================
+   FILE READER
+========================================= */
+
+function readFileAsDataURL(file) {
+
+  return new Promise(
+    (resolve, reject) => {
+
+      const reader =
+        new FileReader();
+
+
+      reader.onload =
+        () =>
+          resolve(
+            reader.result
+          );
+
+
+      reader.onerror =
+        reject;
+
+
+      reader.readAsDataURL(
+        file
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================
    SEND MESSAGE
-========================= */
+========================================= */
 
 async function sendMessage() {
 
@@ -1554,8 +2234,12 @@ async function sendMessage() {
 
   messageInput.value = "";
 
+  messageInput.style.height =
+    "auto";
 
-  sendButton.disabled = true;
+
+  sendButton.disabled =
+    true;
 
 
   let filePayload = null;
@@ -1651,7 +2335,7 @@ async function sendMessage() {
 
       throw new Error(
         data.error ||
-        "Zed AI could not respond."
+        "Zed could not respond."
       );
 
     }
@@ -1673,7 +2357,6 @@ async function sendMessage() {
 
     await saveCurrentChat();
 
-
   } catch (error) {
 
     console.error(
@@ -1687,14 +2370,13 @@ async function sendMessage() {
       role: "assistant",
 
       content:
-        "Sorry, I couldn't complete that request. " +
+        "Sorry, I couldn't complete that request.\n\n" +
         error.message
 
     });
 
 
     renderMessages();
-
 
   } finally {
 
@@ -1710,43 +2392,9 @@ async function sendMessage() {
 }
 
 
-/* =========================
-   FILE READER
-========================= */
-
-function readFileAsDataURL(file) {
-
-  return new Promise(
-    (resolve, reject) => {
-
-      const reader =
-        new FileReader();
-
-
-      reader.onload =
-        () =>
-          resolve(
-            reader.result
-          );
-
-
-      reader.onerror =
-        reject;
-
-
-      reader.readAsDataURL(
-        file
-      );
-
-    }
-  );
-
-}
-
-
-/* =========================
+/* =========================================
    IMAGE GENERATION
-========================= */
+========================================= */
 
 async function createImage() {
 
@@ -1757,7 +2405,7 @@ async function createImage() {
   if (!prompt) {
 
     alert(
-      "Describe the image you want Zed AI to create."
+      "Describe the image you want Zed to create."
     );
 
     return;
@@ -1845,16 +2493,8 @@ async function createImage() {
       data.image;
 
 
-    image.style.maxWidth =
-      "100%";
-
-
-    image.style.borderRadius =
-      "12px";
-
-
-    image.style.marginTop =
-      "10px";
+    image.className =
+      "generatedImage";
 
 
     chatContent.appendChild(
@@ -1864,9 +2504,21 @@ async function createImage() {
 
     messageInput.value = "";
 
+    messageInput.style.height =
+      "auto";
+
 
     await saveCurrentChat();
 
+
+    requestAnimationFrame(
+      () => {
+
+        chatArea.scrollTop =
+          chatArea.scrollHeight;
+
+      }
+    );
 
   } catch (error) {
 
@@ -1880,7 +2532,6 @@ async function createImage() {
       error.message
     );
 
-
   } finally {
 
     sendButton.disabled =
@@ -1891,9 +2542,9 @@ async function createImage() {
 }
 
 
-/* =========================
+/* =========================================
    ATTACHMENTS
-========================= */
+========================================= */
 
 attachButton.addEventListener(
   "click",
@@ -1995,9 +2646,9 @@ fileInput.addEventListener(
 );
 
 
-/* =========================
+/* =========================================
    INPUT
-========================= */
+========================================= */
 
 sendButton.addEventListener(
   "click",
@@ -2035,26 +2686,16 @@ messageInput.addEventListener(
     messageInput.style.height =
       Math.min(
         messageInput.scrollHeight,
-        160
+        150
       ) + "px";
 
   }
 );
 
 
-/* =========================
-   NEW CHAT BUTTON
-========================= */
-
-newChatButton.addEventListener(
-  "click",
-  newChat
-);
-
-
-/* =========================
-   AUTH
-========================= */
+/* =========================================
+   AUTHENTICATION
+========================================= */
 
 googleLogin.addEventListener(
   "click",
@@ -2074,7 +2715,6 @@ googleLogin.addEventListener(
         auth,
         provider
       );
-
 
     } catch (error) {
 
@@ -2109,7 +2749,6 @@ emailLogin.addEventListener(
         passwordInput.value
       );
 
-
     } catch (error) {
 
       console.error(
@@ -2143,7 +2782,6 @@ emailSignup.addEventListener(
         passwordInput.value
       );
 
-
     } catch (error) {
 
       console.error(
@@ -2167,13 +2805,15 @@ logoutButton.addEventListener(
 
     await signOut(auth);
 
+    closeMenu();
+
   }
 );
 
 
-/* =========================
+/* =========================================
    AUTH STATE
-========================= */
+========================================= */
 
 onAuthStateChanged(
   auth,
@@ -2197,7 +2837,7 @@ onAuthStateChanged(
 
       accountName.textContent =
         user.displayName ||
-        "Zed AI User";
+        "Zed User";
 
 
       accountEmail.textContent =
@@ -2222,9 +2862,10 @@ onAuthStateChanged(
                     height="100%"
                     fill="#444"/>
               <text x="50%"
-                    y="55%"
+                    y="57%"
                     text-anchor="middle"
                     fill="white"
+                    font-family="Arial"
                     font-size="30">
                 Z
               </text>
@@ -2257,15 +2898,18 @@ onAuthStateChanged(
         "hidden"
       );
 
+
+      closeMenu();
+
     }
 
   }
 );
 
 
-/* =========================
+/* =========================================
    VOICE INPUT
-========================= */
+========================================= */
 
 let recognition = null;
 
@@ -2307,6 +2951,11 @@ if (
       messageInput.value =
         transcript;
 
+
+      messageInput.dispatchEvent(
+        new Event("input")
+      );
+
     };
 
 
@@ -2338,10 +2987,28 @@ micButton.addEventListener(
     }
 
 
-    recognition.start();
+    try {
+
+      recognition.start();
+
+    } catch (error) {
+
+      console.error(
+        "Voice start error:",
+        error
+      );
+
+    }
 
   }
 );
+
+
+/* =========================================
+   START CLEAN
+========================================= */
+
+renderMessages();
 
 </script>
 

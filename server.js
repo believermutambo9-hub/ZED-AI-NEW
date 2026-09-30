@@ -3,30 +3,36 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
 
-import { webSearch, shouldSearchWeb } from "./web-search.js";
-
 import {
   footballFeature,
   footballTeamFeature,
   footballLeagueFeature,
   detectFootballTeam,
   detectFootballLeague,
-  getFootballRequestType,
+  getFootballRequestType
 } from "./features/football.js";
+
+import { webSearch } from "./web-search.js";
+
+const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-
 const PORT = process.env.PORT || 10000;
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
+const GEMINI_API_KEY =
+  process.env.GEMINI_API_KEY || "";
 
 const GEMINI_MODEL =
-  process.env.GEMINI_MODEL || "gemini-3.8-flash";
+  process.env.GEMINI_MODEL ||
+  "gemini-3.8-flash";
+
+const GROQ_API_KEY =
+  process.env.GROQ_API_KEY || "";
+
+const OPENROUTER_API_KEY =
+  process.env.OPENROUTER_API_KEY || "";
 
 const CLOUDFLARE_ACCOUNT_ID =
   process.env.CLOUDFLARE_ACCOUNT_ID || "";
@@ -38,70 +44,89 @@ const CLOUDFLARE_IMAGE_MODEL =
   process.env.CLOUDFLARE_IMAGE_MODEL ||
   "@cf/black-forest-labs/flux-1-schnell";
 
-const memory = new Map();
-
-const MAX_FILE_SIZE = 15 * 1024 * 1024;
-
-const ALLOWED_FILE_TYPES = new Set([
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
-
 app.use(
   express.json({
-    limit: "25mb",
+    limit: "25mb"
   })
 );
 
 app.use(
   express.urlencoded({
     extended: true,
-    limit: "25mb",
+    limit: "25mb"
   })
 );
 
 app.use(express.static(__dirname));
 
-/* =========================================================
-   BASIC HELPERS
-========================================================= */
+
+// ============================================================
+// BASIC HELPERS
+// ============================================================
 
 function cleanText(value = "") {
   return String(value)
-    .replace(/\s+/g, " ")
+    .replace(/\u0000/g, "")
     .trim();
 }
 
-function getUserId(req) {
-  return (
-    req.body?.userId ||
-    req.body?.user_id ||
-    req.headers["x-user-id"] ||
-    "default-user"
+
+function isCurrentInformationQuestion(message = "") {
+  const text = message.toLowerCase();
+
+  const keywords = [
+    "today",
+    "tonight",
+    "tomorrow",
+    "yesterday",
+    "latest",
+    "current",
+    "now",
+    "recent",
+    "recently",
+    "this week",
+    "this month",
+    "next match",
+    "next game",
+    "next fixture",
+    "fixtures",
+    "fixture",
+    "results",
+    "result",
+    "score",
+    "scores",
+    "standings",
+    "table",
+    "ranking",
+    "rankings",
+    "schedule",
+    "news"
+  ];
+
+  return keywords.some(
+    keyword => text.includes(keyword)
   );
 }
 
-function getConversationId(req) {
-  return (
-    req.body?.conversationId ||
-    req.body?.conversation_id ||
-    "default-chat"
-  );
-}
 
-function getMemoryKey(userId, conversationId) {
-  return `${userId}:${conversationId}`;
-}
+// ============================================================
+// FOOTBALL DETECTION
+// ============================================================
 
 function shouldUseFootball(message = "") {
-  const text = String(message).toLowerCase();
+  const text = message.toLowerCase();
 
   const footballWords = [
     "football",
     "soccer",
+    "match",
+    "matches",
+    "fixture",
+    "fixtures",
+    "score",
+    "scores",
+    "standings",
+    "league table",
     "premier league",
     "champions league",
     "europa league",
@@ -109,222 +134,198 @@ function shouldUseFootball(message = "") {
     "world cup",
     "afcon",
     "africa cup",
-    "club world cup",
-    "fixture",
-    "fixtures",
-    "match",
-    "matches",
-    "game",
-    "games",
-    "score",
-    "scores",
-    "result",
-    "results",
-    "standings",
-    "table",
-    "league table",
-    "football team",
-    "soccer team",
-    "kickoff",
-    "kick-off",
-    "starting lineup",
-    "starting xi",
-    "lineup",
-    "line-up",
-    "goal scorer",
-    "goalscorer",
+    "fifa",
+    "arsenal",
+    "chelsea",
+    "liverpool",
+    "manchester united",
+    "man united",
+    "manchester city",
+    "tottenham",
+    "spurs",
+    "barcelona",
+    "real madrid",
+    "bayern",
+    "psg",
+    "juventus",
+    "inter milan",
+    "ac milan",
+    "dortmund",
+    "ajax",
+    "napoli",
+    "atalanta",
+    "leeds",
+    "newcastle",
+    "everton",
+    "brighton",
+    "aston villa",
+    "sunderland",
+    "fulham",
+    "brentford",
+    "nottingham forest",
+    "coventry",
+    "hull city",
+    "ipswich"
   ];
 
-  return footballWords.some((word) => text.includes(word));
+  return footballWords.some(
+    word => text.includes(word)
+  );
 }
 
-function buildSystemPrompt() {
-  return `
-You are Zed AI, a helpful general AI assistant.
 
-GENERAL RULES:
-- Give clear, useful and accurate answers.
-- Do not invent facts.
-- If current information is supplied by a tool, use that information.
-- If information is unavailable, say so clearly.
-- Do not claim that you searched the internet unless search results were actually supplied.
-- Keep answers natural and easy to understand.
+// ============================================================
+// GEMINI
+// ============================================================
 
-CURRENT INFORMATION:
-When CURRENT WEB SEARCH RESULTS are supplied, use them for current-information questions.
-Do not invent information that is not supported by those results.
-
-FOOTBALL:
-When CURRENT FOOTBALL DATA is supplied, treat it as the authoritative football data for that request.
-Do not replace football data with unrelated web-search information.
-Do not invent fixtures, scores, dates, results, standings or match status.
-
-IMPORTANT TEAM RULE:
-When a user says an ordinary men's team name such as "Arsenal", "Chelsea", "Liverpool", "Barcelona", "Real Madrid", etc., interpret it as the men's first team unless the user explicitly asks for the women's team, youth team, academy or another team.
-
-If the supplied football data says there are no matching fixtures or results, say that clearly instead of substituting a women's, youth or unrelated team.
-
-TIME:
-Football times supplied by the football feature are formatted for Zambia time when applicable.
-Do not change a supplied time unless the user asks for another timezone.
-
-FILES:
-If the user provides a file or image and the contents are available to you, analyze the supplied content.
-Do not invent information from files you cannot access.
-`;
-}
-
-/* =========================================================
-   GEMINI
-========================================================= */
-
-async function callGemini(prompt, fileParts = []) {
+async function askGemini(prompt) {
   if (!GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY is not configured.");
+    throw new Error(
+      "GEMINI_API_KEY is missing."
+    );
   }
 
-  const ai = new GoogleGenAI({
-    apiKey: GEMINI_API_KEY,
-  });
+  const ai =
+    new GoogleGenAI({
+      apiKey: GEMINI_API_KEY
+    });
 
-  const contents = [];
-
-  contents.push({
-    role: "user",
-    parts: [
-      {
-        text: prompt,
-      },
-    ],
-  });
-
-  if (Array.isArray(fileParts) && fileParts.length > 0) {
-    contents[0].parts.push(...fileParts);
-  }
-
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    systemInstruction: buildSystemPrompt(),
-    contents,
-  });
+  const response =
+    await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt
+    });
 
   const answer =
     response?.text ||
     response?.candidates?.[0]?.content?.parts
-      ?.map((part) => part?.text || "")
+      ?.map(part => part.text || "")
       .join("") ||
     "";
 
   if (!answer.trim()) {
-    throw new Error("Gemini returned an empty response.");
-  }
-
-  return cleanText(answer);
-}
-
-/* =========================================================
-   GROQ
-========================================================= */
-
-async function callGroq(prompt) {
-  if (!GROQ_API_KEY) {
-    throw new Error("GROQ_API_KEY is not configured.");
-  }
-
-  const response = await fetch(
-    "https://api.groq.com/openai/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          {
-            role: "system",
-            content: buildSystemPrompt(),
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-
     throw new Error(
-      `Groq ${response.status}: ${errorText.slice(0, 500)}`
+      "Gemini returned an empty response."
     );
   }
 
-  const data = await response.json();
+  return answer.trim();
+}
+
+
+// ============================================================
+// GROQ
+// ============================================================
+
+async function askGroq(prompt) {
+  if (!GROQ_API_KEY) {
+    throw new Error(
+      "GROQ_API_KEY is missing."
+    );
+  }
+
+  const response =
+    await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+          Authorization:
+            `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model:
+            "llama-3.3-70b-versatile",
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.2
+        })
+      }
+    );
+
+  const data =
+    await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error?.message ||
+      `Groq HTTP ${response.status}`
+    );
+  }
 
   const answer =
-    data?.choices?.[0]?.message?.content || "";
+    data?.choices?.[0]?.message?.content ||
+    "";
 
   if (!answer.trim()) {
-    throw new Error("Groq returned an empty response.");
+    throw new Error(
+      "Groq returned an empty response."
+    );
   }
 
-  return cleanText(answer);
+  return answer.trim();
 }
 
-/* =========================================================
-   OPENROUTER
-========================================================= */
 
-async function callOpenRouter(prompt) {
+// ============================================================
+// OPENROUTER
+// ============================================================
+
+async function askOpenRouter(prompt) {
   if (!OPENROUTER_API_KEY) {
     throw new Error(
-      "OPENROUTER_API_KEY is not configured."
+      "OPENROUTER_API_KEY is missing."
     );
   }
 
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        "HTTP-Referer": "https://zed-ai-h7h4.onrender.com",
-        "X-Title": "Zed AI",
-      },
-      body: JSON.stringify({
-        model: "openrouter/free",
-        messages: [
-          {
-            role: "system",
-            content: buildSystemPrompt(),
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      }),
-    }
-  );
+  const response =
+    await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+          Authorization:
+            `Bearer ${OPENROUTER_API_KEY}`,
+          "HTTP-Referer":
+            "https://zed-ai-h7h4.onrender.com",
+          "X-Title":
+            "Zed AI"
+        },
+        body: JSON.stringify({
+          model:
+            "meta-llama/llama-3.3-70b-instruct",
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.2
+        })
+      }
+    );
+
+  const data =
+    await response.json();
 
   if (!response.ok) {
-    const errorText = await response.text();
-
     throw new Error(
-      `OpenRouter ${response.status}: ${errorText.slice(0, 500)}`
+      data?.error?.message ||
+      `OpenRouter HTTP ${response.status}`
     );
   }
 
-  const data = await response.json();
-
   const answer =
-    data?.choices?.[0]?.message?.content || "";
+    data?.choices?.[0]?.message?.content ||
+    "";
 
   if (!answer.trim()) {
     throw new Error(
@@ -332,655 +333,487 @@ async function callOpenRouter(prompt) {
     );
   }
 
-  return cleanText(answer);
+  return answer.trim();
 }
 
-/* =========================================================
-   AI FALLBACK
-========================================================= */
 
-async function askAI(prompt, fileParts = []) {
+// ============================================================
+// AI FALLBACK
+// ============================================================
+
+async function askAI(prompt) {
   const errors = [];
 
-  /* ---------- GEMINI ---------- */
-
   try {
-    const answer = await callGemini(
-      prompt,
-      fileParts
+    const answer =
+      await askGemini(prompt);
+
+    return {
+      answer,
+      provider: "gemini"
+    };
+  } catch (error) {
+    errors.push(
+      `Gemini: ${error.message}`
     );
-
-    return {
-      answer,
-      provider: "gemini",
-    };
-  } catch (error) {
-    errors.push(`Gemini: ${error.message}`);
-    console.error("Gemini error:", error.message);
   }
 
-  /* ---------- GROQ ---------- */
-
   try {
-    const answer = await callGroq(prompt);
+    const answer =
+      await askGroq(prompt);
 
     return {
       answer,
-      provider: "groq-fallback",
+      provider: "groq-fallback"
     };
   } catch (error) {
-    errors.push(`Groq: ${error.message}`);
-    console.error("Groq error:", error.message);
+    errors.push(
+      `Groq: ${error.message}`
+    );
   }
 
-  /* ---------- OPENROUTER ---------- */
-
   try {
-    const answer = await callOpenRouter(prompt);
+    const answer =
+      await askOpenRouter(prompt);
 
     return {
       answer,
-      provider: "openrouter-fallback",
+      provider:
+        "openrouter-fallback"
     };
   } catch (error) {
-    errors.push(`OpenRouter: ${error.message}`);
-    console.error(
-      "OpenRouter error:",
-      error.message
+    errors.push(
+      `OpenRouter: ${error.message}`
     );
   }
 
   throw new Error(
-    `All AI services are currently unavailable. ${errors.join(
-      " | "
-    )}`
+    "All AI services are currently unavailable.\n" +
+    errors.join("\n")
   );
 }
 
-/* =========================================================
-   FILE HANDLING
-========================================================= */
 
-function validateFile(file) {
-  if (!file) return;
+// ============================================================
+// IMAGE GENERATION
+// ============================================================
 
-  if (file.size && file.size > MAX_FILE_SIZE) {
-    throw new Error(
-      "The uploaded file is too large. Maximum size is 15 MB."
-    );
-  }
-
+async function generateCloudflareImage(prompt) {
   if (
-    file.mimeType &&
-    !ALLOWED_FILE_TYPES.has(file.mimeType)
+    !CLOUDFLARE_ACCOUNT_ID ||
+    !CLOUDFLARE_API_TOKEN
   ) {
     throw new Error(
-      `Unsupported file type: ${file.mimeType}`
+      "Cloudflare image generation is not configured."
     );
   }
-}
 
-function buildGeminiFilePart(file) {
-  if (!file) return null;
+  const url =
+    `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/${CLOUDFLARE_IMAGE_MODEL}`;
 
-  validateFile(file);
+  const response =
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization:
+          `Bearer ${CLOUDFLARE_API_TOKEN}`,
+        "Content-Type":
+          "application/json"
+      },
+      body: JSON.stringify({
+        prompt
+      })
+    });
 
-  const mimeType =
-    file.mimeType ||
-    file.type ||
-    "application/octet-stream";
+  if (!response.ok) {
+    const errorText =
+      await response.text();
 
-  const base64 =
-    file.data ||
-    file.base64 ||
-    "";
-
-  if (!base64) {
     throw new Error(
-      "The uploaded file does not contain readable data."
+      `Cloudflare HTTP ${response.status}: ${errorText}`
     );
   }
+
+  const contentType =
+    response.headers.get(
+      "content-type"
+    ) || "";
+
+  if (
+    contentType.includes(
+      "application/json"
+    )
+  ) {
+    const data =
+      await response.json();
+
+    return data;
+  }
+
+  const buffer =
+    Buffer.from(
+      await response.arrayBuffer()
+    );
 
   return {
-    inlineData: {
-      mimeType,
-      data: base64,
-    },
+    image:
+      `data:${contentType};base64,${buffer.toString("base64")}`
   };
 }
 
-/* =========================================================
-   HEALTH
-========================================================= */
 
-app.get("/health", (req, res) => {
-  res.json({
-    ok: true,
-    service: "zed-ai",
-    provider:
-      "gemini-with-groq-and-openrouter-fallback",
-    geminiModel: GEMINI_MODEL,
-    fileAnalysis: true,
-    football: true,
-    footballScope: "worldwide",
-    footballRouting:
-      "team-league-worldwide",
-    webSearch: true,
-    imageGeneration: Boolean(
-      CLOUDFLARE_ACCOUNT_ID &&
-        CLOUDFLARE_API_TOKEN
-    ),
-  });
-});
+// ============================================================
+// HEALTH
+// ============================================================
 
-/* =========================================================
-   GEMINI TEST
-========================================================= */
-
-app.get("/api/gemini-test", async (req, res) => {
-  try {
-    const result = await askAI(
-      "Reply with exactly: Zed AI Gemini test successful."
-    );
-
+app.get(
+  "/health",
+  (req, res) => {
     res.json({
       ok: true,
-      answer: result.answer,
-      provider: result.provider,
-    });
-  } catch (error) {
-    res.status(500).json({
-      ok: false,
-      error: error.message,
+      service: "zed-ai",
+      provider:
+        "gemini-with-groq-and-openrouter-fallback",
+      geminiModel:
+        GEMINI_MODEL,
+      webSearch: true,
+      football: true,
+      footballScope:
+        "worldwide",
+      footballRouting:
+        "team-league-worldwide",
+      imageGeneration:
+        Boolean(
+          CLOUDFLARE_ACCOUNT_ID &&
+          CLOUDFLARE_API_TOKEN
+        )
     });
   }
-});
+);
 
-/* =========================================================
-   IMAGE GENERATION
-========================================================= */
 
-app.post(
-  "/api/generate-image",
+// ============================================================
+// GEMINI TEST
+// ============================================================
+
+app.get(
+  "/api/gemini-test",
   async (req, res) => {
     try {
-      if (
-        !CLOUDFLARE_ACCOUNT_ID ||
-        !CLOUDFLARE_API_TOKEN
-      ) {
-        return res.status(500).json({
-          ok: false,
-          error:
-            "Cloudflare image generation is not configured.",
-        });
-      }
-
-      const prompt = cleanText(
-        req.body?.prompt || ""
-      );
-
-      if (!prompt) {
-        return res.status(400).json({
-          ok: false,
-          error: "Please provide an image prompt.",
-        });
-      }
-
-      const url =
-        `https://api.cloudflare.com/client/v4/accounts/` +
-        `${CLOUDFLARE_ACCOUNT_ID}/ai/run/` +
-        `${encodeURIComponent(CLOUDFLARE_IMAGE_MODEL)}`;
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-
-        throw new Error(
-          `Cloudflare ${response.status}: ${errorText.slice(
-            0,
-            500
-          )}`
+      const result =
+        await askGemini(
+          "Reply with exactly: Zed AI Gemini test successful."
         );
-      }
-
-      const contentType =
-        response.headers.get("content-type") || "";
-
-      if (contentType.includes("application/json")) {
-        const data = await response.json();
-
-        return res.json({
-          ok: true,
-          provider: "cloudflare",
-          result: data,
-        });
-      }
-
-      const arrayBuffer =
-        await response.arrayBuffer();
-
-      const base64 = Buffer.from(
-        arrayBuffer
-      ).toString("base64");
 
       res.json({
         ok: true,
-        provider: "cloudflare",
-        image:
-          `data:${contentType || "image/png"};base64,${base64}`,
+        provider: "gemini",
+        answer: result
       });
     } catch (error) {
-      console.error(
-        "Image generation error:",
-        error.message
-      );
-
       res.status(500).json({
         ok: false,
-        error: error.message,
+        error: error.message
       });
     }
   }
 );
 
-/* =========================================================
-   CHAT
-========================================================= */
 
-app.post("/api/chat", async (req, res) => {
-  try {
-    const userMessage = cleanText(
-      req.body?.message ||
-        req.body?.prompt ||
-        ""
-    );
+// ============================================================
+// IMAGE API
+// ============================================================
 
-    const userId = getUserId(req);
-    const conversationId =
-      getConversationId(req);
-
-    if (!userMessage) {
-      return res.status(400).json({
-        ok: false,
-        error: "Please enter a message.",
-      });
-    }
-
-    const memoryKey = getMemoryKey(
-      userId,
-      conversationId
-    );
-
-    /* =====================================================
-       DETECT FOOTBALL FIRST
-    ===================================================== */
-
-    const footballDetected =
-      shouldUseFootball(userMessage);
-
-    const specificTeam = footballDetected
-      ? detectFootballTeam(userMessage)
-      : null;
-
-    const specificLeague = footballDetected
-      ? detectFootballLeague(userMessage)
-      : null;
-
-    const footballRequestType =
-      footballDetected
-        ? getFootballRequestType(userMessage)
-        : null;
-
-    console.log(
-      "Football detection:",
-      JSON.stringify({
-        detected: footballDetected,
-        team: specificTeam?.name || null,
-        league: specificLeague?.name || null,
-        requestType: footballRequestType || null,
-      })
-    );
-
-    /* =====================================================
-       MEMORY
-    ===================================================== */
-
-    const previousMessages =
-      memory.get(memoryKey) || [];
-
-    let memoryContext = "";
-
-    if (previousMessages.length > 0) {
-      memoryContext = `
-RECENT CONVERSATION:
-
-${previousMessages
-  .slice(-10)
-  .map(
-    (item) =>
-      `${item.role}: ${item.content}`
-  )
-  .join("\n")}
-
-Use this conversation context when it is relevant.
-`;
-    }
-
-    /* =====================================================
-       WEB SEARCH
-       
-       IMPORTANT:
-       For a specific football team request, do NOT run
-       general web search because it can return unrelated
-       women's/youth/team results and conflict with ESPN.
-    ===================================================== */
-
-    let webContext = "";
-    let searchUsed = false;
-
-    const skipWebForSpecificFootballTeam =
-      Boolean(specificTeam);
-
-    if (
-      !skipWebForSpecificFootballTeam &&
-      shouldSearchWeb(userMessage)
-    ) {
-      try {
-        const searchResult =
-          await webSearch(userMessage);
-
-        if (
-          typeof searchResult === "string" &&
-          searchResult.trim()
-        ) {
-          searchUsed = true;
-
-          webContext = `
-CURRENT WEB SEARCH RESULTS:
-
-${searchResult}
-
-Use these results when answering current-information questions.
-Do not invent information that is not supported by the results.
-`;
-        }
-      } catch (error) {
-        console.error(
-          "Web search error:",
-          error.message
+app.post(
+  "/api/generate-image",
+  async (req, res) => {
+    try {
+      const prompt =
+        cleanText(
+          req.body?.prompt
         );
 
-        webContext = "";
+      if (!prompt) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Please provide an image prompt."
+        });
       }
+
+      const result =
+        await generateCloudflareImage(
+          prompt
+        );
+
+      res.json({
+        ok: true,
+        ...result
+      });
+    } catch (error) {
+      res.status(500).json({
+        ok: false,
+        error: error.message
+      });
     }
+  }
+);
 
-    /* =====================================================
-       FOOTBALL
-    ===================================================== */
 
-    let footballContext = "";
-    let footballUsed = false;
-    let footballMode = null;
+// ============================================================
+// CHAT API
+// ============================================================
 
-    if (footballDetected) {
-      try {
-        /* -------------------------------------------------
-           SPECIFIC TEAM
-        ------------------------------------------------- */
+app.post(
+  "/api/chat",
+  async (req, res) => {
+    try {
+      const userMessage =
+        cleanText(
+          req.body?.message
+        );
 
-        if (specificTeam) {
+      if (!userMessage) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Please enter a message."
+        });
+      }
+
+      let footballData = "";
+      let footballUsed = false;
+      let footballMode = "none";
+
+      let searchData = "";
+      let searchUsed = false;
+
+
+      // ======================================================
+      // FOOTBALL ROUTING
+      // TEAM FIRST
+      // ======================================================
+
+      if (
+        shouldUseFootball(
+          userMessage
+        )
+      ) {
+        const footballTeam =
+          detectFootballTeam(
+            userMessage
+          );
+
+        const footballLeague =
+          detectFootballLeague(
+            userMessage
+          );
+
+        const footballRequestType =
+          getFootballRequestType(
+            userMessage
+          );
+
+
+        // ----------------------------------------------------
+        // TEAM FOOTBALL
+        // ----------------------------------------------------
+
+        if (footballTeam) {
           const teamResult =
             await footballTeamFeature(
               userMessage
             );
 
-          /*
-             IMPORTANT FIX:
+          footballData =
+            teamResult?.answer || "";
 
-             footballTeamFeature() returns:
-             {
-               answer: "...",
-               team: "...",
-               ...
-             }
-
-             NOT:
-             {
-               text: "..."
-             }
-          */
-
-          if (
-            teamResult &&
-            typeof teamResult.answer === "string" &&
-            teamResult.answer.trim()
-          ) {
-            footballUsed = true;
-            footballMode = "team";
-
-            footballContext = `
-CURRENT FOOTBALL DATA FROM ESPN:
-
-${teamResult.answer}
-
-This is the authoritative football data for the requested team.
-
-Use this football data directly.
-Do not replace it with another source.
-Do not substitute a women's team, youth team or unrelated team.
-Do not invent missing fixtures, results, scores, dates or status.
-`;
-          }
+          footballUsed = true;
+          footballMode = "team";
         }
 
-        /* -------------------------------------------------
-           SPECIFIC LEAGUE
-        ------------------------------------------------- */
 
-        else if (specificLeague) {
+        // ----------------------------------------------------
+        // LEAGUE FOOTBALL
+        // ----------------------------------------------------
+
+        else if (footballLeague) {
           const leagueResult =
             await footballLeagueFeature(
               userMessage
             );
 
-          if (
-            leagueResult &&
-            typeof leagueResult.answer === "string" &&
-            leagueResult.answer.trim()
-          ) {
-            footballUsed = true;
-            footballMode = "league";
+          footballData =
+            leagueResult?.answer || "";
 
-            footballContext = `
-CURRENT FOOTBALL DATA FROM ESPN:
-
-${leagueResult.answer}
-
-Use this football data directly.
-Do not invent missing fixtures, results, scores, dates, standings or status.
-`;
-          }
+          footballUsed = true;
+          footballMode = "league";
         }
 
-        /* -------------------------------------------------
-           WORLDWIDE FOOTBALL
-        ------------------------------------------------- */
+
+        // ----------------------------------------------------
+        // WORLDWIDE FOOTBALL
+        // ----------------------------------------------------
 
         else {
-          const football =
-            await footballFeature();
+          const footballResult =
+            await footballFeature(
+              userMessage
+            );
 
-          if (
-            football &&
-            typeof football.answer === "string" &&
-            football.answer.trim()
-          ) {
-            footballUsed = true;
-            footballMode = "worldwide";
+          footballData =
+            footballResult?.answer || "";
 
-            footballContext = `
-CURRENT FOOTBALL DATA FROM ESPN:
-
-${football.answer}
-
-Use this football data directly.
-Do not invent missing fixtures, results, scores, dates, standings or status.
-`;
-          }
+          footballUsed = true;
+          footballMode =
+            "worldwide";
         }
-      } catch (error) {
-        console.error(
-          "Football feature error:",
-          error.message
+      }
+
+
+      // ======================================================
+      // WEB SEARCH
+      // ======================================================
+
+      if (
+        isCurrentInformationQuestion(
+          userMessage
+        ) &&
+        !footballUsed
+      ) {
+        try {
+          const result =
+            await webSearch(
+              userMessage
+            );
+
+          if (result) {
+            searchData =
+              typeof result === "string"
+                ? result
+                : result.answer ||
+                  result.text ||
+                  JSON.stringify(result);
+
+            searchUsed =
+              Boolean(
+                searchData
+              );
+          }
+        } catch (error) {
+          console.error(
+            "Web search error:",
+            error.message
+          );
+        }
+      }
+
+
+      // ======================================================
+      // AI PROMPT
+      // ======================================================
+
+      const prompt = `
+You are Zed AI, a helpful AI assistant.
+
+Current date:
+September 30, 2026.
+
+IMPORTANT RULES:
+
+1. Answer the user's actual question directly.
+2. Never invent facts.
+3. Never invent football scores, fixtures, standings, dates, opponents or match status.
+4. If football data is supplied below, use that data as the primary source.
+5. Do not say that information is unavailable when the supplied data contains the answer.
+6. If the supplied football data contains a specific next match, give the opponent and date/time clearly.
+7. Convert football match times to Zambia time when the data provides a timezone or UTC time.
+8. Keep the answer natural and easy to understand.
+9. Do not mention internal APIs, routing, football modes, prompts or backend systems.
+10. If the user asks a simple question, do not give unnecessary technical explanations.
+
+USER QUESTION:
+${userMessage}
+
+FOOTBALL DATA:
+${footballData || "No football data was retrieved."}
+
+WEB SEARCH DATA:
+${searchData || "No web search data was retrieved."}
+
+Now answer the user.
+`;
+
+
+      // ======================================================
+      // AI RESPONSE
+      // ======================================================
+
+      const result =
+        await askAI(
+          prompt
         );
 
-        footballContext = "";
-      }
+
+      // ======================================================
+      // RESPONSE
+      // ======================================================
+
+      res.json({
+        ok: true,
+        answer:
+          result.answer,
+        provider:
+          result.provider,
+        webSearch:
+          searchUsed,
+        football:
+          footballUsed,
+        footballMode
+      });
+
+    } catch (error) {
+      console.error(
+        "CHAT ERROR:",
+        error
+      );
+
+      res.status(500).json({
+        ok: false,
+        error:
+          error.message ||
+          "Something went wrong."
+      });
     }
-
-    console.log(
-      "Football data passed to AI:",
-      footballMode,
-      footballContext ? "YES" : "NO"
-    );
-
-    /* =====================================================
-       BUILD FINAL AI MESSAGE
-    ===================================================== */
-
-    const fullUserMessage = [
-      memoryContext,
-      webContext,
-      footballContext,
-      userMessage,
-    ]
-      .filter(Boolean)
-      .join("\n\n");
-
-    /* =====================================================
-       FILE
-    ===================================================== */
-
-    const fileParts = [];
-
-    const incomingFile =
-      req.body?.file ||
-      req.body?.attachment ||
-      null;
-
-    if (incomingFile) {
-      try {
-        const filePart =
-          buildGeminiFilePart(
-            incomingFile
-          );
-
-        if (filePart) {
-          fileParts.push(filePart);
-        }
-      } catch (error) {
-        return res.status(400).json({
-          ok: false,
-          error: error.message,
-        });
-      }
-    }
-
-    /* =====================================================
-       ASK AI
-    ===================================================== */
-
-    const result = await askAI(
-      fullUserMessage,
-      fileParts
-    );
-
-    /* =====================================================
-       SAVE MEMORY
-    ===================================================== */
-
-    const updatedMessages = [
-      ...previousMessages,
-      {
-        role: "user",
-        content: userMessage,
-      },
-      {
-        role: "assistant",
-        content: result.answer,
-      },
-    ].slice(-20);
-
-    memory.set(
-      memoryKey,
-      updatedMessages
-    );
-
-    /* =====================================================
-       RESPONSE
-    ===================================================== */
-
-    res.json({
-      ok: true,
-      answer: result.answer,
-      provider: result.provider,
-      webSearch: searchUsed,
-      football: footballUsed,
-      footballMode,
-    });
-  } catch (error) {
-    console.error(
-      "Chat error:",
-      error
-    );
-
-    res.status(500).json({
-      ok: false,
-      error:
-        error?.message ||
-        "Something went wrong while processing your request.",
-    });
   }
-});
+);
 
-/* =========================================================
-   FRONTEND FALLBACK
-========================================================= */
 
-app.use((req, res) => {
-  res.sendFile(
-    path.join(__dirname, "index.html")
-  );
-});
+// ============================================================
+// FRONTEND
+// ============================================================
 
-/* =========================================================
-   START SERVER
-========================================================= */
+app.use(
+  (req, res) => {
+    res.sendFile(
+      path.join(
+        __dirname,
+        "index.html"
+      )
+    );
+  }
+);
 
-app.listen(PORT, () => {
-  console.log(
-    `Zed AI server running on port ${PORT}`
-  );
 
-  console.log(
-    `Gemini model: ${GEMINI_MODEL}`
-  );
+// ============================================================
+// START SERVER
+// ============================================================
 
-  console.log(
-    "Football routing: team → league → worldwide"
-  );
-
-  console.log(
-    "AI fallback: Gemini → Groq → OpenRouter"
-  );
-});
+app.listen(
+  PORT,
+  () => {
+    console.log(
+      `Zed AI running on port ${PORT}`
+    );
+  }
+);

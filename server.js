@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { randomUUID } from "crypto";
 import { GoogleGenAI } from "@google/genai";
 
 import {
@@ -61,6 +62,152 @@ app.use(express.static(__dirname));
 
 
 // ============================================================
+// CONVERSATION MEMORY
+// ============================================================
+
+const conversations = new Map();
+
+const MAX_HISTORY_MESSAGES = 30;
+const MAX_CONVERSATIONS = 1000;
+const CONVERSATION_TIMEOUT = 1000 * 60 * 60 * 24 * 7;
+
+
+// Create or retrieve a conversation
+function getConversation(conversationId) {
+  if (!conversationId) {
+    conversationId = randomUUID();
+  }
+
+  let conversation =
+    conversations.get(conversationId);
+
+  if (!conversation) {
+    conversation = {
+      id: conversationId,
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    conversations.set(
+      conversationId,
+      conversation
+    );
+  }
+
+  conversation.updatedAt = Date.now();
+
+  return conversation;
+}
+
+
+// Save a message to conversation memory
+function addMessage(
+  conversation,
+  role,
+  content
+) {
+  if (!content) return;
+
+  conversation.messages.push({
+    role,
+    content: String(content),
+    timestamp: Date.now()
+  });
+
+  if (
+    conversation.messages.length >
+    MAX_HISTORY_MESSAGES
+  ) {
+    conversation.messages =
+      conversation.messages.slice(
+        -MAX_HISTORY_MESSAGES
+      );
+  }
+
+  conversation.updatedAt =
+    Date.now();
+}
+
+
+// Convert conversation history into text
+function formatConversationHistory(
+  conversation
+) {
+  if (
+    !conversation ||
+    !conversation.messages.length
+  ) {
+    return "No previous conversation.";
+  }
+
+  return conversation.messages
+    .map(message => {
+      const speaker =
+        message.role === "user"
+          ? "USER"
+          : "ZED AI";
+
+      return `${speaker}: ${message.content}`;
+    })
+    .join("\n\n");
+}
+
+
+// Remove conversations that have been inactive
+function cleanupConversations() {
+  const now = Date.now();
+
+  for (
+    const [id, conversation]
+    of conversations
+  ) {
+    if (
+      now - conversation.updatedAt >
+      CONVERSATION_TIMEOUT
+    ) {
+      conversations.delete(id);
+    }
+  }
+
+  // Safety limit
+  if (
+    conversations.size >
+    MAX_CONVERSATIONS
+  ) {
+    const sorted =
+      [...conversations.values()]
+        .sort(
+          (a, b) =>
+            a.updatedAt -
+            b.updatedAt
+        );
+
+    const removeCount =
+      conversations.size -
+      MAX_CONVERSATIONS;
+
+    for (
+      let i = 0;
+      i < removeCount;
+      i++
+    ) {
+      conversations.delete(
+        sorted[i].id
+      );
+    }
+  }
+}
+
+
+// Clean memory every 30 minutes
+setInterval(
+  cleanupConversations,
+  1000 * 60 * 30
+);
+
+
+// ============================================================
 // BASIC HELPERS
 // ============================================================
 
@@ -71,8 +218,11 @@ function cleanText(value = "") {
 }
 
 
-function isCurrentInformationQuestion(message = "") {
-  const text = message.toLowerCase();
+function isCurrentInformationQuestion(
+  message = ""
+) {
+  const text =
+    message.toLowerCase();
 
   const keywords = [
     "today",
@@ -104,7 +254,8 @@ function isCurrentInformationQuestion(message = "") {
   ];
 
   return keywords.some(
-    keyword => text.includes(keyword)
+    keyword =>
+      text.includes(keyword)
   );
 }
 
@@ -113,8 +264,11 @@ function isCurrentInformationQuestion(message = "") {
 // FOOTBALL DETECTION
 // ============================================================
 
-function shouldUseFootball(message = "") {
-  const text = message.toLowerCase();
+function shouldUseFootball(
+  message = ""
+) {
+  const text =
+    message.toLowerCase();
 
   const footballWords = [
     "football",
@@ -169,7 +323,8 @@ function shouldUseFootball(message = "") {
   ];
 
   return footballWords.some(
-    word => text.includes(word)
+    word =>
+      text.includes(word)
   );
 }
 
@@ -199,7 +354,10 @@ async function askGemini(prompt) {
   const answer =
     response?.text ||
     response?.candidates?.[0]?.content?.parts
-      ?.map(part => part.text || "")
+      ?.map(
+        part =>
+          part.text || ""
+      )
       .join("") ||
     "";
 
@@ -260,7 +418,8 @@ async function askGroq(prompt) {
   }
 
   const answer =
-    data?.choices?.[0]?.message?.content ||
+    data?.choices?.[0]?.message
+      ?.content ||
     "";
 
   if (!answer.trim()) {
@@ -324,7 +483,8 @@ async function askOpenRouter(prompt) {
   }
 
   const answer =
-    data?.choices?.[0]?.message?.content ||
+    data?.choices?.[0]?.message
+      ?.content ||
     "";
 
   if (!answer.trim()) {
@@ -364,7 +524,8 @@ async function askAI(prompt) {
 
     return {
       answer,
-      provider: "groq-fallback"
+      provider:
+        "groq-fallback"
     };
   } catch (error) {
     errors.push(
@@ -398,7 +559,9 @@ async function askAI(prompt) {
 // IMAGE GENERATION
 // ============================================================
 
-async function generateCloudflareImage(prompt) {
+async function generateCloudflareImage(
+  prompt
+) {
   if (
     !CLOUDFLARE_ACCOUNT_ID ||
     !CLOUDFLARE_API_TOKEN
@@ -482,6 +645,9 @@ app.get(
         "worldwide",
       footballRouting:
         "team-league-worldwide",
+      conversationMemory: true,
+      activeConversations:
+        conversations.size,
       imageGeneration:
         Boolean(
           CLOUDFLARE_ACCOUNT_ID &&
@@ -513,9 +679,87 @@ app.get(
     } catch (error) {
       res.status(500).json({
         ok: false,
-        error: error.message
+        error:
+          error.message
       });
     }
+  }
+);
+
+
+// ============================================================
+// NEW CHAT
+// ============================================================
+
+app.post(
+  "/api/new-chat",
+  (req, res) => {
+    const conversation =
+      getConversation();
+
+    res.json({
+      ok: true,
+      conversationId:
+        conversation.id
+    });
+  }
+);
+
+
+// ============================================================
+// CLEAR CHAT
+// ============================================================
+
+app.delete(
+  "/api/chat/:conversationId",
+  (req, res) => {
+    const conversationId =
+      cleanText(
+        req.params.conversationId
+      );
+
+    conversations.delete(
+      conversationId
+    );
+
+    res.json({
+      ok: true
+    });
+  }
+);
+
+
+// ============================================================
+// GET CHAT HISTORY
+// ============================================================
+
+app.get(
+  "/api/chat/:conversationId",
+  (req, res) => {
+    const conversationId =
+      cleanText(
+        req.params.conversationId
+      );
+
+    const conversation =
+      conversations.get(
+        conversationId
+      );
+
+    if (!conversation) {
+      return res.json({
+        ok: true,
+        conversationId,
+        messages: []
+      });
+    }
+
+    res.json({
+      ok: true,
+      conversationId,
+      messages:
+        conversation.messages
+    });
   }
 );
 
@@ -553,7 +797,8 @@ app.post(
     } catch (error) {
       res.status(500).json({
         ok: false,
-        error: error.message
+        error:
+          error.message
       });
     }
   }
@@ -580,6 +825,40 @@ app.post(
             "Please enter a message."
         });
       }
+
+
+      // ======================================================
+      // CONVERSATION
+      // ======================================================
+
+      let conversationId =
+        cleanText(
+          req.body?.conversationId
+        );
+
+      const conversation =
+        getConversation(
+          conversationId
+        );
+
+      conversationId =
+        conversation.id;
+
+
+      // ======================================================
+      // SAVE USER MESSAGE
+      // ======================================================
+
+      addMessage(
+        conversation,
+        "user",
+        userMessage
+      );
+
+
+      // ======================================================
+      // FOOTBALL / WEB DATA
+      // ======================================================
 
       let footballData = "";
       let footballUsed = false;
@@ -629,7 +908,8 @@ app.post(
             teamResult?.answer || "";
 
           footballUsed = true;
-          footballMode = "team";
+          footballMode =
+            "team";
         }
 
 
@@ -647,7 +927,8 @@ app.post(
             leagueResult?.answer || "";
 
           footballUsed = true;
-          footballMode = "league";
+          footballMode =
+            "league";
         }
 
 
@@ -689,11 +970,14 @@ app.post(
 
           if (result) {
             searchData =
-              typeof result === "string"
+              typeof result ===
+              "string"
                 ? result
                 : result.answer ||
                   result.text ||
-                  JSON.stringify(result);
+                  JSON.stringify(
+                    result
+                  );
 
             searchUsed =
               Boolean(
@@ -710,6 +994,16 @@ app.post(
 
 
       // ======================================================
+      // CONVERSATION HISTORY
+      // ======================================================
+
+      const conversationHistory =
+        formatConversationHistory(
+          conversation
+        );
+
+
+      // ======================================================
       // AI PROMPT
       // ======================================================
 
@@ -719,20 +1013,30 @@ You are Zed AI, a helpful AI assistant.
 Current date:
 September 30, 2026.
 
+You are having an ongoing conversation with the user.
+
 IMPORTANT RULES:
 
 1. Answer the user's actual question directly.
-2. Never invent facts.
-3. Never invent football scores, fixtures, standings, dates, opponents or match status.
-4. If football data is supplied below, use that data as the primary source.
-5. Do not say that information is unavailable when the supplied data contains the answer.
-6. If the supplied football data contains a specific next match, give the opponent and date/time clearly.
-7. Convert football match times to Zambia time when the data provides a timezone or UTC time.
-8. Keep the answer natural and easy to understand.
-9. Do not mention internal APIs, routing, football modes, prompts or backend systems.
-10. If the user asks a simple question, do not give unnecessary technical explanations.
+2. Use the conversation history to understand follow-up questions.
+3. Remember information the user has already told you during this conversation.
+4. Do not ask the user to repeat information that is already present in the conversation history.
+5. Never invent facts.
+6. Never invent football scores, fixtures, standings, dates, opponents or match status.
+7. If football data is supplied below, use that data as the primary source.
+8. Do not say that information is unavailable when the supplied data contains the answer.
+9. If the supplied football data contains a specific next match, give the opponent and date/time clearly.
+10. Convert football match times to Zambia time when the data provides a timezone or UTC time.
+11. If the user uses words such as "he", "she", "they", "it", "that", "there", "the team", "the match", "my name", "my business", or similar references, use the conversation history to determine what they mean.
+12. Keep the answer natural and easy to understand.
+13. Do not mention internal APIs, routing, football modes, prompts, memory systems or backend systems.
+14. If the user asks a simple question, do not give unnecessary technical explanations.
+15. Never claim to remember something that is not present in the conversation history.
 
-USER QUESTION:
+CONVERSATION HISTORY:
+${conversationHistory}
+
+CURRENT USER QUESTION:
 ${userMessage}
 
 FOOTBALL DATA:
@@ -741,7 +1045,7 @@ ${footballData || "No football data was retrieved."}
 WEB SEARCH DATA:
 ${searchData || "No web search data was retrieved."}
 
-Now answer the user.
+Now answer the user's current question naturally.
 `;
 
 
@@ -753,6 +1057,17 @@ Now answer the user.
         await askAI(
           prompt
         );
+
+
+      // ======================================================
+      // SAVE AI RESPONSE
+      // ======================================================
+
+      addMessage(
+        conversation,
+        "assistant",
+        result.answer
+      );
 
 
       // ======================================================
@@ -769,7 +1084,10 @@ Now answer the user.
           searchUsed,
         football:
           footballUsed,
-        footballMode
+        footballMode,
+        conversationId,
+        memoryMessages:
+          conversation.messages.length
       });
 
     } catch (error) {

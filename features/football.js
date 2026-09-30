@@ -145,7 +145,6 @@ const FOOTBALL_LEAGUES = {
   }
 };
 
-
 // ------------------------------------------------------------
 // MEN'S FIRST-TEAM IDS
 // ------------------------------------------------------------
@@ -191,7 +190,6 @@ const KNOWN_TEAM_IDS = {
   zamalek: "8547",
   tpMazembe: "1029"
 };
-
 
 // ------------------------------------------------------------
 // TEAM ALIASES
@@ -504,7 +502,6 @@ const TEAM_ALIASES = {
   }
 };
 
-
 // ------------------------------------------------------------
 // WOMEN'S TEAM DETECTION
 // ------------------------------------------------------------
@@ -519,7 +516,6 @@ function isWomensRequest(text = "") {
     /\bgirls\b/.test(value)
   );
 }
-
 
 // ------------------------------------------------------------
 // HELPERS
@@ -536,14 +532,12 @@ function normalize(value = "") {
     .trim();
 }
 
-
 function cleanText(value = "") {
   return String(value)
     .replace(/<[^>]*>/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
-
 
 function safeDate(value) {
   const date = new Date(value);
@@ -554,7 +548,6 @@ function safeDate(value) {
     ? null
     : date;
 }
-
 
 function formatZambiaDateTime(value) {
   const date = safeDate(value);
@@ -578,7 +571,6 @@ function formatZambiaDateTime(value) {
   ).format(date);
 }
 
-
 function formatZambiaDate(value) {
   const date = safeDate(value);
 
@@ -598,6 +590,12 @@ function formatZambiaDate(value) {
   ).format(date);
 }
 
+function formatDateForApi(date) {
+  return date
+    .toISOString()
+    .slice(0, 10)
+    .replace(/-/g, "");
+}
 
 function getEventDate(event) {
   return (
@@ -607,7 +605,6 @@ function getEventDate(event) {
     null
   );
 }
-
 
 function getCompetitionName(event) {
   return cleanText(
@@ -619,7 +616,6 @@ function getCompetitionName(event) {
   );
 }
 
-
 function getTeamName(team) {
   return cleanText(
     team?.displayName ||
@@ -629,7 +625,6 @@ function getTeamName(team) {
       "Unknown team"
   );
 }
-
 
 function getEventTeams(event) {
   const competitors =
@@ -662,7 +657,6 @@ function getEventTeams(event) {
   );
 }
 
-
 function getEventState(event) {
   const state =
     event?.status?.type?.state ||
@@ -690,7 +684,6 @@ function getEventState(event) {
   };
 }
 
-
 function getScore(event, teamId) {
   const competitors =
     event?.competitions?.[0]
@@ -711,7 +704,6 @@ function getScore(event, teamId) {
   );
 }
 
-
 function getOpponent(
   event,
   teamId
@@ -727,7 +719,6 @@ function getOpponent(
     ) || null
   );
 }
-
 
 async function fetchJson(url) {
   const controller =
@@ -766,7 +757,6 @@ async function fetchJson(url) {
   }
 }
 
-
 // ------------------------------------------------------------
 // STRICT TEAM EVENT FILTER
 // ------------------------------------------------------------
@@ -788,26 +778,6 @@ function eventContainsTeam(
   );
 }
 
-
-/*
-  This is the important protection.
-
-  ESPN can sometimes return mixed competition
-  information. We NEVER accept an event for a
-  men's team unless the actual event contains
-  that men's team's ESPN ID.
-
-  Example:
-
-  Arsenal men's ID = 359
-
-  Arsenal Women has a different team ID.
-
-  Therefore:
-
-  Arsenal → only events containing ID 359
-  Arsenal Women → women's events when explicitly requested
-*/
 function filterEventsForTeam(
   events,
   teamInfo
@@ -825,7 +795,6 @@ function filterEventsForTeam(
   );
 }
 
-
 // ------------------------------------------------------------
 // TEAM DETECTION
 // ------------------------------------------------------------
@@ -838,10 +807,6 @@ function detectFootballTeam(
 
   const womenRequested =
     isWomensRequest(message);
-
-  /*
-    Explicit women's request.
-  */
 
   if (womenRequested) {
     for (
@@ -866,13 +831,6 @@ function detectFootballTeam(
       }
     }
   }
-
-  /*
-    Normal team detection.
-
-    Ordinary club name =
-    men's first team.
-  */
 
   let bestMatch = null;
 
@@ -912,7 +870,6 @@ function detectFootballTeam(
 
   return bestMatch;
 }
-
 
 // ------------------------------------------------------------
 // TEAM SEARCH
@@ -971,7 +928,6 @@ async function searchFootballTeams(
   }
 }
 
-
 // ------------------------------------------------------------
 // TEAM SCHEDULE
 // ------------------------------------------------------------
@@ -992,7 +948,6 @@ async function getTeamSchedule(
     url
   );
 }
-
 
 // ------------------------------------------------------------
 // EXTRACT EVENTS
@@ -1030,7 +985,6 @@ function extractEvents(data) {
   return [];
 }
 
-
 // ------------------------------------------------------------
 // TEAM MATCHES
 // ------------------------------------------------------------
@@ -1043,12 +997,6 @@ async function getTeamMatches(
     Date.now();
 
   let events = [];
-
-  /*
-    NEXT / UPCOMING / FIXTURES
-
-    First request future fixtures.
-  */
 
   if (
     requestType === "next" ||
@@ -1066,14 +1014,6 @@ async function getTeamMatches(
         extractEvents(
           fixtureData
         );
-
-      /*
-        CRITICAL:
-
-        Only keep events that actually
-        contain the requested team's
-        ESPN ID.
-      */
 
       events =
         filterEventsForTeam(
@@ -1133,10 +1073,6 @@ async function getTeamMatches(
     } catch {
       // Continue to normal schedule.
     }
-
-    /*
-      FALLBACK TO NORMAL SCHEDULE
-    */
 
     try {
       const normalData =
@@ -1203,12 +1139,6 @@ async function getTeamMatches(
       );
   }
 
-  /*
-    PREVIOUS RESULTS / LIVE
-
-    Use normal schedule.
-  */
-
   try {
     const normalData =
       await getTeamSchedule(
@@ -1221,10 +1151,6 @@ async function getTeamMatches(
         normalData
       );
 
-    /*
-      CRITICAL TEAM FILTER
-    */
-
     events =
       filterEventsForTeam(
         events,
@@ -1233,10 +1159,6 @@ async function getTeamMatches(
   } catch {
     return [];
   }
-
-  /*
-    LIVE
-  */
 
   if (
     requestType === "live"
@@ -1248,10 +1170,6 @@ async function getTeamMatches(
         ).live
     );
   }
-
-  /*
-    LAST / RESULTS / PREVIOUS
-  */
 
   if (
     requestType === "last" ||
@@ -1285,7 +1203,6 @@ async function getTeamMatches(
 
   return events;
 }
-
 
 // ------------------------------------------------------------
 // REQUEST TYPE
@@ -1406,7 +1323,6 @@ function getFootballRequestType(
   return "next";
 }
 
-
 // ------------------------------------------------------------
 // FORMAT TEAM MATCH
 // ------------------------------------------------------------
@@ -1479,23 +1395,18 @@ function formatTeamMatch(
 
   return {
     matchup,
-
     date,
-
     formattedDate:
       formatZambiaDateTime(
         date
       ),
-
     competition:
       getCompetitionName(
         event
       ),
-
     status
   };
 }
-
 
 // ------------------------------------------------------------
 // TEAM FEATURE
@@ -1512,15 +1423,11 @@ async function footballTeamFeature(
   if (!teamInfo) {
     return {
       ok: false,
-
       answer:
         "I couldn't identify the football team. Try a question such as \"When is Arsenal's next match?\"",
-
       provider:
         "espn",
-
       football: true,
-
       footballMode:
         "team"
     };
@@ -1548,21 +1455,15 @@ async function footballTeamFeature(
 
     return {
       ok: true,
-
       answer:
         `I couldn't find a ${requestType === "next" ? "future" : ""} fixture for ${teamLabel} in the ESPN schedule data.`,
-
       provider:
         "espn",
-
       football: true,
-
       footballMode:
         "team",
-
       team:
         teamInfo.name,
-
       gender:
         teamInfo.gender
     };
@@ -1646,27 +1547,19 @@ async function footballTeamFeature(
 
   return {
     ok: true,
-
     answer,
-
     provider:
       "espn",
-
     football: true,
-
     footballMode:
       "team",
-
     team:
       teamInfo.name,
-
     gender:
       teamInfo.gender,
-
     requestType
   };
 }
-
 
 // ------------------------------------------------------------
 // LEAGUE DETECTION
@@ -1683,7 +1576,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .premierLeague,
-
       aliases: [
         "premier league",
         "epl",
@@ -1695,7 +1587,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .championsLeague,
-
       aliases: [
         "champions league",
         "uefa champions league",
@@ -1707,7 +1598,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .europaLeague,
-
       aliases: [
         "europa league",
         "uefa europa league"
@@ -1718,7 +1608,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .conferenceLeague,
-
       aliases: [
         "conference league",
         "europa conference league"
@@ -1729,7 +1618,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .laLiga,
-
       aliases: [
         "la liga",
         "laliga",
@@ -1741,7 +1629,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .serieA,
-
       aliases: [
         "serie a",
         "italian league"
@@ -1752,7 +1639,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .bundesliga,
-
       aliases: [
         "bundesliga",
         "german league"
@@ -1763,7 +1649,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .ligue1,
-
       aliases: [
         "ligue 1",
         "french league"
@@ -1774,7 +1659,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .championship,
-
       aliases: [
         "championship"
       ]
@@ -1784,7 +1668,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .eredivisie,
-
       aliases: [
         "eredivisie",
         "dutch league"
@@ -1795,7 +1678,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .primeiraLiga,
-
       aliases: [
         "primeira liga",
         "portuguese league"
@@ -1806,7 +1688,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .scottishPremiership,
-
       aliases: [
         "scottish premiership",
         "scottish league"
@@ -1817,7 +1698,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .saudiProLeague,
-
       aliases: [
         "saudi pro league",
         "saudi league"
@@ -1828,7 +1708,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .mls,
-
       aliases: [
         "mls",
         "major league soccer"
@@ -1839,7 +1718,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .cafChampionsLeague,
-
       aliases: [
         "caf champions league",
         "africa champions league"
@@ -1850,7 +1728,6 @@ function detectFootballLeague(
       league:
         FOOTBALL_LEAGUES
           .cafConfederationCup,
-
       aliases: [
         "caf confederation cup",
         "confederation cup"
@@ -1892,6 +1769,105 @@ function detectFootballLeague(
   );
 }
 
+// ------------------------------------------------------------
+// LEAGUE REQUEST TYPE
+// ------------------------------------------------------------
+
+function getLeagueRequestType(
+  message = ""
+) {
+  const text =
+    normalize(message);
+
+  const wantsStandings =
+    text.includes(
+      "standings"
+    ) ||
+    text.includes(
+      "league table"
+    ) ||
+    text.includes(
+      "table"
+    ) ||
+    text.includes(
+      "position"
+    ) ||
+    text.includes(
+      "positions"
+    );
+
+  const wantsResults =
+    text.includes(
+      "result"
+    ) ||
+    text.includes(
+      "results"
+    ) ||
+    text.includes(
+      "recent"
+    ) ||
+    text.includes(
+      "latest"
+    );
+
+  const wantsFixtures =
+    text.includes(
+      "fixture"
+    ) ||
+    text.includes(
+      "fixtures"
+    ) ||
+    text.includes(
+      "upcoming"
+    ) ||
+    text.includes(
+      "schedule"
+    );
+
+  const wantsToday =
+    text.includes(
+      "today"
+    ) ||
+    text.includes(
+      "today's"
+    ) ||
+    text.includes(
+      "matches today"
+    );
+
+  if (
+    wantsStandings &&
+    wantsResults
+  ) {
+    return "results-and-standings";
+  }
+
+  if (
+    wantsStandings
+  ) {
+    return "standings";
+  }
+
+  if (
+    wantsResults
+  ) {
+    return "results";
+  }
+
+  if (
+    wantsFixtures
+  ) {
+    return "fixtures";
+  }
+
+  if (
+    wantsToday
+  ) {
+    return "today";
+  }
+
+  return "fixtures";
+}
 
 // ------------------------------------------------------------
 // LEAGUE SCOREBOARD
@@ -1912,6 +1888,391 @@ async function getLeagueScoreboard(
   }
 }
 
+// ------------------------------------------------------------
+// LEAGUE RECENT RESULTS
+// ------------------------------------------------------------
+
+async function getLeagueRecentResults(
+  league,
+  daysBack = 14
+) {
+  const end =
+    new Date();
+
+  const start =
+    new Date(
+      end.getTime() -
+        daysBack *
+          24 *
+          60 *
+          60 *
+          1000
+    );
+
+  const startDate =
+    formatDateForApi(
+      start
+    );
+
+  const endDate =
+    formatDateForApi(
+      end
+    );
+
+  const url =
+    `${SITE_BASE}/${league.slug}/scoreboard?dates=${startDate}-${endDate}`;
+
+  try {
+    const data =
+      await fetchJson(
+        url
+      );
+
+    return extractEvents(
+      data
+    );
+  } catch {
+    return [];
+  }
+}
+
+// ------------------------------------------------------------
+// LEAGUE STANDINGS
+// ------------------------------------------------------------
+
+async function getLeagueStandings(
+  league
+) {
+  const url =
+    `${STANDINGS_BASE}/${league.slug}/standings`;
+
+  try {
+    return await fetchJson(
+      url
+    );
+  } catch {
+    return null;
+  }
+}
+
+// ------------------------------------------------------------
+// STANDINGS STAT HELPER
+// ------------------------------------------------------------
+
+function getStandingStat(
+  entry,
+  names = []
+) {
+  const stats =
+    Array.isArray(
+      entry?.stats
+    )
+      ? entry.stats
+      : [];
+
+  const wanted =
+    new Set(names);
+
+  return (
+    stats.find(
+      (stat) =>
+        wanted.has(
+          stat?.name
+        )
+    ) || null
+  );
+}
+
+function getStandingValue(
+  entry,
+  names = []
+) {
+  const stat =
+    getStandingStat(
+      entry,
+      names
+    );
+
+  if (!stat) {
+    return "-";
+  }
+
+  return (
+    stat.displayValue ??
+    stat.value ??
+    "-"
+  );
+}
+
+// ------------------------------------------------------------
+// EXTRACT STANDING ENTRIES
+// ------------------------------------------------------------
+
+function extractStandingEntries(
+  data
+) {
+  const children =
+    Array.isArray(
+      data?.children
+    )
+      ? data.children
+      : [];
+
+  const entries = [];
+
+  for (
+    const child of children
+  ) {
+    const childEntries =
+      child?.standings
+        ?.entries;
+
+    if (
+      !Array.isArray(
+        childEntries
+      )
+    ) {
+      continue;
+    }
+
+    entries.push(
+      ...childEntries
+    );
+  }
+
+  /*
+    Some ESPN responses can expose
+    standings entries directly.
+  */
+
+  if (
+    !entries.length &&
+    Array.isArray(
+      data?.standings?.entries
+    )
+  ) {
+    entries.push(
+      ...data.standings.entries
+    );
+  }
+
+  return entries;
+}
+
+// ------------------------------------------------------------
+// FORMAT STANDINGS
+// ------------------------------------------------------------
+
+function formatLeagueStandings(
+  data,
+  league
+) {
+  const entries =
+    extractStandingEntries(
+      data
+    );
+
+  if (!entries.length) {
+    return "";
+  }
+
+  const rows =
+    entries
+      .map(
+        (entry) => {
+          const team =
+            getTeamName(
+              entry?.team
+            );
+
+          const rank =
+            getStandingValue(
+              entry,
+              [
+                "rank",
+                "rankOverall"
+              ]
+            );
+
+          const played =
+            getStandingValue(
+              entry,
+              [
+                "gamesPlayed",
+                "GP"
+              ]
+            );
+
+          const wins =
+            getStandingValue(
+              entry,
+              [
+                "wins",
+                "W"
+              ]
+            );
+
+          const draws =
+            getStandingValue(
+              entry,
+              [
+                "ties",
+                "draws",
+                "D"
+              ]
+            );
+
+          const losses =
+            getStandingValue(
+              entry,
+              [
+                "losses",
+                "L"
+              ]
+            );
+
+          const points =
+            getStandingValue(
+              entry,
+              [
+                "points",
+                "PTS"
+              ]
+            );
+
+          const goalDifference =
+            getStandingValue(
+              entry,
+              [
+                "pointDifferential",
+                "goalDifference",
+                "GD"
+              ]
+            );
+
+          return (
+            `${rank}. ${team} — ${points} pts — ${played} played — W ${wins}, D ${draws}, L ${losses} — GD ${goalDifference}`
+          );
+        }
+      );
+
+  return (
+    `${league.name} standings:\n` +
+    rows.join("\n")
+  );
+}
+
+// ------------------------------------------------------------
+// FORMAT LEAGUE RESULT
+// ------------------------------------------------------------
+
+function formatLeagueResult(
+  event
+) {
+  const teams =
+    getEventTeams(event);
+
+  const home =
+    teams.find(
+      (team) =>
+        team.homeAway ===
+        "home"
+    ) ||
+    teams[0];
+
+  const away =
+    teams.find(
+      (team) =>
+        team.homeAway ===
+        "away"
+    ) ||
+    teams[1];
+
+  const homeScore =
+    home
+      ? getScore(
+          event,
+          home.id
+        )
+      : null;
+
+  const awayScore =
+    away
+      ? getScore(
+          event,
+          away.id
+        )
+      : null;
+
+  return (
+    `${home?.name || "Unknown"} ${homeScore ?? "-"}-${awayScore ?? "-"} ${away?.name || "Unknown"} — ${formatZambiaDateTime(getEventDate(event))} Zambia time`
+  );
+}
+
+// ------------------------------------------------------------
+// FORMAT LEAGUE FIXTURE
+// ------------------------------------------------------------
+
+function formatLeagueFixture(
+  event
+) {
+  const teams =
+    getEventTeams(event);
+
+  const home =
+    teams.find(
+      (team) =>
+        team.homeAway ===
+        "home"
+    ) ||
+    teams[0];
+
+  const away =
+    teams.find(
+      (team) =>
+        team.homeAway ===
+        "away"
+    ) ||
+    teams[1];
+
+  const state =
+    getEventState(event);
+
+  let status =
+    "Scheduled";
+
+  if (state.live) {
+    status = "LIVE";
+  } else if (
+    state.completed
+  ) {
+    const homeScore =
+      home
+        ? getScore(
+            event,
+            home.id
+          )
+        : null;
+
+    const awayScore =
+      away
+        ? getScore(
+            event,
+            away.id
+          )
+        : null;
+
+    status =
+      homeScore !== null &&
+      awayScore !== null
+        ? `Final: ${homeScore}-${awayScore}`
+        : "Finished";
+  }
+
+  return (
+    `${home?.name || "Unknown"} vs ${away?.name || "Unknown"} — ${formatZambiaDateTime(getEventDate(event))} Zambia time — ${status}`
+  );
+}
 
 // ------------------------------------------------------------
 // LEAGUE FEATURE
@@ -1942,6 +2303,208 @@ async function footballLeagueFeature(
     };
   }
 
+  const requestType =
+    getLeagueRequestType(
+      message
+    );
+
+  // ----------------------------------------------------------
+  // STANDINGS ONLY
+  // ----------------------------------------------------------
+
+  if (
+    requestType ===
+    "standings"
+  ) {
+    const standingsData =
+      await getLeagueStandings(
+        league
+      );
+
+    const standings =
+      formatLeagueStandings(
+        standingsData,
+        league
+      );
+
+    if (!standings) {
+      return {
+        ok: true,
+
+        answer:
+          `I couldn't find the current ${league.name} standings from ESPN.`,
+
+        provider:
+          "espn",
+
+        football: true,
+
+        footballMode:
+          "league",
+
+        league:
+          league.name,
+
+        requestType
+      };
+    }
+
+    return {
+      ok: true,
+
+      answer:
+        standings,
+
+      provider:
+        "espn",
+
+      football: true,
+
+      footballMode:
+        "league",
+
+      league:
+        league.name,
+
+      requestType
+    };
+  }
+
+  // ----------------------------------------------------------
+  // RESULTS
+  // ----------------------------------------------------------
+
+  if (
+    requestType ===
+      "results" ||
+    requestType ===
+      "results-and-standings"
+  ) {
+    const resultsData =
+      await getLeagueRecentResults(
+        league,
+        14
+      );
+
+    let results =
+      extractEvents(
+        resultsData
+      );
+
+    results =
+      results
+        .filter(
+          (event) =>
+            getEventState(
+              event
+            ).completed
+        )
+        .sort(
+          (a, b) => {
+            const dateA =
+              safeDate(
+                getEventDate(
+                  a
+                )
+              );
+
+            const dateB =
+              safeDate(
+                getEventDate(
+                  b
+                )
+              );
+
+            return (
+              (dateB?.getTime() ||
+                0) -
+              (dateA?.getTime() ||
+                0)
+            );
+          }
+        )
+        .slice(0, 20);
+
+    const resultText =
+      results.length
+        ? results
+            .map(
+              formatLeagueResult
+            )
+            .join("\n")
+        : `I couldn't find recent completed ${league.name} results from ESPN.`;
+
+    if (
+      requestType ===
+      "results"
+    ) {
+      return {
+        ok: true,
+
+        answer:
+          `${league.name} latest results:\n${resultText}`,
+
+        provider:
+          "espn",
+
+        football: true,
+
+        footballMode:
+          "league",
+
+        league:
+          league.name,
+
+        requestType
+      };
+    }
+
+    // --------------------------------------------------------
+    // RESULTS + STANDINGS
+    // --------------------------------------------------------
+
+    const standingsData =
+      await getLeagueStandings(
+        league
+      );
+
+    const standings =
+      formatLeagueStandings(
+        standingsData,
+        league
+      );
+
+    const combined =
+      `${league.name} latest results:\n${resultText}\n\n${
+        standings ||
+        `Current ${league.name} standings are unavailable from ESPN.`
+      }`;
+
+    return {
+      ok: true,
+
+      answer:
+        combined,
+
+      provider:
+        "espn",
+
+      football: true,
+
+      footballMode:
+        "league",
+
+      league:
+        league.name,
+
+      requestType
+    };
+  }
+
+  // ----------------------------------------------------------
+  // CURRENT / UPCOMING FIXTURES
+  // ----------------------------------------------------------
+
   const data =
     await getLeagueScoreboard(
       league
@@ -1968,89 +2531,85 @@ async function footballLeagueFeature(
         "league",
 
       league:
-        league.name
+        league.name,
+
+      requestType
     };
   }
 
-  const matches =
+  let matches =
     events
       .map(
-        (event) => {
-          const teams =
-            getEventTeams(
-              event
-            );
+        formatLeagueFixture
+      );
 
-          const home =
-            teams.find(
-              (team) =>
-                team.homeAway ===
-                "home"
-            ) ||
-            teams[0];
+  if (
+    requestType ===
+    "today"
+  ) {
+    const today =
+      new Intl.DateTimeFormat(
+        "en-CA",
+        {
+          timeZone:
+            ZAMBIA_TIMEZONE
+        }
+      ).format(
+        new Date()
+      );
 
-          const away =
-            teams.find(
-              (team) =>
-                team.homeAway ===
-                "away"
-            ) ||
-            teams[1];
-
-          const state =
-            getEventState(
-              event
-            );
-
-          let status =
-            "Scheduled";
-
-          if (
-            state.live
-          ) {
-            status =
-              "LIVE";
-          } else if (
-            state.completed
-          ) {
-            status =
-              "Finished";
-          }
-
-          return {
-            home:
-              home?.name ||
-              "Unknown",
-
-            away:
-              away?.name ||
-              "Unknown",
-
-            date:
-              getEventDate(
-                event
-              ),
-
-            formattedDate:
-              formatZambiaDateTime(
+    matches =
+      events
+        .filter(
+          (event) => {
+            const eventDate =
+              safeDate(
                 getEventDate(
                   event
                 )
-              ),
+              );
 
-            status
-          };
-        }
-      )
-      .slice(0, 20);
+            if (!eventDate) {
+              return false;
+            }
+
+            const eventDay =
+              new Intl.DateTimeFormat(
+                "en-CA",
+                {
+                  timeZone:
+                    ZAMBIA_TIMEZONE
+                }
+              ).format(
+                eventDate
+              );
+
+            return (
+              eventDay ===
+              today
+            );
+          }
+        )
+        .map(
+          formatLeagueFixture
+        );
+  }
+
+  matches =
+    matches.slice(
+      0,
+      20
+    );
 
   const answer =
-    matches
-      .map(
-        (match) =>
-          `${match.home} vs ${match.away} — ${match.formattedDate} Zambia time — ${match.status}`
-      )
-      .join("\n");
+    `${league.name}:\n` +
+    (
+      matches.length
+        ? matches.join(
+            "\n"
+          )
+        : "No matches found for the requested period."
+    );
 
   return {
     ok: true,
@@ -2066,10 +2625,11 @@ async function footballLeagueFeature(
       "league",
 
     league:
-      league.name
+      league.name,
+
+    requestType
   };
 }
-
 
 // ------------------------------------------------------------
 // WORLDWIDE FOOTBALL
@@ -2091,7 +2651,6 @@ async function footballFeature() {
       "worldwide"
   };
 }
-
 
 // ------------------------------------------------------------
 // FOOTBALL FOR DATE
@@ -2121,7 +2680,6 @@ async function getFootballForDate(
     return [];
   }
 }
-
 
 // ------------------------------------------------------------
 // EXPORTS

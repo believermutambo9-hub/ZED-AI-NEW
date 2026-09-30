@@ -1,7 +1,7 @@
 // features/football.js
 
 const SITE_BASE =
-  "https://site.api.espn.com/apis/site/v2/sports/soccer";
+  "https://site.web.api.espn.com/apis/site/v2/sports/soccer";
 
 const STANDINGS_BASE =
   "https://site.api.espn.com/apis/v2/sports/soccer";

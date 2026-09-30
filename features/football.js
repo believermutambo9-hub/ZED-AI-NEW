@@ -259,12 +259,6 @@ const TEAM_ALIASES = {
   netherlands: ["Netherlands"]
 };
 
-/*
- * Known ESPN team IDs for commonly requested teams.
- *
- * These are used first because they avoid unnecessary
- * league-by-league searching.
- */
 const KNOWN_TEAM_IDS = {
   arsenal: "359",
   chelsea: "363",
@@ -415,8 +409,7 @@ function eventScore(event, teamId) {
 
   const team = competitors.find(
     item =>
-      String(item.team?.id) ===
-      String(teamId)
+      String(item.team?.id) === String(teamId)
   );
 
   if (!team) {
@@ -464,10 +457,6 @@ function normalizeEvent(event, league = null) {
 
   const state = eventState(event);
 
-  const resolvedLeague =
-    league?.name ||
-    getEventLeague(event);
-
   return {
     id: event?.id || null,
 
@@ -480,7 +469,8 @@ function normalizeEvent(event, league = null) {
       compactDate(event?.date),
 
     league:
-      resolvedLeague,
+      league?.name ||
+      getEventLeague(event),
 
     leagueKey:
       league?.key || "",
@@ -502,16 +492,10 @@ function normalizeEvent(event, league = null) {
       away?.team?.id || null,
 
     homeScore:
-      eventScore(
-        event,
-        home?.team?.id
-      ),
+      eventScore(event, home?.team?.id),
 
     awayScore:
-      eventScore(
-        event,
-        away?.team?.id
-      ),
+      eventScore(event, away?.team?.id),
 
     status:
       state.name,
@@ -528,80 +512,39 @@ function normalizeEvent(event, league = null) {
 }
 
 function detectFootballLeague(message = "") {
-  const text =
-    normalizeText(message);
+  const text = normalizeText(message);
 
   const leagueMatches = [
     ["premier league", "eng.1"],
     ["epl", "eng.1"],
     ["championship", "eng.2"],
-
     ["la liga", "esp.1"],
-
     ["bundesliga", "ger.1"],
-
     ["serie a", "ita.1"],
     ["serie b", "ita.2"],
-
     ["ligue 1", "fra.1"],
     ["ligue 2", "fra.2"],
-
     ["eredivisie", "ned.1"],
     ["primeira liga", "por.1"],
-
     ["mls", "usa.1"],
     ["major league soccer", "usa.1"],
-
     ["liga mx", "mex.1"],
-
     ["brasileirao", "bra.1"],
     ["brazilian league", "bra.1"],
-
     ["argentine league", "arg.1"],
     ["argentina primera", "arg.1"],
-
     ["j1 league", "jpn.1"],
     ["k league", "kor.1"],
-
     ["saudi pro league", "sau.1"],
-
     ["afcon", "caf.nations"],
     ["africa cup of nations", "caf.nations"],
-
-    [
-      "caf champions league",
-      "caf.champions"
-    ],
-
-    [
-      "caf confederation cup",
-      "caf.confed"
-    ],
-
-    [
-      "champions league",
-      "uefa.champions"
-    ],
-
-    [
-      "europa league",
-      "uefa.europa"
-    ],
-
-    [
-      "conference league",
-      "uefa.europa.conf"
-    ],
-
-    [
-      "nations league",
-      "uefa.nations"
-    ],
-
-    [
-      "world cup",
-      "fifa.world"
-    ]
+    ["caf champions league", "caf.champions"],
+    ["caf confederation cup", "caf.confed"],
+    ["champions league", "uefa.champions"],
+    ["europa league", "uefa.europa"],
+    ["conference league", "uefa.europa.conf"],
+    ["nations league", "uefa.nations"],
+    ["world cup", "fifa.world"]
   ];
 
   for (const [phrase, key] of leagueMatches) {
@@ -622,13 +565,11 @@ function resolveFootballLeague(key) {
 }
 
 function detectFootballTeam(message = "") {
-  const text =
-    normalizeText(message);
+  const text = normalizeText(message);
 
   const keys =
     Object.keys(TEAM_ALIASES).sort(
-      (a, b) =>
-        b.length - a.length
+      (a, b) => b.length - a.length
     );
 
   for (const key of keys) {
@@ -639,8 +580,7 @@ function detectFootballTeam(message = "") {
     ) {
       return {
         key,
-        names:
-          TEAM_ALIASES[key]
+        names: TEAM_ALIASES[key]
       };
     }
   }
@@ -649,8 +589,7 @@ function detectFootballTeam(message = "") {
 }
 
 function getFootballRequestType(message = "") {
-  const text =
-    normalizeText(message);
+  const text = normalizeText(message);
 
   if (
     text.includes("live") ||
@@ -715,20 +654,15 @@ function getFootballRequestType(message = "") {
 
 async function getLeagueMatches(league) {
   const url =
-    `${SITE_BASE}/${league.key}/scoreboard` +
-    `?limit=100`;
+    `${SITE_BASE}/${league.key}/scoreboard?limit=100`;
 
   try {
-    const data =
-      await fetchJson(url);
+    const data = await fetchJson(url);
 
     return (
       data?.events || []
     ).map(event =>
-      normalizeEvent(
-        event,
-        league
-      )
+      normalizeEvent(event, league)
     );
   } catch {
     return [];
@@ -739,26 +673,19 @@ async function getFootballMatches() {
   const results =
     await Promise.allSettled(
       FOOTBALL_LEAGUES.map(
-        league =>
-          getLeagueMatches(league)
+        league => getLeagueMatches(league)
       )
     );
 
   const matches = [];
 
   for (const result of results) {
-    if (
-      result.status ===
-      "fulfilled"
-    ) {
-      matches.push(
-        ...result.value
-      );
+    if (result.status === "fulfilled") {
+      matches.push(...result.value);
     }
   }
 
-  const unique =
-    new Map();
+  const unique = new Map();
 
   for (const match of matches) {
     if (match.id) {
@@ -769,9 +696,7 @@ async function getFootballMatches() {
     }
   }
 
-  return [
-    ...unique.values()
-  ].sort(
+  return [...unique.values()].sort(
     (a, b) =>
       new Date(a.date).getTime() -
       new Date(b.date).getTime()
@@ -782,16 +707,6 @@ async function getFootballMatches() {
  * ---------------------------------------------------------
  * TEAM RESOLUTION
  * ---------------------------------------------------------
- *
- * The important improvement is here.
- *
- * We now use:
- *
- * /soccer/all/teams/{TEAM_ID}/schedule
- *
- * This lets ESPN return a team's schedule across
- * competitions rather than forcing us to find the team
- * inside only one league.
  */
 
 async function getAllSoccerTeams() {
@@ -802,8 +717,7 @@ async function getAllSoccerTeams() {
 
   for (const url of urls) {
     try {
-      const data =
-        await fetchJson(url);
+      const data = await fetchJson(url);
 
       const teams =
         data?.sports?.[0]
@@ -819,17 +733,14 @@ async function getAllSoccerTeams() {
         return teams;
       }
     } catch {
-      // Try next endpoint.
+      // Try the next endpoint.
     }
   }
 
   return [];
 }
 
-function teamMatchesName(
-  team,
-  names
-) {
+function teamMatchesName(team, names) {
   if (!team) {
     return false;
   }
@@ -846,45 +757,33 @@ function teamMatchesName(
     .map(normalizeText);
 
   return names.some(name => {
-    const target =
-      normalizeText(name);
+    const target = normalizeText(name);
 
-    return values.some(value =>
-      value === target ||
-      value.includes(target) ||
-      target.includes(value)
+    return values.some(
+      value =>
+        value === target ||
+        value.includes(target) ||
+        target.includes(value)
     );
   });
 }
 
-async function findTeamGlobally(
-  teamInfo
-) {
+async function findTeamGlobally(teamInfo) {
   if (!teamInfo) {
     return null;
   }
 
-  /*
-   * First use a known ID when available.
-   */
   const knownId =
-    KNOWN_TEAM_IDS[
-      teamInfo.key
-    ];
+    KNOWN_TEAM_IDS[teamInfo.key];
 
   if (knownId) {
     return {
       id: knownId,
-      displayName:
-        teamInfo.names[0],
-      name:
-        teamInfo.names[0]
+      displayName: teamInfo.names[0],
+      name: teamInfo.names[0]
     };
   }
 
-  /*
-   * Then search ESPN's soccer-wide team list.
-   */
   const teams =
     await getAllSoccerTeams();
 
@@ -900,9 +799,6 @@ async function findTeamGlobally(
     return found;
   }
 
-  /*
-   * Final fallback: search each known league.
-   */
   for (
     const league
     of FOOTBALL_LEAGUES
@@ -922,12 +818,11 @@ async function findTeamGlobally(
           .filter(Boolean) || [];
 
       const match =
-        leagueTeams.find(
-          team =>
-            teamMatchesName(
-              team,
-              teamInfo.names
-            )
+        leagueTeams.find(team =>
+          teamMatchesName(
+            team,
+            teamInfo.names
+          )
         );
 
       if (match) {
@@ -940,6 +835,26 @@ async function findTeamGlobally(
 
   return null;
 }
+
+/*
+ * ---------------------------------------------------------
+ * ESPN TEAM SCHEDULE
+ * ---------------------------------------------------------
+ *
+ * IMPORTANT:
+ *
+ * ESPN provides a soccer-wide team schedule endpoint:
+ *
+ * /soccer/all/teams/{teamId}/schedule
+ *
+ * Adding fixture=true asks ESPN specifically for future
+ * fixtures.
+ *
+ * We keep these as separate requests because:
+ *
+ * - fixture=true -> future fixtures
+ * - no fixture parameter -> historical/current schedule
+ */
 
 async function getTeamSchedule(
   teamId,
@@ -963,65 +878,24 @@ async function getTeamSchedule(
     return (
       data?.events || []
     ).map(event =>
-      normalizeEvent(
-        event,
-        null
-      )
+      normalizeEvent(event, null)
     );
-  } catch {
+  } catch (error) {
     return [];
   }
 }
 
-async function getTeamMatches(
-  teamInfo,
-  requestType = "general"
-) {
-  const team =
-    await findTeamGlobally(
-      teamInfo
-    );
+/*
+ * ---------------------------------------------------------
+ * TEAM MATCH FILTERING
+ * ---------------------------------------------------------
+ */
 
-  if (!team?.id) {
-    return [];
-  }
+function uniqueMatches(matches) {
+  const unique = new Map();
 
-  /*
-   * Get both:
-   *
-   * 1. All known team events
-   * 2. Explicit future fixtures
-   *
-   * This gives us a better chance of receiving both
-   * completed and upcoming matches.
-   */
-  const [
-    allMatches,
-    fixtureMatches
-  ] =
-    await Promise.all([
-      getTeamSchedule(
-        team.id,
-        false
-      ),
-
-      getTeamSchedule(
-        team.id,
-        true
-      )
-    ]);
-
-  const unique =
-    new Map();
-
-  for (
-    const match
-    of [
-      ...allMatches,
-      ...fixtureMatches
-    ]
-  ) {
-    if (match.id) {
+  for (const match of matches) {
+    if (match?.id) {
       unique.set(
         String(match.id),
         match
@@ -1029,74 +903,128 @@ async function getTeamMatches(
     }
   }
 
-  const matches =
-    [...unique.values()];
+  return [...unique.values()];
+}
 
-  const now =
-    Date.now();
+function isFutureMatch(match) {
+  const date = safeDate(match?.date);
 
-  const completed =
-    matches
-      .filter(
-        match =>
-          match.completed
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.date).getTime() -
-          new Date(a.date).getTime()
+  if (!date) {
+    return false;
+  }
+
+  return (
+    !match.completed &&
+    date.getTime() >= Date.now()
+  );
+}
+
+function isCompletedMatch(match) {
+  return Boolean(match.completed);
+}
+
+async function getTeamMatches(
+  teamInfo,
+  requestType = "general"
+) {
+  const team =
+    await findTeamGlobally(teamInfo);
+
+  if (!team?.id) {
+    return [];
+  }
+
+  /*
+   * NEXT / FIXTURES
+   *
+   * Use ESPN's fixture endpoint FIRST.
+   */
+  if (
+    requestType === "next" ||
+    requestType === "fixtures"
+  ) {
+    const fixtureMatches =
+      await getTeamSchedule(
+        team.id,
+        true
       );
 
-  const upcoming =
-    matches
-      .filter(
-        match =>
-          !match.completed &&
-          safeDate(match.date) &&
-          safeDate(match.date)
-            .getTime() >= now
+    const upcoming =
+      uniqueMatches(
+        fixtureMatches
       )
+        .filter(isFutureMatch)
+        .sort(
+          (a, b) =>
+            new Date(a.date).getTime() -
+            new Date(b.date).getTime()
+        );
+
+    if (upcoming.length) {
+      return upcoming;
+    }
+
+    /*
+     * If fixture=true gives nothing,
+     * fall back to the normal schedule.
+     */
+    const normalMatches =
+      await getTeamSchedule(
+        team.id,
+        false
+      );
+
+    return uniqueMatches(
+      normalMatches
+    )
+      .filter(isFutureMatch)
       .sort(
         (a, b) =>
           new Date(a.date).getTime() -
           new Date(b.date).getTime()
       );
+  }
 
-  const live =
-    matches.filter(
-      match => match.live
+  /*
+   * LIVE / LAST / RESULTS / GENERAL
+   *
+   * Use the normal team schedule.
+   */
+  const normalMatches =
+    await getTeamSchedule(
+      team.id,
+      false
     );
 
-  if (
-    requestType === "live"
-  ) {
-    return live;
+  const matches =
+    uniqueMatches(
+      normalMatches
+    );
+
+  if (requestType === "live") {
+    return matches.filter(
+      match => match.live
+    );
   }
 
   if (
     requestType === "last" ||
     requestType === "results"
   ) {
-    return completed;
+    return matches
+      .filter(isCompletedMatch)
+      .sort(
+        (a, b) =>
+          new Date(b.date).getTime() -
+          new Date(a.date).getTime()
+      );
   }
 
-  if (
-    requestType === "next"
-  ) {
-    return upcoming;
-  }
-
-  if (
-    requestType === "fixtures"
-  ) {
-    return upcoming;
-  }
-
-  return [
-    ...live,
-    ...upcoming,
-    ...completed
-  ];
+  return matches.sort(
+    (a, b) =>
+      new Date(a.date).getTime() -
+      new Date(b.date).getTime()
+  );
 }
 
 /*
@@ -1105,9 +1033,7 @@ async function getTeamMatches(
  * ---------------------------------------------------------
  */
 
-async function getFootballStandings(
-  league
-) {
+async function getFootballStandings(league) {
   const url =
     `${STANDINGS_BASE}/${league.key}` +
     `/types/0/standings`;
@@ -1127,10 +1053,7 @@ async function getFootballStandings(
   }
 }
 
-function getStat(
-  entry,
-  statName
-) {
+function getStat(entry, statName) {
   const stat =
     entry?.stats?.find(
       item =>
@@ -1144,57 +1067,33 @@ function getStat(
   );
 }
 
-function extractStandingsRows(
-  entries
-) {
+function extractStandingsRows(entries) {
   return entries.map(
     (entry, index) => ({
       position:
-        getStat(
-          entry,
-          "rank"
-        ) !== "-"
-          ? getStat(
-              entry,
-              "rank"
-            )
+        getStat(entry, "rank") !== "-"
+          ? getStat(entry, "rank")
           : index + 1,
 
       team:
-        entry?.team
-          ?.displayName ||
+        entry?.team?.displayName ||
         entry?.team?.name ||
         "Unknown",
 
       played:
-        getStat(
-          entry,
-          "gamesPlayed"
-        ),
+        getStat(entry, "gamesPlayed"),
 
       wins:
-        getStat(
-          entry,
-          "wins"
-        ),
+        getStat(entry, "wins"),
 
       draws:
-        getStat(
-          entry,
-          "ties"
-        ),
+        getStat(entry, "ties"),
 
       losses:
-        getStat(
-          entry,
-          "losses"
-        ),
+        getStat(entry, "losses"),
 
       points:
-        getStat(
-          entry,
-          "points"
-        ),
+        getStat(entry, "points"),
 
       goalDifference:
         getStat(
@@ -1210,9 +1109,7 @@ function formatFootballStandings(
   entries
 ) {
   const rows =
-    extractStandingsRows(
-      entries
-    );
+    extractStandingsRows(entries);
 
   if (!rows.length) {
     return (
@@ -1230,10 +1127,7 @@ function formatFootballStandings(
   answer +=
     `|---:|---|---:|---:|---:|---:|---:|---:|\n`;
 
-  for (
-    const row
-    of rows
-  ) {
+  for (const row of rows) {
     answer +=
       `| ${row.position} | ${row.team} | ` +
       `${row.played} | ${row.wins} | ` +
@@ -1264,10 +1158,7 @@ function formatFootballMatches(
   let answer =
     `## ${title}\n\n`;
 
-  for (
-    const match
-    of matches
-  ) {
+  for (const match of matches) {
     const scoreAvailable =
       match.homeScore !== null &&
       match.awayScore !== null;
@@ -1275,16 +1166,11 @@ function formatFootballMatches(
     let statusText;
 
     if (match.live) {
-      statusText =
-        "LIVE";
-    } else if (
-      match.completed
-    ) {
-      statusText =
-        "FT";
+      statusText = "LIVE";
+    } else if (match.completed) {
+      statusText = "FT";
     } else {
-      statusText =
-        "Scheduled";
+      statusText = "Scheduled";
     }
 
     if (scoreAvailable) {
@@ -1306,8 +1192,7 @@ function formatFootballMatches(
       `- ${statusText}\n`;
 
     answer +=
-      `- Zambia time: ` +
-      `${match.dateZambia}\n\n`;
+      `- Zambia time: ${match.dateZambia}\n\n`;
   }
 
   return answer.trim();
@@ -1323,9 +1208,7 @@ function formatTeamMatches(
     "Team";
 
   if (!matches.length) {
-    if (
-      requestType === "next"
-    ) {
+    if (requestType === "next") {
       return (
         `I couldn't find an upcoming ` +
         `fixture for ${teamName} in ` +
@@ -1344,9 +1227,7 @@ function formatTeamMatches(
       );
     }
 
-    if (
-      requestType === "live"
-    ) {
+    if (requestType === "live") {
       return (
         `${teamName} does not appear to ` +
         `have a live match in the available ` +
@@ -1361,29 +1242,24 @@ function formatTeamMatches(
     );
   }
 
-  let selected =
-    matches;
+  let selected = matches;
 
   if (
     requestType === "next" ||
     requestType === "fixtures"
   ) {
-    selected =
-      matches.slice(0, 5);
+    selected = matches.slice(0, 5);
   } else if (
     requestType === "last" ||
     requestType === "results"
   ) {
-    selected =
-      matches.slice(0, 5);
+    selected = matches.slice(0, 5);
   } else if (
     requestType === "live"
   ) {
-    selected =
-      matches.slice(0, 10);
+    selected = matches.slice(0, 10);
   } else {
-    selected =
-      matches.slice(0, 10);
+    selected = matches.slice(0, 10);
   }
 
   return formatFootballMatches(
@@ -1434,11 +1310,9 @@ export async function footballTeamFeature(
         requestType
       ),
 
-    data:
-      matches,
+    data: matches,
 
-    used:
-      true
+    used: true
   };
 }
 
@@ -1470,8 +1344,7 @@ export async function footballLeagueFeature(
     );
 
   if (
-    requestType ===
-    "standings"
+    requestType === "standings"
   ) {
     const entries =
       await getFootballStandings(
@@ -1485,11 +1358,9 @@ export async function footballLeagueFeature(
           entries
         ),
 
-      data:
-        entries,
+      data: entries,
 
-      used:
-        true
+      used: true
     };
   }
 
@@ -1501,13 +1372,9 @@ export async function footballLeagueFeature(
   const today =
     getZambiaDate();
 
-  let selected =
-    matches;
+  let selected = matches;
 
-  if (
-    requestType ===
-    "live"
-  ) {
+  if (requestType === "live") {
     selected =
       matches.filter(
         match => match.live
@@ -1532,8 +1399,7 @@ export async function footballLeagueFeature(
           !match.completed &&
           safeDate(match.date) &&
           safeDate(match.date)
-            .getTime() >=
-            Date.now()
+            .getTime() >= Date.now()
       );
   } else {
     selected =
@@ -1550,11 +1416,9 @@ export async function footballLeagueFeature(
         league.name
       ),
 
-    data:
-      selected,
+    data: selected,
 
-    used:
-      true
+    used: true
   };
 }
 
@@ -1578,11 +1442,9 @@ export async function footballFeature() {
         "Worldwide football today"
       ),
 
-    data:
-      todaysMatches,
+    data: todaysMatches,
 
-    used:
-      true
+    used: true
   };
 }
 
@@ -1590,9 +1452,7 @@ export async function searchFootballTeams(
   query
 ) {
   const teamInfo =
-    detectFootballTeam(
-      query
-    );
+    detectFootballTeam(query);
 
   if (!teamInfo) {
     return [];

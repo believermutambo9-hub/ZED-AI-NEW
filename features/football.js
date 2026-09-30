@@ -9,276 +9,162 @@ const STANDINGS_BASE =
 const ZAMBIA_TIMEZONE = "Africa/Lusaka";
 const REQUEST_TIMEOUT = 15000;
 
-const FOOTBALL_LEAGUES = [
-  { key: "eng.1", name: "Premier League", country: "England" },
-  { key: "eng.2", name: "Championship", country: "England" },
+/*
+  IMPORTANT:
+  When a user says "Arsenal", "Chelsea", "Barcelona", etc.,
+  we default to the MEN'S FIRST TEAM.
 
-  { key: "esp.1", name: "La Liga", country: "Spain" },
-  { key: "esp.2", name: "La Liga 2", country: "Spain" },
+  Women's teams are only selected when the user explicitly says:
+  - Arsenal Women
+  - Chelsea Women
+  - Barcelona Women
+  - etc.
+*/
 
-  { key: "ger.1", name: "Bundesliga", country: "Germany" },
-  { key: "ger.2", name: "2. Bundesliga", country: "Germany" },
+// ------------------------------------------------------------
+// LEAGUES
+// ------------------------------------------------------------
 
-  { key: "ita.1", name: "Serie A", country: "Italy" },
-  { key: "ita.2", name: "Serie B", country: "Italy" },
+const FOOTBALL_LEAGUES = {
+  premierLeague: {
+    name: "Premier League",
+    slug: "eng.1",
+    sport: "eng.1"
+  },
 
-  { key: "fra.1", name: "Ligue 1", country: "France" },
-  { key: "fra.2", name: "Ligue 2", country: "France" },
+  championsLeague: {
+    name: "UEFA Champions League",
+    slug: "uefa.champions",
+    sport: "uefa.champions"
+  },
 
-  { key: "ned.1", name: "Eredivisie", country: "Netherlands" },
-  { key: "por.1", name: "Primeira Liga", country: "Portugal" },
-  { key: "bel.1", name: "Belgian Pro League", country: "Belgium" },
-  { key: "sco.1", name: "Scottish Premiership", country: "Scotland" },
-  { key: "tur.1", name: "Turkish Super Lig", country: "Turkey" },
-  { key: "gre.1", name: "Greek Super League", country: "Greece" },
+  europaLeague: {
+    name: "UEFA Europa League",
+    slug: "uefa.europa",
+    sport: "uefa.europa"
+  },
 
-  { key: "usa.1", name: "MLS", country: "USA" },
-  { key: "mex.1", name: "Liga MX", country: "Mexico" },
-  { key: "bra.1", name: "Brasileirao", country: "Brazil" },
-  { key: "arg.1", name: "Argentine Primera", country: "Argentina" },
-  { key: "col.1", name: "Colombian Primera A", country: "Colombia" },
-  { key: "chi.1", name: "Chilean Primera", country: "Chile" },
-  { key: "uru.1", name: "Uruguayan Primera", country: "Uruguay" },
+  conferenceLeague: {
+    name: "UEFA Conference League",
+    slug: "uefa.europa.conf",
+    sport: "uefa.europa.conf"
+  },
 
-  { key: "jpn.1", name: "J1 League", country: "Japan" },
-  { key: "kor.1", name: "K League 1", country: "South Korea" },
-  { key: "aus.1", name: "A-League", country: "Australia" },
+  laLiga: {
+    name: "La Liga",
+    slug: "esp.1",
+    sport: "esp.1"
+  },
 
-  { key: "sau.1", name: "Saudi Pro League", country: "Saudi Arabia" },
+  serieA: {
+    name: "Serie A",
+    slug: "ita.1",
+    sport: "ita.1"
+  },
 
-  { key: "egy.1", name: "Egyptian Premier League", country: "Egypt" },
-  { key: "rsa.1", name: "South African Premier Division", country: "South Africa" },
-  { key: "nga.1", name: "Nigerian Premier League", country: "Nigeria" },
-  { key: "gha.1", name: "Ghana Premier League", country: "Ghana" },
-  { key: "ken.1", name: "Kenyan Premier League", country: "Kenya" },
-  { key: "mar.1", name: "Moroccan Botola", country: "Morocco" },
-  { key: "tun.1", name: "Tunisian Ligue 1", country: "Tunisia" },
+  bundesliga: {
+    name: "Bundesliga",
+    slug: "ger.1",
+    sport: "ger.1"
+  },
 
-  { key: "caf.champions", name: "CAF Champions League", country: "Africa" },
-  { key: "caf.confed", name: "CAF Confederation Cup", country: "Africa" },
+  ligue1: {
+    name: "Ligue 1",
+    slug: "fra.1",
+    sport: "fra.1"
+  },
 
-  { key: "afc.champions", name: "AFC Champions League", country: "Asia" },
+  championship: {
+    name: "Championship",
+    slug: "eng.2",
+    sport: "eng.2"
+  },
 
-  { key: "uefa.champions", name: "UEFA Champions League", country: "Europe" },
-  { key: "uefa.europa", name: "UEFA Europa League", country: "Europe" },
-  { key: "uefa.europa.conf", name: "UEFA Conference League", country: "Europe" },
-  { key: "uefa.nations", name: "UEFA Nations League", country: "Europe" },
+  eredivisie: {
+    name: "Eredivisie",
+    slug: "ned.1",
+    sport: "ned.1"
+  },
 
-  { key: "fifa.world", name: "World Cup", country: "International" },
-  { key: "fifa.worldq", name: "World Cup Qualifiers", country: "International" },
+  primeiraLiga: {
+    name: "Primeira Liga",
+    slug: "por.1",
+    sport: "por.1"
+  },
 
-  { key: "caf.nations", name: "Africa Cup of Nations", country: "Africa" },
-  { key: "caf.nations_qual", name: "AFCON Qualifiers", country: "Africa" }
-];
+  scottishPremiership: {
+    name: "Scottish Premiership",
+    slug: "sco.1",
+    sport: "sco.1"
+  },
 
-const TEAM_ALIASES = {
-  arsenal: ["Arsenal", "Arsenal FC"],
-  chelsea: ["Chelsea", "Chelsea FC"],
-  liverpool: ["Liverpool", "Liverpool FC"],
+  belgianProLeague: {
+    name: "Belgian Pro League",
+    slug: "bel.1",
+    sport: "bel.1"
+  },
 
-  "man united": [
-    "Manchester United",
-    "Man United",
-    "Manchester Utd"
-  ],
+  turkishSuperLig: {
+    name: "Turkish Super Lig",
+    slug: "tur.1",
+    sport: "tur.1"
+  },
 
-  "man utd": [
-    "Manchester United",
-    "Man United",
-    "Manchester Utd"
-  ],
+  saudiProLeague: {
+    name: "Saudi Pro League",
+    slug: "ksa.1",
+    sport: "ksa.1"
+  },
 
-  "manchester united": [
-    "Manchester United",
-    "Man United",
-    "Manchester Utd"
-  ],
+  mls: {
+    name: "Major League Soccer",
+    slug: "usa.1",
+    sport: "usa.1"
+  },
 
-  "man city": [
-    "Manchester City",
-    "Man City"
-  ],
+  afcChampionsLeague: {
+    name: "AFC Champions League",
+    slug: "afc.champions",
+    sport: "afc.champions"
+  },
 
-  "manchester city": [
-    "Manchester City",
-    "Man City"
-  ],
+  cafChampionsLeague: {
+    name: "CAF Champions League",
+    slug: "caf.champions",
+    sport: "caf.champions"
+  },
 
-  tottenham: [
-    "Tottenham Hotspur",
-    "Tottenham"
-  ],
-
-  spurs: [
-    "Tottenham Hotspur",
-    "Tottenham"
-  ],
-
-  newcastle: [
-    "Newcastle United",
-    "Newcastle"
-  ],
-
-  "aston villa": ["Aston Villa"],
-
-  barcelona: [
-    "Barcelona",
-    "FC Barcelona"
-  ],
-
-  "fc barcelona": [
-    "Barcelona",
-    "FC Barcelona"
-  ],
-
-  "real madrid": ["Real Madrid"],
-
-  atletico: [
-    "Atletico Madrid",
-    "Atlético Madrid"
-  ],
-
-  "atletico madrid": [
-    "Atletico Madrid",
-    "Atlético Madrid"
-  ],
-
-  bayern: [
-    "Bayern Munich",
-    "Bayern München"
-  ],
-
-  "bayern munich": [
-    "Bayern Munich",
-    "Bayern München"
-  ],
-
-  dortmund: [
-    "Borussia Dortmund",
-    "Dortmund"
-  ],
-
-  juventus: ["Juventus"],
-
-  inter: [
-    "Inter Milan",
-    "Inter"
-  ],
-
-  "inter milan": [
-    "Inter Milan",
-    "Inter"
-  ],
-
-  "ac milan": ["AC Milan"],
-
-  napoli: ["Napoli"],
-
-  psg: [
-    "Paris Saint-Germain",
-    "PSG"
-  ],
-
-  "paris saint germain": [
-    "Paris Saint-Germain",
-    "PSG"
-  ],
-
-  lyon: [
-    "Lyon",
-    "Olympique Lyonnais"
-  ],
-
-  marseille: [
-    "Marseille",
-    "Olympique de Marseille"
-  ],
-
-  monaco: [
-    "Monaco",
-    "AS Monaco"
-  ],
-
-  ajax: [
-    "Ajax",
-    "Ajax Amsterdam"
-  ],
-
-  psv: [
-    "PSV Eindhoven",
-    "PSV"
-  ],
-
-  benfica: ["Benfica"],
-  porto: ["Porto"],
-
-  "al hilal": ["Al Hilal"],
-  "al nassr": ["Al Nassr"],
-
-  "mamelodi sundowns": [
-    "Mamelodi Sundowns"
-  ],
-
-  "kaizer chiefs": [
-    "Kaizer Chiefs"
-  ],
-
-  "al ahly": [
-    "Al Ahly"
-  ],
-
-  "al ahly cairo": [
-    "Al Ahly"
-  ],
-
-  zamalek: ["Zamalek"],
-
-  "young africans": [
-    "Young Africans"
-  ],
-
-  "tp mazembe": [
-    "TP Mazembe"
-  ],
-
-  zambia: ["Zambia"],
-  malawi: ["Malawi"],
-  nigeria: ["Nigeria"],
-  ghana: ["Ghana"],
-  "south africa": ["South Africa"],
-  egypt: ["Egypt"],
-  morocco: ["Morocco"],
-  brazil: ["Brazil"],
-  argentina: ["Argentina"],
-  france: ["France"],
-  germany: ["Germany"],
-  spain: ["Spain"],
-  italy: ["Italy"],
-  england: ["England"],
-  portugal: ["Portugal"],
-  netherlands: ["Netherlands"]
+  cafConfederationCup: {
+    name: "CAF Confederation Cup",
+    slug: "caf.confederation",
+    sport: "caf.confederation"
+  }
 };
+
+// ------------------------------------------------------------
+// MEN'S FIRST-TEAM IDS
+// ------------------------------------------------------------
 
 const KNOWN_TEAM_IDS = {
   arsenal: "359",
   chelsea: "363",
   liverpool: "364",
-  "manchester united": "360",
-  "manchester city": "382",
+  manchesterUnited: "360",
+  manchesterCity: "382",
   tottenham: "367",
   newcastle: "361",
-  "aston villa": "362",
+  astonVilla: "362",
 
   barcelona: "83",
-  "real madrid": "86",
-  "atletico madrid": "1068",
+  realMadrid: "86",
+  atleticoMadrid: "1068",
 
-  bayern: "132",
-  dortmund: "124",
+  bayernMunich: "132",
+  borussiaDortmund: "124",
 
   juventus: "111",
-  "inter milan": "110",
-  "ac milan": "103",
+  interMilan: "110",
+  acMilan: "103",
   napoli: "114",
 
   psg: "160",
@@ -292,89 +178,518 @@ const KNOWN_TEAM_IDS = {
   benfica: "1929",
   porto: "2128",
 
-  "al hilal": "8598",
-  "al nassr": "8177",
+  alHilal: "8598",
+  alNassr: "8177",
 
-  "mamelodi sundowns": "2122",
-  "kaizer chiefs": "2124",
-  "al ahly": "1037",
+  mamelodiSundowns: "2122",
+  kaizerChiefs: "2124",
+
+  alAhly: "1037",
   zamalek: "8547",
-  "tp mazembe": "1029"
+
+  tpMazembe: "1029"
 };
 
-function normalizeText(value = "") {
+// ------------------------------------------------------------
+// TEAM ALIASES
+// ------------------------------------------------------------
+
+const TEAM_ALIASES = {
+  arsenal: {
+    id: KNOWN_TEAM_IDS.arsenal,
+    name: "Arsenal",
+    aliases: [
+      "arsenal",
+      "arsenal fc",
+      "arsenal football club",
+      "the gunners"
+    ]
+  },
+
+  chelsea: {
+    id: KNOWN_TEAM_IDS.chelsea,
+    name: "Chelsea",
+    aliases: [
+      "chelsea",
+      "chelsea fc",
+      "chelsea football club"
+    ]
+  },
+
+  liverpool: {
+    id: KNOWN_TEAM_IDS.liverpool,
+    name: "Liverpool",
+    aliases: [
+      "liverpool",
+      "liverpool fc",
+      "liverpool football club"
+    ]
+  },
+
+  manchesterUnited: {
+    id: KNOWN_TEAM_IDS.manchesterUnited,
+    name: "Manchester United",
+    aliases: [
+      "manchester united",
+      "man united",
+      "man utd",
+      "man u",
+      "united"
+    ]
+  },
+
+  manchesterCity: {
+    id: KNOWN_TEAM_IDS.manchesterCity,
+    name: "Manchester City",
+    aliases: [
+      "manchester city",
+      "man city",
+      "city"
+    ]
+  },
+
+  tottenham: {
+    id: KNOWN_TEAM_IDS.tottenham,
+    name: "Tottenham Hotspur",
+    aliases: [
+      "tottenham",
+      "tottenham hotspur",
+      "spurs"
+    ]
+  },
+
+  newcastle: {
+    id: KNOWN_TEAM_IDS.newcastle,
+    name: "Newcastle United",
+    aliases: [
+      "newcastle",
+      "newcastle united"
+    ]
+  },
+
+  astonVilla: {
+    id: KNOWN_TEAM_IDS.astonVilla,
+    name: "Aston Villa",
+    aliases: [
+      "aston villa",
+      "aston villa fc"
+    ]
+  },
+
+  barcelona: {
+    id: KNOWN_TEAM_IDS.barcelona,
+    name: "Barcelona",
+    aliases: [
+      "barcelona",
+      "fc barcelona",
+      "barca"
+    ]
+  },
+
+  realMadrid: {
+    id: KNOWN_TEAM_IDS.realMadrid,
+    name: "Real Madrid",
+    aliases: [
+      "real madrid",
+      "real madrid cf"
+    ]
+  },
+
+  atleticoMadrid: {
+    id: KNOWN_TEAM_IDS.atleticoMadrid,
+    name: "Atletico Madrid",
+    aliases: [
+      "atletico madrid",
+      "atletico",
+      "atletico de madrid"
+    ]
+  },
+
+  bayernMunich: {
+    id: KNOWN_TEAM_IDS.bayernMunich,
+    name: "Bayern Munich",
+    aliases: [
+      "bayern",
+      "bayern munich",
+      "bayern munchen",
+      "fc bayern"
+    ]
+  },
+
+  borussiaDortmund: {
+    id: KNOWN_TEAM_IDS.borussiaDortmund,
+    name: "Borussia Dortmund",
+    aliases: [
+      "borussia dortmund",
+      "dortmund",
+      "bvb"
+    ]
+  },
+
+  juventus: {
+    id: KNOWN_TEAM_IDS.juventus,
+    name: "Juventus",
+    aliases: [
+      "juventus",
+      "juve"
+    ]
+  },
+
+  interMilan: {
+    id: KNOWN_TEAM_IDS.interMilan,
+    name: "Inter Milan",
+    aliases: [
+      "inter milan",
+      "inter",
+      "internazionale"
+    ]
+  },
+
+  acMilan: {
+    id: KNOWN_TEAM_IDS.acMilan,
+    name: "AC Milan",
+    aliases: [
+      "ac milan",
+      "milan"
+    ]
+  },
+
+  napoli: {
+    id: KNOWN_TEAM_IDS.napoli,
+    name: "Napoli",
+    aliases: [
+      "napoli",
+      "ssc napoli"
+    ]
+  },
+
+  psg: {
+    id: KNOWN_TEAM_IDS.psg,
+    name: "Paris Saint-Germain",
+    aliases: [
+      "psg",
+      "paris saint germain",
+      "paris saint-germain"
+    ]
+  },
+
+  lyon: {
+    id: KNOWN_TEAM_IDS.lyon,
+    name: "Lyon",
+    aliases: [
+      "lyon",
+      "olympique lyon",
+      "ol"
+    ]
+  },
+
+  marseille: {
+    id: KNOWN_TEAM_IDS.marseille,
+    name: "Marseille",
+    aliases: [
+      "marseille",
+      "olympique marseille"
+    ]
+  },
+
+  monaco: {
+    id: KNOWN_TEAM_IDS.monaco,
+    name: "Monaco",
+    aliases: [
+      "monaco",
+      "as monaco"
+    ]
+  },
+
+  ajax: {
+    id: KNOWN_TEAM_IDS.ajax,
+    name: "Ajax",
+    aliases: [
+      "ajax",
+      "ajax amsterdam"
+    ]
+  },
+
+  psv: {
+    id: KNOWN_TEAM_IDS.psv,
+    name: "PSV Eindhoven",
+    aliases: [
+      "psv",
+      "psv eindhoven"
+    ]
+  },
+
+  benfica: {
+    id: KNOWN_TEAM_IDS.benfica,
+    name: "Benfica",
+    aliases: [
+      "benfica",
+      "sl benfica"
+    ]
+  },
+
+  porto: {
+    id: KNOWN_TEAM_IDS.porto,
+    name: "Porto",
+    aliases: [
+      "porto",
+      "fc porto"
+    ]
+  },
+
+  alHilal: {
+    id: KNOWN_TEAM_IDS.alHilal,
+    name: "Al Hilal",
+    aliases: [
+      "al hilal",
+      "al-hilal"
+    ]
+  },
+
+  alNassr: {
+    id: KNOWN_TEAM_IDS.alNassr,
+    name: "Al Nassr",
+    aliases: [
+      "al nassr",
+      "al-nassr"
+    ]
+  },
+
+  mamelodiSundowns: {
+    id: KNOWN_TEAM_IDS.mamelodiSundowns,
+    name: "Mamelodi Sundowns",
+    aliases: [
+      "mamelodi sundowns",
+      "sundowns"
+    ]
+  },
+
+  kaizerChiefs: {
+    id: KNOWN_TEAM_IDS.kaizerChiefs,
+    name: "Kaizer Chiefs",
+    aliases: [
+      "kaizer chiefs"
+    ]
+  },
+
+  alAhly: {
+    id: KNOWN_TEAM_IDS.alAhly,
+    name: "Al Ahly",
+    aliases: [
+      "al ahly",
+      "al-ahly",
+      "ahly"
+    ]
+  },
+
+  zamalek: {
+    id: KNOWN_TEAM_IDS.zamalek,
+    name: "Zamalek",
+    aliases: [
+      "zamalek",
+      "zamalek sc"
+    ]
+  },
+
+  tpMazembe: {
+    id: KNOWN_TEAM_IDS.tpMazembe,
+    name: "TP Mazembe",
+    aliases: [
+      "tp mazembe",
+      "mazembe"
+    ]
+  }
+};
+
+// ------------------------------------------------------------
+// WOMEN'S TEAM DETECTION
+// ------------------------------------------------------------
+
+function isWomen'sRequest(text = "") {
+  const value = normalize(text);
+
+  return (
+    /\bwomen\b/.test(value) ||
+    /\bwomen's\b/.test(value) ||
+    /\bfemale\b/.test(value) ||
+    /\bladies\b/.test(value) ||
+    /\bgirls\b/.test(value)
+  );
+}
+
+// ------------------------------------------------------------
+// HELPERS
+// ------------------------------------------------------------
+
+function normalize(value = "") {
   return String(value)
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9\s-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function compactDate(date) {
-  const d = new Date(date);
-
-  if (Number.isNaN(d.getTime())) {
-    return "";
-  }
-
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: ZAMBIA_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).format(d);
+function cleanText(value = "") {
+  return String(value)
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function getZambiaDate() {
-  return compactDate(new Date());
+function safeDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function formatZambiaTime(date) {
-  const d = new Date(date);
+function formatZambiaDateTime(value) {
+  const date = safeDate(value);
 
-  if (Number.isNaN(d.getTime())) {
-    return "Time unavailable";
+  if (!date) {
+    return "Unknown date";
   }
 
-  return new Intl.DateTimeFormat("en-ZM", {
+  return new Intl.DateTimeFormat("en-GB", {
     timeZone: ZAMBIA_TIMEZONE,
-    day: "2-digit",
-    month: "short",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false
-  }).format(d);
+  }).format(date);
 }
 
-function safeDate(value) {
-  const d = new Date(value);
+function formatZambiaDate(value) {
+  const date = safeDate(value);
 
-  return Number.isNaN(d.getTime())
-    ? null
-    : d;
+  if (!date) {
+    return "Unknown date";
+  }
+
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: ZAMBIA_TIMEZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
+function getEventDate(event) {
+  return (
+    event?.date ||
+    event?.startDate ||
+    event?.competitions?.[0]?.date ||
+    null
+  );
+}
+
+function getCompetitionName(event) {
+  return cleanText(
+    event?.league?.name ||
+      event?.season?.name ||
+      event?.competitions?.[0]?.league?.name ||
+      event?.competitions?.[0]?.name ||
+      "Football"
+  );
+}
+
+function getTeamName(team) {
+  return cleanText(
+    team?.displayName ||
+      team?.shortDisplayName ||
+      team?.name ||
+      team?.abbreviation ||
+      "Unknown team"
+  );
+}
+
+function getEventTeams(event) {
+  const competitors = event?.competitions?.[0]?.competitors || [];
+
+  return competitors.map((competitor) => ({
+    id: String(
+      competitor?.team?.id ||
+        competitor?.id ||
+        ""
+    ),
+    name: getTeamName(competitor?.team || competitor),
+    abbreviation:
+      competitor?.team?.abbreviation ||
+      competitor?.abbreviation ||
+      "",
+    homeAway: competitor?.homeAway || ""
+  }));
+}
+
+function getEventState(event) {
+  const state =
+    event?.status?.type?.state ||
+    event?.competitions?.[0]?.status?.type?.state ||
+    "";
+
+  const completed =
+    event?.status?.type?.completed === true ||
+    event?.competitions?.[0]?.status?.type?.completed === true ||
+    state === "post";
+
+  const live =
+    state === "in" ||
+    state === "live" ||
+    state === "playing";
+
+  return {
+    completed,
+    live,
+    state
+  };
+}
+
+function getScore(event, teamId) {
+  const competitors = event?.competitions?.[0]?.competitors || [];
+
+  const competitor = competitors.find(
+    (item) =>
+      String(item?.team?.id || item?.id || "") === String(teamId)
+  );
+
+  return competitor?.score ?? null;
+}
+
+function getOpponent(event, teamId) {
+  const teams = getEventTeams(event);
+
+  return (
+    teams.find(
+      (team) => String(team.id) !== String(teamId)
+    ) || null
+  );
 }
 
 async function fetchJson(url) {
   const controller = new AbortController();
 
-  const timeout = setTimeout(() => {
-    controller.abort();
-  }, REQUEST_TIMEOUT);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT
+  );
 
   try {
     const response = await fetch(url, {
-      signal: controller.signal,
       headers: {
-        Accept: "application/json"
-      }
+        Accept: "application/json",
+        "User-Agent": "Zed-AI-Football/1.0"
+      },
+      signal: controller.signal
     });
 
     if (!response.ok) {
       throw new Error(
-        `Football API returned ${response.status}`
+        `ESPN request failed: ${response.status} ${response.statusText}`
       );
     }
 
@@ -384,485 +699,121 @@ async function fetchJson(url) {
   }
 }
 
-function eventState(event) {
-  const state =
-    event?.competitions?.[0]?.status?.type;
+// ------------------------------------------------------------
+// TEAM DETECTION
+// ------------------------------------------------------------
 
-  if (!state) {
-    return {
-      name: "scheduled",
-      completed: false,
-      live: false
-    };
+function detectFootballTeam(message = "") {
+  const text = normalize(message);
+  const womenRequested = isWomen'sRequest(message);
+
+  /*
+    First detect explicit women's requests.
+
+    Example:
+    "When is Arsenal Women playing?"
+  */
+
+  if (womenRequested) {
+    for (const team of Object.values(TEAM_ALIASES)) {
+      for (const alias of team.aliases) {
+        if (text.includes(`${alias} women`)) {
+          return {
+            ...team,
+            gender: "women",
+            explicitGender: true
+          };
+        }
+      }
+    }
   }
 
-  return {
-    name: state.name || "scheduled",
-    completed: Boolean(state.completed),
-    live: Boolean(state.state === "in")
-  };
-}
+  /*
+    Normal team detection.
 
-function eventScore(event, teamId) {
-  const competitors =
-    event?.competitions?.[0]?.competitors || [];
+    IMPORTANT:
+    This always maps the ordinary club name to the men's
+    first team.
+  */
 
-  const team = competitors.find(
-    item =>
-      String(item.team?.id) === String(teamId)
-  );
+  let bestMatch = null;
 
-  if (!team) {
+  for (const team of Object.values(TEAM_ALIASES)) {
+    for (const alias of team.aliases) {
+      if (!text.includes(alias)) {
+        continue;
+      }
+
+      if (
+        !bestMatch ||
+        alias.length > bestMatch.matchedAlias.length
+      ) {
+        bestMatch = {
+          ...team,
+          gender: "men",
+          explicitGender: false,
+          matchedAlias: alias
+        };
+      }
+    }
+  }
+
+  if (!bestMatch) {
     return null;
   }
 
-  return Number.isFinite(Number(team.score))
-    ? Number(team.score)
-    : null;
+  return bestMatch;
 }
 
-function getEventLeague(event) {
-  const league =
-    event?.league ||
-    event?.competitions?.[0]?.league ||
-    event?.season?.league;
+// ------------------------------------------------------------
+// TEAM SEARCH
+// ------------------------------------------------------------
 
-  if (typeof league === "string") {
-    return league;
+async function searchFootballTeams(query = "") {
+  const search = encodeURIComponent(query.trim());
+
+  if (!search) {
+    return [];
   }
 
-  return (
-    league?.name ||
-    event?.competitions?.[0]?.league?.name ||
-    "Football"
-  );
-}
-
-function normalizeEvent(event, league = null) {
-  const competition =
-    event?.competitions?.[0];
-
-  const competitors =
-    competition?.competitors || [];
-
-  const home =
-    competitors.find(
-      item => item.homeAway === "home"
-    );
-
-  const away =
-    competitors.find(
-      item => item.homeAway === "away"
-    );
-
-  const state = eventState(event);
-
-  return {
-    id: event?.id || null,
-
-    date: event?.date || null,
-
-    dateZambia:
-      formatZambiaTime(event?.date),
-
-    day:
-      compactDate(event?.date),
-
-    league:
-      league?.name ||
-      getEventLeague(event),
-
-    leagueKey:
-      league?.key || "",
-
-    homeTeam:
-      home?.team?.displayName ||
-      home?.team?.name ||
-      "Home",
-
-    awayTeam:
-      away?.team?.displayName ||
-      away?.team?.name ||
-      "Away",
-
-    homeId:
-      home?.team?.id || null,
-
-    awayId:
-      away?.team?.id || null,
-
-    homeScore:
-      eventScore(event, home?.team?.id),
-
-    awayScore:
-      eventScore(event, away?.team?.id),
-
-    status:
-      state.name,
-
-    completed:
-      state.completed,
-
-    live:
-      state.live,
-
-    raw:
-      event
-  };
-}
-
-function detectFootballLeague(message = "") {
-  const text = normalizeText(message);
-
-  const leagueMatches = [
-    ["premier league", "eng.1"],
-    ["epl", "eng.1"],
-    ["championship", "eng.2"],
-    ["la liga", "esp.1"],
-    ["bundesliga", "ger.1"],
-    ["serie a", "ita.1"],
-    ["serie b", "ita.2"],
-    ["ligue 1", "fra.1"],
-    ["ligue 2", "fra.2"],
-    ["eredivisie", "ned.1"],
-    ["primeira liga", "por.1"],
-    ["mls", "usa.1"],
-    ["major league soccer", "usa.1"],
-    ["liga mx", "mex.1"],
-    ["brasileirao", "bra.1"],
-    ["brazilian league", "bra.1"],
-    ["argentine league", "arg.1"],
-    ["argentina primera", "arg.1"],
-    ["j1 league", "jpn.1"],
-    ["k league", "kor.1"],
-    ["saudi pro league", "sau.1"],
-    ["afcon", "caf.nations"],
-    ["africa cup of nations", "caf.nations"],
-    ["caf champions league", "caf.champions"],
-    ["caf confederation cup", "caf.confed"],
-    ["champions league", "uefa.champions"],
-    ["europa league", "uefa.europa"],
-    ["conference league", "uefa.europa.conf"],
-    ["nations league", "uefa.nations"],
-    ["world cup", "fifa.world"]
-  ];
-
-  for (const [phrase, key] of leagueMatches) {
-    if (text.includes(phrase)) {
-      return key;
-    }
-  }
-
-  return null;
-}
-
-function resolveFootballLeague(key) {
-  return (
-    FOOTBALL_LEAGUES.find(
-      league => league.key === key
-    ) || null
-  );
-}
-
-function detectFootballTeam(message = "") {
-  const text = normalizeText(message);
-
-  const keys =
-    Object.keys(TEAM_ALIASES).sort(
-      (a, b) => b.length - a.length
-    );
-
-  for (const key of keys) {
-    if (
-      text.includes(
-        normalizeText(key)
-      )
-    ) {
-      return {
-        key,
-        names: TEAM_ALIASES[key]
-      };
-    }
-  }
-
-  return null;
-}
-
-function getFootballRequestType(message = "") {
-  const text = normalizeText(message);
-
-  if (
-    text.includes("live") ||
-    text.includes("playing now") ||
-    text.includes("right now") ||
-    text.includes("currently playing")
-  ) {
-    return "live";
-  }
-
-  if (
-    text.includes("last match") ||
-    text.includes("last game") ||
-    text.includes("previous match") ||
-    text.includes("previous game") ||
-    text.includes("latest result") ||
-    text.includes("last result")
-  ) {
-    return "last";
-  }
-
-  if (
-    text.includes("result") ||
-    text.includes("results") ||
-    text.includes("finished") ||
-    text.includes("completed")
-  ) {
-    return "results";
-  }
-
-  if (
-    text.includes("next match") ||
-    text.includes("next game") ||
-    text.includes("upcoming") ||
-    text.includes("when do") ||
-    text.includes("when is") ||
-    text.includes("plays next") ||
-    text.includes("play next")
-  ) {
-    return "next";
-  }
-
-  if (
-    text.includes("fixture") ||
-    text.includes("fixtures") ||
-    text.includes("schedule")
-  ) {
-    return "fixtures";
-  }
-
-  if (
-    text.includes("table") ||
-    text.includes("standings") ||
-    text.includes("position") ||
-    text.includes("points")
-  ) {
-    return "standings";
-  }
-
-  return "general";
-}
-
-async function getLeagueMatches(league) {
   const url =
-    `${SITE_BASE}/${league.key}/scoreboard?limit=100`;
+    `${SITE_BASE}/all/teams?limit=50&region=us&lang=en&search=${search}`;
 
   try {
     const data = await fetchJson(url);
 
-    return (
-      data?.events || []
-    ).map(event =>
-      normalizeEvent(event, league)
-    );
+    const teams =
+      data?.sports?.flatMap((sport) =>
+        sport?.leagues?.flatMap((league) =>
+          league?.teams || []
+        ) || []
+      ) || [];
+
+    return teams.map((entry) => {
+      const team = entry?.team || entry;
+
+      return {
+        id: String(team?.id || ""),
+        name: getTeamName(team),
+        abbreviation: team?.abbreviation || ""
+      };
+    });
   } catch {
     return [];
   }
 }
 
-async function getFootballMatches() {
-  const results =
-    await Promise.allSettled(
-      FOOTBALL_LEAGUES.map(
-        league => getLeagueMatches(league)
-      )
-    );
+// ------------------------------------------------------------
+// TEAM SCHEDULE
+// ------------------------------------------------------------
 
-  const matches = [];
+async function getTeamSchedule(teamId, fixtureOnly = false) {
+  /*
+    ESPN's "all" soccer competition path is important because
+    a club can have fixtures in multiple competitions.
 
-  for (const result of results) {
-    if (result.status === "fulfilled") {
-      matches.push(...result.value);
-    }
-  }
-
-  const unique = new Map();
-
-  for (const match of matches) {
-    if (match.id) {
-      unique.set(
-        String(match.id),
-        match
-      );
-    }
-  }
-
-  return [...unique.values()].sort(
-    (a, b) =>
-      new Date(a.date).getTime() -
-      new Date(b.date).getTime()
-  );
-}
-
-/*
- * ---------------------------------------------------------
- * TEAM RESOLUTION
- * ---------------------------------------------------------
- */
-
-async function getAllSoccerTeams() {
-  const urls = [
-    `${SITE_BASE}/all/teams?limit=1000`,
-    `${SITE_BASE}/all/teams`
-  ];
-
-  for (const url of urls) {
-    try {
-      const data = await fetchJson(url);
-
-      const teams =
-        data?.sports?.[0]
-          ?.leagues?.[0]
-          ?.teams
-          ?.map(item => item.team)
-          .filter(Boolean);
-
-      if (
-        Array.isArray(teams) &&
-        teams.length
-      ) {
-        return teams;
-      }
-    } catch {
-      // Try the next endpoint.
-    }
-  }
-
-  return [];
-}
-
-function teamMatchesName(team, names) {
-  if (!team) {
-    return false;
-  }
-
-  const values = [
-    team.displayName,
-    team.name,
-    team.shortDisplayName,
-    team.abbreviation,
-    team.location,
-    team.nickname
-  ]
-    .filter(Boolean)
-    .map(normalizeText);
-
-  return names.some(name => {
-    const target = normalizeText(name);
-
-    return values.some(
-      value =>
-        value === target ||
-        value.includes(target) ||
-        target.includes(value)
-    );
-  });
-}
-
-async function findTeamGlobally(teamInfo) {
-  if (!teamInfo) {
-    return null;
-  }
-
-  const knownId =
-    KNOWN_TEAM_IDS[teamInfo.key];
-
-  if (knownId) {
-    return {
-      id: knownId,
-      displayName: teamInfo.names[0],
-      name: teamInfo.names[0]
-    };
-  }
-
-  const teams =
-    await getAllSoccerTeams();
-
-  const found =
-    teams.find(team =>
-      teamMatchesName(
-        team,
-        teamInfo.names
-      )
-    );
-
-  if (found) {
-    return found;
-  }
-
-  for (
-    const league
-    of FOOTBALL_LEAGUES
-  ) {
-    try {
-      const url =
-        `${SITE_BASE}/${league.key}/teams`;
-
-      const data =
-        await fetchJson(url);
-
-      const leagueTeams =
-        data?.sports?.[0]
-          ?.leagues?.[0]
-          ?.teams
-          ?.map(item => item.team)
-          .filter(Boolean) || [];
-
-      const match =
-        leagueTeams.find(team =>
-          teamMatchesName(
-            team,
-            teamInfo.names
-          )
-        );
-
-      if (match) {
-        return match;
-      }
-    } catch {
-      // Continue searching.
-    }
-  }
-
-  return null;
-}
-
-/*
- * ---------------------------------------------------------
- * ESPN TEAM SCHEDULE
- * ---------------------------------------------------------
- *
- * IMPORTANT:
- *
- * ESPN provides a soccer-wide team schedule endpoint:
- *
- * /soccer/all/teams/{teamId}/schedule
- *
- * Adding fixture=true asks ESPN specifically for future
- * fixtures.
- *
- * We keep these as separate requests because:
- *
- * - fixture=true -> future fixtures
- * - no fixture parameter -> historical/current schedule
- */
-
-async function getTeamSchedule(
-  teamId,
-  fixtureOnly = false
-) {
-  if (!teamId) {
-    return [];
-  }
+    fixture=true asks ESPN for future fixtures.
+  */
 
   let url =
     `${SITE_BASE}/all/teams/${teamId}/schedule`;
@@ -871,430 +822,300 @@ async function getTeamSchedule(
     url += "?fixture=true";
   }
 
-  try {
-    const data =
-      await fetchJson(url);
+  return await fetchJson(url);
+}
 
-    return (
-      data?.events || []
-    ).map(event =>
-      normalizeEvent(event, null)
-    );
-  } catch (error) {
+// ------------------------------------------------------------
+// EXTRACT EVENTS FROM ESPN RESPONSE
+// ------------------------------------------------------------
+
+function extractEvents(data) {
+  if (!data) {
     return [];
   }
-}
 
-/*
- * ---------------------------------------------------------
- * TEAM MATCH FILTERING
- * ---------------------------------------------------------
- */
-
-function uniqueMatches(matches) {
-  const unique = new Map();
-
-  for (const match of matches) {
-    if (match?.id) {
-      unique.set(
-        String(match.id),
-        match
-      );
-    }
+  if (Array.isArray(data.events)) {
+    return data.events;
   }
 
-  return [...unique.values()];
-}
-
-function isFutureMatch(match) {
-  const date = safeDate(match?.date);
-
-  if (!date) {
-    return false;
+  if (Array.isArray(data.schedule)) {
+    return data.schedule;
   }
 
-  return (
-    !match.completed &&
-    date.getTime() >= Date.now()
-  );
-}
-
-function isCompletedMatch(match) {
-  return Boolean(match.completed);
-}
-
-async function getTeamMatches(
-  teamInfo,
-  requestType = "general"
-) {
-  const team =
-    await findTeamGlobally(teamInfo);
-
-  if (!team?.id) {
-    return [];
+  if (Array.isArray(data.content?.events)) {
+    return data.content.events;
   }
+
+  return [];
+}
+
+// ------------------------------------------------------------
+// TEAM MATCHES
+// ------------------------------------------------------------
+
+async function getTeamMatches(teamInfo, requestType = "next") {
+  const now = Date.now();
+
+  let events = [];
 
   /*
-   * NEXT / FIXTURES
-   *
-   * Use ESPN's fixture endpoint FIRST.
-   */
+    For next/fixtures:
+    FIRST use fixture=true.
+
+    This prevents completed matches from being mixed into
+    the upcoming list.
+  */
+
   if (
     requestType === "next" ||
+    requestType === "upcoming" ||
     requestType === "fixtures"
   ) {
-    const fixtureMatches =
-      await getTeamSchedule(
-        team.id,
+    try {
+      const fixtureData = await getTeamSchedule(
+        teamInfo.id,
         true
       );
 
-    const upcoming =
-      uniqueMatches(
-        fixtureMatches
-      )
-        .filter(isFutureMatch)
-        .sort(
-          (a, b) =>
-            new Date(a.date).getTime() -
-            new Date(b.date).getTime()
-        );
+      events = extractEvents(fixtureData);
 
-    if (upcoming.length) {
-      return upcoming;
+      const future = events
+        .filter((event) => {
+          const date = safeDate(getEventDate(event));
+
+          if (!date) {
+            return false;
+          }
+
+          const state = getEventState(event);
+
+          return !state.completed &&
+            date.getTime() >= now;
+        })
+        .sort((a, b) => {
+          return (
+            safeDate(getEventDate(a)).getTime() -
+            safeDate(getEventDate(b)).getTime()
+          );
+        });
+
+      if (future.length > 0) {
+        return future;
+      }
+    } catch {
+      // Continue to normal schedule fallback.
     }
 
     /*
-     * If fixture=true gives nothing,
-     * fall back to the normal schedule.
-     */
-    const normalMatches =
-      await getTeamSchedule(
-        team.id,
+      Fallback:
+      Normal schedule endpoint.
+    */
+
+    try {
+      const normalData = await getTeamSchedule(
+        teamInfo.id,
         false
       );
 
-    return uniqueMatches(
-      normalMatches
-    )
-      .filter(isFutureMatch)
-      .sort(
-        (a, b) =>
-          new Date(a.date).getTime() -
-          new Date(b.date).getTime()
-      );
+      events = extractEvents(normalData);
+    } catch {
+      events = [];
+    }
+
+    return events
+      .filter((event) => {
+        const date = safeDate(getEventDate(event));
+
+        if (!date) {
+          return false;
+        }
+
+        const state = getEventState(event);
+
+        return !state.completed &&
+          date.getTime() >= now;
+      })
+      .sort((a, b) => {
+        return (
+          safeDate(getEventDate(a)).getTime() -
+          safeDate(getEventDate(b)).getTime()
+        );
+      });
   }
 
   /*
-   * LIVE / LAST / RESULTS / GENERAL
-   *
-   * Use the normal team schedule.
-   */
-  const normalMatches =
-    await getTeamSchedule(
-      team.id,
+    For previous results and live matches, use the normal
+    schedule endpoint.
+  */
+
+  try {
+    const normalData = await getTeamSchedule(
+      teamInfo.id,
       false
     );
 
-  const matches =
-    uniqueMatches(
-      normalMatches
-    );
-
-  if (requestType === "live") {
-    return matches.filter(
-      match => match.live
-    );
-  }
-
-  if (
-    requestType === "last" ||
-    requestType === "results"
-  ) {
-    return matches
-      .filter(isCompletedMatch)
-      .sort(
-        (a, b) =>
-          new Date(b.date).getTime() -
-          new Date(a.date).getTime()
-      );
-  }
-
-  return matches.sort(
-    (a, b) =>
-      new Date(a.date).getTime() -
-      new Date(b.date).getTime()
-  );
-}
-
-/*
- * ---------------------------------------------------------
- * STANDINGS
- * ---------------------------------------------------------
- */
-
-async function getFootballStandings(league) {
-  const url =
-    `${STANDINGS_BASE}/${league.key}` +
-    `/types/0/standings`;
-
-  try {
-    const data =
-      await fetchJson(url);
-
-    return (
-      data?.children?.[0]
-        ?.standings?.entries ||
-      data?.standings?.entries ||
-      []
-    );
+    events = extractEvents(normalData);
   } catch {
     return [];
   }
-}
 
-function getStat(entry, statName) {
-  const stat =
-    entry?.stats?.find(
-      item =>
-        item.name === statName
-    );
-
-  return (
-    stat?.value ??
-    stat?.displayValue ??
-    "-"
-  );
-}
-
-function extractStandingsRows(entries) {
-  return entries.map(
-    (entry, index) => ({
-      position:
-        getStat(entry, "rank") !== "-"
-          ? getStat(entry, "rank")
-          : index + 1,
-
-      team:
-        entry?.team?.displayName ||
-        entry?.team?.name ||
-        "Unknown",
-
-      played:
-        getStat(entry, "gamesPlayed"),
-
-      wins:
-        getStat(entry, "wins"),
-
-      draws:
-        getStat(entry, "ties"),
-
-      losses:
-        getStat(entry, "losses"),
-
-      points:
-        getStat(entry, "points"),
-
-      goalDifference:
-        getStat(
-          entry,
-          "pointDifferential"
-        )
-    })
-  );
-}
-
-function formatFootballStandings(
-  league,
-  entries
-) {
-  const rows =
-    extractStandingsRows(entries);
-
-  if (!rows.length) {
-    return (
-      `I couldn't find current standings ` +
-      `for ${league.name}.`
+  if (requestType === "live") {
+    return events.filter(
+      (event) => getEventState(event).live
     );
   }
-
-  let answer =
-    `## ${league.name} standings\n\n`;
-
-  answer +=
-    `| Pos | Team | P | W | D | L | GD | Pts |\n`;
-
-  answer +=
-    `|---:|---|---:|---:|---:|---:|---:|---:|\n`;
-
-  for (const row of rows) {
-    answer +=
-      `| ${row.position} | ${row.team} | ` +
-      `${row.played} | ${row.wins} | ` +
-      `${row.draws} | ${row.losses} | ` +
-      `${row.goalDifference} | ${row.points} |\n`;
-  }
-
-  return answer;
-}
-
-/*
- * ---------------------------------------------------------
- * FORMATTING
- * ---------------------------------------------------------
- */
-
-function formatFootballMatches(
-  matches,
-  title = "Football"
-) {
-  if (!matches.length) {
-    return (
-      `No football matches were found ` +
-      `for ${title}.`
-    );
-  }
-
-  let answer =
-    `## ${title}\n\n`;
-
-  for (const match of matches) {
-    const scoreAvailable =
-      match.homeScore !== null &&
-      match.awayScore !== null;
-
-    let statusText;
-
-    if (match.live) {
-      statusText = "LIVE";
-    } else if (match.completed) {
-      statusText = "FT";
-    } else {
-      statusText = "Scheduled";
-    }
-
-    if (scoreAvailable) {
-      answer +=
-        `**${match.homeTeam} ` +
-        `${match.homeScore} - ` +
-        `${match.awayScore} ` +
-        `${match.awayTeam}**\n`;
-    } else {
-      answer +=
-        `**${match.homeTeam} vs ` +
-        `${match.awayTeam}**\n`;
-    }
-
-    answer +=
-      `- ${match.league}\n`;
-
-    answer +=
-      `- ${statusText}\n`;
-
-    answer +=
-      `- Zambia time: ${match.dateZambia}\n\n`;
-  }
-
-  return answer.trim();
-}
-
-function formatTeamMatches(
-  teamInfo,
-  matches,
-  requestType
-) {
-  const teamName =
-    teamInfo?.names?.[0] ||
-    "Team";
-
-  if (!matches.length) {
-    if (requestType === "next") {
-      return (
-        `I couldn't find an upcoming ` +
-        `fixture for ${teamName} in ` +
-        `the available football data.`
-      );
-    }
-
-    if (
-      requestType === "last" ||
-      requestType === "results"
-    ) {
-      return (
-        `I couldn't find a completed ` +
-        `recent match for ${teamName} ` +
-        `in the available football data.`
-      );
-    }
-
-    if (requestType === "live") {
-      return (
-        `${teamName} does not appear to ` +
-        `have a live match in the available ` +
-        `football data right now.`
-      );
-    }
-
-    return (
-      `I couldn't find matches for ` +
-      `${teamName} in the available ` +
-      `football data.`
-    );
-  }
-
-  let selected = matches;
 
   if (
-    requestType === "next" ||
-    requestType === "fixtures"
-  ) {
-    selected = matches.slice(0, 5);
-  } else if (
     requestType === "last" ||
-    requestType === "results"
+    requestType === "results" ||
+    requestType === "previous"
   ) {
-    selected = matches.slice(0, 5);
-  } else if (
-    requestType === "live"
-  ) {
-    selected = matches.slice(0, 10);
-  } else {
-    selected = matches.slice(0, 10);
+    return events
+      .filter((event) => {
+        const state = getEventState(event);
+        return state.completed;
+      })
+      .sort((a, b) => {
+        return (
+          safeDate(getEventDate(b)).getTime() -
+          safeDate(getEventDate(a)).getTime()
+        );
+      });
   }
 
-  return formatFootballMatches(
-    selected,
-    `${teamName} football`
-  );
+  return events;
 }
 
-/*
- * ---------------------------------------------------------
- * PUBLIC FEATURES USED BY server.js
- * ---------------------------------------------------------
- */
+// ------------------------------------------------------------
+// REQUEST TYPE
+// ------------------------------------------------------------
 
-export async function footballTeamFeature(
-  userMessage
-) {
-  const teamInfo =
-    detectFootballTeam(
-      userMessage
-    );
+function getFootballRequestType(message = "") {
+  const text = normalize(message);
+
+  if (
+    text.includes("next match") ||
+    text.includes("next game") ||
+    text.includes("next fixture") ||
+    text.includes("upcoming match") ||
+    text.includes("upcoming game") ||
+    text.includes("upcoming fixture") ||
+    text.includes("upcoming fixtures") ||
+    text.includes("future match") ||
+    text.includes("future fixtures") ||
+    text.includes("when do") ||
+    text.includes("when does")
+  ) {
+    return "next";
+  }
+
+  if (
+    text.includes("last match") ||
+    text.includes("last game") ||
+    text.includes("last fixture") ||
+    text.includes("previous match") ||
+    text.includes("previous game") ||
+    text.includes("previous fixture") ||
+    text.includes("latest result") ||
+    text.includes("last result") ||
+    text.includes("recent result")
+  ) {
+    return "last";
+  }
+
+  if (
+    text.includes("live") ||
+    text.includes("playing now") ||
+    text.includes("currently playing")
+  ) {
+    return "live";
+  }
+
+  if (
+    text.includes("fixtures") ||
+    text.includes("schedule")
+  ) {
+    return "fixtures";
+  }
+
+  if (
+    text.includes("results") ||
+    text.includes("scores")
+  ) {
+    return "results";
+  }
+
+  return "next";
+}
+
+// ------------------------------------------------------------
+// FORMAT TEAM MATCH
+// ------------------------------------------------------------
+
+function formatTeamMatch(event, teamInfo) {
+  const date = getEventDate(event);
+  const state = getEventState(event);
+  const opponent = getOpponent(event, teamInfo.id);
+
+  const teams = getEventTeams(event);
+
+  const team =
+    teams.find(
+      (item) => String(item.id) === String(teamInfo.id)
+    ) || null;
+
+  let matchup = `${team?.name || teamInfo.name} vs ${opponent?.name || "Unknown opponent"}`;
+
+  if (team?.homeAway === "away") {
+    matchup =
+      `${opponent?.name || "Unknown opponent"} vs ${team?.name || teamInfo.name}`;
+  }
+
+  let status = "Scheduled";
+
+  if (state.live) {
+    status = "LIVE";
+  } else if (state.completed) {
+    const teamScore = getScore(event, teamInfo.id);
+    const opponentScore = opponent
+      ? getScore(event, opponent.id)
+      : null;
+
+    status =
+      teamScore !== null && opponentScore !== null
+        ? `Final: ${teamScore}-${opponentScore}`
+        : "Finished";
+  }
+
+  return {
+    matchup,
+    date,
+    formattedDate: formatZambiaDateTime(date),
+    competition: getCompetitionName(event),
+    status
+  };
+}
+
+// ------------------------------------------------------------
+// TEAM FEATURE
+// ------------------------------------------------------------
+
+async function footballTeamFeature(message = "") {
+  const teamInfo = detectFootballTeam(message);
 
   if (!teamInfo) {
     return {
+      ok: false,
       answer:
-        "I couldn't identify the football team you are asking about.",
-      data: [],
-      used: false
+        "I couldn't identify the football team. Try a question such as \"When is Arsenal's next match?\"",
+      provider: "espn",
+      football: true,
+      footballMode: "team"
     };
   }
 
   const requestType =
-    getFootballRequestType(
-      userMessage
-    );
+    getFootballRequestType(message);
 
   const matches =
     await getTeamMatches(
@@ -1302,193 +1123,414 @@ export async function footballTeamFeature(
       requestType
     );
 
-  return {
-    answer:
-      formatTeamMatches(
-        teamInfo,
-        matches,
-        requestType
-      ),
+  if (!matches.length) {
+    const teamLabel =
+      teamInfo.gender === "women"
+        ? `${teamInfo.name} Women`
+        : teamInfo.name;
 
-    data: matches,
-
-    used: true
-  };
-}
-
-export async function footballLeagueFeature(
-  userMessage
-) {
-  const leagueKey =
-    detectFootballLeague(
-      userMessage
-    );
-
-  if (!leagueKey) {
     return {
+      ok: true,
       answer:
-        "I couldn't identify the football league you are asking about.",
-      data: [],
-      used: false
+        `I couldn't find a ${requestType === "next" ? "future" : ""} fixture for ${teamLabel} in the ESPN schedule data.`,
+      provider: "espn",
+      football: true,
+      footballMode: "team",
+      team: teamInfo.name,
+      gender: teamInfo.gender
     };
   }
 
-  const league =
-    resolveFootballLeague(
-      leagueKey
+  const formatted = matches
+    .slice(
+      0,
+      requestType === "next" ? 1 : 10
+    )
+    .map((event) =>
+      formatTeamMatch(event, teamInfo)
     );
 
-  const requestType =
-    getFootballRequestType(
-      userMessage
-    );
+  let answer = "";
 
-  if (
-    requestType === "standings"
-  ) {
-    const entries =
-      await getFootballStandings(
-        league
-      );
+  if (requestType === "next") {
+    const match = formatted[0];
 
-    return {
-      answer:
-        formatFootballStandings(
-          league,
-          entries
-        ),
+    const teamLabel =
+      teamInfo.gender === "women"
+        ? `${teamInfo.name} Women`
+        : teamInfo.name;
 
-      data: entries,
-
-      used: true
-    };
-  }
-
-  const matches =
-    await getLeagueMatches(
-      league
-    );
-
-  const today =
-    getZambiaDate();
-
-  let selected = matches;
-
-  if (requestType === "live") {
-    selected =
-      matches.filter(
-        match => match.live
-      );
+    answer =
+      `The next match for ${teamLabel} is ${match.matchup} on ${match.formattedDate} Zambia time. Competition: ${match.competition}.`;
+  } else if (requestType === "live") {
+    answer =
+      formatted.length
+        ? formatted
+            .map(
+              (match) =>
+                `${match.matchup} — ${match.status}`
+            )
+            .join("\n")
+        : "There are no live matches for this team right now.";
   } else if (
     requestType === "last" ||
     requestType === "results"
   ) {
-    selected =
-      matches.filter(
-        match =>
-          match.completed &&
-          match.day === today
-      );
-  } else if (
-    requestType === "next" ||
-    requestType === "fixtures"
-  ) {
-    selected =
-      matches.filter(
-        match =>
-          !match.completed &&
-          safeDate(match.date) &&
-          safeDate(match.date)
-            .getTime() >= Date.now()
-      );
+    answer =
+      formatted
+        .map(
+          (match) =>
+            `${match.matchup} — ${match.status} — ${match.formattedDate} Zambia time — ${match.competition}`
+        )
+        .join("\n");
   } else {
-    selected =
-      matches.filter(
-        match =>
-          match.day === today
-      );
+    answer =
+      formatted
+        .map(
+          (match) =>
+            `${match.matchup} — ${match.formattedDate} Zambia time — ${match.competition} — ${match.status}`
+        )
+        .join("\n");
   }
 
   return {
-    answer:
-      formatFootballMatches(
-        selected,
-        league.name
-      ),
-
-    data: selected,
-
-    used: true
+    ok: true,
+    answer,
+    provider: "espn",
+    football: true,
+    footballMode: "team",
+    team: teamInfo.name,
+    gender: teamInfo.gender,
+    requestType
   };
 }
 
-export async function footballFeature() {
-  const matches =
-    await getFootballMatches();
+// ------------------------------------------------------------
+// LEAGUE DETECTION
+// ------------------------------------------------------------
 
-  const today =
-    getZambiaDate();
+function detectFootballLeague(message = "") {
+  const text = normalize(message);
 
-  const todaysMatches =
-    matches.filter(
-      match =>
-        match.day === today
-    );
+  const leagueAliases = [
+    {
+      league: FOOTBALL_LEAGUES.premierLeague,
+      aliases: [
+        "premier league",
+        "epl",
+        "english premier league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.championsLeague,
+      aliases: [
+        "champions league",
+        "uefa champions league",
+        "ucl"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.europaLeague,
+      aliases: [
+        "europa league",
+        "uefa europa league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.conferenceLeague,
+      aliases: [
+        "conference league",
+        "europa conference league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.laLiga,
+      aliases: [
+        "la liga",
+        "laliga",
+        "spanish league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.serieA,
+      aliases: [
+        "serie a",
+        "italian league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.bundesliga,
+      aliases: [
+        "bundesliga",
+        "german league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.ligue1,
+      aliases: [
+        "ligue 1",
+        "french league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.championship,
+      aliases: [
+        "championship"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.eredivisie,
+      aliases: [
+        "eredivisie",
+        "dutch league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.primeiraLiga,
+      aliases: [
+        "primeira liga",
+        "portuguese league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.scottishPremiership,
+      aliases: [
+        "scottish premiership",
+        "scottish league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.saudiProLeague,
+      aliases: [
+        "saudi pro league",
+        "saudi league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.mls,
+      aliases: [
+        "mls",
+        "major league soccer"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.cafChampionsLeague,
+      aliases: [
+        "caf champions league",
+        "africa champions league"
+      ]
+    },
+
+    {
+      league: FOOTBALL_LEAGUES.cafConfederationCup,
+      aliases: [
+        "caf confederation cup",
+        "confederation cup"
+      ]
+    }
+  ];
+
+  let best = null;
+
+  for (const item of leagueAliases) {
+    for (const alias of item.aliases) {
+      if (!text.includes(alias)) {
+        continue;
+      }
+
+      if (
+        !best ||
+        alias.length > best.alias.length
+      ) {
+        best = {
+          league: item.league,
+          alias
+        };
+      }
+    }
+  }
+
+  return best?.league || null;
+}
+
+// ------------------------------------------------------------
+// LEAGUE SCOREBOARD
+// ------------------------------------------------------------
+
+async function getLeagueScoreboard(league) {
+  const url =
+    `${SITE_BASE}/${league.slug}/scoreboard`;
+
+  try {
+    return await fetchJson(url);
+  } catch {
+    return null;
+  }
+}
+
+// ------------------------------------------------------------
+// LEAGUE FEATURE
+// ------------------------------------------------------------
+
+async function footballLeagueFeature(message = "") {
+  const league = detectFootballLeague(message);
+
+  if (!league) {
+    return {
+      ok: false,
+      answer:
+        "I couldn't identify the football league. Try asking about the Premier League, Champions League, La Liga, Serie A or another league.",
+      provider: "espn",
+      football: true,
+      footballMode: "league"
+    };
+  }
+
+  const data =
+    await getLeagueScoreboard(league);
+
+  const events =
+    extractEvents(data);
+
+  if (!events.length) {
+    return {
+      ok: true,
+      answer:
+        `I couldn't find current ${league.name} match data from ESPN.`,
+      provider: "espn",
+      football: true,
+      footballMode: "league",
+      league: league.name
+    };
+  }
+
+  const matches = events
+    .map((event) => {
+      const teams =
+        getEventTeams(event);
+
+      const home =
+        teams.find(
+          (team) => team.homeAway === "home"
+        ) || teams[0];
+
+      const away =
+        teams.find(
+          (team) => team.homeAway === "away"
+        ) || teams[1];
+
+      const state =
+        getEventState(event);
+
+      let status = "Scheduled";
+
+      if (state.live) {
+        status = "LIVE";
+      } else if (state.completed) {
+        status = "Finished";
+      }
+
+      return {
+        home: home?.name || "Unknown",
+        away: away?.name || "Unknown",
+        date: getEventDate(event),
+        formattedDate:
+          formatZambiaDateTime(
+            getEventDate(event)
+          ),
+        status
+      };
+    })
+    .slice(0, 20);
+
+  const answer =
+    matches
+      .map(
+        (match) =>
+          `${match.home} vs ${match.away} — ${match.formattedDate} Zambia time — ${match.status}`
+      )
+      .join("\n");
 
   return {
-    answer:
-      formatFootballMatches(
-        todaysMatches,
-        "Worldwide football today"
-      ),
-
-    data: todaysMatches,
-
-    used: true
+    ok: true,
+    answer,
+    provider: "espn",
+    football: true,
+    footballMode: "league",
+    league: league.name
   };
 }
 
-export async function searchFootballTeams(
-  query
-) {
-  const teamInfo =
-    detectFootballTeam(query);
+// ------------------------------------------------------------
+// WORLDWIDE FOOTBALL
+// ------------------------------------------------------------
 
-  if (!teamInfo) {
-    return [];
-  }
+async function footballFeature() {
+  /*
+    Worldwide football fallback.
 
-  const team =
-    await findTeamGlobally(
-      teamInfo
-    );
+    The server can use this when the question is about
+    football generally rather than one specific team or league.
+  */
 
-  if (!team?.id) {
-    return [];
-  }
-
-  return getTeamSchedule(
-    team.id,
-    false
-  );
+  return {
+    ok: true,
+    answer:
+      "Football data is available worldwide through the football provider. Ask me about a team, league, fixture, result, live match or standings.",
+    provider: "espn",
+    football: true,
+    footballMode: "worldwide"
+  };
 }
 
-export async function getFootballForDate(
-  date
-) {
-  const matches =
-    await getFootballMatches();
+// ------------------------------------------------------------
+// FOOTBALL FOR DATE
+// ------------------------------------------------------------
 
-  return matches.filter(
-    match =>
-      match.day === date
-  );
+async function getFootballForDate(
+  dateString,
+  league = FOOTBALL_LEAGUES.premierLeague
+) {
+  const url =
+    `${SITE_BASE}/${league.slug}/scoreboard?dates=${encodeURIComponent(
+      dateString
+    )}`;
+
+  try {
+    const data =
+      await fetchJson(url);
+
+    return extractEvents(data);
+  } catch {
+    return [];
+  }
 }
+
+// ------------------------------------------------------------
+// EXPORTS
+// ------------------------------------------------------------
 
 export {
+  footballTeamFeature,
+  footballLeagueFeature,
+  footballFeature,
+  searchFootballTeams,
+  getFootballForDate,
   detectFootballTeam,
   detectFootballLeague,
-  getFootballRequestType,
-  resolveFootballLeague,
-  getFootballMatches
+  getFootballRequestType
 };

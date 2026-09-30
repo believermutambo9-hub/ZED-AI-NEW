@@ -8,7 +8,7 @@ const TZ = "Africa/Lusaka";
 
 const LEAGUES = {
   "premier league": "eng.1",
-  "epl": "eng.1",
+  epl: "eng.1",
   "english premier league": "eng.1",
   "champions league": "uefa.champions",
   "uefa champions league": "uefa.champions",
@@ -16,81 +16,85 @@ const LEAGUES = {
   "spanish league": "esp.1",
   "serie a": "ita.1",
   "italian league": "ita.1",
-  "bundesliga": "ger.1",
+  bundesliga: "ger.1",
   "german league": "ger.1",
   "ligue 1": "fra.1",
   "french league": "fra.1",
-  "mls": "usa.1",
+  mls: "usa.1",
   "major league soccer": "usa.1",
   "world cup": "fifa.world"
 };
 
-// Common teams.
-// IDs are ESPN team IDs.
 const TEAMS = {
-  arsenal: ["Arsenal", "359"],
-  "arsenal fc": ["Arsenal", "359"],
-  chelsea: ["Chelsea", "363"],
-  "chelsea fc": ["Chelsea", "363"],
-  "manchester united": ["Manchester United", "360"],
-  "man united": ["Manchester United", "360"],
-  "man utd": ["Manchester United", "360"],
-  "manchester city": ["Manchester City", "382"],
-  "man city": ["Manchester City", "382"],
-  liverpool: ["Liverpool", "364"],
-  "liverpool fc": ["Liverpool", "364"],
-  tottenham: ["Tottenham Hotspur", "367"],
-  "tottenham hotspur": ["Tottenham Hotspur", "367"],
-  newcastle: ["Newcastle United", "361"],
-  "newcastle united": ["Newcastle United", "361"],
-  everton: ["Everton", "368"],
-  fulham: ["Fulham", "370"],
-  "aston villa": ["Aston Villa", "362"],
-  "west ham": ["West Ham United", "371"],
-  "west ham united": ["West Ham United", "371"],
-  "crystal palace": ["Crystal Palace", "384"],
-  "brighton": ["Brighton & Hove Albion", "397"],
-  "brighton and hove albion": ["Brighton & Hove Albion", "397"],
-  "nottingham forest": ["Nottingham Forest", "393"],
-  "bournemouth": ["AFC Bournemouth", "8678"],
-  "afc bournemouth": ["AFC Bournemouth", "8678"],
-  "leeds": ["Leeds United", "357"],
-  "leeds united": ["Leeds United", "357"],
-  "sunderland": ["Sunderland", "366"],
-  "ipswich": ["Ipswich Town", "373"],
-  "ipswich town": ["Ipswich Town", "373"],
-  "wolves": ["Wolverhampton Wanderers", "380"],
-  "wolverhampton": ["Wolverhampton Wanderers", "380"],
-  "wolverhampton wanderers": ["Wolverhampton Wanderers", "380"],
-  brentford: ["Brentford", "337"],
-  "coventry city": ["Coventry City", "381"],
-  "hull city": ["Hull City", "306"],
-  barcelona: ["Barcelona", "83"],
-  "barcelona fc": ["Barcelona", "83"],
-  real: ["Real Madrid", "86"],
-  "real madrid": ["Real Madrid", "86"],
-  "atletico madrid": ["Atletico Madrid", "1068"],
-  juventus: ["Juventus", "111"],
-  "inter milan": ["Inter Milan", "110"],
-  inter: ["Inter Milan", "110"],
-  milan: ["AC Milan", "103"],
-  "ac milan": ["AC Milan", "103"],
-  bayern: ["Bayern Munich", "132"],
-  "bayern munich": ["Bayern Munich", "132"],
-  dortmund: ["Borussia Dortmund", "124"],
-  "borussia dortmund": ["Borussia Dortmund", "124"],
-  psg: ["Paris Saint-Germain", "160"],
-  "paris saint-germain": ["Paris Saint-Germain", "160"]
+  arsenal: ["Arsenal", "359", "eng.1"],
+  "arsenal fc": ["Arsenal", "359", "eng.1"],
+  chelsea: ["Chelsea", "363", "eng.1"],
+  "chelsea fc": ["Chelsea", "363", "eng.1"],
+  "manchester united": ["Manchester United", "360", "eng.1"],
+  "man united": ["Manchester United", "360", "eng.1"],
+  "man utd": ["Manchester United", "360", "eng.1"],
+  "manchester city": ["Manchester City", "382", "eng.1"],
+  "man city": ["Manchester City", "382", "eng.1"],
+  liverpool: ["Liverpool", "364", "eng.1"],
+  "liverpool fc": ["Liverpool", "364", "eng.1"],
+  tottenham: ["Tottenham Hotspur", "367", "eng.1"],
+  "tottenham hotspur": ["Tottenham Hotspur", "367", "eng.1"],
+  newcastle: ["Newcastle United", "361", "eng.1"],
+  "newcastle united": ["Newcastle United", "361", "eng.1"],
+  everton: ["Everton", "368", "eng.1"],
+  fulham: ["Fulham", "370", "eng.1"],
+  "aston villa": ["Aston Villa", "362", "eng.1"],
+  "west ham": ["West Ham United", "371", "eng.1"],
+  "west ham united": ["West Ham United", "371", "eng.1"],
+  "crystal palace": ["Crystal Palace", "384", "eng.1"],
+  brighton: ["Brighton & Hove Albion", "397", "eng.1"],
+  "brighton and hove albion": ["Brighton & Hove Albion", "397", "eng.1"],
+  "nottingham forest": ["Nottingham Forest", "393", "eng.1"],
+  bournemouth: ["AFC Bournemouth", "8678", "eng.1"],
+  "afc bournemouth": ["AFC Bournemouth", "8678", "eng.1"],
+  leeds: ["Leeds United", "357", "eng.1"],
+  "leeds united": ["Leeds United", "357", "eng.1"],
+  sunderland: ["Sunderland", "366", "eng.1"],
+  ipswich: ["Ipswich Town", "373", "eng.1"],
+  "ipswich town": ["Ipswich Town", "373", "eng.1"],
+  wolves: ["Wolverhampton Wanderers", "380", "eng.1"],
+  wolverhampton: ["Wolverhampton Wanderers", "380", "eng.1"],
+  "wolverhampton wanderers": ["Wolverhampton Wanderers", "380", "eng.1"],
+  brentford: ["Brentford", "337", "eng.1"],
+  "coventry city": ["Coventry City", "381", "eng.1"],
+  "hull city": ["Hull City", "306", "eng.1"],
+
+  barcelona: ["Barcelona", "83", "esp.1"],
+  "barcelona fc": ["Barcelona", "83", "esp.1"],
+  "real madrid": ["Real Madrid", "86", "esp.1"],
+  "atletico madrid": ["Atletico Madrid", "1068", "esp.1"],
+  juventus: ["Juventus", "111", "ita.1"],
+  "inter milan": ["Inter Milan", "110", "ita.1"],
+  inter: ["Inter Milan", "110", "ita.1"],
+  milan: ["AC Milan", "103", "ita.1"],
+  "ac milan": ["AC Milan", "103", "ita.1"],
+  bayern: ["Bayern Munich", "132", "ger.1"],
+  "bayern munich": ["Bayern Munich", "132", "ger.1"],
+  dortmund: ["Borussia Dortmund", "124", "ger.1"],
+  "borussia dortmund": ["Borussia Dortmund", "124", "ger.1"],
+  psg: ["Paris Saint-Germain", "160", "fra.1"],
+  "paris saint-germain": ["Paris Saint-Germain", "160", "fra.1"]
 };
 
 const clean = (v = "") =>
-  String(v).toLowerCase().replace(/[^\w\s-]/g, " ").replace(/\s+/g, " ").trim();
+  String(v)
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 async function getJson(url) {
   const response = await fetch(url);
+
   if (!response.ok) {
     throw new Error(`ESPN request failed: ${response.status}`);
   }
+
   return response.json();
 }
 
@@ -100,7 +104,9 @@ function dateKey(date = new Date()) {
     year: "numeric",
     month: "2-digit",
     day: "2-digit"
-  }).format(date).replace(/-/g, "");
+  })
+    .format(date)
+    .replace(/-/g, "");
 }
 
 function formatDate(value) {
@@ -138,8 +144,9 @@ function findTeam(text) {
 
   if (!matches.length) return null;
 
-  const [key, [name, id]] = matches[0];
-  return { key, name, id };
+  const [key, [name, id, league]] = matches[0];
+
+  return { key, name, id, league };
 }
 
 /* -------------------------------------------------------
@@ -151,27 +158,130 @@ function detectFootballTeam(message = "") {
 }
 
 /* -------------------------------------------------------
-   WHAT TYPE OF FOOTBALL REQUEST?
+   REQUEST TYPE
 ------------------------------------------------------- */
 
 function getFootballRequestType(message = "") {
   const q = clean(message);
 
-  if (
-    /standings|table|league table|position|positions|points/.test(q)
-  ) return "standings";
+  if (/standings|table|league table|position|positions|points/.test(q)) {
+    return "standings";
+  }
 
   if (
-    /next match|next game|upcoming|fixture|fixtures|schedule|when.*play|play.*when/.test(q)
-  ) return "upcoming";
+    /next match|next game|upcoming|fixture|fixtures|schedule|when.*play|play.*when/.test(
+      q
+    )
+  ) {
+    return "upcoming";
+  }
 
   if (
-    /last match|previous match|recent match|recent results|results|result|played|score/.test(q)
-  ) return "results";
+    /last match|previous match|recent match|recent results|results|result|played|score/.test(
+      q
+    )
+  ) {
+    return "results";
+  }
 
-  if (/today|tonight|tomorrow/.test(q)) return "date";
+  if (/today|tonight|tomorrow/.test(q)) {
+    return "date";
+  }
 
   return "general";
+}
+
+/* -------------------------------------------------------
+   FORMAT MATCH
+------------------------------------------------------- */
+
+function formatGame(game) {
+  const competitors = game?.competitions?.[0]?.competitors || [];
+
+  const home = competitors.find(c => c.homeAway === "home");
+  const away = competitors.find(c => c.homeAway === "away");
+
+  const homeName = home?.team?.displayName || "Home";
+  const awayName = away?.team?.displayName || "Away";
+  const status = state(game);
+
+  let score = "";
+
+  if (status === "post") {
+    score = ` — ${home?.score ?? "-"}-${away?.score ?? "-"}`;
+  }
+
+  return `${homeName} vs ${awayName}${score} — ${formatDate(
+    game.date
+  )} at ${formatTime(game.date)} Zambia time`;
+}
+
+/* -------------------------------------------------------
+   TEAM FIXTURE SEARCH
+   ------------------------------------------------------- */
+
+// First try ESPN's team schedule endpoint.
+// If it doesn't return future fixtures, search the team's league
+// scoreboard over a date range. This fixes cases such as Arsenal.
+async function getTeamGames(team) {
+  let games = [];
+
+  try {
+    const data = await getJson(
+      `${ESPN}/${team.league}/teams/${team.id}/schedule`
+    );
+
+    games = events(data);
+  } catch {
+    games = [];
+  }
+
+  const now = Date.now();
+
+  if (games.some(g => new Date(g.date).getTime() > now)) {
+    return games;
+  }
+
+  // Fallback: search the league scoreboard from today through
+  // the next 120 days.
+  try {
+    const start = new Date();
+    const end = new Date();
+    end.setDate(end.getDate() + 120);
+
+    const startKey = dateKey(start);
+    const endKey = dateKey(end);
+
+    const data = await getJson(
+      `${ESPN}/${team.league}/scoreboard?dates=${startKey}-${endKey}`
+    );
+
+    const found = events(data).filter(game => {
+      const competitors = game?.competitions?.[0]?.competitors || [];
+
+      return competitors.some(
+        c => String(c?.team?.id) === String(team.id)
+      );
+    });
+
+    games = [...games, ...found];
+  } catch (error) {
+    console.error("Team fixture fallback:", error);
+  }
+
+  // Remove duplicates.
+  const seen = new Set();
+
+  return games.filter(game => {
+    const id =
+      game.id ||
+      `${game.date}-${game?.competitions?.[0]?.id || ""}`;
+
+    if (seen.has(id)) return false;
+
+    seen.add(id);
+    return true;
+  });
 }
 
 /* -------------------------------------------------------
@@ -183,31 +293,14 @@ async function footballTeamFeature(message = "") {
 
   if (!team) {
     return {
-      answer: "I couldn't identify the football team. Please include the team name.",
+      answer:
+        "I couldn't identify the football team. Please include the team name.",
       team: null
     };
   }
 
   try {
-    // Try the English Premier League first.
-    // ESPN team schedules can contain the team's wider schedule.
-    const urls = [
-      `${ESPN}/eng.1/teams/${team.id}/schedule`,
-      `${ESPN}/eng.1/teams/${team.id}`
-    ];
-
-    let data = null;
-
-    for (const url of urls) {
-      try {
-        data = await getJson(url);
-        if (data) break;
-      } catch {
-        // Try next endpoint.
-      }
-    }
-
-    const games = events(data);
+    const games = await getTeamGames(team);
 
     if (!games.length) {
       return {
@@ -220,40 +313,21 @@ async function footballTeamFeature(message = "") {
     const now = Date.now();
 
     const upcoming = games
-      .filter(g => new Date(g.date).getTime() >= now - 3600000)
+      .filter(game => new Date(game.date).getTime() >= now - 3600000)
       .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const completed = games
-      .filter(g => new Date(g.date).getTime() < now)
+      .filter(game => new Date(game.date).getTime() < now)
       .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    const formatGame = game => {
-      const competition = game.competitions?.[0];
-      const competitors = competition?.competitors || [];
-
-      const home = competitors.find(c => c.homeAway === "home");
-      const away = competitors.find(c => c.homeAway === "away");
-
-      const homeName = home?.team?.displayName || "Home";
-      const awayName = away?.team?.displayName || "Away";
-
-      const status = state(game);
-
-      let score = "";
-
-      if (status === "post") {
-        score = ` — ${home?.score ?? "-"}-${away?.score ?? "-"}`;
-      }
-
-      return `${homeName} vs ${awayName}${score} — ${formatDate(game.date)} at ${formatTime(game.date)} Zambia time`;
-    };
 
     if (requestType === "upcoming") {
       const list = upcoming.slice(0, 5);
 
       return {
         answer: list.length
-          ? `${team.name} upcoming matches:\n${list.map(formatGame).join("\n")}`
+          ? `${team.name} upcoming matches:\n${list
+              .map(formatGame)
+              .join("\n")}`
           : `There are no upcoming ${team.name} matches available.`,
         team: team.name
       };
@@ -264,7 +338,9 @@ async function footballTeamFeature(message = "") {
 
       return {
         answer: list.length
-          ? `${team.name} recent results:\n${list.map(formatGame).join("\n")}`
+          ? `${team.name} recent results:\n${list
+              .map(formatGame)
+              .join("\n")}`
           : `There are no recent ${team.name} results available.`,
         team: team.name
       };
@@ -275,14 +351,18 @@ async function footballTeamFeature(message = "") {
 
     let answer = `${team.name} football information:\n`;
 
-    if (next) answer += `Next: ${formatGame(next)}\n`;
-    if (previous) answer += `Previous: ${formatGame(previous)}`;
+    if (next) {
+      answer += `Next: ${formatGame(next)}\n`;
+    }
+
+    if (previous) {
+      answer += `Previous: ${formatGame(previous)}`;
+    }
 
     return {
       answer,
       team: team.name
     };
-
   } catch (error) {
     console.error("footballTeamFeature:", error);
 
@@ -325,18 +405,17 @@ async function footballLeagueFeature(message = "") {
   try {
     const requestType = getFootballRequestType(message);
 
-    // Standings
+    // ---------------- STANDINGS ----------------
+
     if (requestType === "standings") {
       const data = await getJson(
         `${STANDINGS}/${league.id}/standings`
       );
 
-      const groups = data?.children || [];
       const rows = [];
 
-      for (const group of groups) {
+      for (const group of data?.children || []) {
         for (const entry of group?.standings?.entries || []) {
-          const team = entry.team?.displayName || entry.team?.name;
           const stats = {};
 
           for (const stat of entry.stats || []) {
@@ -346,7 +425,7 @@ async function footballLeagueFeature(message = "") {
 
           rows.push({
             rank: entry.team?.rank || rows.length + 1,
-            team,
+            team: entry.team?.displayName || entry.team?.name,
             played: stats.gamesPlayed ?? stats.gp ?? 0,
             won: stats.wins ?? stats.w ?? 0,
             drawn: stats.ties ?? stats.draws ?? stats.d ?? 0,
@@ -368,18 +447,21 @@ async function footballLeagueFeature(message = "") {
       return {
         answer:
           `${league.name} standings:\n` +
-          rows.map(r =>
-            `${r.rank}. ${r.team} — ${r.played} played, ${r.won}W ${r.drawn}D ${r.lost}L, ${r.points} pts`
-          ).join("\n"),
+          rows
+            .map(
+              r =>
+                `${r.rank}. ${r.team} — ${r.played} played, ${r.won}W ${r.drawn}D ${r.lost}L, ${r.points} pts`
+            )
+            .join("\n"),
         league: league.name
       };
     }
 
-    // Current/recent league results
+    // ---------------- RESULTS ----------------
+
     const today = new Date();
     const dates = [];
 
-    // Check the most recent seven Zambia dates.
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
@@ -395,10 +477,12 @@ async function footballLeagueFeature(message = "") {
         );
 
         for (const game of events(data)) {
-          if (state(game) === "post") all.push(game);
+          if (state(game) === "post") {
+            all.push(game);
+          }
         }
       } catch {
-        // Continue with the other dates.
+        // Continue with remaining dates.
       }
     }
 
@@ -413,22 +497,14 @@ async function footballLeagueFeature(message = "") {
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 10);
 
-    const formatResult = game => {
-      const c = game.competitions?.[0];
-      const teams = c?.competitors || [];
-      const home = teams.find(t => t.homeAway === "home");
-      const away = teams.find(t => t.homeAway === "away");
-
-      return `${home?.team?.displayName || "Home"} ${home?.score ?? "-"}-${away?.score ?? "-"} ${away?.team?.displayName || "Away"} — ${formatDate(game.date)}`;
-    };
-
     return {
       answer: unique.length
-        ? `Latest ${league.name} results:\n${unique.map(formatResult).join("\n")}`
+        ? `Latest ${league.name} results:\n${unique
+            .map(formatGame)
+            .join("\n")}`
         : `I couldn't find recent ${league.name} results.`,
       league: league.name
     };
-
   } catch (error) {
     console.error("footballLeagueFeature:", error);
 
@@ -445,10 +521,8 @@ async function footballLeagueFeature(message = "") {
 
 async function footballFeature() {
   try {
-    const today = dateKey();
-
     const data = await getJson(
-      `${ESPN}/all/scoreboard?dates=${today}`
+      `${ESPN}/all/scoreboard?dates=${dateKey()}`
     );
 
     const games = events(data);
@@ -459,30 +533,32 @@ async function footballFeature() {
       };
     }
 
-    const formatGame = game => {
-      const c = game.competitions?.[0];
-      const teams = c?.competitors || [];
-
-      const home = teams.find(t => t.homeAway === "home");
-      const away = teams.find(t => t.homeAway === "away");
-
-      const status = state(game);
-
-      let score = "";
-
-      if (status === "post" || status === "in") {
-        score = ` ${home?.score ?? "-"}-${away?.score ?? "-"}`;
-      }
-
-      return `${home?.team?.displayName || "Home"}${score} ${away?.team?.displayName || "Away"} — ${formatTime(game.date)} Zambia time`;
-    };
-
     return {
       answer:
-        `Football matches today:\n` +
-        games.slice(0, 20).map(formatGame).join("\n")
-    };
+        "Football matches today:\n" +
+        games
+          .slice(0, 20)
+          .map(game => {
+            const competitors =
+              game?.competitions?.[0]?.competitors || [];
 
+            const home = competitors.find(c => c.homeAway === "home");
+            const away = competitors.find(c => c.homeAway === "away");
+
+            const status = state(game);
+
+            let score = "";
+
+            if (status === "post" || status === "in") {
+              score = ` ${home?.score ?? "-"}-${away?.score ?? "-"}`;
+            }
+
+            return `${home?.team?.displayName || "Home"}${score} ${
+              away?.team?.displayName || "Away"
+            } — ${formatTime(game.date)} Zambia time`;
+          })
+          .join("\n")
+    };
   } catch (error) {
     console.error("footballFeature:", error);
 
@@ -509,20 +585,15 @@ async function searchFootballTeams(query = "") {
   if (local.length) return local;
 
   try {
-    const data = await getJson(
-      `${ESPN}/eng.1/teams`
-    );
+    const data = await getJson(`${ESPN}/eng.1/teams`);
 
     return (data?.sports?.[0]?.leagues?.[0]?.teams || [])
       .map(item => item.team)
-      .filter(team =>
-        clean(team.displayName).includes(q)
-      )
+      .filter(team => clean(team.displayName).includes(q))
       .map(team => ({
         name: team.displayName,
         id: team.id
       }));
-
   } catch {
     return [];
   }
@@ -534,12 +605,13 @@ async function searchFootballTeams(query = "") {
 
 async function getFootballForDate(date, league = "all") {
   try {
-    const leagueId =
-      LEAGUES[clean(league)] ||
-      league;
+    const leagueId = LEAGUES[clean(league)] || league;
 
     const data = await getJson(
-      `${ESPN}/${leagueId}/scoreboard?dates=${String(date).replace(/-/g, "")}`
+      `${ESPN}/${leagueId}/scoreboard?dates=${String(date).replace(
+        /-/g,
+        ""
+      )}`
     );
 
     return {
@@ -548,7 +620,6 @@ async function getFootballForDate(date, league = "all") {
       league: leagueId,
       events: events(data)
     };
-
   } catch (error) {
     console.error("getFootballForDate:", error);
 
@@ -562,7 +633,7 @@ async function getFootballForDate(date, league = "all") {
 }
 
 /* -------------------------------------------------------
-   EXPORTS USED BY SERVER.JS
+   EXPORTS
 ------------------------------------------------------- */
 
 export {

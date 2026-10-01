@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { randomUUID } from "crypto";
 import { GoogleGenAI } from "@google/genai";
 
 import {
@@ -15,12 +14,26 @@ import {
 
 import { webSearch } from "./web-search.js";
 
+import {
+  getConversation,
+  addMessage,
+  deleteConversation,
+  getConversationHistory,
+  getConversationCount
+} from "./features/memory.js";
+
+
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 10000;
+
+
+// ============================================================
+// ENVIRONMENT VARIABLES
+// ============================================================
 
 const GEMINI_API_KEY =
   process.env.GEMINI_API_KEY || "";
@@ -45,6 +58,11 @@ const CLOUDFLARE_IMAGE_MODEL =
   process.env.CLOUDFLARE_IMAGE_MODEL ||
   "@cf/black-forest-labs/flux-1-schnell";
 
+
+// ============================================================
+// EXPRESS
+// ============================================================
+
 app.use(
   express.json({
     limit: "25mb"
@@ -59,152 +77,6 @@ app.use(
 );
 
 app.use(express.static(__dirname));
-
-
-// ============================================================
-// CONVERSATION MEMORY
-// ============================================================
-
-const conversations = new Map();
-
-const MAX_HISTORY_MESSAGES = 30;
-const MAX_CONVERSATIONS = 1000;
-const CONVERSATION_TIMEOUT = 1000 * 60 * 60 * 24 * 7;
-
-
-// Create or retrieve a conversation
-function getConversation(conversationId) {
-  if (!conversationId) {
-    conversationId = randomUUID();
-  }
-
-  let conversation =
-    conversations.get(conversationId);
-
-  if (!conversation) {
-    conversation = {
-      id: conversationId,
-      messages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-
-    conversations.set(
-      conversationId,
-      conversation
-    );
-  }
-
-  conversation.updatedAt = Date.now();
-
-  return conversation;
-}
-
-
-// Save a message to conversation memory
-function addMessage(
-  conversation,
-  role,
-  content
-) {
-  if (!content) return;
-
-  conversation.messages.push({
-    role,
-    content: String(content),
-    timestamp: Date.now()
-  });
-
-  if (
-    conversation.messages.length >
-    MAX_HISTORY_MESSAGES
-  ) {
-    conversation.messages =
-      conversation.messages.slice(
-        -MAX_HISTORY_MESSAGES
-      );
-  }
-
-  conversation.updatedAt =
-    Date.now();
-}
-
-
-// Convert conversation history into text
-function formatConversationHistory(
-  conversation
-) {
-  if (
-    !conversation ||
-    !conversation.messages.length
-  ) {
-    return "No previous conversation.";
-  }
-
-  return conversation.messages
-    .map(message => {
-      const speaker =
-        message.role === "user"
-          ? "USER"
-          : "ZED AI";
-
-      return `${speaker}: ${message.content}`;
-    })
-    .join("\n\n");
-}
-
-
-// Remove conversations that have been inactive
-function cleanupConversations() {
-  const now = Date.now();
-
-  for (
-    const [id, conversation]
-    of conversations
-  ) {
-    if (
-      now - conversation.updatedAt >
-      CONVERSATION_TIMEOUT
-    ) {
-      conversations.delete(id);
-    }
-  }
-
-  // Safety limit
-  if (
-    conversations.size >
-    MAX_CONVERSATIONS
-  ) {
-    const sorted =
-      [...conversations.values()]
-        .sort(
-          (a, b) =>
-            a.updatedAt -
-            b.updatedAt
-        );
-
-    const removeCount =
-      conversations.size -
-      MAX_CONVERSATIONS;
-
-    for (
-      let i = 0;
-      i < removeCount;
-      i++
-    ) {
-      conversations.delete(
-        sorted[i].id
-      );
-    }
-  }
-}
-
-
-// Clean memory every 30 minutes
-setInterval(
-  cleanupConversations,
-  1000 * 60 * 30
-);
 
 
 // ============================================================
@@ -635,19 +507,28 @@ app.get(
     res.json({
       ok: true,
       service: "zed-ai",
+
       provider:
         "gemini-with-groq-and-openrouter-fallback",
+
       geminiModel:
         GEMINI_MODEL,
+
       webSearch: true,
+
       football: true,
+
       footballScope:
         "worldwide",
+
       footballRouting:
         "team-league-worldwide",
+
       conversationMemory: true,
+
       activeConversations:
-        conversations.size,
+        getConversationCount(),
+
       imageGeneration:
         Boolean(
           CLOUDFLARE_ACCOUNT_ID &&
@@ -676,6 +557,7 @@ app.get(
         provider: "gemini",
         answer: result
       });
+
     } catch (error) {
       res.status(500).json({
         ok: false,
@@ -718,7 +600,7 @@ app.delete(
         req.params.conversationId
       );
 
-    conversations.delete(
+    deleteConversation(
       conversationId
     );
 
@@ -741,24 +623,15 @@ app.get(
         req.params.conversationId
       );
 
-    const conversation =
-      conversations.get(
+    const messages =
+      getConversationHistory(
         conversationId
       );
-
-    if (!conversation) {
-      return res.json({
-        ok: true,
-        conversationId,
-        messages: []
-      });
-    }
 
     res.json({
       ok: true,
       conversationId,
-      messages:
-        conversation.messages
+      messages
     });
   }
 );
@@ -794,6 +667,7 @@ app.post(
         ok: true,
         ...result
       });
+
     } catch (error) {
       res.status(500).json({
         ok: false,
@@ -813,6 +687,11 @@ app.post(
   "/api/chat",
   async (req, res) => {
     try {
+
+      // ======================================================
+      // USER MESSAGE
+      // ======================================================
+
       const userMessage =
         cleanText(
           req.body?.message
@@ -870,7 +749,6 @@ app.post(
 
       // ======================================================
       // FOOTBALL ROUTING
-      // TEAM FIRST
       // ======================================================
 
       if (
@@ -878,6 +756,7 @@ app.post(
           userMessage
         )
       ) {
+
         const footballTeam =
           detectFootballTeam(
             userMessage
@@ -888,17 +767,17 @@ app.post(
             userMessage
           );
 
-        const footballRequestType =
-          getFootballRequestType(
-            userMessage
-          );
+        getFootballRequestType(
+          userMessage
+        );
 
 
         // ----------------------------------------------------
-        // TEAM FOOTBALL
+        // TEAM
         // ----------------------------------------------------
 
         if (footballTeam) {
+
           const teamResult =
             await footballTeamFeature(
               userMessage
@@ -908,16 +787,18 @@ app.post(
             teamResult?.answer || "";
 
           footballUsed = true;
+
           footballMode =
             "team";
         }
 
 
         // ----------------------------------------------------
-        // LEAGUE FOOTBALL
+        // LEAGUE
         // ----------------------------------------------------
 
         else if (footballLeague) {
+
           const leagueResult =
             await footballLeagueFeature(
               userMessage
@@ -927,16 +808,18 @@ app.post(
             leagueResult?.answer || "";
 
           footballUsed = true;
+
           footballMode =
             "league";
         }
 
 
         // ----------------------------------------------------
-        // WORLDWIDE FOOTBALL
+        // WORLDWIDE
         // ----------------------------------------------------
 
         else {
+
           const footballResult =
             await footballFeature(
               userMessage
@@ -946,6 +829,7 @@ app.post(
             footballResult?.answer || "";
 
           footballUsed = true;
+
           footballMode =
             "worldwide";
         }
@@ -962,13 +846,16 @@ app.post(
         ) &&
         !footballUsed
       ) {
+
         try {
+
           const result =
             await webSearch(
               userMessage
             );
 
           if (result) {
+
             searchData =
               typeof result ===
               "string"
@@ -984,7 +871,9 @@ app.post(
                 searchData
               );
           }
+
         } catch (error) {
+
           console.error(
             "Web search error:",
             error.message
@@ -998,9 +887,25 @@ app.post(
       // ======================================================
 
       const conversationHistory =
-        formatConversationHistory(
-          conversation
+        getConversationHistory(
+          conversationId
         );
+
+
+      const formattedHistory =
+        conversationHistory
+          .map(message => {
+
+            const speaker =
+              message.role === "user"
+                ? "USER"
+                : "ZED AI";
+
+            return `${speaker}: ${message.content}`;
+
+          })
+          .join("\n\n") ||
+        "No previous conversation.";
 
 
       // ======================================================
@@ -1034,7 +939,7 @@ IMPORTANT RULES:
 15. Never claim to remember something that is not present in the conversation history.
 
 CONVERSATION HISTORY:
-${conversationHistory}
+${formattedHistory}
 
 CURRENT USER QUESTION:
 ${userMessage}
@@ -1076,21 +981,31 @@ Now answer the user's current question naturally.
 
       res.json({
         ok: true,
+
         answer:
           result.answer,
+
         provider:
           result.provider,
+
         webSearch:
           searchUsed,
+
         football:
           footballUsed,
+
         footballMode,
+
         conversationId,
+
         memoryMessages:
-          conversation.messages.length
+          getConversationHistory(
+            conversationId
+          ).length
       });
 
     } catch (error) {
+
       console.error(
         "CHAT ERROR:",
         error

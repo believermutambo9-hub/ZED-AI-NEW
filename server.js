@@ -1,8 +1,8 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { randomUUID } from "crypto";
 import { GoogleGenAI } from "@google/genai";
-import * as memory from "./features/memory.js";
 
 import {
   footballFeature,
@@ -15,16 +15,71 @@ import {
 
 import { webSearch } from "./web-search.js";
 
+import {
+  getConversation,
+  addMessage,
+  getConversationHistory,
+  getConversationDetails,
+  deleteConversation,
+  getConversationCount,
+
+  remember,
+  getMemory,
+  updateMemory,
+  forgetMemory,
+  forgetUserMemories,
+  getUserMemories,
+  searchMemories,
+  retrieveRelevantMemories,
+  buildMemoryContext,
+
+  detectRememberRequest,
+  detectForgetRequest,
+  extractMemoryCandidate,
+  rememberFromMessage,
+
+  getMemoryStats,
+
+  createProject,
+  getProject,
+  getUserProjects,
+  updateProject,
+  deleteProject,
+  rememberProject,
+
+  rememberFootballTeam,
+  getFootballTeams,
+  rememberFootballCompetition,
+  getFootballCompetitions,
+  rememberFootballConversation,
+  setFootballPreference,
+  getFootballPreferences,
+  getFootballMemory,
+
+  runMemoryMaintenance,
+  getSystemMemoryStats,
+  exportUserMemory,
+  importUserMemory,
+  clearUserMemory,
+  initializeMemory
+} from "./features/memory.js";
+
+
+// ============================================================
+// APP
+// ============================================================
+
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = process.env.PORT || 10000;
+const PORT =
+  process.env.PORT || 10000;
 
 
 // ============================================================
-// ENVIRONMENT VARIABLES
+// ENVIRONMENT
 // ============================================================
 
 const GEMINI_API_KEY =
@@ -52,7 +107,7 @@ const CLOUDFLARE_IMAGE_MODEL =
 
 
 // ============================================================
-// EXPRESS
+// MIDDLEWARE
 // ============================================================
 
 app.use(
@@ -68,258 +123,130 @@ app.use(
   })
 );
 
-app.use(express.static(__dirname));
+app.use(
+  express.static(__dirname)
+);
 
 
 // ============================================================
-// BASIC HELPERS
+// HELPERS
 // ============================================================
 
 function cleanText(value = "") {
   return String(value)
     .replace(/\u0000/g, "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
 
-// ============================================================
-// MEMORY COMPATIBILITY LAYER
-// ============================================================
-//
-// The server uses memory.js when its functions are available.
-// This fallback prevents the entire server from crashing if
-// memory.js is temporarily incomplete.
-//
-// This is NOT the permanent database.
-// Firestore will be connected later.
-//
+function safeUserId(value) {
+  const id =
+    cleanText(value);
 
-const fallbackConversations = new Map();
+  if (!id) {
+    return "guest";
+  }
 
-function createFallbackConversation(id = "") {
-  const conversation = {
-    id:
-      id ||
-      `local-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 10)}`,
-
-    messages: [],
-
-    createdAt:
-      new Date().toISOString(),
-
-    updatedAt:
-      new Date().toISOString()
-  };
-
-  fallbackConversations.set(
-    conversation.id,
-    conversation
-  );
-
-  return conversation;
+  return id.slice(0, 300);
 }
 
 
-function fallbackGetConversation(
-  conversationId = ""
-) {
-  const id = cleanText(
-    conversationId
-  );
+function safeConversationId(value) {
+  const id =
+    cleanText(value);
 
-  if (
-    id &&
-    fallbackConversations.has(id)
-  ) {
-    return fallbackConversations.get(id);
+  if (!id) {
+    return "";
   }
 
-  return createFallbackConversation(id);
+  return id.slice(0, 300);
 }
 
 
-function fallbackAddMessage(
-  conversation,
-  role,
-  content
-) {
-  if (!conversation) {
-    return;
-  }
-
-  if (!Array.isArray(conversation.messages)) {
-    conversation.messages = [];
-  }
-
-  conversation.messages.push({
-    role:
-      role === "assistant"
-        ? "assistant"
-        : "user",
-
-    content:
-      cleanText(content),
-
-    timestamp:
-      new Date().toISOString()
-  });
-
-  // Keep the active conversation reasonably small.
-  if (conversation.messages.length > 40) {
-    conversation.messages =
-      conversation.messages.slice(-40);
-  }
-
-  conversation.updatedAt =
-    new Date().toISOString();
-}
-
-
-function getConversationSafe(
-  conversationId = ""
-) {
-  try {
-    if (
-      typeof memory.getConversation ===
-      "function"
-    ) {
-      return memory.getConversation(
-        conversationId
-      );
-    }
-  } catch (error) {
-    console.error(
-      "Memory getConversation error:",
-      error.message
-    );
-  }
-
-  return fallbackGetConversation(
-    conversationId
-  );
-}
-
-
-function addMessageSafe(
-  conversation,
-  role,
-  content
-) {
-  try {
-    if (
-      typeof memory.addMessage ===
-      "function"
-    ) {
-      return memory.addMessage(
-        conversation,
-        role,
-        content
-      );
-    }
-  } catch (error) {
-    console.error(
-      "Memory addMessage error:",
-      error.message
-    );
-  }
-
-  fallbackAddMessage(
-    conversation,
-    role,
-    content
-  );
-}
-
-
-function deleteConversationSafe(
+function getUserConversationId(
+  userId,
   conversationId
 ) {
-  try {
-    if (
-      typeof memory.deleteConversation ===
-      "function"
-    ) {
-      return memory.deleteConversation(
-        conversationId
-      );
-    }
-  } catch (error) {
-    console.error(
-      "Memory deleteConversation error:",
-      error.message
-    );
-  }
-
-  fallbackConversations.delete(
-    conversationId
-  );
-}
-
-
-function getConversationHistorySafe(
-  conversationId,
-  conversation = null
-) {
-  try {
-    if (
-      typeof memory.getConversationHistory ===
-      "function"
-    ) {
-      const result =
-        memory.getConversationHistory(
-          conversationId
-        );
-
-      if (Array.isArray(result)) {
-        return result;
-      }
-    }
-  } catch (error) {
-    console.error(
-      "Memory history error:",
-      error.message
-    );
-  }
-
-  const current =
-    conversation ||
-    fallbackGetConversation(
+  const supplied =
+    safeConversationId(
       conversationId
     );
 
-  return Array.isArray(
-    current?.messages
-  )
-    ? current.messages
-    : [];
+  if (supplied) {
+    return supplied;
+  }
+
+  /*
+   * IMPORTANT:
+   *
+   * Older versions of index.html did not send
+   * conversationId.
+   *
+   * Therefore we create a stable conversation
+   * for each user when no ID is supplied.
+   *
+   * This prevents:
+   *
+   * "My name is Believer"
+   *
+   * followed by:
+   *
+   * "What is my name?"
+   *
+   * from creating two unrelated conversations.
+   */
+
+  return `user-${userId}`;
 }
 
 
-function getConversationCountSafe() {
-  try {
-    if (
-      typeof memory.getConversationCount ===
-      "function"
-    ) {
-      const count =
-        memory.getConversationCount();
-
-      if (
-        Number.isFinite(count)
-      ) {
-        return count;
-      }
-    }
-  } catch (error) {
-    console.error(
-      "Memory count error:",
-      error.message
-    );
+function formatHistory(
+  conversation
+) {
+  if (
+    !conversation ||
+    !Array.isArray(
+      conversation.messages
+    )
+  ) {
+    return "";
   }
 
-  return fallbackConversations.size;
+  return conversation.messages
+    .slice(-30)
+    .map(message => {
+      const role =
+        message.role ===
+        "assistant"
+          ? "Zed"
+          : "User";
+
+      return `${role}: ${message.content}`;
+    })
+    .join("\n");
+}
+
+
+// ============================================================
+// CURRENT DATE
+// ============================================================
+
+function getCurrentDateForZambia() {
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      timeZone:
+        "Africa/Lusaka",
+      dateStyle:
+        "full",
+      timeStyle:
+        "long"
+    }
+  ).format(
+    new Date()
+  );
 }
 
 
@@ -333,7 +260,7 @@ function isCurrentInformationQuestion(
   const text =
     message.toLowerCase();
 
-  const keywords = [
+  const words = [
     "today",
     "tonight",
     "tomorrow",
@@ -342,29 +269,30 @@ function isCurrentInformationQuestion(
     "current",
     "now",
     "recent",
-    "recently",
-    "this week",
-    "this month",
-    "next match",
-    "next game",
-    "next fixture",
-    "fixtures",
-    "fixture",
-    "results",
-    "result",
+    "news",
+    "price",
+    "prices",
+    "weather",
     "score",
     "scores",
+    "fixture",
+    "fixtures",
+    "result",
+    "results",
     "standings",
     "table",
-    "ranking",
-    "rankings",
     "schedule",
-    "news"
+    "opening hours",
+    "available",
+    "availability",
+    "this week",
+    "this month",
+    "2026"
   ];
 
-  return keywords.some(
-    keyword =>
-      text.includes(keyword)
+  return words.some(
+    word =>
+      text.includes(word)
   );
 }
 
@@ -386,49 +314,33 @@ function shouldUseFootball(
     "matches",
     "fixture",
     "fixtures",
-    "score",
-    "scores",
-    "standings",
+    "football score",
+    "soccer score",
+    "football results",
+    "soccer results",
+    "football table",
     "league table",
     "premier league",
     "champions league",
     "europa league",
     "conference league",
-    "world cup",
-    "afcon",
-    "africa cup",
-    "fifa",
+
     "arsenal",
     "chelsea",
     "liverpool",
     "manchester united",
-    "man united",
     "manchester city",
     "tottenham",
-    "spurs",
+    "newcastle",
     "barcelona",
     "real madrid",
+    "atletico madrid",
     "bayern",
+    "borussia dortmund",
     "psg",
     "juventus",
     "inter milan",
-    "ac milan",
-    "dortmund",
-    "ajax",
-    "napoli",
-    "atalanta",
-    "leeds",
-    "newcastle",
-    "everton",
-    "brighton",
-    "aston villa",
-    "sunderland",
-    "fulham",
-    "brentford",
-    "nottingham forest",
-    "coventry",
-    "hull city",
-    "ipswich"
+    "ac milan"
   ];
 
   return footballWords.some(
@@ -442,7 +354,9 @@ function shouldUseFootball(
 // GEMINI
 // ============================================================
 
-async function askGemini(prompt) {
+async function askGemini(
+  prompt
+) {
   if (!GEMINI_API_KEY) {
     throw new Error(
       "GEMINI_API_KEY is missing."
@@ -451,32 +365,35 @@ async function askGemini(prompt) {
 
   const ai =
     new GoogleGenAI({
-      apiKey: GEMINI_API_KEY
+      apiKey:
+        GEMINI_API_KEY
     });
 
   const response =
     await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: prompt
+      model:
+        GEMINI_MODEL,
+
+      contents:
+        prompt
     });
 
   const answer =
     response?.text ||
     response?.candidates?.[0]?.content?.parts
-      ?.map(
-        part =>
-          part.text || ""
-      )
+      ?.map(part => part.text || "")
       .join("") ||
     "";
 
-  if (!answer.trim()) {
+  if (!cleanText(answer)) {
     throw new Error(
       "Gemini returned an empty response."
     );
   }
 
-  return answer.trim();
+  return cleanText(
+    answer
+  );
 }
 
 
@@ -484,7 +401,9 @@ async function askGemini(prompt) {
 // GROQ
 // ============================================================
 
-async function askGroq(prompt) {
+async function askGroq(
+  prompt
+) {
   if (!GROQ_API_KEY) {
     throw new Error(
       "GROQ_API_KEY is missing."
@@ -495,54 +414,69 @@ async function askGroq(prompt) {
     await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        method: "POST",
+        method:
+          "POST",
 
         headers: {
-          "Content-Type":
-            "application/json",
+          "Authorization":
+            `Bearer ${GROQ_API_KEY}`,
 
-          Authorization:
-            `Bearer ${GROQ_API_KEY}`
+          "Content-Type":
+            "application/json"
         },
 
-        body: JSON.stringify({
-          model:
-            "llama-3.3-70b-versatile",
+        body:
+          JSON.stringify({
+            model:
+              "llama-3.3-70b-versatile",
 
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
+            messages: [
+              {
+                role:
+                  "user",
 
-          temperature: 0.2
-        })
+                content:
+                  prompt
+              }
+            ],
+
+            temperature:
+              0.7,
+
+            max_tokens:
+              2048
+          })
       }
     );
+
+  if (!response.ok) {
+    const errorText =
+      await response.text();
+
+    throw new Error(
+      `Groq ${response.status}: ${errorText.slice(
+        0,
+        500
+      )}`
+    );
+  }
 
   const data =
     await response.json();
 
-  if (!response.ok) {
-    throw new Error(
-      data?.error?.message ||
-      `Groq HTTP ${response.status}`
-    );
-  }
-
   const answer =
     data?.choices?.[0]?.message
-      ?.content ||
-    "";
+      ?.content || "";
 
-  if (!answer.trim()) {
+  if (!cleanText(answer)) {
     throw new Error(
       "Groq returned an empty response."
     );
   }
 
-  return answer.trim();
+  return cleanText(
+    answer
+  );
 }
 
 
@@ -550,7 +484,9 @@ async function askGroq(prompt) {
 // OPENROUTER
 // ============================================================
 
-async function askOpenRouter(prompt) {
+async function askOpenRouter(
+  prompt
+) {
   if (!OPENROUTER_API_KEY) {
     throw new Error(
       "OPENROUTER_API_KEY is missing."
@@ -561,14 +497,15 @@ async function askOpenRouter(prompt) {
     await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        method: "POST",
+        method:
+          "POST",
 
         headers: {
+          "Authorization":
+            `Bearer ${OPENROUTER_API_KEY}`,
+
           "Content-Type":
             "application/json",
-
-          Authorization:
-            `Bearer ${OPENROUTER_API_KEY}`,
 
           "HTTP-Referer":
             "https://zed-ai-h7h4.onrender.com",
@@ -577,63 +514,82 @@ async function askOpenRouter(prompt) {
             "Zed AI"
         },
 
-        body: JSON.stringify({
-          model:
-            "meta-llama/llama-3.3-70b-instruct",
+        body:
+          JSON.stringify({
+            model:
+              "meta-llama/llama-3.3-70b-instruct:free",
 
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
+            messages: [
+              {
+                role:
+                  "user",
 
-          temperature: 0.2
-        })
+                content:
+                  prompt
+              }
+            ],
+
+            temperature:
+              0.7,
+
+            max_tokens:
+              2048
+          })
       }
     );
+
+  if (!response.ok) {
+    const errorText =
+      await response.text();
+
+    throw new Error(
+      `OpenRouter ${response.status}: ${errorText.slice(
+        0,
+        500
+      )}`
+    );
+  }
 
   const data =
     await response.json();
 
-  if (!response.ok) {
-    throw new Error(
-      data?.error?.message ||
-      `OpenRouter HTTP ${response.status}`
-    );
-  }
-
   const answer =
     data?.choices?.[0]?.message
-      ?.content ||
-    "";
+      ?.content || "";
 
-  if (!answer.trim()) {
+  if (!cleanText(answer)) {
     throw new Error(
       "OpenRouter returned an empty response."
     );
   }
 
-  return answer.trim();
+  return cleanText(
+    answer
+  );
 }
 
 
 // ============================================================
-// AI FALLBACK
+// AI FALLBACK SYSTEM
 // ============================================================
 
-async function askAI(prompt) {
+async function askAI(
+  prompt
+) {
   const errors = [];
 
   try {
     const answer =
-      await askGemini(prompt);
+      await askGemini(
+        prompt
+      );
 
     return {
       answer,
-      provider: "gemini"
-    };
 
+      provider:
+        "gemini"
+    };
   } catch (error) {
     errors.push(
       `Gemini: ${error.message}`
@@ -643,14 +599,16 @@ async function askAI(prompt) {
 
   try {
     const answer =
-      await askGroq(prompt);
+      await askGroq(
+        prompt
+      );
 
     return {
       answer,
-      provider:
-        "groq-fallback"
-    };
 
+      provider:
+        "groq"
+    };
   } catch (error) {
     errors.push(
       `Groq: ${error.message}`
@@ -660,14 +618,16 @@ async function askAI(prompt) {
 
   try {
     const answer =
-      await askOpenRouter(prompt);
+      await askOpenRouter(
+        prompt
+      );
 
     return {
       answer,
-      provider:
-        "openrouter-fallback"
-    };
 
+      provider:
+        "openrouter"
+    };
   } catch (error) {
     errors.push(
       `OpenRouter: ${error.message}`
@@ -676,10 +636,881 @@ async function askAI(prompt) {
 
 
   throw new Error(
-    "All AI services are currently unavailable.\n" +
-    errors.join("\n")
+    `All AI services failed. ${errors.join(
+      " | "
+    )}`
   );
 }
+
+
+// ============================================================
+// MEMORY SAFETY
+// ============================================================
+
+function isSensitiveMemory(
+  text = ""
+) {
+  const value =
+    text.toLowerCase();
+
+  const dangerousPatterns = [
+    "password",
+    "passcode",
+    "api key",
+    "apikey",
+    "secret key",
+    "private key",
+    "credit card number",
+    "cvv",
+    "bank password"
+  ];
+
+  return dangerousPatterns.some(
+    pattern =>
+      value.includes(pattern)
+  );
+}
+
+
+// ============================================================
+// SAVE USER MEMORY
+// ============================================================
+
+function processUserMemory(
+  userId,
+  userMessage
+) {
+  try {
+    /*
+     * Explicit "remember this" requests
+     * are handled first.
+     */
+
+    const explicit =
+      detectRememberRequest(
+        userMessage
+      );
+
+    if (explicit) {
+
+      if (
+        isSensitiveMemory(
+          explicit.content
+        )
+      ) {
+        return {
+          saved:
+            false,
+
+          reason:
+            "sensitive-information"
+        };
+      }
+
+      const result =
+        remember({
+          userId,
+
+          content:
+            explicit.content,
+
+          category:
+            "important",
+
+          type:
+            "fact",
+
+          importance:
+            95,
+
+          confidence:
+            0.99,
+
+          source:
+            "explicit-user-request"
+        });
+
+      return {
+        saved:
+          Boolean(
+            result.created ||
+            result.updated
+          ),
+
+        result
+      };
+    }
+
+
+    /*
+     * Automatic memory extraction.
+     *
+     * Example:
+     *
+     * "My name is Believer"
+     *
+     * becomes:
+     *
+     * "User's name is Believer."
+     */
+
+    const candidate =
+      extractMemoryCandidate(
+        userMessage
+      );
+
+    if (!candidate) {
+      return {
+        saved:
+          false,
+
+        reason:
+          "no-candidate"
+      };
+    }
+
+
+    if (
+      isSensitiveMemory(
+        candidate.content
+      )
+    ) {
+      return {
+        saved:
+          false,
+
+        reason:
+          "sensitive-information"
+      };
+    }
+
+
+    const result =
+      remember({
+        userId,
+
+        content:
+          candidate.content,
+
+        category:
+          candidate.category,
+
+        type:
+          candidate.type,
+
+        importance:
+          candidate.importance,
+
+        confidence:
+          candidate.confidence,
+
+        source:
+          "automatic-extraction"
+      });
+
+
+    return {
+      saved:
+        Boolean(
+          result.created ||
+          result.updated
+        ),
+
+      result
+    };
+
+  } catch (error) {
+
+    /*
+     * Memory failure must NEVER
+     * stop Zed from answering.
+     */
+
+    console.error(
+      "Memory save error:",
+      error
+    );
+
+    return {
+      saved:
+        false,
+
+      reason:
+        "memory-error",
+
+      error:
+        error.message
+    };
+  }
+}
+
+
+// ============================================================
+// FORGET MEMORY
+// ============================================================
+
+function processForgetRequest(
+  userId,
+  message
+) {
+  try {
+    const request =
+      detectForgetRequest(
+        message
+      );
+
+    if (!request) {
+      return null;
+    }
+
+    const results =
+      searchMemories(
+        userId,
+        request.query,
+        {
+          limit:
+            10,
+
+          threshold:
+            0.12
+        }
+      );
+
+    let deleted =
+      0;
+
+    for (
+      const memory
+      of results
+    ) {
+      if (
+        forgetMemory(
+          memory.id
+        )
+      ) {
+        deleted++;
+      }
+    }
+
+    return {
+      requested:
+        true,
+
+      query:
+        request.query,
+
+      deleted
+    };
+
+  } catch (error) {
+
+    console.error(
+      "Memory forget error:",
+      error
+    );
+
+    return {
+      requested:
+        true,
+
+      deleted:
+        0,
+
+      error:
+        error.message
+    };
+  }
+}
+
+
+// ============================================================
+// MEMORY CONTEXT
+// ============================================================
+
+function getRelevantMemoryContext(
+  userId,
+  userMessage
+) {
+  try {
+
+    const context =
+      buildMemoryContext(
+        userId,
+        userMessage,
+        {
+          limit:
+            12,
+
+          threshold:
+            0.12
+        }
+      );
+
+    return context || "";
+
+  } catch (error) {
+
+    console.error(
+      "Memory retrieval error:",
+      error
+    );
+
+    return "";
+  }
+}
+
+
+// ============================================================
+// FOOTBALL MEMORY
+// ============================================================
+
+function processFootballMemory(
+  userId,
+  message
+) {
+  try {
+
+    if (
+      !shouldUseFootball(
+        message
+      )
+    ) {
+      return;
+    }
+
+    rememberFootballConversation({
+      userId,
+
+      message
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Football memory error:",
+      error
+    );
+  }
+}
+
+
+// ============================================================
+// HEALTH
+// ============================================================
+
+app.get(
+  "/health",
+  (req, res) => {
+
+    const memoryStatus =
+      initializeMemory();
+
+    res.json({
+      ok:
+        true,
+
+      service:
+        "zed-ai",
+
+      provider:
+        "gemini-with-groq-and-openrouter-fallback",
+
+      geminiModel:
+        GEMINI_MODEL,
+
+      football:
+        true,
+
+      footballScope:
+        "worldwide",
+
+      webSearch:
+        true,
+
+      memory:
+        memoryStatus,
+
+      memoryStats:
+        getSystemMemoryStats(),
+
+      fileAnalysis:
+        true,
+
+      imageGeneration:
+        Boolean(
+          CLOUDFLARE_ACCOUNT_ID &&
+          CLOUDFLARE_API_TOKEN
+        )
+    });
+  }
+);
+
+
+// ============================================================
+// GEMINI TEST
+// ============================================================
+
+app.get(
+  "/api/gemini-test",
+  async (req, res) => {
+
+    try {
+
+      const result =
+        await askAI(
+          "Reply with exactly: Zed AI is working."
+        );
+
+      res.json({
+        ok:
+          true,
+
+        answer:
+          result.answer,
+
+        provider:
+          result.provider
+      });
+
+    } catch (error) {
+
+      res.status(500).json({
+        ok:
+          false,
+
+        error:
+          error.message
+      });
+    }
+  }
+);
+
+
+// ============================================================
+// NEW CHAT
+// ============================================================
+
+app.post(
+  "/api/new-chat",
+  (req, res) => {
+
+    const userId =
+      safeUserId(
+        req.body?.userId
+      );
+
+    const conversation =
+      getConversation();
+
+    /*
+     * Store ownership metadata.
+     */
+
+    conversation.metadata = {
+      ...(conversation.metadata ||
+        {}),
+
+      userId,
+
+      createdBy:
+        "zed-ai"
+    };
+
+    res.json({
+      ok:
+        true,
+
+      conversationId:
+        conversation.id
+    });
+  }
+);
+
+
+// ============================================================
+// DELETE CHAT
+// ============================================================
+
+app.delete(
+  "/api/chat/:conversationId",
+  (req, res) => {
+
+    const deleted =
+      deleteConversation(
+        req.params
+          .conversationId
+      );
+
+    res.json({
+      ok:
+        true,
+
+      deleted
+    });
+  }
+);
+
+
+// ============================================================
+// GET CHAT
+// ============================================================
+
+app.get(
+  "/api/chat/:conversationId",
+  (req, res) => {
+
+    const conversation =
+      getConversationDetails(
+        req.params
+          .conversationId
+      );
+
+    if (!conversation) {
+      return res.status(404).json({
+        ok:
+          false,
+
+        error:
+          "Conversation not found."
+      });
+    }
+
+    res.json({
+      ok:
+        true,
+
+      conversation
+    });
+  }
+);
+
+
+// ============================================================
+// USER MEMORY API
+// ============================================================
+
+app.get(
+  "/api/memory",
+  (req, res) => {
+
+    const userId =
+      safeUserId(
+        req.query?.userId
+      );
+
+    const userMemories =
+      getUserMemories(
+        userId,
+        {
+          limit:
+            500
+        }
+      );
+
+    res.json({
+      ok:
+        true,
+
+      userId,
+
+      memories:
+        userMemories,
+
+      stats:
+        getMemoryStats(
+          userId
+        )
+    });
+  }
+);
+
+
+// ============================================================
+// SAVE MEMORY API
+// ============================================================
+
+app.post(
+  "/api/memory",
+  (req, res) => {
+
+    try {
+
+      const userId =
+        safeUserId(
+          req.body?.userId
+        );
+
+      const content =
+        cleanText(
+          req.body?.content
+        );
+
+      if (!content) {
+        return res.status(400).json({
+          ok:
+            false,
+
+          error:
+            "Memory content is required."
+        });
+      }
+
+      if (
+        isSensitiveMemory(
+          content
+        )
+      ) {
+        return res.status(400).json({
+          ok:
+            false,
+
+          error:
+            "This type of sensitive information should not be stored as memory."
+        });
+      }
+
+      const result =
+        remember({
+          userId,
+
+          content,
+
+          category:
+            req.body?.category ||
+            "general",
+
+          type:
+            req.body?.type ||
+            "fact",
+
+          importance:
+            req.body?.importance ??
+            80,
+
+          confidence:
+            req.body?.confidence ??
+            0.9,
+
+          source:
+            "user-api",
+
+          tags:
+            req.body?.tags
+        });
+
+      res.json({
+        ok:
+          true,
+
+        result
+      });
+
+    } catch (error) {
+
+      res.status(500).json({
+        ok:
+          false,
+
+        error:
+          error.message
+      });
+    }
+  }
+);
+
+
+// ============================================================
+// DELETE ONE MEMORY
+// ============================================================
+
+app.delete(
+  "/api/memory/:memoryId",
+  (req, res) => {
+
+    const deleted =
+      forgetMemory(
+        req.params.memoryId
+      );
+
+    res.json({
+      ok:
+        true,
+
+      deleted
+    });
+  }
+);
+
+
+// ============================================================
+// CLEAR ALL USER MEMORY
+// ============================================================
+
+app.delete(
+  "/api/memory/user/:userId",
+  (req, res) => {
+
+    const userId =
+      safeUserId(
+        req.params.userId
+      );
+
+    const result =
+      clearUserMemory(
+        userId
+      );
+
+    res.json({
+      ok:
+        true,
+
+      result
+    });
+  }
+);
+
+
+// ============================================================
+// MEMORY SEARCH
+// ============================================================
+
+app.get(
+  "/api/memory/search",
+  (req, res) => {
+
+    const userId =
+      safeUserId(
+        req.query?.userId
+      );
+
+    const query =
+      cleanText(
+        req.query?.q
+      );
+
+    if (!query) {
+      return res.json({
+        ok:
+          true,
+
+        results:
+          []
+      });
+    }
+
+    const results =
+      searchMemories(
+        userId,
+        query,
+        {
+          limit:
+            20,
+
+          threshold:
+            0.10
+        }
+      );
+
+    res.json({
+      ok:
+        true,
+
+      results
+    });
+  }
+);
+
+
+// ============================================================
+// PROJECT API
+// ============================================================
+
+app.post(
+  "/api/projects",
+  (req, res) => {
+
+    const project =
+      createProject({
+        userId:
+          safeUserId(
+            req.body?.userId
+          ),
+
+        name:
+          req.body?.name,
+
+        description:
+          req.body?.description,
+
+        metadata:
+          req.body?.metadata
+      });
+
+    if (!project) {
+      return res.status(400).json({
+        ok:
+          false,
+
+        error:
+          "Unable to create project."
+      });
+    }
+
+    res.json({
+      ok:
+        true,
+
+      project
+    });
+  }
+);
+
+
+app.get(
+  "/api/projects",
+  (req, res) => {
+
+    const projects =
+      getUserProjects(
+        safeUserId(
+          req.query?.userId
+        )
+      );
+
+    res.json({
+      ok:
+        true,
+
+      projects
+    });
+  }
+);
+
+
+// ============================================================
+// FOOTBALL MEMORY API
+// ============================================================
+
+app.get(
+  "/api/football/memory",
+  (req, res) => {
+
+    const userId =
+      safeUserId(
+        req.query?.userId
+      );
+
+    res.json({
+      ok:
+        true,
+
+      football:
+        getFootballMemory(
+          userId
+        )
+    });
+  }
+);
 
 
 // ============================================================
@@ -702,28 +1533,39 @@ async function generateCloudflareImage(
     `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/${CLOUDFLARE_IMAGE_MODEL}`;
 
   const response =
-    await fetch(url, {
-      method: "POST",
+    await fetch(
+      url,
+      {
+        method:
+          "POST",
 
-      headers: {
-        Authorization:
-          `Bearer ${CLOUDFLARE_API_TOKEN}`,
+        headers: {
+          "Authorization":
+            `Bearer ${CLOUDFLARE_API_TOKEN}`,
 
-        "Content-Type":
-          "application/json"
-      },
+          "Content-Type":
+            "application/json"
+        },
 
-      body: JSON.stringify({
-        prompt
-      })
-    });
+        body:
+          JSON.stringify({
+            prompt:
+              cleanText(
+                prompt
+              )
+          })
+      }
+    );
 
   if (!response.ok) {
-    const errorText =
+    const text =
       await response.text();
 
     throw new Error(
-      `Cloudflare HTTP ${response.status}: ${errorText}`
+      `Cloudflare ${response.status}: ${text.slice(
+        0,
+        500
+      )}`
     );
   }
 
@@ -737,7 +1579,10 @@ async function generateCloudflareImage(
       "application/json"
     )
   ) {
-    return await response.json();
+    const data =
+      await response.json();
+
+    return data;
   }
 
   const buffer =
@@ -747,219 +1592,19 @@ async function generateCloudflareImage(
 
   return {
     image:
-      `data:${contentType};base64,${buffer.toString(
+      buffer.toString(
         "base64"
-      )}`
+      ),
+
+    contentType
   };
 }
 
 
-// ============================================================
-// HEALTH
-// ============================================================
-
-app.get(
-  "/health",
-  (req, res) => {
-    res.json({
-      ok: true,
-
-      service:
-        "zed-ai",
-
-      provider:
-        "gemini-with-groq-and-openrouter-fallback",
-
-      geminiModel:
-        GEMINI_MODEL,
-
-      webSearch:
-        true,
-
-      football:
-        true,
-
-      footballScope:
-        "worldwide",
-
-      footballRouting:
-        "team-league-worldwide",
-
-      conversationMemory:
-        true,
-
-      activeConversations:
-        getConversationCountSafe(),
-
-      imageGeneration:
-        Boolean(
-          CLOUDFLARE_ACCOUNT_ID &&
-          CLOUDFLARE_API_TOKEN
-        )
-    });
-  }
-);
-
-
-// ============================================================
-// GEMINI TEST
-// ============================================================
-
-app.get(
-  "/api/gemini-test",
-  async (req, res) => {
-    try {
-
-      const result =
-        await askGemini(
-          "Reply with exactly: Zed AI Gemini test successful."
-        );
-
-      res.json({
-        ok: true,
-
-        provider:
-          "gemini",
-
-        answer:
-          result
-      });
-
-    } catch (error) {
-
-      res.status(500).json({
-        ok: false,
-
-        error:
-          error.message
-      });
-    }
-  }
-);
-
-
-// ============================================================
-// NEW CHAT
-// ============================================================
-
-app.post(
-  "/api/new-chat",
-  (req, res) => {
-    try {
-
-      const conversation =
-        getConversationSafe();
-
-      res.json({
-        ok: true,
-
-        conversationId:
-          conversation.id
-      });
-
-    } catch (error) {
-
-      console.error(
-        "NEW CHAT ERROR:",
-        error
-      );
-
-      res.status(500).json({
-        ok: false,
-
-        error:
-          error.message ||
-          "Could not create a new chat."
-      });
-    }
-  }
-);
-
-
-// ============================================================
-// CLEAR CHAT
-// ============================================================
-
-app.delete(
-  "/api/chat/:conversationId",
-  (req, res) => {
-    try {
-
-      const conversationId =
-        cleanText(
-          req.params.conversationId
-        );
-
-      if (conversationId) {
-        deleteConversationSafe(
-          conversationId
-        );
-      }
-
-      res.json({
-        ok: true
-      });
-
-    } catch (error) {
-
-      res.status(500).json({
-        ok: false,
-
-        error:
-          error.message
-      });
-    }
-  }
-);
-
-
-// ============================================================
-// GET CHAT HISTORY
-// ============================================================
-
-app.get(
-  "/api/chat/:conversationId",
-  (req, res) => {
-    try {
-
-      const conversationId =
-        cleanText(
-          req.params.conversationId
-        );
-
-      const messages =
-        getConversationHistorySafe(
-          conversationId
-        );
-
-      res.json({
-        ok: true,
-
-        conversationId,
-
-        messages
-      });
-
-    } catch (error) {
-
-      res.status(500).json({
-        ok: false,
-
-        error:
-          error.message
-      });
-    }
-  }
-);
-
-
-// ============================================================
-// IMAGE API
-// ============================================================
-
 app.post(
   "/api/generate-image",
   async (req, res) => {
+
     try {
 
       const prompt =
@@ -969,10 +1614,11 @@ app.post(
 
       if (!prompt) {
         return res.status(400).json({
-          ok: false,
+          ok:
+            false,
 
           error:
-            "Please provide an image prompt."
+            "Image prompt is required."
         });
       }
 
@@ -982,20 +1628,22 @@ app.post(
         );
 
       res.json({
-        ok: true,
+        ok:
+          true,
 
-        ...result
+        result
       });
 
     } catch (error) {
 
       console.error(
-        "IMAGE ERROR:",
+        "Image generation error:",
         error
       );
 
       res.status(500).json({
-        ok: false,
+        ok:
+          false,
 
         error:
           error.message
@@ -1006,7 +1654,7 @@ app.post(
 
 
 // ============================================================
-// CHAT API
+// MAIN CHAT API
 // ============================================================
 
 app.post(
@@ -1015,84 +1663,149 @@ app.post(
 
     try {
 
-      // ------------------------------------------------------
-      // USER MESSAGE
-      // ------------------------------------------------------
-
       const userMessage =
         cleanText(
           req.body?.message
         );
 
+      /*
+       * Never let an empty message
+       * reach the AI providers.
+       */
+
       if (!userMessage) {
         return res.status(400).json({
-          ok: false,
+          ok:
+            false,
 
-          error:
-            "Please enter a message."
+          answer:
+            "Please type a message first."
         });
       }
+
+
+      // ------------------------------------------------------
+      // USER
+      // ------------------------------------------------------
+
+      const userId =
+        safeUserId(
+          req.body?.userId
+        );
 
 
       // ------------------------------------------------------
       // CONVERSATION
       // ------------------------------------------------------
 
-      const requestedConversationId =
-        cleanText(
+      const conversationId =
+        getUserConversationId(
+          userId,
           req.body?.conversationId
         );
 
       const conversation =
-        getConversationSafe(
-          requestedConversationId
+        getConversation(
+          conversationId
         );
 
-      const conversationId =
-        conversation.id;
+
+      /*
+       * Make sure the conversation belongs
+       * to this user.
+       */
+
+      if (
+        !conversation.metadata
+      ) {
+        conversation.metadata = {};
+      }
+
+      if (
+        !conversation.metadata.userId
+      ) {
+        conversation.metadata.userId =
+          userId;
+      }
 
 
       // ------------------------------------------------------
       // SAVE USER MESSAGE
       // ------------------------------------------------------
 
-      addMessageSafe(
+      addMessage(
         conversation,
-
         "user",
-
         userMessage
       );
+
+
+      // ------------------------------------------------------
+      // MEMORY: FORGET
+      // ------------------------------------------------------
+
+      const forgetResult =
+        processForgetRequest(
+          userId,
+          userMessage
+        );
+
+
+      // ------------------------------------------------------
+      // MEMORY: SAVE
+      // ------------------------------------------------------
+
+      const memoryResult =
+        processUserMemory(
+          userId,
+          userMessage
+        );
+
+
+      // ------------------------------------------------------
+      // FOOTBALL MEMORY
+      // ------------------------------------------------------
+
+      processFootballMemory(
+        userId,
+        userMessage
+      );
+
+
+      // ------------------------------------------------------
+      // CURRENT MEMORY
+      // ------------------------------------------------------
+
+      const memoryContext =
+        getRelevantMemoryContext(
+          userId,
+          userMessage
+        );
+
+
+      // ------------------------------------------------------
+      // HISTORY
+      // ------------------------------------------------------
+
+      const conversationHistory =
+        formatHistory(
+          conversation
+        );
 
 
       // ------------------------------------------------------
       // FOOTBALL
       // ------------------------------------------------------
 
-      let footballData =
-        "";
-
       let footballUsed =
         false;
 
       let footballMode =
-        "none";
+        null;
 
-
-      // ------------------------------------------------------
-      // WEB SEARCH
-      // ------------------------------------------------------
-
-      let searchData =
+      let footballData =
         "";
 
-      let searchUsed =
-        false;
-
-
-      // ------------------------------------------------------
-      // FOOTBALL ROUTING
-      // ------------------------------------------------------
 
       if (
         shouldUseFootball(
@@ -1100,71 +1813,84 @@ app.post(
         )
       ) {
 
-        const footballTeam =
-          detectFootballTeam(
-            userMessage
+        try {
+
+          footballUsed =
+            true;
+
+          footballMode =
+            getFootballRequestType(
+              userMessage
+            );
+
+
+          const team =
+            detectFootballTeam(
+              userMessage
+            );
+
+          const league =
+            detectFootballLeague(
+              userMessage
+            );
+
+
+          if (team) {
+
+            const result =
+              await footballTeamFeature(
+                userMessage
+              );
+
+            footballData =
+              typeof result ===
+              "string"
+                ? result
+                : JSON.stringify(
+                    result
+                  );
+
+          } else if (league) {
+
+            const result =
+              await footballLeagueFeature(
+                userMessage
+              );
+
+            footballData =
+              typeof result ===
+              "string"
+                ? result
+                : JSON.stringify(
+                    result
+                  );
+
+          } else {
+
+            const result =
+              await footballFeature(
+                userMessage
+              );
+
+            footballData =
+              typeof result ===
+              "string"
+                ? result
+                : JSON.stringify(
+                    result
+                  );
+          }
+
+        } catch (error) {
+
+          console.error(
+            "Football feature error:",
+            error
           );
 
-        const footballLeague =
-          detectFootballLeague(
-            userMessage
-          );
-
-        getFootballRequestType(
-          userMessage
-        );
-
-
-        if (footballTeam) {
-
-          const teamResult =
-            await footballTeamFeature(
-              userMessage
-            );
-
           footballData =
-            teamResult?.answer ||
-            "";
+            "No verified football data was available for this request.";
 
-          footballUsed =
-            true;
-
-          footballMode =
-            "team";
-
-        } else if (footballLeague) {
-
-          const leagueResult =
-            await footballLeagueFeature(
-              userMessage
-            );
-
-          footballData =
-            leagueResult?.answer ||
-            "";
-
-          footballUsed =
-            true;
-
-          footballMode =
-            "league";
-
-        } else {
-
-          const footballResult =
-            await footballFeature(
-              userMessage
-            );
-
-          footballData =
-            footballResult?.answer ||
-            "";
-
-          footballUsed =
-            true;
-
-          footballMode =
-            "worldwide";
         }
       }
 
@@ -1172,6 +1898,13 @@ app.post(
       // ------------------------------------------------------
       // WEB SEARCH
       // ------------------------------------------------------
+
+      let searchUsed =
+        false;
+
+      let searchData =
+        "";
+
 
       if (
         isCurrentInformationQuestion(
@@ -1189,109 +1922,194 @@ app.post(
 
           if (result) {
 
+            searchUsed =
+              true;
+
             searchData =
               typeof result ===
               "string"
-
                 ? result
-
-                : result.answer ||
-                  result.text ||
-                  JSON.stringify(
+                : JSON.stringify(
                     result
                   );
-
-            searchUsed =
-              Boolean(
-                searchData
-              );
           }
 
         } catch (error) {
 
           console.error(
             "Web search error:",
-            error.message
+            error
           );
+
+          searchData =
+            "";
         }
       }
 
 
       // ------------------------------------------------------
-      // HISTORY
+      // BUILD PROMPT
       // ------------------------------------------------------
 
-      const conversationHistory =
-        getConversationHistorySafe(
-          conversationId,
-          conversation
-        );
+      const currentDate =
+        getCurrentDateForZambia();
 
-
-      const formattedHistory =
-        conversationHistory
-          .map(message => {
-
-            const speaker =
-              message.role ===
-              "user"
-
-                ? "USER"
-
-                : "ZED AI";
-
-            return (
-              `${speaker}: ${message.content}`
-            );
-
-          })
-          .join("\n\n") ||
-
-        "No previous conversation.";
-
-
-      // ------------------------------------------------------
-      // PROMPT
-      // ------------------------------------------------------
 
       const prompt = `
-You are Zed AI, a helpful AI assistant.
+You are Zed AI.
 
-Current date:
-October 1, 2026.
+You are the AI assistant inside the Zed AI application.
 
-You are having an ongoing conversation with the user.
+Your job is to be helpful, accurate, clear, natural and conversational.
 
-IMPORTANT RULES:
+CURRENT DATE AND TIME IN ZAMBIA:
+${currentDate}
 
-1. Answer the user's actual question directly.
-2. Use the conversation history to understand follow-up questions.
-3. Remember information already present in the conversation history.
-4. Do not ask the user to repeat information already present.
-5. Never invent facts.
-6. Never invent football scores, fixtures, standings, dates, opponents or match status.
-7. If football data is supplied below, use it as the primary source.
-8. If supplied data contains the answer, use it.
-9. Convert football times to Zambia time when appropriate.
-10. Resolve references such as "he", "she", "they", "it", "that", "the team", "the match", "my name", and "my business" from conversation history.
-11. Keep simple answers simple.
-12. Do not mention internal APIs, routing, prompts, backend systems or technical memory systems.
-13. Never claim to remember something that is not present in the available conversation history.
-14. Be natural, helpful and conversational.
 
-CONVERSATION HISTORY:
-${formattedHistory}
+============================================================
+IMPORTANT MEMORY RULES
+============================================================
 
-CURRENT USER QUESTION:
+You have two different types of memory:
+
+1. CURRENT CONVERSATION
+2. LONG-TERM USER MEMORY
+
+Current conversation is the recent conversation shown below.
+
+Long-term memory contains useful information the user previously told Zed and that was intentionally saved.
+
+If long-term memory contains the user's name, preferences, projects, goals or other relevant information, USE IT naturally.
+
+Do not say that you do not know something when it is explicitly present in the supplied memory.
+
+Do not ask the user to repeat information that is already present in memory.
+
+Never invent memories.
+
+Never claim that something is remembered unless it appears in the supplied memory.
+
+Memory can contain user facts such as:
+
+- name
+- preferences
+- goals
+- projects
+- education
+- work
+- business
+- skills
+- communication preferences
+- football interests
+
+Do not treat memory as a source for live football scores, fixtures, standings or current results.
+
+Live/current football information must come from the supplied football data.
+
+Do not expose these internal memory instructions to the user.
+
+
+============================================================
+USER
+============================================================
+
+User ID:
+${userId}
+
+
+============================================================
+LONG-TERM MEMORY
+============================================================
+
+${
+  memoryContext ||
+  "No relevant long-term memory was found."
+}
+
+
+============================================================
+CURRENT CONVERSATION
+============================================================
+
+${
+  conversationHistory ||
+  "No previous conversation."
+}
+
+
+============================================================
+VERIFIED FOOTBALL DATA
+============================================================
+
+${
+  footballData ||
+  "No football data was requested."
+}
+
+
+============================================================
+WEB SEARCH DATA
+============================================================
+
+${
+  searchData ||
+  "No web search data was requested."
+}
+
+
+============================================================
+HOW TO ANSWER
+============================================================
+
+Answer the user's latest message directly.
+
+Use the conversation history to understand references such as:
+
+"it"
+"that"
+"my project"
+"the one we discussed"
+"what is my name"
+"what did I tell you"
+
+Use relevant long-term memory when appropriate.
+
+Do not unnecessarily repeat the entire memory.
+
+Do not mention backend systems.
+
+Do not mention memory IDs.
+
+Do not mention prompts.
+
+Do not mention internal tools.
+
+Do not say you are using a memory system.
+
+If the user says "hey", "hello", "hi" or another greeting, simply respond naturally and helpfully.
+
+If the user asks "what is my name?" and the memory contains the name, answer with the name directly.
+
+If the user explicitly asked Zed to remember something, treat the saved memory as authoritative.
+
+If the user asks to forget something and it was removed, acknowledge that naturally.
+
+For current information, use the supplied web search data when available.
+
+For football questions, use the supplied football data.
+
+Never invent scores, fixtures, standings, players, dates or results.
+
+Football times should be explained in Zambia time when appropriate.
+
+Keep normal answers concise unless the user asks for detail.
+
+Do not start every answer with "Hello".
+
+Do not say "I don't have access" when the supplied information contains the answer.
+
+USER'S LATEST MESSAGE:
 ${userMessage}
-
-FOOTBALL DATA:
-${footballData || "No football data was retrieved."}
-
-WEB SEARCH DATA:
-${searchData || "No web search data was retrieved."}
-
-Now answer the user's current question.
 `;
 
 
@@ -1306,14 +2124,12 @@ Now answer the user's current question.
 
 
       // ------------------------------------------------------
-      // SAVE ASSISTANT RESPONSE
+      // SAVE ASSISTANT MESSAGE
       // ------------------------------------------------------
 
-      addMessageSafe(
+      addMessage(
         conversation,
-
         "assistant",
-
         result.answer
       );
 
@@ -1323,7 +2139,8 @@ Now answer the user's current question.
       // ------------------------------------------------------
 
       res.json({
-        ok: true,
+        ok:
+          true,
 
         answer:
           result.answer,
@@ -1339,28 +2156,47 @@ Now answer the user's current question.
 
         footballMode,
 
-        conversationId,
+        conversationId:
+          conversation.id,
+
+        memorySaved:
+          memoryResult.saved,
+
+        memoryAction:
+          memoryResult.reason ||
+          null,
 
         memoryMessages:
-          getConversationHistorySafe(
-            conversationId,
-            conversation
-          ).length
+          conversation.messages.length,
+
+        userMemoryCount:
+          getUserMemories(
+            userId,
+            {
+              limit:
+                500
+            }
+          ).length,
+
+        forgetResult
       });
 
     } catch (error) {
 
       console.error(
-        "CHAT ERROR:",
+        "Zed AI chat error:",
         error
       );
 
       res.status(500).json({
-        ok: false,
+        ok:
+          false,
+
+        answer:
+          "I’m sorry, I couldn’t complete that request right now. Please try again.",
 
         error:
-          error.message ||
-          "Something went wrong while Zed AI was processing your message."
+          error.message
       });
     }
   }
@@ -1368,10 +2204,11 @@ Now answer the user's current question.
 
 
 // ============================================================
-// FRONTEND
+// FRONTEND FALLBACK
 // ============================================================
 
-app.use(
+app.get(
+  "*",
   (req, res) => {
     res.sendFile(
       path.join(
@@ -1387,6 +2224,18 @@ app.use(
 // START SERVER
 // ============================================================
 
+const memoryStatus =
+  initializeMemory();
+
+console.log(
+  "Zed AI memory system:",
+  memoryStatus
+);
+
+console.log(
+  "Zed AI server starting..."
+);
+
 app.listen(
   PORT,
   () => {
@@ -1395,5 +2244,24 @@ app.listen(
       `Zed AI running on port ${PORT}`
     );
 
+    console.log(
+      `Gemini model: ${GEMINI_MODEL}`
+    );
+
+    console.log(
+      "Football: worldwide"
+    );
+
+    console.log(
+      "Web search: enabled"
+    );
+
+    console.log(
+      "Long-term memory: enabled"
+    );
+
+    console.log(
+      "Memory storage: server memory"
+    );
   }
 );

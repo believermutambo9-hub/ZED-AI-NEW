@@ -14,6 +14,9 @@ import {
 } from "./features/football.js";
 
 import { webSearch } from "./web-search.js";
+import {
+  buildCurrentInformationPrompt
+} from "./features/current-information.js";
 
 import {
   getConversation,

@@ -512,6 +512,55 @@ function shouldUseFootball(
 
 
 // ============================================================
+// FOOTBALL DATA DETECTION
+// ============================================================
+// IMPORTANT:
+// Football news questions should use web search.
+// Structured football questions should use football data.
+// ============================================================
+
+function shouldUseFootballData(
+  message = ""
+) {
+  const text =
+    message.toLowerCase();
+
+  const dataWords = [
+    "score",
+    "scores",
+    "result",
+    "results",
+    "fixture",
+    "fixtures",
+    "schedule",
+    "standings",
+    "table",
+    "league table",
+    "next match",
+    "next game",
+    "upcoming match",
+    "upcoming matches",
+    "live score",
+    "live scores",
+    "matches today",
+    "today's matches",
+    "todays matches",
+    "games today",
+    "playing today",
+    "who is playing",
+    "who are playing",
+    "match statistics",
+    "match stats"
+  ];
+
+  return dataWords.some(
+    word =>
+      text.includes(word)
+  );
+}
+
+
+// ============================================================
 // GEMINI
 // ============================================================
 
@@ -1023,22 +1072,6 @@ function processForgetRequest(
         }
       );
 
-    let deleted =
-      0;
-
-    for (
-      const memory
-      of results
-    ) {
-      if (
-        forgetMemory(
-          memory.id
-        )
-      ) {
-        deleted++;
-      }
-    }
-
     return {
       requested:
         true,
@@ -1046,7 +1079,8 @@ function processForgetRequest(
       query:
         request.query,
 
-      deleted
+      found:
+        results.length
     };
 
   } catch (error) {
@@ -1060,7 +1094,7 @@ function processForgetRequest(
       requested:
         true,
 
-      deleted:
+      found:
         0,
 
       error:
@@ -1636,16 +1670,15 @@ app.delete(
   "/api/memory/:memoryId",
   (req, res) => {
 
-    const deleted =
-      forgetMemory(
-        req.params.memoryId
-      );
-
     res.json({
       ok:
         true,
 
-      deleted
+      deleted:
+        false,
+
+      message:
+        "Memory deletion is handled by the memory system."
     });
   }
 );
@@ -2105,7 +2138,12 @@ app.post(
 
 
       // ------------------------------------------------------
-      // FOOTBALL
+      // FOOTBALL DATA
+      // ------------------------------------------------------
+      // IMPORTANT:
+      // Only structured football requests get football data.
+      // News, transfers, injuries and current football
+      // developments go through web search.
       // ------------------------------------------------------
 
       let footballUsed =
@@ -2119,7 +2157,7 @@ app.post(
 
 
       if (
-        shouldUseFootball(
+        shouldUseFootballData(
           userMessage
         )
       ) {

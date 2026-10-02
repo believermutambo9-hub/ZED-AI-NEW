@@ -1,37 +1,27 @@
-
 import { randomUUID } from "crypto";
+
+import {
+  getFirebaseDb
+} from "../config/firebase-admin.js";
 
 
 // ============================================================
 // ZED AI MEMORY SYSTEM
 // ============================================================
 //
-// This file is the central memory engine for Zed AI.
+// This version keeps the existing in-memory system as the
+// fast cache and adds Firestore persistence.
 //
-// It currently provides:
-// - Conversation memory
-// - Long-term memory foundation
-// - User-specific memory
-// - Memory categories
-// - Memory importance
-// - Memory confidence
-// - Memory relevance
-// - Memory search
-// - Memory updating
-// - Duplicate prevention
-// - Memory expiration
-// - Memory usage tracking
-// - Project memory
-// - Preference memory
-// - Football memory foundation
-// - Explicit remember/forget detection
-// - Conversation summaries
-// - Memory statistics
+// Existing public functions are preserved.
 //
-// IMPORTANT:
-// This version stores data in server memory.
-// A later persistent storage layer can replace the
-// internal stores without changing the public interface.
+// Persistent collections:
+// - zedConversations
+// - zedMemories
+// - zedProjects
+// - zedFootballMemory
+//
+// If Firebase is temporarily unavailable, Zed AI continues
+// using server memory instead of crashing.
 //
 // ============================================================
 
@@ -70,25 +60,6 @@ const MEMORY_RELEVANCE_THRESHOLD = 0.18;
 // ============================================================
 // PRIMARY STORES
 // ============================================================
-//
-// These are deliberately separated.
-//
-// conversations:
-// Current/short-term chat history.
-//
-// memories:
-// Long-term memories.
-//
-// userMemoryIndex:
-// Quickly finds memories belonging to a user.
-//
-// projects:
-// Project-specific memory.
-//
-// footballMemory:
-// Football-specific contextual memory foundation.
-//
-// ============================================================
 
 const conversations = new Map();
 
@@ -102,10 +73,548 @@ const footballMemory = new Map();
 
 
 // ============================================================
+// FIRESTORE
+// ============================================================
+
+let firestore = null;
+
+let firebasePersistenceEnabled = false;
+
+let firebaseHydrationComplete = false;
+
+try {
+  firestore =
+    getFirebaseDb();
+
+  firebasePersistenceEnabled =
+    Boolean(firestore);
+
+  console.log(
+    "Zed AI memory persistence: Firestore enabled"
+  );
+} catch (error) {
+  console.warn(
+    "Zed AI memory persistence unavailable. Using server memory:",
+    error.message
+  );
+}
+
+
+// ============================================================
+// FIRESTORE HELPERS
+// ============================================================
+
+function firestoreTimestampToNumber(
+  value
+) {
+  if (
+    typeof value ===
+    "number"
+  ) {
+    return value;
+  }
+
+  if (
+    value &&
+    typeof value.toMillis ===
+      "function"
+  ) {
+    return value.toMillis();
+  }
+
+  if (
+    typeof value ===
+    "string"
+  ) {
+    const parsed =
+      Date.parse(value);
+
+    if (
+      Number.isFinite(parsed)
+    ) {
+      return parsed;
+    }
+  }
+
+  return now();
+}
+
+
+function cloneForFirestore(
+  value
+) {
+  if (
+    value ===
+    undefined
+  ) {
+    return null;
+  }
+
+  if (
+    value ===
+    null
+  ) {
+    return null;
+  }
+
+  if (
+    Array.isArray(value)
+  ) {
+    return value.map(
+      item =>
+        cloneForFirestore(
+          item
+        )
+    );
+  }
+
+  if (
+    typeof value ===
+    "object"
+  ) {
+    const result = {};
+
+    for (
+      const [
+        key,
+        item
+      ]
+      of Object.entries(
+        value
+      )
+    ) {
+      if (
+        item ===
+        undefined
+      ) {
+        continue;
+      }
+
+      result[key] =
+        cloneForFirestore(
+          item
+        );
+    }
+
+    return result;
+  }
+
+  return value;
+}
+
+
+function firestoreWrite(
+  collection,
+  id,
+  data
+) {
+  if (
+    !firestore ||
+    !id
+  ) {
+    return;
+  }
+
+  firestore
+    .collection(collection)
+    .doc(id)
+    .set(
+      cloneForFirestore(
+        data
+      )
+    )
+    .catch(error => {
+      console.error(
+        `Firestore write error (${collection}/${id}):`,
+        error.message
+      );
+    });
+}
+
+
+function firestoreDelete(
+  collection,
+  id
+) {
+  if (
+    !firestore ||
+    !id
+  ) {
+    return;
+  }
+
+  firestore
+    .collection(collection)
+    .doc(id)
+    .delete()
+    .catch(error => {
+      console.error(
+        `Firestore delete error (${collection}/${id}):`,
+        error.message
+      );
+    });
+}
+
+
+// ============================================================
+// FIRESTORE HYDRATION
+// ============================================================
+//
+// This runs before the rest of Zed AI starts using the module.
+// It restores previously saved memory after a Render restart.
+//
+// ============================================================
+
+async function hydrateFromFirestore() {
+  if (
+    !firestore
+  ) {
+    firebaseHydrationComplete =
+      true;
+
+    return;
+  }
+
+  try {
+
+    const [
+      conversationSnapshot,
+      memorySnapshot,
+      projectSnapshot,
+      footballSnapshot
+    ] = await Promise.all([
+      firestore
+        .collection(
+          "zedConversations"
+        )
+        .get(),
+
+      firestore
+        .collection(
+          "zedMemories"
+        )
+        .get(),
+
+      firestore
+        .collection(
+          "zedProjects"
+        )
+        .get(),
+
+      firestore
+        .collection(
+          "zedFootballMemory"
+        )
+        .get()
+    ]);
+
+
+    // --------------------------------------------------------
+    // CONVERSATIONS
+    // --------------------------------------------------------
+
+    conversationSnapshot.forEach(
+      document => {
+
+        const data =
+          document.data();
+
+        conversations.set(
+          document.id,
+          {
+            id:
+              document.id,
+
+            messages:
+              Array.isArray(
+                data.messages
+              )
+                ? data.messages.map(
+                    message => ({
+                      ...message,
+
+                      timestamp:
+                        firestoreTimestampToNumber(
+                          message.timestamp
+                        )
+                    })
+                  )
+                : [],
+
+            createdAt:
+              firestoreTimestampToNumber(
+                data.createdAt
+              ),
+
+            updatedAt:
+              firestoreTimestampToNumber(
+                data.updatedAt
+              ),
+
+            summary:
+              normalizeText(
+                data.summary ||
+                ""
+              ),
+
+            metadata:
+              data.metadata &&
+              typeof data.metadata ===
+                "object"
+                ? data.metadata
+                : {}
+          }
+        );
+      }
+    );
+
+
+    // --------------------------------------------------------
+    // LONG-TERM MEMORIES
+    // --------------------------------------------------------
+
+    memorySnapshot.forEach(
+      document => {
+
+        const data =
+          document.data();
+
+        const memory = {
+          ...data,
+
+          id:
+            document.id,
+
+          userId:
+            normalizeText(
+              data.userId
+            ),
+
+          createdAt:
+            firestoreTimestampToNumber(
+              data.createdAt
+            ),
+
+          updatedAt:
+            firestoreTimestampToNumber(
+              data.updatedAt
+            ),
+
+          lastUsedAt:
+            data.lastUsedAt
+              ? firestoreTimestampToNumber(
+                  data.lastUsedAt
+                )
+              : null,
+
+          tags:
+            Array.isArray(
+              data.tags
+            )
+              ? data.tags
+              : [],
+
+          metadata:
+            data.metadata &&
+            typeof data.metadata ===
+              "object"
+              ? data.metadata
+              : {}
+        };
+
+
+        if (
+          !memory.userId
+        ) {
+          return;
+        }
+
+
+        memories.set(
+          memory.id,
+          memory
+        );
+
+
+        const index =
+          ensureUserIndex(
+            memory.userId
+          );
+
+        if (index) {
+          index.add(
+            memory.id
+          );
+        }
+      }
+    );
+
+
+    // --------------------------------------------------------
+    // PROJECTS
+    // --------------------------------------------------------
+
+    projectSnapshot.forEach(
+      document => {
+
+        const data =
+          document.data();
+
+        projects.set(
+          document.id,
+          {
+            ...data,
+
+            id:
+              document.id,
+
+            createdAt:
+              firestoreTimestampToNumber(
+                data.createdAt
+              ),
+
+            updatedAt:
+              firestoreTimestampToNumber(
+                data.updatedAt
+              )
+          }
+        );
+      }
+    );
+
+
+    // --------------------------------------------------------
+    // FOOTBALL MEMORY
+    // --------------------------------------------------------
+
+    footballSnapshot.forEach(
+      document => {
+
+        const data =
+          document.data();
+
+        const store = {
+          teams:
+            new Map(),
+
+          competitions:
+            new Map(),
+
+          conversations:
+            Array.isArray(
+              data.conversations
+            )
+              ? data.conversations
+              : [],
+
+          preferences:
+            data.preferences &&
+            typeof data.preferences ===
+              "object"
+              ? data.preferences
+              : {},
+
+          updatedAt:
+            firestoreTimestampToNumber(
+              data.updatedAt
+            )
+        };
+
+
+        if (
+          Array.isArray(
+            data.teams
+          )
+        ) {
+          for (
+            const item
+            of data.teams
+          ) {
+            if (
+              item &&
+              item.key &&
+              item.value
+            ) {
+              store.teams.set(
+                item.key,
+                item.value
+              );
+            }
+          }
+        }
+
+
+        if (
+          Array.isArray(
+            data.competitions
+          )
+        ) {
+          for (
+            const item
+            of data.competitions
+          ) {
+            if (
+              item &&
+              item.key &&
+              item.value
+            ) {
+              store.competitions.set(
+                item.key,
+                item.value
+              );
+            }
+          }
+        }
+
+
+        footballMemory.set(
+          document.id,
+          store
+        );
+      }
+    );
+
+
+    firebaseHydrationComplete =
+      true;
+
+    console.log(
+      "Zed AI memory restored from Firestore:",
+      {
+        conversations:
+          conversations.size,
+
+        memories:
+          memories.size,
+
+        projects:
+          projects.size,
+
+        footballUsers:
+          footballMemory.size
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Firestore memory hydration error:",
+      error.message
+    );
+
+    firebaseHydrationComplete =
+      true;
+  }
+}
+
+
+// ============================================================
 // NORMALIZATION HELPERS
 // ============================================================
 
-function normalizeText(value = "") {
+function normalizeText(
+  value = ""
+) {
   return String(value)
     .replace(/\u0000/g, "")
     .replace(/\s+/g, " ")
@@ -113,7 +622,9 @@ function normalizeText(value = "") {
 }
 
 
-function normalizeKey(value = "") {
+function normalizeKey(
+  value = ""
+) {
   return normalizeText(value)
     .toLowerCase();
 }
@@ -129,7 +640,9 @@ function safeNumber(
     Number(value);
 
   if (
-    !Number.isFinite(number)
+    !Number.isFinite(
+      number
+    )
   ) {
     return fallback;
   }
@@ -144,7 +657,9 @@ function safeNumber(
 }
 
 
-function clamp01(value) {
+function clamp01(
+  value
+) {
   return safeNumber(
     value,
     0,
@@ -162,7 +677,8 @@ function truncateText(
     normalizeText(value);
 
   if (
-    text.length <= maximum
+    text.length <=
+    maximum
   ) {
     return text;
   }
@@ -185,32 +701,35 @@ function now() {
 // MEMORY CATEGORIES
 // ============================================================
 
-export const MEMORY_CATEGORIES = Object.freeze([
-  "personal",
-  "preference",
-  "goal",
-  "interest",
-  "project",
-  "business",
-  "education",
-  "work",
-  "location",
-  "skill",
-  "relationship",
-  "device",
-  "communication",
-  "football",
-  "instruction",
-  "important",
-  "general"
-]);
+export const MEMORY_CATEGORIES =
+  Object.freeze([
+    "personal",
+    "preference",
+    "goal",
+    "interest",
+    "project",
+    "business",
+    "education",
+    "work",
+    "location",
+    "skill",
+    "relationship",
+    "device",
+    "communication",
+    "football",
+    "instruction",
+    "important",
+    "general"
+  ]);
 
 
 function normalizeCategory(
   category = "general"
 ) {
   const value =
-    normalizeKey(category);
+    normalizeKey(
+      category
+    );
 
   if (
     MEMORY_CATEGORIES.includes(
@@ -228,19 +747,20 @@ function normalizeCategory(
 // MEMORY TYPES
 // ============================================================
 
-export const MEMORY_TYPES = Object.freeze([
-  "fact",
-  "preference",
-  "goal",
-  "project",
-  "instruction",
-  "interest",
-  "profile",
-  "event",
-  "football",
-  "summary",
-  "general"
-]);
+export const MEMORY_TYPES =
+  Object.freeze([
+    "fact",
+    "preference",
+    "goal",
+    "project",
+    "instruction",
+    "interest",
+    "profile",
+    "event",
+    "football",
+    "summary",
+    "general"
+  ]);
 
 
 function normalizeMemoryType(
@@ -269,13 +789,36 @@ function normalizeUserId(
   userId
 ) {
   const value =
-    normalizeText(userId);
+    normalizeText(
+      userId
+    );
 
   if (!value) {
     return null;
   }
 
   return value;
+}
+
+
+// ============================================================
+// CONVERSATION PERSISTENCE
+// ============================================================
+
+function persistConversation(
+  conversation
+) {
+  if (
+    !conversation
+  ) {
+    return;
+  }
+
+  firestoreWrite(
+    "zedConversations",
+    conversation.id,
+    conversation
+  );
 }
 
 
@@ -299,6 +842,7 @@ export function getConversation(
     conversations.get(id);
 
   if (!conversation) {
+
     conversation = {
       id,
 
@@ -319,6 +863,10 @@ export function getConversation(
       id,
       conversation
     );
+
+    persistConversation(
+      conversation
+    );
   }
 
   conversation.updatedAt =
@@ -337,12 +885,16 @@ export function addMessage(
   role,
   content
 ) {
-  if (!conversation) {
+  if (
+    !conversation
+  ) {
     return null;
   }
 
   const text =
-    normalizeText(content);
+    normalizeText(
+      content
+    );
 
   if (!text) {
     return null;
@@ -354,7 +906,8 @@ export function addMessage(
       : "user";
 
   const message = {
-    id: randomUUID(),
+    id:
+      randomUUID(),
 
     role:
       normalizedRole,
@@ -371,7 +924,8 @@ export function addMessage(
       conversation.messages
     )
   ) {
-    conversation.messages = [];
+    conversation.messages =
+      [];
   }
 
   conversation.messages.push(
@@ -390,6 +944,10 @@ export function addMessage(
 
   conversation.updatedAt =
     now();
+
+  persistConversation(
+    conversation
+  );
 
   return message;
 }
@@ -419,9 +977,11 @@ export function getConversationHistory(
   }
 
   return conversation.messages
-    .map(message => ({
-      ...message
-    }));
+    .map(
+      message => ({
+        ...message
+      })
+    );
 }
 
 
@@ -477,9 +1037,19 @@ export function deleteConversation(
     return false;
   }
 
-  return conversations.delete(
-    id
-  );
+  const deleted =
+    conversations.delete(
+      id
+    );
+
+  if (deleted) {
+    firestoreDelete(
+      "zedConversations",
+      id
+    );
+  }
+
+  return deleted;
 }
 
 
@@ -499,6 +1069,18 @@ export function getConversationCount() {
 export function clearConversations() {
   const count =
     conversations.size;
+
+  if (firestore) {
+    for (
+      const id
+      of conversations.keys()
+    ) {
+      firestoreDelete(
+        "zedConversations",
+        id
+      );
+    }
+  }
 
   conversations.clear();
 
@@ -535,6 +1117,10 @@ export function setConversationSummary(
   conversation.updatedAt =
     now();
 
+  persistConversation(
+    conversation
+  );
+
   return true;
 }
 
@@ -554,7 +1140,8 @@ export function getConversationSummary(
     return "";
   }
 
-  return conversation.summary || "";
+  return conversation.summary ||
+    "";
 }
 
 
@@ -631,7 +1218,8 @@ function createMemoryObject({
     now();
 
   return {
-    id: randomUUID(),
+    id:
+      randomUUID(),
 
     userId:
       normalizedUserId,
@@ -714,10 +1302,12 @@ function createMemoryObject({
 function normalizeTags(
   tags
 ) {
-  if (!Array.isArray(tags)) {
+  if (
+    !Array.isArray(tags)
+  ) {
     if (
       typeof tags ===
-      "string" &&
+        "string" &&
       tags.trim()
     ) {
       tags =
@@ -730,8 +1320,11 @@ function normalizeTags(
   return [
     ...new Set(
       tags
-        .map(tag =>
-          normalizeKey(tag)
+        .map(
+          tag =>
+            normalizeKey(
+              tag
+            )
         )
         .filter(Boolean)
         .slice(0, 30)
@@ -774,7 +1367,9 @@ function tokenize(
 ) {
   return [
     ...new Set(
-      normalizeKey(text)
+      normalizeKey(
+        text
+      )
         .replace(
           /[^a-z0-9\s]/g,
           " "
@@ -817,7 +1412,8 @@ function tokenSimilarity(
   let intersection = 0;
 
   for (
-    const token of a
+    const token
+    of a
   ) {
     if (
       b.has(token)
@@ -925,6 +1521,27 @@ function findSimilarMemory(
   }
 
   return null;
+}
+
+
+// ============================================================
+// PERSIST MEMORY
+// ============================================================
+
+function persistMemory(
+  memory
+) {
+  if (
+    !memory
+  ) {
+    return;
+  }
+
+  firestoreWrite(
+    "zedMemories",
+    memory.id,
+    memory
+  );
 }
 
 
@@ -1041,6 +1658,10 @@ export function remember({
       )
     };
 
+    persistMemory(
+      existing
+    );
+
     return {
       created: false,
       updated: true,
@@ -1095,6 +1716,11 @@ export function remember({
   );
 
 
+  persistMemory(
+    memory
+  );
+
+
   enforceUserMemoryLimit(
     normalizedUserId
   );
@@ -1139,9 +1765,11 @@ export function getMemory(
 
   return {
     ...memory,
+
     tags: [
       ...memory.tags
     ],
+
     metadata: {
       ...memory.metadata
     }
@@ -1262,6 +1890,10 @@ export function updateMemory(
   memory.updatedAt =
     now();
 
+  persistMemory(
+    memory
+  );
+
   return {
     ...memory
   };
@@ -1298,6 +1930,11 @@ export function forgetMemory(
     index.delete(id);
   }
 
+  firestoreDelete(
+    "zedMemories",
+    id
+  );
+
   return true;
 }
 
@@ -1331,13 +1968,22 @@ export function forgetUserMemories(
 
   for (
     const memoryId
-    of index
+    of [
+      ...index
+    ]
   ) {
+
     if (
       memories.delete(
         memoryId
       )
     ) {
+
+      firestoreDelete(
+        "zedMemories",
+        memoryId
+      );
+
       deleted++;
     }
   }
@@ -1406,6 +2052,7 @@ export function getUserMemories(
     const memoryId
     of index
   ) {
+
     const memory =
       memories.get(
         memoryId
@@ -1541,19 +2188,21 @@ export function searchMemories(
 
   const results =
     memoriesForUser
-      .map(memory => {
+      .map(
+        memory => {
 
-        const relevance =
-          calculateMemoryRelevance(
-            memory,
-            text
-          );
+          const relevance =
+            calculateMemoryRelevance(
+              memory,
+              text
+            );
 
-        return {
-          ...memory,
-          relevance
-        };
-      })
+          return {
+            ...memory,
+            relevance
+          };
+        }
+      )
       .filter(
         memory =>
           memory.relevance >=
@@ -1654,8 +2303,10 @@ export function calculateMemoryRelevance(
   ) {
     const usageBoost =
       Math.min(
-        memory.usageCount *
-          0.005,
+        (
+          memory.usageCount ||
+          0
+        ) * 0.005,
         0.05
       );
 
@@ -1721,8 +2372,10 @@ export function retrieveRelevantMemories(
     );
 
   for (
-    const memory of results
+    const memory
+    of results
   ) {
+
     const stored =
       memories.get(
         memory.id
@@ -1740,6 +2393,10 @@ export function retrieveRelevantMemories(
         stored.usageCount ||
         0
       ) + 1;
+
+    persistMemory(
+      stored
+    );
   }
 
   return results;
@@ -1818,6 +2475,7 @@ export function detectRememberRequest(
     const pattern
     of patterns
   ) {
+
     const match =
       text.match(
         pattern
@@ -1828,7 +2486,9 @@ export function detectRememberRequest(
       match[1]
     ) {
       return {
-        explicit: true,
+        explicit:
+          true,
+
         content:
           normalizeText(
             match[1]
@@ -1871,6 +2531,7 @@ export function detectForgetRequest(
     const pattern
     of patterns
   ) {
+
     const match =
       text.match(
         pattern
@@ -1881,7 +2542,9 @@ export function detectForgetRequest(
       match[1]
     ) {
       return {
-        explicit: true,
+        explicit:
+          true,
+
         query:
           normalizeText(
             match[1]
@@ -1896,13 +2559,6 @@ export function detectForgetRequest(
 
 // ============================================================
 // AUTOMATIC MEMORY CANDIDATE DETECTION
-// ============================================================
-//
-// This does NOT automatically save the information.
-//
-// It identifies messages that are potentially useful
-// long-term memories.
-//
 // ============================================================
 
 export function extractMemoryCandidate(
@@ -1921,9 +2577,7 @@ export function extractMemoryCandidate(
     text.toLowerCase();
 
 
-  // ----------------------------------------------------------
   // NAME
-  // ----------------------------------------------------------
 
   const nameMatch =
     text.match(
@@ -1952,9 +2606,7 @@ export function extractMemoryCandidate(
   }
 
 
-  // ----------------------------------------------------------
   // PREFERENCES
-  // ----------------------------------------------------------
 
   const preferencePatterns = [
     {
@@ -1985,6 +2637,7 @@ export function extractMemoryCandidate(
     const item
     of preferencePatterns
   ) {
+
     const match =
       lower.match(
         item.pattern
@@ -2014,9 +2667,7 @@ export function extractMemoryCandidate(
   }
 
 
-  // ----------------------------------------------------------
   // GOALS
-  // ----------------------------------------------------------
 
   const goalPatterns = [
     /\bmy goal is\s+(.+)/i,
@@ -2033,6 +2684,7 @@ export function extractMemoryCandidate(
     const pattern
     of goalPatterns
   ) {
+
     const match =
       text.match(
         pattern
@@ -2062,9 +2714,7 @@ export function extractMemoryCandidate(
   }
 
 
-  // ----------------------------------------------------------
   // PROJECT
-  // ----------------------------------------------------------
 
   const projectPatterns = [
     /\bi'm building\s+(.+)/i,
@@ -2081,6 +2731,7 @@ export function extractMemoryCandidate(
     const pattern
     of projectPatterns
   ) {
+
     const match =
       text.match(
         pattern
@@ -2110,9 +2761,7 @@ export function extractMemoryCandidate(
   }
 
 
-  // ----------------------------------------------------------
   // BUSINESS
-  // ----------------------------------------------------------
 
   const businessPatterns = [
     /\bmy business is\s+(.+)/i,
@@ -2129,6 +2778,7 @@ export function extractMemoryCandidate(
     const pattern
     of businessPatterns
   ) {
+
     const match =
       text.match(
         pattern
@@ -2158,9 +2808,7 @@ export function extractMemoryCandidate(
   }
 
 
-  // ----------------------------------------------------------
   // SKILLS
-  // ----------------------------------------------------------
 
   const skillPatterns = [
     /\bi can\s+(.+)/i,
@@ -2175,6 +2823,7 @@ export function extractMemoryCandidate(
     const pattern
     of skillPatterns
   ) {
+
     const match =
       text.match(
         pattern
@@ -2204,9 +2853,7 @@ export function extractMemoryCandidate(
   }
 
 
-  // ----------------------------------------------------------
-  // FOOTBALL INTEREST
-  // ----------------------------------------------------------
+  // FOOTBALL
 
   const footballWords = [
     "arsenal",
@@ -2287,6 +2934,7 @@ export function rememberFromMessage(
     );
 
   if (explicit) {
+
     return remember({
       userId,
 
@@ -2327,9 +2975,15 @@ export function rememberFromMessage(
 
   if (!candidate) {
     return {
-      created: false,
-      updated: false,
-      memory: null,
+      created:
+        false,
+
+      updated:
+        false,
+
+      memory:
+        null,
+
       reason:
         "no-memory-candidate"
     };
@@ -2342,9 +2996,15 @@ export function rememberFromMessage(
       options.minimumImportance
   ) {
     return {
-      created: false,
-      updated: false,
-      memory: null,
+      created:
+        false,
+
+      updated:
+        false,
+
+      memory:
+        null,
+
       reason:
         "importance-too-low"
     };
@@ -2395,10 +3055,17 @@ export function getMemoryStats(
 
   if (!normalizedUserId) {
     return {
-      total: 0,
-      active: 0,
-      categories: {},
-      types: {}
+      total:
+        0,
+
+      active:
+        0,
+
+      categories:
+        {},
+
+      types:
+        {}
     };
   }
 
@@ -2408,6 +3075,7 @@ export function getMemoryStats(
       {
         includeInactive:
           true,
+
         limit:
           MAX_MEMORIES_PER_USER
       }
@@ -2424,6 +3092,7 @@ export function getMemoryStats(
     const memory
     of userMemories
   ) {
+
     categories[
       memory.category
     ] =
@@ -2468,6 +3137,27 @@ export function getMemoryStats(
 
 
 // ============================================================
+// PROJECT PERSISTENCE
+// ============================================================
+
+function persistProject(
+  project
+) {
+  if (
+    !project
+  ) {
+    return;
+  }
+
+  firestoreWrite(
+    "zedProjects",
+    project.id,
+    project
+  );
+}
+
+
+// ============================================================
 // PROJECT MEMORY
 // ============================================================
 
@@ -2495,7 +3185,8 @@ export function createProject({
   }
 
   const project = {
-    id: randomUUID(),
+    id:
+      randomUUID(),
 
     userId:
       normalizedUserId,
@@ -2528,6 +3219,10 @@ export function createProject({
 
   projects.set(
     project.id,
+    project
+  );
+
+  persistProject(
     project
   );
 
@@ -2660,6 +3355,10 @@ export function updateProject(
   project.updatedAt =
     now();
 
+  persistProject(
+    project
+  );
+
   return {
     ...project
   };
@@ -2711,6 +3410,7 @@ export function deleteProject(
         memory.projectId ===
           id
       ) {
+
         memories.delete(
           memoryId
         );
@@ -2718,14 +3418,29 @@ export function deleteProject(
         userIndex.delete(
           memoryId
         );
+
+        firestoreDelete(
+          "zedMemories",
+          memoryId
+        );
       }
     }
   }
 
 
-  return projects.delete(
-    id
-  );
+  const deleted =
+    projects.delete(
+      id
+    );
+
+  if (deleted) {
+    firestoreDelete(
+      "zedProjects",
+      id
+    );
+  }
+
+  return deleted;
 }
 
 
@@ -2751,9 +3466,15 @@ export function rememberProject({
 
   if (!project) {
     return {
-      created: false,
-      updated: false,
-      memory: null,
+      created:
+        false,
+
+      updated:
+        false,
+
+      memory:
+        null,
+
       reason:
         "project-not-found"
     };
@@ -2766,9 +3487,15 @@ export function rememberProject({
     )
   ) {
     return {
-      created: false,
-      updated: false,
-      memory: null,
+      created:
+        false,
+
+      updated:
+        false,
+
+      memory:
+        null,
+
       reason:
         "user-mismatch"
     };
@@ -2802,20 +3529,6 @@ export function rememberProject({
 // ============================================================
 // FOOTBALL MEMORY
 // ============================================================
-//
-// Football data itself should continue to come from
-// football.js and live/current sources.
-//
-// This store is for contextual football memory:
-//
-// - Teams the user follows
-// - Football conversations
-// - Competitions discussed
-// - User football preferences
-// - Historical conversation context
-//
-// It must NOT be treated as a live score source.
-// ============================================================
 
 function ensureFootballUser(
   userId
@@ -2835,14 +3548,17 @@ function ensureFootballUser(
     footballMemory.set(
       id,
       {
-        teams: new Map(),
+        teams:
+          new Map(),
 
         competitions:
           new Map(),
 
-        conversations: [],
+        conversations:
+          [],
 
-        preferences: {},
+        preferences:
+          {},
 
         updatedAt:
           now()
@@ -2852,6 +3568,63 @@ function ensureFootballUser(
 
   return footballMemory.get(
     id
+  );
+}
+
+
+function persistFootballMemory(
+  userId
+) {
+  const store =
+    footballMemory.get(
+      userId
+    );
+
+  if (
+    !store
+  ) {
+    return;
+  }
+
+  firestoreWrite(
+    "zedFootballMemory",
+    userId,
+    {
+      teams:
+        [
+          ...store.teams.entries()
+        ].map(
+          ([
+            key,
+            value
+          ]) => ({
+            key,
+            value
+          })
+        ),
+
+      competitions:
+        [
+          ...store.competitions.entries()
+        ].map(
+          ([
+            key,
+            value
+          ]) => ({
+            key,
+            value
+          })
+        ),
+
+      conversations:
+        store.conversations,
+
+      preferences:
+        store.preferences,
+
+      updatedAt:
+        store.updatedAt
+    }
   );
 }
 
@@ -2917,6 +3690,7 @@ export function rememberFootballTeam({
     metadata: {
       ...(existing?.metadata ||
         {}),
+
       ...(
         metadata &&
         typeof metadata ===
@@ -2948,6 +3722,12 @@ export function rememberFootballTeam({
 
   store.updatedAt =
     now();
+
+  persistFootballMemory(
+    normalizeUserId(
+      userId
+    )
+  );
 
   return {
     ...team
@@ -3042,6 +3822,7 @@ export function rememberFootballCompetition({
     metadata: {
       ...(existing?.metadata ||
         {}),
+
       ...(
         metadata &&
         typeof metadata ===
@@ -3073,6 +3854,12 @@ export function rememberFootballCompetition({
 
   store.updatedAt =
     now();
+
+  persistFootballMemory(
+    normalizeUserId(
+      userId
+    )
+  );
 
   return {
     ...competition
@@ -3142,7 +3929,8 @@ export function rememberFootballConversation({
   }
 
   const item = {
-    id: randomUUID(),
+    id:
+      randomUUID(),
 
     message:
       text,
@@ -3194,6 +3982,12 @@ export function rememberFootballConversation({
   store.updatedAt =
     now();
 
+  persistFootballMemory(
+    normalizeUserId(
+      userId
+    )
+  );
+
   return {
     ...item
   };
@@ -3232,6 +4026,12 @@ export function setFootballPreference(
 
   store.updatedAt =
     now();
+
+  persistFootballMemory(
+    normalizeUserId(
+      userId
+    )
+  );
 
   return true;
 }
@@ -3321,7 +4121,13 @@ function cleanupConversations() {
         conversation.updatedAt >
       CONVERSATION_TIMEOUT
     ) {
+
       conversations.delete(
+        id
+      );
+
+      firestoreDelete(
+        "zedConversations",
         id
       );
     }
@@ -3355,6 +4161,11 @@ function cleanupConversations() {
     ) {
 
       conversations.delete(
+        sorted[i].id
+      );
+
+      firestoreDelete(
+        "zedConversations",
         sorted[i].id
       );
     }
@@ -3397,23 +4208,13 @@ function enforceUserMemoryLimit(
       )
       .filter(Boolean)
       .sort(
-        (a, b) => {
-
-          const scoreA =
-            calculateRetentionScore(
-              a
-            );
-
-          const scoreB =
-            calculateRetentionScore(
-              b
-            );
-
-          return (
-            scoreA -
-            scoreB
-          );
-        }
+        (a, b) =>
+          calculateRetentionScore(
+            a
+          ) -
+          calculateRetentionScore(
+            b
+          )
       );
 
 
@@ -3549,11 +4350,9 @@ export function runMemoryMaintenance() {
       continue;
     }
 
-
     const age =
       currentTime -
       memory.updatedAt;
-
 
     const days =
       age /
@@ -3564,9 +4363,6 @@ export function runMemoryMaintenance() {
         24
       );
 
-
-    // Very low-value memories can
-    // eventually expire.
 
     if (
       days > 365 &&
@@ -3617,18 +4413,19 @@ export function getSystemMemoryStats() {
       projects.size,
 
     footballUsers:
-      footballMemory.size
+      footballMemory.size,
+
+    persistentStorage:
+      firebasePersistenceEnabled,
+
+    firebaseHydrationComplete:
+      firebaseHydrationComplete
   };
 }
 
 
 // ============================================================
 // EXPORT USER MEMORY
-// ============================================================
-//
-// This creates a clean object that can later be saved
-// to Firestore or exported as JSON.
-//
 // ============================================================
 
 export function exportUserMemory(
@@ -3680,10 +4477,6 @@ export function exportUserMemory(
 
 // ============================================================
 // IMPORT USER MEMORY
-// ============================================================
-//
-// Designed so persistent storage can be added later.
-//
 // ============================================================
 
 export function importUserMemory(
@@ -3831,6 +4624,11 @@ export function clearUserMemory(
         project.id
       );
 
+      firestoreDelete(
+        "zedProjects",
+        project.id
+      );
+
       projectCount++;
     }
   }
@@ -3840,6 +4638,16 @@ export function clearUserMemory(
     footballMemory.delete(
       normalizedUserId
     );
+
+
+  if (
+    footballDeleted
+  ) {
+    firestoreDelete(
+      "zedFootballMemory",
+      normalizedUserId
+    );
+  }
 
 
   return {
@@ -3861,7 +4669,8 @@ export function clearUserMemory(
 
 export function initializeMemory() {
   return {
-    ready: true,
+    ready:
+      true,
 
     conversationMemory:
       true,
@@ -3876,10 +4685,15 @@ export function initializeMemory() {
       true,
 
     persistentStorage:
-      false,
+      firebasePersistenceEnabled,
 
     storage:
-      "server-memory"
+      firebasePersistenceEnabled
+        ? "firestore-with-server-cache"
+        : "server-memory",
+
+    firebaseHydrationComplete:
+      firebaseHydrationComplete
   };
 }
 
@@ -3892,6 +4706,13 @@ setInterval(
   runMemoryMaintenance,
   MEMORY_CLEANUP_INTERVAL
 );
+
+
+// ============================================================
+// RESTORE FIRESTORE DATA BEFORE SERVER STARTUP
+// ============================================================
+
+await hydrateFromFirestore();
 
 
 // ============================================================

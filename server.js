@@ -27,7 +27,6 @@ import {
   remember,
   getUserMemories,
   searchMemories,
-  retrieveRelevantMemories,
   buildMemoryContext,
 
   detectRememberRequest,
@@ -461,6 +460,9 @@ function isCurrentInformationQuestion(
 
     "announcement",
     "announcements",
+
+    "international break",
+    "international duty",
 
     "price",
     "prices",
@@ -2323,6 +2325,9 @@ app.post(
       if (
         isCurrentInformationQuestion(
           userMessage
+        ) &&
+        !shouldUseFootballData(
+          userMessage
         )
       ) {
 
@@ -2520,26 +2525,38 @@ CURRENT NEWS FACT EXTRACTION
 When answering current news questions, extract the concrete facts
 from the search results before writing the answer.
 
-For EVERY important named person mentioned in the search results:
+For EVERY important named person mentioned in the newest relevant
+search results:
 
 - Identify the person's name.
 - Identify exactly what happened to that person.
 - Identify the current status if the source provides it.
+- Identify whether the information is confirmed, reported,
+  suspected or speculative.
 - Include the relevant date or timing when useful.
 - Do not combine people into one vague sentence if their situations
   are different.
 
-For example, if the search results contain different updates for:
+IMPORTANT:
 
-Martin Ødegaard
-Kai Havertz
-Declan Rice
+Different people can have completely different situations.
 
-do NOT write:
+For example, one player may have been forced off with a suspected
+injury, another may have returned to play after an earlier knock,
+and another may have withdrawn from international duty for rest or
+workload management.
 
-"Ødegaard, Havertz and Rice have ongoing fitness concerns."
+Report those situations separately.
 
-Instead, give each person's actual reported update separately.
+Do NOT write vague grouped statements such as:
+
+"Several players have fitness concerns."
+
+when the search results provide specific information about each
+player.
+
+Instead, state the specific reported situation for each important
+player.
 
 If the source says a player played a full match after an earlier
 knock, say that.
@@ -2548,7 +2565,8 @@ If the source says a player left international duty with a muscle
 problem, say that.
 
 If the source says a player was withdrawn for rest or workload
-management and was not believed to be injured, say that clearly.
+management and was not believed to have a current injury, say that
+clearly.
 
 Do not assume that every player mentioned in an injury article is
 currently injured.
@@ -2570,11 +2588,15 @@ For questions such as:
 
 prefer this structure:
 
-1. The most important current development.
-2. Other important current developments with specific names and
-   details.
-3. Transfer news only when the supplied search results actually
-   support it.
+1. Start with the most important current development.
+2. Give the specific details and names.
+3. Give other important current developments with specific names
+   and details.
+4. Include transfer news only when the supplied search results
+   actually support it.
+
+For multiple player updates, prefer separate sentences or bullets
+so that the user's situation is clear.
 
 Do not add a transfer name merely because it sounds plausible.
 

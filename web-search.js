@@ -64,7 +64,44 @@ function isFootballQuestion(query = "") {
     "zambia"
   ];
 
-  return footballWords.some(word => text.includes(word));
+  return footballWords.some(word =>
+    text.includes(word)
+  );
+}
+
+function isFootballScoreRequest(query = "") {
+  const text = query.toLowerCase();
+
+  const scoreWords = [
+    "live score",
+    "live scores",
+    "score",
+    "scores",
+    "result",
+    "results",
+    "fixture",
+    "fixtures",
+    "schedule",
+    "today's matches",
+    "todays matches",
+    "today matches",
+    "matches today",
+    "games today",
+    "playing today",
+    "who is playing",
+    "who are playing",
+    "upcoming match",
+    "upcoming matches",
+    "next match",
+    "next matches",
+    "kick off",
+    "kickoff",
+    "kick-off"
+  ];
+
+  return scoreWords.some(word =>
+    text.includes(word)
+  );
 }
 
 function findFootballEvents(value, found = []) {
@@ -113,16 +150,23 @@ function extractFootballMatch(event) {
       event.competitors ||
       [];
 
-    if (!Array.isArray(competitors) || competitors.length < 2) {
+    if (
+      !Array.isArray(competitors) ||
+      competitors.length < 2
+    ) {
       return null;
     }
 
     const home =
-      competitors.find(team => team.homeAway === "home") ||
+      competitors.find(
+        team => team.homeAway === "home"
+      ) ||
       competitors[0];
 
     const away =
-      competitors.find(team => team.homeAway === "away") ||
+      competitors.find(
+        team => team.homeAway === "away"
+      ) ||
       competitors[1];
 
     if (!home || !away) {
@@ -181,12 +225,14 @@ function extractFootballMatch(event) {
       competition.startDate ||
       "";
 
-    const matchDate = date
-      ? new Date(date)
-      : null;
+    const matchDate =
+      date
+        ? new Date(date)
+        : null;
 
     const time =
-      matchDate && !Number.isNaN(matchDate.getTime())
+      matchDate &&
+      !Number.isNaN(matchDate.getTime())
         ? new Intl.DateTimeFormat("en-GB", {
             timeZone: "Africa/Lusaka",
             hour: "2-digit",
@@ -281,9 +327,10 @@ async function searchESPNFootball() {
       return [];
     }
 
-    const matches = events
-      .map(extractFootballMatch)
-      .filter(Boolean);
+    const matches =
+      events
+        .map(extractFootballMatch)
+        .filter(Boolean);
 
     const uniqueMatches = [];
     const seen = new Set();
@@ -340,7 +387,7 @@ async function searchDuckDuckGo(query) {
     const results = [];
 
     const resultPattern =
-      /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+      /<a[^>]+class=["'][^"']*result__a[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 
     let match;
 
@@ -348,12 +395,17 @@ async function searchDuckDuckGo(query) {
       (match = resultPattern.exec(html)) !== null &&
       results.length < 10
     ) {
-      const link = match[1];
+      let link = match[1];
       const title = cleanText(match[2]);
 
       if (!title || !link) {
         continue;
       }
+
+      link = link.replace(
+        /&amp;/g,
+        "&"
+      );
 
       results.push({
         title,
@@ -416,10 +468,14 @@ async function searchGoogleNews(query) {
       const block = item[1];
 
       const titleMatch =
-        block.match(/<title>([\s\S]*?)<\/title>/i);
+        block.match(
+          /<title>([\s\S]*?)<\/title>/i
+        );
 
       const linkMatch =
-        block.match(/<link>([\s\S]*?)<\/link>/i);
+        block.match(
+          /<link>([\s\S]*?)<\/link>/i
+        );
 
       const descriptionMatch =
         block.match(
@@ -472,7 +528,10 @@ async function searchGoogleNews(query) {
 }
 
 function formatFootballResults(matches) {
-  if (!Array.isArray(matches) || matches.length === 0) {
+  if (
+    !Array.isArray(matches) ||
+    matches.length === 0
+  ) {
     return "";
   }
 
@@ -496,8 +555,12 @@ function formatFootballResults(matches) {
       line += ` — ${match.status}`;
     }
 
-    if (match.time && !match.completed) {
-      line += ` — Zambia time ${match.time}`;
+    if (
+      match.time &&
+      !match.completed
+    ) {
+      line +=
+        ` — Zambia time ${match.time}`;
     }
 
     lines.push(line);
@@ -520,89 +583,11 @@ function formatFootballResults(matches) {
   return "\n" + lines.join("\n");
 }
 
-export async function webSearch(userQuery = "") {
-  console.log(
-    "================================="
-  );
-
-  console.log(
-    "Zed web search:",
-    userQuery
-  );
-
-  if (isFootballQuestion(userQuery)) {
-    console.log(
-      "Football question detected."
-    );
-
-    const footballResults =
-      await searchESPNFootball();
-
-    if (footballResults.length > 0) {
-      console.log(
-        `Football search successful: ${footballResults.length} matches`
-      );
-
-      return formatFootballResults(
-        footballResults
-      );
-    }
-
-    console.log(
-      "Football search returned no ESPN matches. Trying general web search."
-    );
-  }
-
-  const searchQueries = [
-    userQuery,
-    `${userQuery} latest`,
-    `${userQuery} today`
-  ];
-
-  const allResults = [];
-
-  for (const query of searchQueries) {
-    const results =
-      await searchDuckDuckGo(query);
-
-    allResults.push(
-      ...results
-    );
-  }
-
-  const newsResults =
-    await searchGoogleNews(userQuery);
-
-  allResults.push(
-    ...newsResults
-  );
-
-  const uniqueResults = [];
-  const seenUrls = new Set();
-
-  for (const result of allResults) {
-    if (!result?.url) {
-      continue;
-    }
-
-    if (seenUrls.has(result.url)) {
-      continue;
-    }
-
-    seenUrls.add(result.url);
-
-    uniqueResults.push(result);
-
-    if (uniqueResults.length >= 20) {
-      break;
-    }
-  }
-
-  console.log(
-    `Final web results: ${uniqueResults.length}`
-  );
-
-  if (uniqueResults.length === 0) {
+function formatWebResults(uniqueResults) {
+  if (
+    !Array.isArray(uniqueResults) ||
+    uniqueResults.length === 0
+  ) {
     return "";
   }
 
@@ -636,7 +621,145 @@ export async function webSearch(userQuery = "") {
   return "\n" + lines.join("\n");
 }
 
-export function shouldSearchWeb(userQuery = "") {
+export async function webSearch(
+  userQuery = ""
+) {
+  console.log(
+    "================================="
+  );
+
+  console.log(
+    "Zed web search:",
+    userQuery
+  );
+
+  const football =
+    isFootballQuestion(userQuery);
+
+  const footballScoreRequest =
+    football &&
+    isFootballScoreRequest(userQuery);
+
+  /*
+   * ESPN is now used only for actual
+   * football score / fixture / result
+   * requests.
+   *
+   * Football news, transfers, club
+   * updates and general current football
+   * questions continue to general web search.
+   */
+  if (footballScoreRequest) {
+    console.log(
+      "Football score/fixture request detected."
+    );
+
+    const footballResults =
+      await searchESPNFootball();
+
+    if (footballResults.length > 0) {
+      console.log(
+        `Football scoreboard successful: ${footballResults.length} matches`
+      );
+
+      return formatFootballResults(
+        footballResults
+      );
+    }
+
+    console.log(
+      "ESPN returned no matches. Continuing with general web search."
+    );
+  }
+
+  /*
+   * General web search.
+   *
+   * This also runs for football questions
+   * such as:
+   * - latest Arsenal news
+   * - Arsenal transfers
+   * - Barcelona news
+   * - Premier League news
+   * - latest football updates
+   */
+  const searchQueries = [
+    userQuery,
+    `${userQuery} latest`,
+    `${userQuery} today`
+  ];
+
+  const allResults = [];
+
+  for (const query of searchQueries) {
+    const results =
+      await searchDuckDuckGo(query);
+
+    allResults.push(
+      ...results
+    );
+  }
+
+  const newsResults =
+    await searchGoogleNews(userQuery);
+
+  allResults.push(
+    ...newsResults
+  );
+
+  const uniqueResults = [];
+  const seenUrls = new Set();
+
+  for (const result of allResults) {
+    if (!result?.url) {
+      continue;
+    }
+
+    const normalizedUrl =
+      result.url.trim();
+
+    if (!normalizedUrl) {
+      continue;
+    }
+
+    if (
+      seenUrls.has(normalizedUrl)
+    ) {
+      continue;
+    }
+
+    seenUrls.add(normalizedUrl);
+
+    uniqueResults.push({
+      ...result,
+      url: normalizedUrl
+    });
+
+    if (
+      uniqueResults.length >= 20
+    ) {
+      break;
+    }
+  }
+
+  console.log(
+    `Final web results: ${uniqueResults.length}`
+  );
+
+  if (
+    uniqueResults.length === 0
+  ) {
+    return "";
+  }
+
+  return formatWebResults(
+    uniqueResults
+  );
+}
+
+export function shouldSearchWeb(
+  userQuery = ""
+) {
   const text =
     userQuery.toLowerCase();
 

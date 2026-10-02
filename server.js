@@ -230,6 +230,219 @@ function formatHistory(
 
 
 // ============================================================
+// CHAT HISTORY PERSISTENCE
+// ============================================================
+
+/*
+ * Chat history is loaded dynamically.
+ *
+ * This is intentional.
+ *
+ * If Firebase or firebase-admin has a configuration
+ * problem, Zed AI itself can still start and work.
+ */
+
+let chatHistoryModule = null;
+let chatHistoryLoadAttempted = false;
+
+
+async function getChatHistoryModule() {
+  if (
+    chatHistoryLoadAttempted
+  ) {
+    return chatHistoryModule;
+  }
+
+  chatHistoryLoadAttempted = true;
+
+  try {
+    chatHistoryModule =
+      await import(
+        "./storage/chat-history.js"
+      );
+
+    return chatHistoryModule;
+
+  } catch (error) {
+
+    console.error(
+      "Chat history module unavailable:",
+      error.message
+    );
+
+    chatHistoryModule =
+      null;
+
+    return null;
+  }
+}
+
+
+/*
+ * Save a conversation without allowing
+ * chat-history problems to break the AI.
+ */
+
+async function persistConversation(
+  userId,
+  conversation
+) {
+  try {
+
+    const history =
+      await getChatHistoryModule();
+
+    if (!history) {
+      return {
+        ok:
+          false,
+
+        persistent:
+          false
+      };
+    }
+
+    const firstUserMessage =
+      Array.isArray(
+        conversation?.messages
+      )
+        ? conversation.messages.find(
+            message =>
+              message.role === "user"
+          )
+        : null;
+
+    const title =
+      cleanText(
+        firstUserMessage?.content ||
+          "New chat"
+      ).slice(0, 80) ||
+      "New chat";
+
+    return await history.saveChat({
+      userId,
+
+      conversationId:
+        conversation.id,
+
+      title,
+
+      messages:
+        Array.isArray(
+          conversation.messages
+        )
+          ? conversation.messages
+          : []
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Chat history save error:",
+      error.message
+    );
+
+    return {
+      ok:
+        false,
+
+      persistent:
+        false,
+
+      error:
+        error.message
+    };
+  }
+}
+
+
+/*
+ * If Zed restarts and a conversation exists
+ * in Firebase but not in server memory,
+ * restore it before continuing the conversation.
+ */
+
+async function restoreConversation(
+  userId,
+  conversation
+) {
+  try {
+
+    if (
+      !conversation ||
+      (
+        Array.isArray(
+          conversation.messages
+        ) &&
+        conversation.messages.length > 0
+      )
+    ) {
+      return conversation;
+    }
+
+    const history =
+      await getChatHistoryModule();
+
+    if (!history) {
+      return conversation;
+    }
+
+    const stored =
+      await history.getChat(
+        userId,
+        conversation.id
+      );
+
+    if (!stored) {
+      return conversation;
+    }
+
+    conversation.messages =
+      Array.isArray(
+        stored.messages
+      )
+        ? stored.messages
+        : [];
+
+    conversation.metadata = {
+      ...(conversation.metadata ||
+        {}),
+
+      ...(stored.metadata ||
+        {}),
+
+      userId
+    };
+
+    if (
+      stored.createdAt
+    ) {
+      conversation.createdAt =
+        stored.createdAt;
+    }
+
+    if (
+      stored.updatedAt
+    ) {
+      conversation.updatedAt =
+        stored.updatedAt;
+    }
+
+    return conversation;
+
+  } catch (error) {
+
+    console.error(
+      "Chat history restore error:",
+      error.message
+    );
+
+    return conversation;
+  }
+}
+
+
+// ============================================================
 // CURRENT DATE
 // ============================================================
 
@@ -681,10 +894,6 @@ function processUserMemory(
   userMessage
 ) {
   try {
-    /*
-     * Explicit "remember this" requests
-     * are handled first.
-     */
 
     const explicit =
       detectRememberRequest(
@@ -741,18 +950,6 @@ function processUserMemory(
       };
     }
 
-
-    /*
-     * Automatic memory extraction.
-     *
-     * Example:
-     *
-     * "My name is Believer"
-     *
-     * becomes:
-     *
-     * "User's name is Believer."
-     */
 
     const candidate =
       extractMemoryCandidate(
@@ -820,11 +1017,6 @@ function processUserMemory(
     };
 
   } catch (error) {
-
-    /*
-     * Memory failure must NEVER
-     * stop Zed from answering.
-     */
 
     console.error(
       "Memory save error:",
@@ -1092,7 +1284,7 @@ app.get(
 
 app.post(
   "/api/new-chat",
-  (req, res) => {
+  async (req, res) => {
 
     const userId =
       safeUserId(
@@ -1101,10 +1293,6 @@ app.post(
 
     const conversation =
       getConversation();
-
-    /*
-     * Store ownership metadata.
-     */
 
     conversation.metadata = {
       ...(conversation.metadata ||
@@ -1115,6 +1303,19 @@ app.post(
       createdBy:
         "zed-ai"
     };
+
+    /*
+     * Save the new empty conversation
+     * to persistent storage.
+     *
+     * If Firebase is unavailable,
+     * Zed still works normally.
+     */
+
+    await persistConversation(
+      userId,
+      conversation
+    );
 
     res.json({
       ok:
@@ -1133,19 +1334,63 @@ app.post(
 
 app.delete(
   "/api/chat/:conversationId",
-  (req, res) => {
+  async (req, res) => {
 
-    const deleted =
-      deleteConversation(
+    const conversationId =
+      safeConversationId(
         req.params
           .conversationId
       );
+
+    const userId =
+      safeUserId(
+        req.query?.userId ||
+        req.body?.userId
+      );
+
+    const localDeleted =
+      deleteConversation(
+        conversationId
+      );
+
+    let persistentDeleted =
+      false;
+
+    try {
+
+      const history =
+        await getChatHistoryModule();
+
+      if (history) {
+
+        persistentDeleted =
+          await history.deleteChat(
+            userId,
+            conversationId
+          );
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Persistent chat delete error:",
+        error.message
+      );
+    }
 
     res.json({
       ok:
         true,
 
-      deleted
+      deleted:
+        Boolean(
+          localDeleted ||
+          persistentDeleted
+        ),
+
+      localDeleted,
+
+      persistentDeleted
     });
   }
 );
@@ -1157,30 +1402,157 @@ app.delete(
 
 app.get(
   "/api/chat/:conversationId",
-  (req, res) => {
+  async (req, res) => {
 
-    const conversation =
-      getConversationDetails(
+    const conversationId =
+      safeConversationId(
         req.params
           .conversationId
       );
 
-    if (!conversation) {
-      return res.status(404).json({
-        ok:
-          false,
+    /*
+     * First check the existing
+     * in-memory conversation.
+     */
 
-        error:
-          "Conversation not found."
+    const conversation =
+      getConversationDetails(
+        conversationId
+      );
+
+    if (conversation) {
+      return res.json({
+        ok:
+          true,
+
+        conversation
       });
     }
 
-    res.json({
-      ok:
-        true,
 
-      conversation
+    /*
+     * If it is not in memory,
+     * look for it in Firebase.
+     */
+
+    const userId =
+      safeUserId(
+        req.query?.userId
+      );
+
+    try {
+
+      const history =
+        await getChatHistoryModule();
+
+      if (history) {
+
+        const stored =
+          await history.getChat(
+            userId,
+            conversationId
+          );
+
+        if (stored) {
+
+          return res.json({
+            ok:
+              true,
+
+            conversation:
+              stored
+          });
+        }
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Persistent chat retrieval error:",
+        error.message
+      );
+    }
+
+
+    return res.status(404).json({
+      ok:
+        false,
+
+      error:
+        "Conversation not found."
     });
+  }
+);
+
+
+// ============================================================
+// GET ALL USER CHATS
+// ============================================================
+
+app.get(
+  "/api/chats",
+  async (req, res) => {
+
+    const userId =
+      safeUserId(
+        req.query?.userId
+      );
+
+    try {
+
+      const history =
+        await getChatHistoryModule();
+
+      if (!history) {
+
+        return res.json({
+          ok:
+            true,
+
+          chats:
+            [],
+
+          persistent:
+            false
+        });
+      }
+
+      const chats =
+        await history.getChats(
+          userId
+        );
+
+      return res.json({
+        ok:
+          true,
+
+        chats,
+
+        persistent:
+          true
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Chat list error:",
+        error.message
+      );
+
+      return res.json({
+        ok:
+          true,
+
+        chats:
+          [],
+
+        persistent:
+          false,
+
+        error:
+          error.message
+      });
+    }
   }
 );
 
@@ -1668,11 +2040,6 @@ app.post(
           req.body?.message
         );
 
-      /*
-       * Never let an empty message
-       * reach the AI providers.
-       */
-
       if (!userMessage) {
         return res.status(400).json({
           ok:
@@ -1711,6 +2078,20 @@ app.post(
 
 
       /*
+       * IMPORTANT:
+       *
+       * If Render restarted and the conversation
+       * is no longer in server memory, restore it
+       * from Firebase before adding the new message.
+       */
+
+      await restoreConversation(
+        userId,
+        conversation
+      );
+
+
+      /*
        * Make sure the conversation belongs
        * to this user.
        */
@@ -1737,6 +2118,19 @@ app.post(
         conversation,
         "user",
         userMessage
+      );
+
+
+      /*
+       * Persist the user message immediately.
+       *
+       * If the AI provider fails afterwards,
+       * the user's message is still saved.
+       */
+
+      await persistConversation(
+        userId,
+        conversation
       );
 
 
@@ -2134,6 +2528,18 @@ ${userMessage}
       );
 
 
+      /*
+       * Persist the complete conversation
+       * after Zed has answered.
+       */
+
+      const chatPersistence =
+        await persistConversation(
+          userId,
+          conversation
+        );
+
+
       // ------------------------------------------------------
       // RESPONSE
       // ------------------------------------------------------
@@ -2177,6 +2583,11 @@ ${userMessage}
                 500
             }
           ).length,
+
+        chatPersistent:
+          Boolean(
+            chatPersistence?.persistent
+          ),
 
         forgetResult
       });
@@ -2261,7 +2672,7 @@ app.listen(
     );
 
     console.log(
-      "Memory storage: server memory"
+      "Chat history: Firebase persistence enabled when configured"
     );
   }
 );

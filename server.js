@@ -428,28 +428,65 @@ function isCurrentInformationQuestion(
     "tonight",
     "tomorrow",
     "yesterday",
+
     "latest",
     "current",
+    "currently",
     "now",
     "recent",
+    "recently",
+
     "news",
+    "update",
+    "updates",
+    "breaking",
+
+    "injury",
+    "injuries",
+    "injured",
+    "fitness",
+    "fit",
+    "knock",
+
+    "transfer",
+    "transfers",
+    "transferred",
+    "rumour",
+    "rumours",
+    "rumor",
+    "rumors",
+
+    "contract",
+    "contracts",
+
+    "announcement",
+    "announcements",
+
     "price",
     "prices",
+
     "weather",
+
     "score",
     "scores",
+
     "fixture",
     "fixtures",
+
     "result",
     "results",
+
     "standings",
     "table",
     "schedule",
+
     "opening hours",
     "available",
     "availability",
+
     "this week",
     "this month",
+
     "2026"
   ];
 
@@ -2430,8 +2467,7 @@ When web search data is supplied:
 
 2. Prefer the newest relevant information.
 
-3. Use the actual details contained in the newest relevant
-   sources.
+3. Use the actual details contained in the newest relevant sources.
 
 4. If a source identifies a specific person, player, club, event,
    injury or transfer, use that specific information.
@@ -2478,36 +2514,75 @@ When web search data is supplied:
 
 
 ============================================================
-SPECIFIC CURRENT-NEWS ANSWERING
+CURRENT NEWS FACT EXTRACTION
 ============================================================
 
-For a question such as:
+When answering current news questions, extract the concrete facts
+from the search results before writing the answer.
+
+For EVERY important named person mentioned in the search results:
+
+- Identify the person's name.
+- Identify exactly what happened to that person.
+- Identify the current status if the source provides it.
+- Include the relevant date or timing when useful.
+- Do not combine people into one vague sentence if their situations
+  are different.
+
+For example, if the search results contain different updates for:
+
+Martin Ødegaard
+Kai Havertz
+Declan Rice
+
+do NOT write:
+
+"Ødegaard, Havertz and Rice have ongoing fitness concerns."
+
+Instead, give each person's actual reported update separately.
+
+If the source says a player played a full match after an earlier
+knock, say that.
+
+If the source says a player left international duty with a muscle
+problem, say that.
+
+If the source says a player was withdrawn for rest or workload
+management and was not believed to be injured, say that clearly.
+
+Do not assume that every player mentioned in an injury article is
+currently injured.
+
+Do not treat a precaution, withdrawal, rest decision or previous
+knock as a confirmed current injury.
+
+Only use the specific facts actually supported by the supplied
+search results.
+
+
+============================================================
+CURRENT NEWS ANSWER STRUCTURE
+============================================================
+
+For questions such as:
 
 "What is the latest Arsenal news?"
 
-do NOT simply produce a vague summary.
+prefer this structure:
 
-Instead:
+1. The most important current development.
+2. Other important current developments with specific names and
+   details.
+3. Transfer news only when the supplied search results actually
+   support it.
 
-- Identify the most important current development.
-- Name the people involved.
-- State what actually happened.
-- Include the date when useful.
-- Mention other important current developments.
-- Clearly label transfer rumours as rumours or reports.
-- Leave out unrelated old matches and historical information.
+Do not add a transfer name merely because it sounds plausible.
 
-For example, if the supplied search results say:
+If a transfer report is weak, uncertain or speculative, identify it
+as speculation.
 
-"Christos Tzolis was forced off after 18 minutes"
-
-the answer should say:
-
-"Christos Tzolis was forced off after 18 minutes..."
-
-and NOT:
-
-"Another Arsenal player was forced off..."
+If there is not enough reliable information about a transfer, leave
+it out instead of guessing.
 
 
 ============================================================
@@ -2568,6 +2643,12 @@ is being linked or that reports claim there is interest.
 Do not say the player has joined the club unless the supplied
 information confirms the transfer.
 
+Only mention a transfer rumour when the supplied search results
+contain evidence for that rumour.
+
+Do not manufacture transfer stories from general football knowledge.
+
+
 ============================================================
 INJURY RULES
 ============================================================
@@ -2580,6 +2661,8 @@ When discussing an injury:
 - Distinguish a confirmed diagnosis from a suspected injury.
 - Do not diagnose the player yourself.
 - Do not invent a recovery period.
+- Do not describe every player mentioned in an injury article as
+  currently injured.
 
 If newer information says a player returned to action or was
 cleared to play, do not describe that player as currently injured

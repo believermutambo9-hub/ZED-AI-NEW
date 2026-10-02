@@ -14,6 +14,7 @@ import {
 } from "./features/football.js";
 
 import { webSearch } from "./web-search.js";
+
 import {
   buildCurrentInformationPrompt
 } from "./features/current-information.js";
@@ -2228,7 +2229,7 @@ app.post(
       /*
        * IMPORTANT:
        *
-       * Web search is now allowed even when
+       * Web search is allowed even when
        * the question is also a football question.
        *
        * This means football questions can receive
@@ -2442,12 +2443,34 @@ ${userMessage}
 
 
       // ------------------------------------------------------
+      // CURRENT INFORMATION INTELLIGENCE
+      // ------------------------------------------------------
+
+      const currentInformation =
+        buildCurrentInformationPrompt({
+          currentDate,
+          searchData,
+          footballData
+        });
+
+
+      // ------------------------------------------------------
+      // FINAL AI PROMPT
+      // ------------------------------------------------------
+
+      const finalPrompt =
+        `${currentInformation}
+
+${prompt}`;
+
+
+      // ------------------------------------------------------
       // AI
       // ------------------------------------------------------
 
       const result =
         await askAI(
-          prompt
+          finalPrompt
         );
 
 

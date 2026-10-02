@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { randomUUID } from "crypto";
 import { GoogleGenAI } from "@google/genai";
 
 import {
@@ -22,16 +21,10 @@ import {
 import {
   getConversation,
   addMessage,
-  getConversationHistory,
   getConversationDetails,
   deleteConversation,
-  getConversationCount,
 
   remember,
-  getMemory,
-  updateMemory,
-  forgetMemory,
-  forgetUserMemories,
   getUserMemories,
   searchMemories,
   retrieveRelevantMemories,
@@ -40,30 +33,16 @@ import {
   detectRememberRequest,
   detectForgetRequest,
   extractMemoryCandidate,
-  rememberFromMessage,
 
   getMemoryStats,
 
   createProject,
-  getProject,
   getUserProjects,
-  updateProject,
-  deleteProject,
-  rememberProject,
 
-  rememberFootballTeam,
-  getFootballTeams,
-  rememberFootballCompetition,
-  getFootballCompetitions,
   rememberFootballConversation,
-  setFootballPreference,
-  getFootballPreferences,
   getFootballMemory,
 
-  runMemoryMaintenance,
   getSystemMemoryStats,
-  exportUserMemory,
-  importUserMemory,
   clearUserMemory,
   initializeMemory
 } from "./features/memory.js";
@@ -75,8 +54,11 @@ import {
 
 const app = express();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename =
+  fileURLToPath(import.meta.url);
+
+const __dirname =
+  path.dirname(__filename);
 
 const PORT =
   process.env.PORT || 10000;
@@ -416,8 +398,10 @@ function getCurrentDateForZambia() {
     {
       timeZone:
         "Africa/Lusaka",
+
       dateStyle:
         "full",
+
       timeStyle:
         "long"
     }
@@ -767,7 +751,9 @@ async function askAI(
       provider:
         "gemini"
     };
+
   } catch (error) {
+
     errors.push(
       `Gemini: ${error.message}`
     );
@@ -786,7 +772,9 @@ async function askAI(
       provider:
         "groq"
     };
+
   } catch (error) {
+
     errors.push(
       `Groq: ${error.message}`
     );
@@ -805,7 +793,9 @@ async function askAI(
       provider:
         "openrouter"
     };
+
   } catch (error) {
+
     errors.push(
       `OpenRouter: ${error.message}`
     );
@@ -1010,6 +1000,7 @@ function processForgetRequest(
   message
 ) {
   try {
+
     const request =
       detectForgetRequest(
         message
@@ -2210,7 +2201,6 @@ app.post(
 
           footballData =
             "No verified football data was available for this request.";
-
         }
       }
 
@@ -2225,16 +2215,6 @@ app.post(
       let searchData =
         "";
 
-
-      /*
-       * IMPORTANT:
-       *
-       * Web search is allowed even when
-       * the question is also a football question.
-       *
-       * This means football questions can receive
-       * both football data and web/news data.
-       */
 
       if (
         isCurrentInformationQuestion(
@@ -2387,7 +2367,155 @@ ${
 
 
 ============================================================
-HOW TO ANSWER
+CURRENT INFORMATION ANSWERING RULES
+============================================================
+
+These rules are extremely important whenever web search data
+is supplied.
+
+The current date is:
+
+${currentDate}
+
+For questions containing words such as:
+
+- latest
+- current
+- today
+- now
+- recent
+- news
+- update
+- updates
+- this week
+
+the user is asking about information that is current relative
+to the date above.
+
+Follow these rules strictly:
+
+1. READ THE PUBLICATION DATE OF SEARCH RESULTS.
+
+2. USE THE NEWEST RELEVANT RESULT FIRST.
+
+3. DO NOT combine an old article with a newer article and
+   present both as if they describe the same current situation.
+
+4. DO NOT describe an old report as an ongoing current situation
+   when a newer result shows that the situation changed.
+
+5. If a newer article confirms that something has already happened,
+   use that newer information instead of repeating an older report.
+
+6. Older articles may only be used as background or context.
+   If you use one, clearly describe it as older information.
+
+7. When a current claim is based on a report rather than a confirmed
+   announcement, say "reports indicate", "according to reports",
+   or similar wording.
+
+8. Never turn a rumour into a confirmed fact.
+
+9. Never turn an old rumour into a current rumour simply because
+   the article is present in the search results.
+
+10. If several articles describe the same event, treat them as
+    one development rather than several separate developments.
+
+11. If search results conflict, prefer the newest relevant evidence
+    and explain the conflict briefly when necessary.
+
+12. Do not fill the answer with unrelated old search results just
+    because they mention the user's subject.
+
+13. For a question asking "latest news", give the newest relevant
+    developments first.
+
+14. If the search results do not contain enough recent information,
+    say that the available results do not provide enough confirmation
+    rather than guessing.
+
+15. Do not invent dates, events, injuries, transfers, contracts,
+    scores, results or other current information.
+
+16. When a date is important to understanding whether information
+    is current, include the date.
+
+17. A recent article about an old event is not automatically a new
+    event. Pay attention to both the publication date and what the
+    article actually says happened.
+
+============================================================
+FOOTBALL CURRENT INFORMATION
+============================================================
+
+For football questions:
+
+Use VERIFIED FOOTBALL DATA for:
+
+- live scores
+- completed results
+- fixtures
+- schedules
+- standings
+- league tables
+- structured match information
+
+Use WEB SEARCH DATA for:
+
+- current injuries
+- transfer news
+- transfer rumours
+- contract developments
+- manager news
+- club announcements
+- breaking football news
+- player news
+- current football developments
+
+If both football data and web search data are supplied, use each
+source for the type of information it is intended to provide.
+
+For example:
+
+If an old article says a player was linked with Arsenal but a newer
+article says the move did not happen, do not present the old link as
+a current transfer possibility.
+
+If an older article says a manager was negotiating a contract but a
+newer article says a new contract was agreed, report the newer
+development.
+
+If an old injury article says a player was injured but newer
+information says the player returned, do not describe the player as
+currently injured based only on the old article.
+
+Never invent current football information.
+
+
+============================================================
+ANSWER STYLE FOR CURRENT NEWS
+============================================================
+
+When the user asks for the latest news:
+
+- Start with the newest relevant developments.
+- Do not start with old background information.
+- Do not list every search result.
+- Prefer a few important current developments.
+- Include dates where useful.
+- Clearly distinguish confirmed information from reports and rumours.
+- Do not use an old match result as "latest news" unless the user
+  specifically asks about recent matches.
+- Do not add unrelated historical information merely because it
+  appeared in search results.
+
+The answer should sound like a current news summary, not a list
+of search results.
+
+
+============================================================
+GENERAL ANSWERING RULES
 ============================================================
 
 Answer the user's latest message directly.

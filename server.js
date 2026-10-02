@@ -44,7 +44,9 @@ import {
 
   getSystemMemoryStats,
   clearUserMemory,
-  initializeMemory
+  initializeMemory,
+
+  forgetMemory
 } from "./features/memory.js";
 
 
@@ -513,10 +515,6 @@ function shouldUseFootball(
 
 // ============================================================
 // FOOTBALL DATA DETECTION
-// ============================================================
-// IMPORTANT:
-// Football news questions should use web search.
-// Structured football questions should use football data.
 // ============================================================
 
 function shouldUseFootballData(
@@ -1072,6 +1070,23 @@ function processForgetRequest(
         }
       );
 
+    let deleted =
+      0;
+
+    for (
+      const memory
+      of results
+    ) {
+
+      if (
+        forgetMemory(
+          memory.id
+        )
+      ) {
+        deleted++;
+      }
+    }
+
     return {
       requested:
         true,
@@ -1079,8 +1094,7 @@ function processForgetRequest(
       query:
         request.query,
 
-      found:
-        results.length
+      deleted
     };
 
   } catch (error) {
@@ -1094,7 +1108,10 @@ function processForgetRequest(
       requested:
         true,
 
-      found:
+      query:
+        "",
+
+      deleted:
         0,
 
       error:
@@ -1670,16 +1687,33 @@ app.delete(
   "/api/memory/:memoryId",
   (req, res) => {
 
-    res.json({
-      ok:
-        true,
+    try {
 
-      deleted:
-        false,
+      const deleted =
+        forgetMemory(
+          req.params.memoryId
+        );
 
-      message:
-        "Memory deletion is handled by the memory system."
-    });
+      res.json({
+        ok:
+          true,
+
+        deleted
+      });
+
+    } catch (error) {
+
+      res.status(500).json({
+        ok:
+          false,
+
+        deleted:
+          false,
+
+        error:
+          error.message
+      });
+    }
   }
 );
 
@@ -2140,11 +2174,6 @@ app.post(
       // ------------------------------------------------------
       // FOOTBALL DATA
       // ------------------------------------------------------
-      // IMPORTANT:
-      // Only structured football requests get football data.
-      // News, transfers, injuries and current football
-      // developments go through web search.
-      // ------------------------------------------------------
 
       let footballUsed =
         false;
@@ -2336,19 +2365,6 @@ Never invent memories.
 
 Never claim that something is remembered unless it appears in the supplied memory.
 
-Memory can contain user facts such as:
-
-- name
-- preferences
-- goals
-- projects
-- education
-- work
-- business
-- skills
-- communication preferences
-- football interests
-
 Do not treat memory as a source for live football scores, fixtures, standings or current results.
 
 Live/current football information must come from the supplied football data.
@@ -2405,89 +2421,98 @@ ${
 
 
 ============================================================
-CURRENT INFORMATION ANSWERING RULES
+CURRENT INFORMATION RULES
 ============================================================
 
-These rules are extremely important whenever web search data
-is supplied.
+When web search data is supplied:
 
-The current date is:
+1. Read the publication dates.
 
-${currentDate}
+2. Prefer the newest relevant information.
 
-For questions containing words such as:
+3. Use the actual details contained in the newest relevant
+   sources.
 
-- latest
-- current
-- today
-- now
-- recent
-- news
-- update
-- updates
-- this week
+4. If a source identifies a specific person, player, club, event,
+   injury or transfer, use that specific information.
 
-the user is asking about information that is current relative
-to the date above.
+5. NEVER replace a named person with vague wording such as:
+   "a player", "another player", "someone" or "an individual"
+   when the source provides the person's name.
 
-Follow these rules strictly:
+6. NEVER replace a specific event with vague wording such as:
+   "another incident", "a development" or "an issue" when the
+   actual event is available.
 
-1. READ THE PUBLICATION DATE OF SEARCH RESULTS.
+7. If a source says what happened, explain what happened.
 
-2. USE THE NEWEST RELEVANT RESULT FIRST.
+8. If a source gives a date, use the date when it helps establish
+   recency.
 
-3. DO NOT combine an old article with a newer article and
-   present both as if they describe the same current situation.
+9. If information is reported rather than officially confirmed,
+   clearly identify it as reported information.
 
-4. DO NOT describe an old report as an ongoing current situation
-   when a newer result shows that the situation changed.
+10. Clearly identify rumours and speculation.
 
-5. If a newer article confirms that something has already happened,
-   use that newer information instead of repeating an older report.
+11. Never turn a rumour into a confirmed fact.
 
-6. Older articles may only be used as background or context.
-   If you use one, clearly describe it as older information.
+12. Never turn an old rumour into a current rumour simply because
+    the article appears in the search results.
 
-7. When a current claim is based on a report rather than a confirmed
-   announcement, say "reports indicate", "according to reports",
-   or similar wording.
+13. A recent article about an old event is not necessarily a new
+    event.
 
-8. Never turn a rumour into a confirmed fact.
+14. If several sources describe the same event, treat them as one
+    development.
 
-9. Never turn an old rumour into a current rumour simply because
-   the article is present in the search results.
+15. If newer information changes an older report, use the newer
+    information.
 
-10. If several articles describe the same event, treat them as
-    one development rather than several separate developments.
+16. Do not fill a current-news answer with unrelated older events.
 
-11. If search results conflict, prefer the newest relevant evidence
-    and explain the conflict briefly when necessary.
+17. Do not invent names, dates, events, injuries, transfers,
+    contracts or other current information.
 
-12. Do not fill the answer with unrelated old search results just
-    because they mention the user's subject.
-
-13. For a question asking "latest news", give the newest relevant
-    developments first.
-
-14. If the search results do not contain enough recent information,
-    say that the available results do not provide enough confirmation
+18. If the available search information is insufficient, say so
     rather than guessing.
 
-15. Do not invent dates, events, injuries, transfers, contracts,
-    scores, results or other current information.
 
-16. When a date is important to understanding whether information
-    is current, include the date.
+============================================================
+SPECIFIC CURRENT-NEWS ANSWERING
+============================================================
 
-17. A recent article about an old event is not automatically a new
-    event. Pay attention to both the publication date and what the
-    article actually says happened.
+For a question such as:
+
+"What is the latest Arsenal news?"
+
+do NOT simply produce a vague summary.
+
+Instead:
+
+- Identify the most important current development.
+- Name the people involved.
+- State what actually happened.
+- Include the date when useful.
+- Mention other important current developments.
+- Clearly label transfer rumours as rumours or reports.
+- Leave out unrelated old matches and historical information.
+
+For example, if the supplied search results say:
+
+"Christos Tzolis was forced off after 18 minutes"
+
+the answer should say:
+
+"Christos Tzolis was forced off after 18 minutes..."
+
+and NOT:
+
+"Another Arsenal player was forced off..."
+
 
 ============================================================
 FOOTBALL CURRENT INFORMATION
 ============================================================
-
-For football questions:
 
 Use VERIFIED FOOTBALL DATA for:
 
@@ -2497,59 +2522,68 @@ Use VERIFIED FOOTBALL DATA for:
 - schedules
 - standings
 - league tables
-- structured match information
+- match statistics
+- structured competition information
 
 Use WEB SEARCH DATA for:
 
 - current injuries
-- transfer news
+- injury updates
+- transfers
 - transfer rumours
 - contract developments
 - manager news
 - club announcements
 - breaking football news
 - player news
-- current football developments
+- international-duty updates
+- other current football developments
 
-If both football data and web search data are supplied, use each
-source for the type of information it is intended to provide.
+If both sources are supplied, use each source for the type of
+information it is intended to provide.
 
-For example:
+Do not use an old football fixture or result as current news unless
+the user specifically asks about that fixture or result.
 
-If an old article says a player was linked with Arsenal but a newer
-article says the move did not happen, do not present the old link as
-a current transfer possibility.
-
-If an older article says a manager was negotiating a contract but a
-newer article says a new contract was agreed, report the newer
-development.
-
-If an old injury article says a player was injured but newer
-information says the player returned, do not describe the player as
-currently injured based only on the old article.
-
-Never invent current football information.
+Do not invent football information.
 
 
 ============================================================
-ANSWER STYLE FOR CURRENT NEWS
+TRANSFER RULES
 ============================================================
 
-When the user asks for the latest news:
+Distinguish between:
 
-- Start with the newest relevant developments.
-- Do not start with old background information.
-- Do not list every search result.
-- Prefer a few important current developments.
-- Include dates where useful.
-- Clearly distinguish confirmed information from reports and rumours.
-- Do not use an old match result as "latest news" unless the user
-  specifically asks about recent matches.
-- Do not add unrelated historical information merely because it
-  appeared in search results.
+- completed transfers
+- official announcements
+- reported negotiations
+- reported interest
+- transfer links
+- rumours
+- speculation
 
-The answer should sound like a current news summary, not a list
-of search results.
+If a player is only being linked with a club, say that the player
+is being linked or that reports claim there is interest.
+
+Do not say the player has joined the club unless the supplied
+information confirms the transfer.
+
+============================================================
+INJURY RULES
+============================================================
+
+When discussing an injury:
+
+- Name the player when the source provides the name.
+- State what happened when the source provides the detail.
+- Mention the reported injury type only when supported.
+- Distinguish a confirmed diagnosis from a suspected injury.
+- Do not diagnose the player yourself.
+- Do not invent a recovery period.
+
+If newer information says a player returned to action or was
+cleared to play, do not describe that player as currently injured
+based only on an older report.
 
 
 ============================================================
@@ -2567,7 +2601,7 @@ Use the conversation history to understand references such as:
 "what is my name"
 "what did I tell you"
 
-Use relevant long-term memory when appropriate.
+Use relevant long-term memory naturally.
 
 Do not unnecessarily repeat the entire memory.
 
@@ -2581,15 +2615,18 @@ Do not mention internal tools.
 
 Do not say you are using a memory system.
 
-If the user says "hey", "hello", "hi" or another greeting, simply respond naturally and helpfully.
+If the user says "hey", "hello" or "hi", respond naturally.
 
-If the user asks "what is my name?" and the memory contains the name, answer with the name directly.
+If the user asks "what is my name?" and the memory contains the
+name, answer with the name directly.
 
-If the user explicitly asked Zed to remember something, treat the saved memory as authoritative.
+If the user explicitly asks Zed to remember something, treat the
+saved memory as authoritative.
 
-If the user asks to forget something and it was removed, acknowledge that naturally.
+If the user asks to forget something and it was removed, acknowledge
+that naturally.
 
-For current information, use the supplied web search data when available.
+For current information, use the supplied web search data.
 
 For football questions, use the supplied football data.
 
@@ -2601,7 +2638,8 @@ Keep normal answers concise unless the user asks for detail.
 
 Do not start every answer with "Hello".
 
-Do not say "I don't have access" when the supplied information contains the answer.
+Do not say "I don't have access" when the supplied information
+contains the answer.
 
 USER'S LATEST MESSAGE:
 ${userMessage}

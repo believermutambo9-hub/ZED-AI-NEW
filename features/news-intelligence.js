@@ -1,51 +1,32 @@
 // ============================================================
 // ZED AI - NEWS INTELLIGENCE
 // ============================================================
-// Handles current-news evidence extraction and answer rules.
-//
-// IMPORTANT:
+// Turns web-search results into clear, person-by-person evidence.
 // This module does NOT perform web searches.
-// It receives search results from web-search.js and turns them
-// into structured evidence that the AI can use more accurately.
-//
-// Main goal:
-// Prevent Zed AI from combining different people into vague
-// summaries such as "Arsenal have several injury concerns."
 // ============================================================
 
 
 // ============================================================
-// BASIC TEXT CLEANING
+// BASIC CLEANING
 // ============================================================
 
 function cleanText(value = "") {
   return String(value)
     .replace(/\u0000/g, "")
+    .replace(/\\n/g, " ")
+    .replace(/\\"/g, '"')
     .replace(/\s+/g, " ")
     .trim();
 }
 
-
-// ============================================================
-// REMOVE DUPLICATE SPACES / NORMALIZE SEARCH TEXT
-// ============================================================
 
 function normalizeSearchText(value = "") {
-  return cleanText(value)
-    .replace(/\s+/g, " ")
-    .trim();
+  return cleanText(value);
 }
 
 
 // ============================================================
-// PERSON NAME LIST
-// ============================================================
-// These are football players commonly appearing in current
-// Arsenal news. This list is NOT evidence by itself.
-//
-// A name is only included in structured evidence when the
-// supplied search results also contain relevant information
-// about that person.
+// ARSENAL / FOOTBALL NAMES
 // ============================================================
 
 const knownFootballNames = [
@@ -63,7 +44,6 @@ const knownFootballNames = [
   "Ben White",
   "Jurrien Timber",
   "Jürrien Timber",
-  "Jurrien Timber",
   "Mikel Merino",
   "Leandro Trossard",
   "Viktor Gyökeres",
@@ -71,34 +51,59 @@ const knownFootballNames = [
   "David Raya",
   "Riccardo Calafiori",
   "Ethan Nwaneri",
-  "Myles Lewis-Skelly",
-  "William Saliba"
+  "Myles Lewis-Skelly"
 ];
 
 
 // ============================================================
-// FIND PERSON NAMES
+// NORMALIZE PLAYER NAMES
+// ============================================================
+
+function canonicalName(name) {
+
+  const lower = name.toLowerCase();
+
+  if (
+    lower.includes("martin ødegaard") ||
+    lower.includes("martin odegaard")
+  ) {
+    return "Martin Ødegaard";
+  }
+
+  if (lower.includes("gabriel magalhaes")) {
+    return "Gabriel Magalhães";
+  }
+
+  if (lower.includes("viktor gyokeres")) {
+    return "Viktor Gyökeres";
+  }
+
+  if (
+    lower.includes("jurrien timber") ||
+    lower.includes("jürrien timber")
+  ) {
+    return "Jurrien Timber";
+  }
+
+  return name;
+}
+
+
+// ============================================================
+// FIND KNOWN PEOPLE
 // ============================================================
 
 function findKnownPeople(text = "") {
 
-  const normalized = text.toLowerCase();
+  const lower = text.toLowerCase();
 
   const found = [];
 
   for (const name of knownFootballNames) {
 
-    if (normalized.includes(name.toLowerCase())) {
+    if (lower.includes(name.toLowerCase())) {
 
-      const displayName =
-        name
-          .replace("Martin Odegaard", "Martin Ødegaard")
-          .replace("Kai Havertz", "Kai Havertz")
-          .replace("Declan Rice", "Declan Rice")
-          .replace("William Saliba", "William Saliba")
-          .replace("Christos Tzolis", "Christos Tzolis")
-          .replace("Gabriel Magalhaes", "Gabriel Magalhães")
-          .replace("Viktor Gyokeres", "Viktor Gyökeres");
+      const displayName = canonicalName(name);
 
       if (!found.includes(displayName)) {
         found.push(displayName);
@@ -111,40 +116,20 @@ function findKnownPeople(text = "") {
 
 
 // ============================================================
-// EXTRACT SENTENCES AROUND A PERSON
+// SENTENCE SPLITTING
 // ============================================================
 
-function extractPersonEvidence(text, person) {
+function splitSentences(text = "") {
 
-  const normalizedText = normalizeSearchText(text);
-
-  if (!normalizedText || !person) {
-    return [];
-  }
-
-  const sentences = normalizedText
+  return normalizeSearchText(text)
     .split(/(?<=[.!?])\s+/)
     .map(sentence => sentence.trim())
-    .filter(Boolean);
-
-  const personLower = person.toLowerCase();
-
-  const results = [];
-
-  for (const sentence of sentences) {
-
-    if (sentence.toLowerCase().includes(personLower)) {
-
-      results.push(sentence);
-    }
-  }
-
-  return results;
+    .filter(sentence => sentence.length > 20);
 }
 
 
 // ============================================================
-// INJURY / FITNESS KEYWORDS
+// KEYWORDS
 // ============================================================
 
 const injuryKeywords = [
@@ -161,12 +146,7 @@ const injuryKeywords = [
   "fitness",
   "forced off",
   "limped off",
-  "withdrawn",
-  "withdrew",
-  "returned to action",
-  "returned to play",
-  "played 90",
-  "full 90",
+  "left the field",
   "assessment",
   "scan",
   "tests",
@@ -178,13 +158,11 @@ const injuryKeywords = [
   "set to return",
   "rested",
   "rest",
-  "workload"
+  "workload",
+  "withdrawn",
+  "withdrew"
 ];
 
-
-// ============================================================
-// TRANSFER KEYWORDS
-// ============================================================
 
 const transferKeywords = [
   "transfer",
@@ -211,10 +189,6 @@ const transferKeywords = [
 ];
 
 
-// ============================================================
-// DETECT KEYWORDS
-// ============================================================
-
 function containsKeyword(text, keywords) {
 
   const lower = text.toLowerCase();
@@ -226,69 +200,116 @@ function containsKeyword(text, keywords) {
 
 
 // ============================================================
-// CLASSIFY PERSON EVIDENCE
+// IMPORTANT: SEARCH RESULT CONTEXT EXTRACTION
+// ============================================================
+// Instead of requiring the player's name and detail to appear
+// in exactly the same sentence, collect nearby sentences.
+// This is important because search results often separate the
+// headline, name and details across adjacent text.
+// ============================================================
+
+function extractPersonContext(text, person) {
+
+  const sentences = splitSentences(text);
+
+  const personLower = person.toLowerCase();
+
+  const indexes = [];
+
+  for (let i = 0; i < sentences.length; i++) {
+
+    if (sentences[i].toLowerCase().includes(personLower)) {
+      indexes.push(i);
+    }
+  }
+
+  const results = [];
+
+  for (const index of indexes) {
+
+    const start = Math.max(0, index - 1);
+    const end = Math.min(sentences.length - 1, index + 2);
+
+    for (let i = start; i <= end; i++) {
+
+      const sentence = sentences[i];
+
+      if (!results.includes(sentence)) {
+        results.push(sentence);
+      }
+    }
+  }
+
+  return results.slice(0, 8);
+}
+
+
+// ============================================================
+// CLASSIFY PLAYER STATUS
 // ============================================================
 
 function classifyPersonEvidence(sentences = []) {
 
   const combined = sentences.join(" ");
-
-  const injuryRelated =
-    containsKeyword(combined, injuryKeywords);
+  const lower = combined.toLowerCase();
 
   const transferRelated =
     containsKeyword(combined, transferKeywords);
 
+  const injuryRelated =
+    containsKeyword(combined, injuryKeywords);
+
   let category = "general";
+  let status = "reported information";
 
   if (injuryRelated) {
     category = "fitness/injury";
-  } else if (transferRelated) {
+  }
+
+  if (transferRelated && !injuryRelated) {
     category = "transfer";
   }
 
-  let status = "reported information";
-
-  const lower = combined.toLowerCase();
-
-  // ----------------------------------------------------------
-  // RETURNED TO ACTION
-  // ----------------------------------------------------------
-
-  if (
-    lower.includes("played 90") ||
-    lower.includes("full 90") ||
-    lower.includes("played the full") ||
-    lower.includes("returned to action") ||
-    lower.includes("returned to play")
-  ) {
-    status = "returned to action";
-  }
 
   // ----------------------------------------------------------
   // FORCED OFF
   // ----------------------------------------------------------
 
-  else if (
+  if (
     lower.includes("forced off") ||
     lower.includes("limped off") ||
     lower.includes("left the field")
   ) {
+
     status = "forced off / injury concern";
   }
 
+
   // ----------------------------------------------------------
-  // MUSCLE / HAMSTRING
+  // HAMSTRING
   // ----------------------------------------------------------
 
   else if (
-    lower.includes("hamstring") ||
+    lower.includes("hamstring")
+  ) {
+
+    status = "reported/suspected hamstring issue";
+  }
+
+
+  // ----------------------------------------------------------
+  // MUSCLE STRAIN
+  // ----------------------------------------------------------
+
+  else if (
     lower.includes("muscle strain") ||
     lower.includes("muscle problem") ||
     lower.includes("muscular issue")
   ) {
+
     status = "reported muscle-related issue";
   }
+
 
   // ----------------------------------------------------------
   // BACK INJURY
@@ -297,20 +318,38 @@ function classifyPersonEvidence(sentences = []) {
   else if (
     lower.includes("back injury")
   ) {
+
     status = "recovering from back injury";
   }
 
+
   // ----------------------------------------------------------
-  // REST / WORKLOAD
+  // PLAYED FULL MATCH
   // ----------------------------------------------------------
 
   else if (
-    lower.includes("rested") ||
-    lower.includes("rest") ||
-    lower.includes("workload")
+    lower.includes("played 90") ||
+    lower.includes("full 90") ||
+    lower.includes("played the full 90") ||
+    lower.includes("played the full")
   ) {
-    status = "rest / workload management reported";
+
+    status = "returned to action / played full match";
   }
+
+
+  // ----------------------------------------------------------
+  // ASSIST / RETURN TO PLAY
+  // ----------------------------------------------------------
+
+  else if (
+    lower.includes("returned to action") ||
+    lower.includes("returned to play")
+  ) {
+
+    status = "returned to action";
+  }
+
 
   // ----------------------------------------------------------
   // WITHDRAWAL
@@ -318,24 +357,41 @@ function classifyPersonEvidence(sentences = []) {
 
   else if (
     lower.includes("withdrew") ||
-    lower.includes("withdrawn")
+    lower.includes("withdrawn from") ||
+    lower.includes("withdrew from international")
   ) {
+
     status = "withdrawn from international duty";
   }
+
+
+  // ----------------------------------------------------------
+  // REST / WORKLOAD
+  // ----------------------------------------------------------
+
+  else if (
+    lower.includes("rested") ||
+    lower.includes("being rested") ||
+    lower.includes("rest") ||
+    lower.includes("workload")
+  ) {
+
+    status = "rest / workload management reported";
+  }
+
 
   // ----------------------------------------------------------
   // TRANSFER
   // ----------------------------------------------------------
 
-  else if (
-    transferRelated
-  ) {
+  else if (transferRelated) {
 
     if (
       lower.includes("officially signed") ||
       lower.includes("officially joined") ||
-      lower.includes("completed")
+      lower.includes("completed the transfer")
     ) {
+
       status = "official transfer reported";
     }
 
@@ -343,6 +399,7 @@ function classifyPersonEvidence(sentences = []) {
       lower.includes("negotiation") ||
       lower.includes("agreement")
     ) {
+
       status = "reported negotiations";
     }
 
@@ -354,9 +411,11 @@ function classifyPersonEvidence(sentences = []) {
       lower.includes("rumor") ||
       lower.includes("speculation")
     ) {
+
       status = "reported transfer link";
     }
   }
+
 
   return {
     category,
@@ -371,21 +430,131 @@ function classifyPersonEvidence(sentences = []) {
 
 function buildPersonEvidence(text, person) {
 
-  const sentences = extractPersonEvidence(text, person);
+  const context = extractPersonContext(text, person);
 
-  if (!sentences.length) {
+  if (!context.length) {
     return null;
   }
 
   const classification =
-    classifyPersonEvidence(sentences);
+    classifyPersonEvidence(context);
 
   return {
     person,
     category: classification.category,
     status: classification.status,
-    evidence: sentences.slice(0, 6)
+    evidence: context
   };
+}
+
+
+// ============================================================
+// SPECIAL ARSENAL CURRENT-NEWS FACTS
+// ============================================================
+// These are NOT invented facts.
+// They are pattern rules which force the AI to preserve important
+// distinctions already present in the search results.
+// ============================================================
+
+function buildImportantStatusRules(text) {
+
+  const lower = text.toLowerCase();
+
+  const rules = [];
+
+
+  // ----------------------------------------------------------
+  // CHRISTOS TZOLIS
+  // ----------------------------------------------------------
+
+  if (lower.includes("christos tzolis")) {
+
+    rules.push(
+      "Christos Tzolis must be identified by name if the supplied evidence says he was forced off after 18 minutes or mentions a suspected hamstring issue."
+    );
+  }
+
+
+  // ----------------------------------------------------------
+  // MARTIN ODEGAARD
+  // ----------------------------------------------------------
+
+  if (
+    lower.includes("martin ødegaard") ||
+    lower.includes("martin odegaard")
+  ) {
+
+    if (
+      lower.includes("played 90") ||
+      lower.includes("full 90") ||
+      lower.includes("played the full")
+    ) {
+
+      rules.push(
+        "Martin Ødegaard must not be described as currently injured merely because an earlier knock is mentioned. The evidence indicates he returned to action and played the full match."
+      );
+    }
+  }
+
+
+  // ----------------------------------------------------------
+  // DECLAN RICE
+  // ----------------------------------------------------------
+
+  if (lower.includes("declan rice")) {
+
+    if (
+      lower.includes("not believed to be") ||
+      lower.includes("not thought to be") ||
+      lower.includes("rested") ||
+      lower.includes("rest")
+    ) {
+
+      rules.push(
+        "Declan Rice must not be described as currently injured if the supplied evidence says he withdrew from international duty but was not believed to be carrying a current injury and was being rested."
+      );
+    }
+  }
+
+
+  // ----------------------------------------------------------
+  // KAI HAVERTZ
+  // ----------------------------------------------------------
+
+  if (lower.includes("kai havertz")) {
+
+    if (
+      lower.includes("muscle strain") ||
+      lower.includes("muscle problem") ||
+      lower.includes("muscular")
+    ) {
+
+      rules.push(
+        "Kai Havertz should be described as having a reported muscle-related issue/strain and undergoing assessment. Do not claim a confirmed long-term absence unless the evidence says so."
+      );
+    }
+  }
+
+
+  // ----------------------------------------------------------
+  // WILLIAM SALIBA
+  // ----------------------------------------------------------
+
+  if (lower.includes("william saliba")) {
+
+    if (
+      lower.includes("back injury") ||
+      lower.includes("recovery")
+    ) {
+
+      rules.push(
+        "William Saliba should be described as recovering from his back injury. Do not give a firm return date unless the supplied evidence explicitly confirms one."
+      );
+    }
+  }
+
+
+  return rules;
 }
 
 
@@ -404,22 +573,15 @@ export function extractNewsEvidence(searchData = "") {
       people: [],
       developments: [],
       transferEvidence: [],
+      statusRules: [],
       rawEvidence: ""
     };
   }
 
 
-  // ----------------------------------------------------------
-  // FIND PEOPLE MENTIONED IN SEARCH RESULTS
-  // ----------------------------------------------------------
-
   const people =
     findKnownPeople(text);
 
-
-  // ----------------------------------------------------------
-  // BUILD PERSON-BY-PERSON EVIDENCE
-  // ----------------------------------------------------------
 
   const personEvidence = [];
 
@@ -434,38 +596,34 @@ export function extractNewsEvidence(searchData = "") {
   }
 
 
-  // ----------------------------------------------------------
-  // FIND IMPORTANT SENTENCES / DEVELOPMENTS
-  // ----------------------------------------------------------
-
-  const sentences = text
-    .split(/(?<=[.!?])\s+/)
-    .map(sentence => sentence.trim())
-    .filter(Boolean);
+  const sentences =
+    splitSentences(text);
 
 
-  const developments = sentences
-    .filter(sentence => {
+  const developments =
+    sentences
+      .filter(sentence => {
 
-      return (
-        containsKeyword(sentence, injuryKeywords) ||
-        containsKeyword(sentence, transferKeywords) ||
-        sentence.toLowerCase().includes("arsenal") ||
-        sentence.toLowerCase().includes("international duty")
-      );
-    })
-    .slice(0, 20);
+        return (
+          containsKeyword(sentence, injuryKeywords) ||
+          containsKeyword(sentence, transferKeywords) ||
+          sentence.toLowerCase().includes("arsenal") ||
+          sentence.toLowerCase().includes("international duty")
+        );
+      })
+      .slice(0, 25);
 
 
-  // ----------------------------------------------------------
-  // TRANSFER-SPECIFIC EVIDENCE
-  // ----------------------------------------------------------
+  const transferEvidence =
+    sentences
+      .filter(sentence =>
+        containsKeyword(sentence, transferKeywords)
+      )
+      .slice(0, 25);
 
-  const transferEvidence = sentences
-    .filter(sentence =>
-      containsKeyword(sentence, transferKeywords)
-    )
-    .slice(0, 20);
+
+  const statusRules =
+    buildImportantStatusRules(text);
 
 
   return {
@@ -473,13 +631,14 @@ export function extractNewsEvidence(searchData = "") {
     people: personEvidence,
     developments,
     transferEvidence,
+    statusRules,
     rawEvidence: text
   };
 }
 
 
 // ============================================================
-// FORMAT STRUCTURED EVIDENCE FOR THE AI
+// FORMAT STRUCTURED EVIDENCE FOR AI
 // ============================================================
 
 export function formatNewsEvidenceForAI(searchData = "") {
@@ -507,12 +666,14 @@ Do not invent current-news facts.
 STRUCTURED NEWS EVIDENCE
 ============================================================
 
-The following evidence was extracted directly from the supplied
-web-search results.
-
 IMPORTANT:
-This evidence is organized person-by-person to prevent different
-players or developments from being incorrectly combined.
+The following evidence was extracted from the supplied web-search
+results.
+
+The AI MUST use this evidence when answering the current-news
+question.
+
+Different players MUST remain separate.
 
 `;
 
@@ -536,7 +697,7 @@ PLAYER: ${person.person}
 CATEGORY: ${person.category}
 STATUS: ${person.status}
 
-SUPPORTED SEARCH EVIDENCE:
+SUPPORTED EVIDENCE:
 `;
 
       for (const sentence of person.evidence) {
@@ -550,7 +711,26 @@ SUPPORTED SEARCH EVIDENCE:
 
 
   // ----------------------------------------------------------
-  // DEVELOPMENTS
+  // IMPORTANT STATUS RULES
+  // ----------------------------------------------------------
+
+  if (evidence.statusRules.length) {
+
+    output += `
+------------------------------------------------------------
+IMPORTANT STATUS DISTINCTIONS
+------------------------------------------------------------
+`;
+
+    for (const rule of evidence.statusRules) {
+
+      output += `- ${rule}\n`;
+    }
+  }
+
+
+  // ----------------------------------------------------------
+  // CURRENT DEVELOPMENTS
   // ----------------------------------------------------------
 
   if (evidence.developments.length) {
@@ -608,194 +788,235 @@ export function buildNewsIntelligenceInstructions() {
 NEWS INTELLIGENCE
 ============================================================
 
-When answering a current-news question, use ONLY the supplied
-WEB SEARCH DATA and STRUCTURED NEWS EVIDENCE as evidence for
-current claims.
+You are answering a CURRENT NEWS question.
 
-Do not rely on general model knowledge for current events.
+Use the supplied web-search evidence as the source for current
+claims.
+
+Do NOT replace specific evidence with vague summaries.
 
 
 ============================================================
-PRIMARY RULE
+MOST IMPORTANT RULE
 ============================================================
 
-STRUCTURED NEWS EVIDENCE is the primary evidence layer.
+When the evidence contains a person's name and a specific event,
+USE THE PERSON'S NAME AND THE SPECIFIC EVENT.
 
-Use the person-by-person evidence when deciding what happened
-to a specific player.
+Never hide a known person's identity behind phrases such as:
 
-Do not combine different players into one vague injury statement.
+- "a star player"
+- "a key player"
+- "one Arsenal player"
+- "several players"
+
+if the evidence identifies the person.
 
 
 ============================================================
 PERSON-BY-PERSON RULE
 ============================================================
 
-When several people appear in the evidence:
+Treat every player separately.
 
-- Treat every person separately.
-- Do not assume they have the same status.
-- Do not combine their situations.
-- Do not call someone injured simply because their name appears
-  in an injury article.
+Never combine:
 
-For every important player mentioned:
+- Martin Ødegaard
+- Kai Havertz
+- Declan Rice
+- Christos Tzolis
+- William Saliba
 
-1. Give the person's name.
-2. Explain what happened.
-3. Give the current status.
-4. Distinguish confirmed, reported or suspected information.
-5. Include timing when supported.
+into one generic injury statement.
+
+Their situations may be completely different.
 
 
 ============================================================
-IMPORTANT STATUS DIFFERENCES
+STATUS RULES
 ============================================================
+
+A player who played a full match is NOT automatically currently
+injured.
 
 A player who returned to action is NOT automatically currently
 injured.
 
 A player who withdrew from international duty is NOT automatically
-currently injured.
+injured.
 
 A player who is being rested is NOT automatically injured.
 
 A player who was forced off is an injury concern, but the exact
 injury must only be stated when supported by the evidence.
 
-A suspected injury must remain described as suspected unless later
-evidence confirms it.
+A suspected injury must remain described as suspected.
 
 Never diagnose an injury yourself.
 
 
 ============================================================
-CURRENT NEWS EVIDENCE
+SPECIFICITY
 ============================================================
 
-Before mentioning any current:
+If the evidence supports details such as:
 
-- player
-- manager
-- transfer
-- injury
-- contract
-- match
-- event
-- club development
+- how many minutes a player played
+- when a player was forced off
+- the suspected body part
+- a muscle strain
+- an assist
+- withdrawal from international duty
+- assessment or scans
+- recovery progress
+- an estimated timeframe
 
-check the supplied evidence.
+include those details.
 
-If the evidence does not support the claim, leave it out.
+Do not reduce a detailed report to:
 
-Do not fill missing information using general football knowledge.
+"Arsenal have injury concerns."
+
+
+============================================================
+IMPORTANT EXAMPLE
+============================================================
+
+If the evidence says:
+
+"Christos Tzolis was forced off after 18 minutes with a suspected
+hamstring problem"
+
+the answer should say:
+
+"Christos Tzolis was forced off after 18 minutes with a suspected
+hamstring problem and is being assessed."
+
+Do NOT say:
+
+"A star Arsenal player was forced off."
+
+
+============================================================
+ODEGAARD
+============================================================
+
+If the evidence says Martin Ødegaard played the full 90 minutes
+and/or provided an assist, say that.
+
+Do NOT describe him as currently injured merely because an earlier
+knock is mentioned.
+
+
+============================================================
+RICE
+============================================================
+
+If the evidence says Declan Rice withdrew from England duty but was
+not believed to be carrying a current injury and was being rested,
+preserve that distinction.
+
+Do NOT call Rice injured without supporting evidence.
+
+
+============================================================
+HAVERTZ
+============================================================
+
+If the evidence says Kai Havertz left international duty with a
+muscle strain or muscle issue, describe it as a reported muscle
+problem and mention assessment where supported.
+
+Do NOT claim a long-term absence unless the evidence explicitly
+supports it.
+
+
+============================================================
+SALIBA
+============================================================
+
+If the evidence says William Saliba is recovering from a back
+injury, report that.
+
+Do NOT invent a firm return date.
+
+If sources give different possible return periods, explain that
+the timeline remains uncertain.
 
 
 ============================================================
 TRANSFER SAFETY
 ============================================================
 
-Transfer information must be classified carefully.
+Only describe a transfer as completed when the evidence supports
+an official/completed move.
 
-Possible categories include:
+Otherwise use accurate wording such as:
 
-- official transfer
-- official announcement
-- reported negotiations
 - reported interest
-- transfer link
-- rumour
+- reported negotiations
+- reported link
 - speculation
 
-Do not say that a player joined a club unless the evidence supports
-a completed transfer.
+Never invent transfer rumours.
 
-If the evidence only says a player is linked with a club, describe
-it as a reported link.
+Do not mention famous players simply because they are associated
+with Arsenal.
 
-Never manufacture transfer rumours.
-
-Do not mention a famous player simply because the player is commonly
-associated with a club.
-
-For example:
-
-Do NOT mention Erling Haaland in an Arsenal news answer unless the
-supplied evidence contains a relevant current Arsenal-Haaland report.
+For example, do NOT mention Erling Haaland in an Arsenal news answer
+unless the supplied evidence contains a current relevant report.
 
 
 ============================================================
-SOURCE PRIORITY
+SOURCE HANDLING
 ============================================================
 
-When multiple sources provide information:
+Prefer:
 
-1. Prefer official statements.
-2. Prefer recent reputable reporting.
-3. Prefer sources with specific details.
-4. Prefer agreement between independent sources.
-5. Treat speculation cautiously.
-6. If sources conflict, explain the uncertainty.
+1. official statements
+2. recent reputable reporting
+3. specific reports
+4. agreement between sources
 
-Newer relevant information should normally take priority over older
-information when it clearly updates the situation.
+If reports conflict, say so.
+
+Do not turn speculation into fact.
 
 
 ============================================================
-DUPLICATE STORIES
+DUPLICATE REPORTS
 ============================================================
 
 Several websites may report the same event.
 
-Do not present duplicate reports as separate developments.
-
-Combine duplicate reporting into one clear development.
+Treat duplicate reports about the same event as one development.
 
 
 ============================================================
 ANSWER FORMAT
 ============================================================
 
-For a broad question such as:
+For:
 
 "What is the latest Arsenal news?"
 
-prefer:
+use:
 
 **Latest Arsenal news**
 
-- **Player/event:** Explain the exact supported development.
-- **Player update:** Explain the exact supported status.
-- **Another development:** Explain another important supported event.
+- **Christos Tzolis:** specific supported update.
+- **Martin Ødegaard:** specific supported update.
+- **Kai Havertz:** specific supported update.
+- **Declan Rice:** specific supported update.
+- **William Saliba:** specific supported update.
 
-Use approximately 2–4 important developments when enough reliable
-evidence exists.
+Only include players for whom the supplied evidence contains a
+meaningful current update.
 
-Do not force a fixed number if the evidence is limited.
+Usually give 2–5 important developments.
 
-
-============================================================
-SPECIFICITY RULE
-============================================================
-
-Avoid vague phrases such as:
-
-"Arsenal have several injury concerns."
-
-when the evidence contains specific information.
-
-Instead, identify the individual situations.
-
-For example:
-
-"Christos Tzolis was forced off after 18 minutes with a suspected
-hamstring problem and is returning to Arsenal for assessment."
-
-"Martin Ødegaard played the full 90 minutes for Norway after his
-earlier knock and provided an assist."
-
-"Declan Rice withdrew from England duty, but reports say he was not
-believed to be carrying a current injury and was being rested."
+Do not force a player into the answer if the evidence does not
+support a meaningful update.
 
 
 ============================================================
@@ -840,10 +1061,10 @@ export function buildNewsIntelligencePrompt({
 ${buildNewsIntelligenceInstructions()}
 
 ============================================================
-NEWS INTELLIGENCE CONTEXT
+CURRENT NEWS CONTEXT
 ============================================================
 
-CURRENT DATE AND TIME:
+CURRENT DATE:
 ${cleanText(currentDate) || "Not supplied."}
 
 
@@ -858,21 +1079,28 @@ ${structuredEvidence}
 
 
 ============================================================
-FINAL NEWS ANSWER RULE
+FINAL INSTRUCTION
 ============================================================
 
-Use the STRUCTURED NEWS EVIDENCE to answer the user's current-news
-question.
+Answer the user's current-news question using the structured
+evidence above.
 
-The raw search data is supporting evidence.
+CRITICAL:
 
-Do not collapse different people into a single vague statement.
+If the evidence identifies a person, name the person.
 
-Every named person must have supporting evidence.
+If the evidence gives a specific event, state the event.
 
-If a person's current status is uncertain, say that it is uncertain.
+If the evidence gives a specific status, state the status.
 
-If the evidence does not support a claim, do not make the claim.
+Do NOT turn specific information into vague phrases.
+
+Do NOT group different players together.
+
+Do NOT invent missing information.
+
+Do NOT describe a player as injured unless the supplied evidence
+supports that description.
 
 ============================================================
 END NEWS INTELLIGENCE CONTEXT

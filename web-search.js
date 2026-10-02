@@ -387,7 +387,7 @@ async function searchDuckDuckGo(query) {
     const results = [];
 
     const resultPattern =
-      /<a[^>]+class=["'][^"']*result__a[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+      /<div[^>]+class=["'][^"']*result[^"']*["'][^>]*>[\s\S]*?<a[^>]+class=["'][^"']*result__a[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/div>/gi;
 
     let match;
 
@@ -396,7 +396,9 @@ async function searchDuckDuckGo(query) {
       results.length < 10
     ) {
       let link = match[1];
-      const title = cleanText(match[2]);
+
+      const title =
+        cleanText(match[2]);
 
       if (!title || !link) {
         continue;
@@ -410,8 +412,46 @@ async function searchDuckDuckGo(query) {
       results.push({
         title,
         url: link,
-        snippet: ""
+        snippet: "",
+        publishedAt: null,
+        source: "DuckDuckGo"
       });
+    }
+
+    /*
+     * Fallback parser in case DuckDuckGo's
+     * HTML structure changes.
+     */
+    if (results.length === 0) {
+      const fallbackPattern =
+        /<a[^>]+class=["'][^"']*result__a[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+      while (
+        (match = fallbackPattern.exec(html)) !== null &&
+        results.length < 10
+      ) {
+        let link = match[1];
+
+        const title =
+          cleanText(match[2]);
+
+        if (!title || !link) {
+          continue;
+        }
+
+        link = link.replace(
+          /&amp;/g,
+          "&"
+        );
+
+        results.push({
+          title,
+          url: link,
+          snippet: "",
+          publishedAt: null,
+          source: "DuckDuckGo"
+        });
+      }
     }
 
     console.log(
@@ -482,6 +522,16 @@ async function searchGoogleNews(query) {
           /<description>([\s\S]*?)<\/description>/i
         );
 
+      const pubDateMatch =
+        block.match(
+          /<pubDate>([\s\S]*?)<\/pubDate>/i
+        );
+
+      const sourceMatch =
+        block.match(
+          /<source[^>]*>([\s\S]*?)<\/source>/i
+        );
+
       const title =
         cleanText(
           titleMatch
@@ -503,11 +553,37 @@ async function searchGoogleNews(query) {
             : ""
         );
 
+      const source =
+        cleanText(
+          sourceMatch
+            ? sourceMatch[1]
+            : ""
+        );
+
+      const publishedAtRaw =
+        pubDateMatch
+          ? cleanText(pubDateMatch[1])
+          : "";
+
+      const publishedAt =
+        publishedAtRaw
+          ? new Date(publishedAtRaw)
+          : null;
+
       if (title && link) {
         results.push({
           title,
           url: link,
-          snippet
+          snippet,
+          publishedAt:
+            publishedAt &&
+            !Number.isNaN(
+              publishedAt.getTime()
+            )
+              ? publishedAt.toISOString()
+              : null,
+          source:
+            source || "Google News"
         });
       }
     }
@@ -525,6 +601,36 @@ async function searchGoogleNews(query) {
 
     return [];
   }
+}
+
+function formatPublishedDate(dateValue) {
+  if (!dateValue) {
+    return "";
+  }
+
+  const date =
+    new Date(dateValue);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      timeZone: "Africa/Lusaka",
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }
+  ).format(date);
 }
 
 function formatFootballResults(matches) {
@@ -595,6 +701,9 @@ function formatWebResults(uniqueResults) {
     "",
     "",
     "CURRENT WEB SEARCH RESULTS",
+    `Search date in Zambia: ${formatDateForZambia()}`,
+    "",
+    "Results are ordered with the newest dated information first.",
     ""
   ];
 
@@ -603,6 +712,25 @@ function formatWebResults(uniqueResults) {
       `Title: ${result.title}`,
       `URL: ${result.url}`
     );
+
+    if (result.source) {
+      lines.push(
+        `Source: ${result.source}`
+      );
+    }
+
+    if (result.publishedAt) {
+      const formattedDate =
+        formatPublishedDate(
+          result.publishedAt
+        );
+
+      if (formattedDate) {
+        lines.push(
+          `Published: ${formattedDate} Zambia time`
+        );
+      }
+    }
 
     if (result.snippet) {
       lines.push(
@@ -614,11 +742,29 @@ function formatWebResults(uniqueResults) {
   }
 
   lines.push(
-    "IMPORTANT: Use these current web search results when relevant.",
+    "IMPORTANT:",
+    "Use the publication dates when deciding which information is current.",
+    "For questions asking for the latest or current information, prioritize the newest relevant results.",
+    "Do not present an older article as if it were today's development.",
+    "Distinguish confirmed information from reports, rumours, and speculation.",
+    "If sources conflict, explain the conflict and identify the dates involved.",
     "Do not claim that you cannot access current information if useful search results are provided."
   );
 
   return "\n" + lines.join("\n");
+}
+
+function getTimestamp(value) {
+  if (!value) {
+    return 0;
+  }
+
+  const timestamp =
+    new Date(value).getTime();
+
+  return Number.isNaN(timestamp)
+    ? 0
+    : timestamp;
 }
 
 export async function webSearch(
@@ -641,13 +787,9 @@ export async function webSearch(
     isFootballScoreRequest(userQuery);
 
   /*
-   * ESPN is now used only for actual
+   * ESPN is used only for actual
    * football score / fixture / result
    * requests.
-   *
-   * Football news, transfers, club
-   * updates and general current football
-   * questions continue to general web search.
    */
   if (footballScoreRequest) {
     console.log(
@@ -674,14 +816,6 @@ export async function webSearch(
 
   /*
    * General web search.
-   *
-   * This also runs for football questions
-   * such as:
-   * - latest Arsenal news
-   * - Arsenal transfers
-   * - Barcelona news
-   * - Premier League news
-   * - latest football updates
    */
   const searchQueries = [
     userQuery,
@@ -707,6 +841,9 @@ export async function webSearch(
     ...newsResults
   );
 
+  /*
+   * Remove duplicate URLs.
+   */
   const uniqueResults = [];
   const seenUrls = new Set();
 
@@ -734,26 +871,59 @@ export async function webSearch(
       ...result,
       url: normalizedUrl
     });
-
-    if (
-      uniqueResults.length >= 20
-    ) {
-      break;
-    }
   }
 
+  /*
+   * Newest dated results first.
+   *
+   * Results without a publication date
+   * remain after dated results.
+   */
+  uniqueResults.sort(
+    (a, b) => {
+      const dateA =
+        getTimestamp(a.publishedAt);
+
+      const dateB =
+        getTimestamp(b.publishedAt);
+
+      if (
+        dateA === 0 &&
+        dateB === 0
+      ) {
+        return 0;
+      }
+
+      if (dateA === 0) {
+        return 1;
+      }
+
+      if (dateB === 0) {
+        return -1;
+      }
+
+      return dateB - dateA;
+    }
+  );
+
+  /*
+   * Keep the most useful 20 results.
+   */
+  const finalResults =
+    uniqueResults.slice(0, 20);
+
   console.log(
-    `Final web results: ${uniqueResults.length}`
+    `Final web results: ${finalResults.length}`
   );
 
   if (
-    uniqueResults.length === 0
+    finalResults.length === 0
   ) {
     return "";
   }
 
   return formatWebResults(
-    uniqueResults
+    finalResults
   );
 }
 

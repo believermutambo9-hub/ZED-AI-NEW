@@ -178,26 +178,6 @@ function getUserConversationId(
     return supplied;
   }
 
-  /*
-   * IMPORTANT:
-   *
-   * Older versions of index.html did not send
-   * conversationId.
-   *
-   * Therefore we create a stable conversation
-   * for each user when no ID is supplied.
-   *
-   * This prevents:
-   *
-   * "My name is Believer"
-   *
-   * followed by:
-   *
-   * "What is my name?"
-   *
-   * from creating two unrelated conversations.
-   */
-
   return `user-${userId}`;
 }
 
@@ -232,15 +212,6 @@ function formatHistory(
 // ============================================================
 // CHAT HISTORY PERSISTENCE
 // ============================================================
-
-/*
- * Chat history is loaded dynamically.
- *
- * This is intentional.
- *
- * If Firebase or firebase-admin has a configuration
- * problem, Zed AI itself can still start and work.
- */
 
 let chatHistoryModule = null;
 let chatHistoryLoadAttempted = false;
@@ -277,11 +248,6 @@ async function getChatHistoryModule() {
   }
 }
 
-
-/*
- * Save a conversation without allowing
- * chat-history problems to break the AI.
- */
 
 async function persistConversation(
   userId,
@@ -355,12 +321,6 @@ async function persistConversation(
   }
 }
 
-
-/*
- * If Zed restarts and a conversation exists
- * in Firebase but not in server memory,
- * restore it before continuing the conversation.
- */
 
 async function restoreConversation(
   userId,
@@ -1304,14 +1264,6 @@ app.post(
         "zed-ai"
     };
 
-    /*
-     * Save the new empty conversation
-     * to persistent storage.
-     *
-     * If Firebase is unavailable,
-     * Zed still works normally.
-     */
-
     await persistConversation(
       userId,
       conversation
@@ -1410,11 +1362,6 @@ app.get(
           .conversationId
       );
 
-    /*
-     * First check the existing
-     * in-memory conversation.
-     */
-
     const conversation =
       getConversationDetails(
         conversationId
@@ -1429,11 +1376,6 @@ app.get(
       });
     }
 
-
-    /*
-     * If it is not in memory,
-     * look for it in Firebase.
-     */
 
     const userId =
       safeUserId(
@@ -2077,24 +2019,11 @@ app.post(
         );
 
 
-      /*
-       * IMPORTANT:
-       *
-       * If Render restarted and the conversation
-       * is no longer in server memory, restore it
-       * from Firebase before adding the new message.
-       */
-
       await restoreConversation(
         userId,
         conversation
       );
 
-
-      /*
-       * Make sure the conversation belongs
-       * to this user.
-       */
 
       if (
         !conversation.metadata
@@ -2120,13 +2049,6 @@ app.post(
         userMessage
       );
 
-
-      /*
-       * Persist the user message immediately.
-       *
-       * If the AI provider fails afterwards,
-       * the user's message is still saved.
-       */
 
       await persistConversation(
         userId,
@@ -2300,11 +2222,20 @@ app.post(
         "";
 
 
+      /*
+       * IMPORTANT:
+       *
+       * Web search is now allowed even when
+       * the question is also a football question.
+       *
+       * This means football questions can receive
+       * both football data and web/news data.
+       */
+
       if (
         isCurrentInformationQuestion(
           userMessage
-        ) &&
-        !footballUsed
+        )
       ) {
 
         try {
@@ -2527,11 +2458,6 @@ ${userMessage}
         result.answer
       );
 
-
-      /*
-       * Persist the complete conversation
-       * after Zed has answered.
-       */
 
       const chatPersistence =
         await persistConversation(

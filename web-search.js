@@ -1,177 +1,183 @@
 // web-search.js
-// Zed — Web Search Intelligence
-// Preserves existing exports while improving search quality,
-// relevance, source ranking, deduplication and current-news handling.
-
-const USER_AGENT =
-  "Zed/1.0; +https://zed-ai-h7h4.onrender.com";
-
-const TZ = "Africa/Lusaka";
-
-const MAX_RESULTS = 12;
-const MAX_SEARCH_VARIANTS = 4;
-const FETCH_TIMEOUT = 9000;
 
 function cleanText(value = "") {
   return String(value)
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function stripHtml(value = "") {
-  return String(value)
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 function formatDateForZambia(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: TZ,
+    timeZone: "Africa/Lusaka",
     year: "numeric",
     month: "2-digit",
     day: "2-digit"
   }).format(date);
 }
 
-function formatTimeForZambia(date = new Date()) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: TZ,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
+function getZambiaDateTime(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Lusaka",
+    dateStyle: "full",
+    timeStyle: "short"
   }).format(date);
 }
 
-function getZambiaDateTime() {
-  const now = new Date();
-
-  return {
-    date: formatDateForZambia(now),
-    time: formatTimeForZambia(now),
-    iso: now.toISOString()
-  };
+function escapeRegex(value = "") {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function normalizeUrl(value = "") {
-  let url = String(value).trim();
-
-  if (!url) {
-    return "";
-  }
-
+function normalizeUrl(url = "") {
   try {
-    if (!/^https?:\/\//i.test(url)) {
-      url = `https://${url}`;
-    }
-
     const parsed = new URL(url);
 
     parsed.hash = "";
 
-    [
+    const removeParams = [
       "utm_source",
       "utm_medium",
       "utm_campaign",
       "utm_term",
       "utm_content",
       "gclid",
-      "fbclid"
-    ].forEach(param => {
+      "fbclid",
+      "ref",
+      "source"
+    ];
+
+    for (const param of removeParams) {
       parsed.searchParams.delete(param);
-    });
+    }
 
     return parsed.toString();
   } catch {
-    return String(value).trim();
+    return String(url).trim();
   }
 }
 
-function getHostname(url = "") {
-  try {
-    return new URL(url).hostname
-      .replace(/^www\./i, "")
-      .toLowerCase();
-  } catch {
-    return "";
-  }
-}
+function extractImportantQueryWords(query = "") {
+  const stopWords = new Set([
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "of",
+    "to",
+    "for",
+    "in",
+    "on",
+    "at",
+    "with",
+    "from",
+    "about",
+    "what",
+    "when",
+    "where",
+    "who",
+    "why",
+    "how",
+    "latest",
+    "news",
+    "today",
+    "current",
+    "recent",
+    "update",
+    "updates",
+    "breaking",
+    "report",
+    "reports",
+    "information",
+    "tell",
+    "me",
+    "show",
+    "give"
+  ]);
 
-function extractDomain(url = "") {
-  return getHostname(url);
-}
-
-function getQueryWords(query = "") {
   return cleanText(query)
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s'-]/gu, " ")
+    .replace(/[^\p{L}\p{N}\s-]/gu, " ")
     .split(/\s+/)
-    .filter(word => word.length >= 2);
-}
-
-function uniqueWords(words = []) {
-  return [...new Set(words)];
+    .filter(word => word.length >= 3 && !stopWords.has(word))
+    .slice(0, 12);
 }
 
 function isRecentRequest(query = "") {
-  return /\b(
-    latest|
-    recent|
-    recently|
-    today|
-    tonight|
-    now|
-    current|
-    currently|
-    breaking|
-    news|
-    update|
-    updates|
-    this\s+(week|month|morning|afternoon|evening)|
-    just|
-    just\s+now|
-    last\s+\d+\s+(hours?|days?|weeks?)
-  )\b/ix.test(query);
+  const text = cleanText(query).toLowerCase();
+
+  return [
+    "latest",
+    "today",
+    "current",
+    "recent",
+    "breaking",
+    "this morning",
+    "this evening",
+    "right now",
+    "just in",
+    "newest",
+    "latest news",
+    "what happened"
+  ].some(term => text.includes(term));
 }
 
-function isNewsRequest(query = "") {
-  return /\b(
-    news|
-    latest|
-    update|
-    updates|
-    report|
-    reports|
-    reported|
-    breaking|
-    rumours?|
-    rumors?|
-    transfer|
-    transfers|
-    injury|
-    injured|
-    statement|
-    announcement
-  )\b/ix.test(query);
+function isBroadNewsRequest(query = "") {
+  const text = cleanText(query).toLowerCase();
+
+  const hasNewsWord =
+    /\b(news|updates?|headlines?|happen(ed|ing)?|latest|breaking)\b/i.test(text);
+
+  const hasSpecificStoryQuestion =
+    /\b(why|how|when|where|who|did|does|is|are|was|were)\b/i.test(text);
+
+  return hasNewsWord && !hasSpecificStoryQuestion;
 }
 
-function isBroadRequest(query = "") {
-  const words = getQueryWords(query);
+function extractMainTopic(query = "") {
+  let text = cleanText(query);
 
-  return words.length <= 4;
+  text = text
+    .replace(
+      /\b(latest|today|current|recent|breaking|news|updates?|headlines?|right now|this morning|this evening)\b/gi,
+      " "
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return text;
 }
 
-function parsePublishedDate(value) {
-  if (!value) {
-    return null;
+function buildNewsSearchVariants(userQuery = "") {
+  const topic = extractMainTopic(userQuery);
+
+  if (!topic) {
+    return [userQuery];
   }
+
+  const variants = [userQuery];
+
+  if (isBroadNewsRequest(userQuery)) {
+    variants.push(
+      `${topic} latest news`,
+      `${topic} injury news`,
+      `${topic} transfer news`,
+      `${topic} team news`,
+      `${topic} international duty`
+    );
+  }
+
+  return [...new Set(variants.map(cleanText).filter(Boolean))];
+}
+
+function parsePublishedDate(value = "") {
+  if (!value) return null;
 
   const date = new Date(value);
 
@@ -183,223 +189,322 @@ function parsePublishedDate(value) {
 }
 
 function daysSince(date) {
-  if (!date) {
-    return 9999;
-  }
+  if (!date) return 9999;
 
   const difference =
     Date.now() - date.getTime();
 
-  return difference / 86400000;
+  return difference / (1000 * 60 * 60 * 24);
 }
 
-function sourceQuality(url = "") {
-  const domain = getHostname(url);
+function isLikelyIrrelevant(result, query) {
+  const title = cleanText(result.title || "").toLowerCase();
+  const snippet = cleanText(
+    result.snippet ||
+    result.summary ||
+    result.description ||
+    ""
+  ).toLowerCase();
 
-  if (!domain) {
+  const combined = `${title} ${snippet}`;
+
+  const words = extractImportantQueryWords(query);
+
+  if (!words.length) {
+    return false;
+  }
+
+  const matched = words.filter(word =>
+    combined.includes(word)
+  );
+
+  return matched.length === 0;
+}
+
+function tokenizeForSimilarity(text = "") {
+  return new Set(
+    cleanText(text)
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s-]/gu, " ")
+      .split(/\s+/)
+      .filter(word => word.length >= 4)
+  );
+}
+
+function similarityScore(a = "", b = "") {
+  const first = tokenizeForSimilarity(a);
+  const second = tokenizeForSimilarity(b);
+
+  if (!first.size || !second.size) {
     return 0;
   }
 
-  const premiumSources = [
-    "reuters.com",
-    "apnews.com",
-    "bbc.com",
-    "bbc.co.uk",
-    "theguardian.com",
-    "espn.com",
-    "skysports.com",
-    "theathletic.com",
-    "nytimes.com",
-    "cnn.com",
-    "aljazeera.com",
-    "npr.org",
-    "dw.com",
-    "france24.com",
-    "goal.com",
-    "espnfc.com",
-    "fifa.com",
-    "uefa.com",
-    "premierleague.com",
-    "arsenal.com",
-    "fcbarcelona.com",
-    "realmadrid.com"
-  ];
+  let overlap = 0;
 
-  if (
-    premiumSources.some(
-      source =>
-        domain === source ||
-        domain.endsWith(`.${source}`)
-    )
-  ) {
-    return 35;
-  }
-
-  const strongSources = [
-    "football365.com",
-    "skysports.com",
-    "talksport.com",
-    "independent.co.uk",
-    "telegraph.co.uk",
-    "mirror.co.uk",
-    "standard.co.uk",
-    "marca.com",
-    "as.com",
-    "livesport.com",
-    "transfermarkt.com"
-  ];
-
-  if (
-    strongSources.some(
-      source =>
-        domain === source ||
-        domain.endsWith(`.${source}`)
-    )
-  ) {
-    return 22;
-  }
-
-  const weakSources = [
-    "facebook.com",
-    "x.com",
-    "twitter.com",
-    "tiktok.com",
-    "youtube.com"
-  ];
-
-  if (
-    weakSources.some(
-      source =>
-        domain === source ||
-        domain.endsWith(`.${source}`)
-    )
-  ) {
-    return 3;
-  }
-
-  return 10;
-}
-
-function relevanceScore(
-  result,
-  query,
-  recentRequest = false
-) {
-  const title = cleanText(result.title).toLowerCase();
-  const snippet = cleanText(
-    result.snippet || result.description || ""
-  ).toLowerCase();
-
-  const combined =
-    `${title} ${snippet}`;
-
-  const words = uniqueWords(
-    getQueryWords(query)
-  );
-
-  let score = 0;
-
-  for (const word of words) {
-    if (title.includes(word)) {
-      score += 8;
-    } else if (combined.includes(word)) {
-      score += 4;
+  for (const word of first) {
+    if (second.has(word)) {
+      overlap++;
     }
   }
 
+  return overlap / Math.min(first.size, second.size);
+}
+
+function getStoryText(result) {
+  return cleanText(
+    `${result.title || ""} ${result.snippet || result.summary || result.description || ""}`
+  );
+}
+
+function scoreResult(result, query, recentRequest = false) {
+  const title = cleanText(result.title || "").toLowerCase();
+  const snippet = cleanText(
+    result.snippet ||
+    result.summary ||
+    result.description ||
+    ""
+  ).toLowerCase();
+
+  const combined = `${title} ${snippet}`;
+  const queryWords = extractImportantQueryWords(query);
+
+  let score = 0;
+
+  for (const word of queryWords) {
+    if (title.includes(word)) {
+      score += 8;
+    } else if (snippet.includes(word)) {
+      score += 3;
+    }
+  }
+
+  if (title.includes("arsenal") && query.toLowerCase().includes("arsenal")) {
+    score += 10;
+  }
+
   if (
-    result.source ||
-    result.publisher
+    title.includes("latest") ||
+    title.includes("update") ||
+    title.includes("breaking")
   ) {
     score += 2;
   }
 
-  score += sourceQuality(
-    result.url
+  const published = parsePublishedDate(
+    result.published ||
+    result.pubDate ||
+    result.date ||
+    ""
   );
 
-  const published =
-    result.publishedAt ||
-    result.pubDate ||
-    result.date;
-
-  const parsed =
-    parsePublishedDate(published);
-
-  if (parsed) {
-    const age = daysSince(parsed);
+  if (recentRequest && published) {
+    const age = daysSince(published);
 
     if (age <= 1) {
-      score += recentRequest ? 30 : 10;
+      score += 20;
+    } else if (age <= 2) {
+      score += 15;
     } else if (age <= 3) {
-      score += recentRequest ? 22 : 7;
+      score += 10;
     } else if (age <= 7) {
-      score += recentRequest ? 12 : 4;
-    } else if (recentRequest) {
-      score -= 8;
+      score += 4;
     }
   }
 
-  if (
-    /\b(breaking|official|confirmed|announced)\b/i.test(
-      combined
-    )
-  ) {
-    score += 5;
+  if (result.source) {
+    score += 1;
   }
 
   return score;
 }
 
-function deduplicateResults(results = []) {
-  const seenUrls = new Set();
-  const seenTitles = new Set();
-  const output = [];
+function diversifyResults(results, query, maxResults = 12) {
+  const sorted = [...results].sort(
+    (a, b) => (b._score || 0) - (a._score || 0)
+  );
 
-  for (const item of results) {
-    const url = normalizeUrl(
-      item.url ||
-      item.link ||
-      item.href ||
-      ""
+  const selected = [];
+  const selectedStories = [];
+
+  for (const result of sorted) {
+    if (selected.length >= maxResults) {
+      break;
+    }
+
+    const storyText = getStoryText(result);
+
+    let tooSimilar = false;
+
+    for (const previousStory of selectedStories) {
+      if (similarityScore(storyText, previousStory) >= 0.72) {
+        tooSimilar = true;
+        break;
+      }
+    }
+
+    if (tooSimilar) {
+      continue;
+    }
+
+    selected.push(result);
+    selectedStories.push(storyText);
+  }
+
+  /*
+   * If diversity filtering removed too many results,
+   * fill the remaining slots with the highest-ranked
+   * results that were not already selected.
+   */
+  if (selected.length < Math.min(maxResults, sorted.length)) {
+    for (const result of sorted) {
+      if (selected.length >= maxResults) {
+        break;
+      }
+
+      if (!selected.includes(result)) {
+        selected.push(result);
+      }
+    }
+  }
+
+  return selected.slice(0, maxResults);
+}
+
+async function fetchText(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (compatible; ZedAI/1.0; +https://zed-ai-h7h4.onrender.com)",
+      "Accept":
+        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return response.text();
+}
+
+async function searchGoogleNews(userQuery, recentRequest = false) {
+  const searchUrl =
+    `https://news.google.com/rss/search?q=` +
+    encodeURIComponent(
+      recentRequest
+        ? `${userQuery} when:7d`
+        : userQuery
+    ) +
+    `&hl=en-US&gl=US&ceid=US:en`;
+
+  try {
+    const xml = await fetchText(searchUrl);
+
+    const items = [
+      ...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)
+    ];
+
+    return items.map(match => {
+      const item = match[1];
+
+      const getTag = tag => {
+        const regex = new RegExp(
+          `<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`,
+          "i"
+        );
+
+        const found = item.match(regex);
+        return found ? cleanText(found[1]) : "";
+      };
+
+      const title = getTag("title");
+      const link = getTag("link");
+      const pubDate = getTag("pubDate");
+      const description = getTag("description");
+      const source = getTag("source");
+
+      return {
+        title,
+        url: link,
+        published: pubDate,
+        source,
+        snippet: description,
+        provider: "Google News"
+      };
+    });
+  } catch (error) {
+    console.error("Google News search error:", error.message);
+    return [];
+  }
+}
+
+async function searchDuckDuckGo(userQuery) {
+  const url =
+    `https://html.duckduckgo.com/html/?q=` +
+    encodeURIComponent(userQuery);
+
+  try {
+    const html = await fetchText(url);
+
+    const results = [];
+
+    const blocks = html.split(
+      /<div[^>]+class="result[^"]*"[^>]*>/i
     );
 
-    const title = cleanText(
-      item.title || ""
-    )
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s]/gu, "")
-      .replace(/\s+/g, " ");
+    for (const block of blocks.slice(1)) {
+      const titleMatch = block.match(
+        /class="result__a"[^>]*>([\s\S]*?)<\/a>/i
+      );
 
-    const titleKey =
-      title.length > 120
-        ? title.slice(0, 120)
-        : title;
+      const urlMatch = block.match(
+        /class="result__a"[^>]+href="([^"]+)"/i
+      );
 
-    if (
-      url &&
-      seenUrls.has(url)
-    ) {
+      const snippetMatch = block.match(
+        /class="result__snippet"[^>]*>([\s\S]*?)<\/a?>/i
+      );
+
+      if (!titleMatch || !urlMatch) {
+        continue;
+      }
+
+      results.push({
+        title: cleanText(titleMatch[1]),
+        url: cleanText(urlMatch[1]),
+        snippet: snippetMatch
+          ? cleanText(snippetMatch[1])
+          : "",
+        published: "",
+        source: "DuckDuckGo",
+        provider: "DuckDuckGo"
+      });
+    }
+
+    return results.slice(0, 10);
+  } catch (error) {
+    console.error("DuckDuckGo search error:", error.message);
+    return [];
+  }
+}
+
+function deduplicateResults(results) {
+  const seen = new Set();
+  const output = [];
+
+  for (const result of results) {
+    const url = normalizeUrl(result.url || "");
+
+    if (!url || seen.has(url)) {
       continue;
     }
 
-    if (
-      titleKey &&
-      seenTitles.has(titleKey)
-    ) {
-      continue;
-    }
-
-    if (url) {
-      seenUrls.add(url);
-    }
-
-    if (titleKey) {
-      seenTitles.add(titleKey);
-    }
+    seen.add(url);
 
     output.push({
-      ...item,
+      ...result,
       url
     });
   }
@@ -407,782 +512,212 @@ function deduplicateResults(results = []) {
   return output;
 }
 
-function diversifyResults(results = []) {
-  const output = [];
-  const sourceCounts = new Map();
-
-  for (const result of results) {
-    const domain =
-      getHostname(result.url) ||
-      "unknown";
-
-    const count =
-      sourceCounts.get(domain) || 0;
-
-    // Avoid allowing one website to dominate
-    // the entire answer.
-    if (count >= 4) {
-      continue;
-    }
-
-    sourceCounts.set(
-      domain,
-      count + 1
-    );
-
-    output.push(result);
-
-    if (output.length >= MAX_RESULTS) {
-      break;
-    }
-  }
-
-  return output;
-}
-
-function normalizeResult(result = {}) {
-  const url = normalizeUrl(
-    result.url ||
-    result.link ||
-    result.href ||
-    ""
+async function runSearchVariant(query, recentRequest) {
+  const googleResults = await searchGoogleNews(
+    query,
+    recentRequest
   );
 
-  const title = cleanText(
-    result.title ||
-    result.name ||
-    ""
-  );
+  let duckResults = [];
 
-  const snippet = cleanText(
-    result.snippet ||
-    result.description ||
-    result.content ||
-    ""
-  );
-
-  const publishedAt =
-    result.publishedAt ||
-    result.pubDate ||
-    result.published ||
-    result.date ||
-    null;
-
-  const source =
-    cleanText(
-      result.source ||
-      result.publisher ||
-      result.site ||
-      extractDomain(url)
+  if (recentRequest) {
+    duckResults = await searchDuckDuckGo(
+      `${query} latest`
     );
-
-  return {
-    title,
-    snippet,
-    url,
-    source,
-    publishedAt
-  };
-}
-
-async function fetchText(
-  url,
-  options = {}
-) {
-  const controller =
-    new AbortController();
-
-  const timeout =
-    setTimeout(
-      () =>
-        controller.abort(),
-      FETCH_TIMEOUT
-    );
-
-  try {
-    const response =
-      await fetch(url, {
-        ...options,
-        signal:
-          controller.signal,
-        headers: {
-          "User-Agent":
-            USER_AGENT,
-          Accept:
-            "text/html,application/rss+xml,application/xml;q=0.9,*/*;q=0.8",
-          ...(options.headers || {})
-        }
-      });
-
-    if (!response.ok) {
-      throw new Error(
-        `HTTP ${response.status}`
-      );
-    }
-
-    return await response.text();
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-function decodeXml(value = "") {
-  return String(value)
-    .replace(/<!\[CDATA\[/g, "")
-    .replace(/\]\]>/g, "")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .trim();
-}
-
-function extractXmlTag(
-  block = "",
-  tag = ""
-) {
-  const expression =
-    new RegExp(
-      `<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`,
-      "i"
-    );
-
-  const match =
-    block.match(expression);
-
-  return match
-    ? decodeXml(match[1])
-    : "";
-}
-
-function parseGoogleNewsRss(
-  xml = ""
-) {
-  const results = [];
-
-  const itemMatches =
-    xml.match(
-      /<item>[\s\S]*?<\/item>/gi
-    ) || [];
-
-  for (const item of itemMatches) {
-    const title =
-      extractXmlTag(
-        item,
-        "title"
-      );
-
-    const link =
-      extractXmlTag(
-        item,
-        "link"
-      );
-
-    const description =
-      stripHtml(
-        extractXmlTag(
-          item,
-          "description"
-        )
-      );
-
-    const pubDate =
-      extractXmlTag(
-        item,
-        "pubDate"
-      );
-
-    const source =
-      extractXmlTag(
-        item,
-        "source"
-      );
-
-    if (!title) {
-      continue;
-    }
-
-    results.push({
-      title,
-      snippet:
-        description,
-      url:
-        normalizeUrl(link),
-      source:
-        cleanText(source),
-      publishedAt:
-        pubDate
-    });
   }
 
-  return results;
-}
-
-async function searchGoogleNews(
-  query
-) {
-  const encoded =
-    encodeURIComponent(
-      cleanText(query)
-    );
-
-  const url =
-    `https://news.google.com/rss/search?q=${encoded}&hl=en&gl=US&ceid=US:en`;
-
-  try {
-    const xml =
-      await fetchText(url);
-
-    return parseGoogleNewsRss(xml);
-  } catch (error) {
-    console.warn(
-      "Google News search failed:",
-      error.message
-    );
-
-    return [];
-  }
-}
-
-function parseDuckDuckGoHtml(
-  html = ""
-) {
-  const results = [];
-
-  const blocks =
-    html.match(
-      /<div[^>]+class="[^"]*result[^"]*"[\s\S]*?<\/div>\s*<\/div>/gi
-    ) || [];
-
-  for (const block of blocks) {
-    const linkMatch =
-      block.match(
-        /<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"/i
-      );
-
-    const titleMatch =
-      block.match(
-        /<a[^>]+class="[^"]*result__a[^"]*"[^>]*>([\s\S]*?)<\/a>/i
-      );
-
-    const snippetMatch =
-      block.match(
-        /<a[^>]+class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/i
-      ) ||
-      block.match(
-        /<div[^>]+class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/div>/i
-      );
-
-    if (!linkMatch || !titleMatch) {
-      continue;
-    }
-
-    const rawUrl =
-      stripHtml(
-        linkMatch[1]
-      );
-
-    let url =
-      normalizeUrl(rawUrl);
-
-    // DuckDuckGo can return redirect URLs.
-    try {
-      const parsed =
-        new URL(url);
-
-      const redirected =
-        parsed.searchParams.get("uddg");
-
-      if (redirected) {
-        url =
-          normalizeUrl(
-            decodeURIComponent(
-              redirected
-            )
-          );
-      }
-    } catch {
-      // Keep original URL.
-    }
-
-    const title =
-      stripHtml(
-        titleMatch[1]
-      );
-
-    const snippet =
-      snippetMatch
-        ? stripHtml(
-            snippetMatch[1]
-          )
-        : "";
-
-    if (!title || !url) {
-      continue;
-    }
-
-    results.push({
-      title,
-      snippet,
-      url,
-      source:
-        getHostname(url)
-    });
-  }
-
-  return results;
-}
-
-async function searchDuckDuckGo(
-  query
-) {
-  const encoded =
-    encodeURIComponent(
-      cleanText(query)
-    );
-
-  const url =
-    `https://html.duckduckgo.com/html/?q=${encoded}`;
-
-  try {
-    const html =
-      await fetchText(url);
-
-    return parseDuckDuckGoHtml(
-      html
-    );
-  } catch (error) {
-    console.warn(
-      "DuckDuckGo search failed:",
-      error.message
-    );
-
-    return [];
-  }
-}
-
-function buildSearchVariants(
-  query
-) {
-  const original =
-    cleanText(query);
-
-  if (!original) {
-    return [];
-  }
-
-  const variants = [
-    original
+  return [
+    ...googleResults,
+    ...duckResults
   ];
-
-  const recent =
-    isRecentRequest(
-      original
-    );
-
-  const news =
-    isNewsRequest(
-      original
-    );
-
-  if (recent || news) {
-    variants.push(
-      `${original} latest news`
-    );
-
-    variants.push(
-      `${original} latest update`
-    );
-  }
-
-  if (
-    news &&
-    /\b(football|soccer|arsenal|chelsea|barcelona|real madrid|manchester|liverpool|transfer|injury)\b/i.test(
-      original
-    )
-  ) {
-    variants.push(
-      `${original} football news`
-    );
-  }
-
-  return uniqueWords(
-    variants
-  ).slice(
-    0,
-    MAX_SEARCH_VARIANTS
-  );
 }
 
-async function runSearchVariant(
-  query,
-  options = {}
-) {
-  const recent =
-    Boolean(
-      options.recent ??
-      isRecentRequest(query)
-    );
+export async function searchWeb(userQuery, options = {}) {
+  const query = cleanText(userQuery);
 
-  const searches = [
-    searchGoogleNews(query),
-    searchDuckDuckGo(query)
-  ];
-
-  // Run providers concurrently.
-  // This makes multi-source searches
-  // considerably faster.
-  const results =
-    await Promise.allSettled(
-      searches
-    );
-
-  const combined = [];
-
-  for (const result of results) {
-    if (
-      result.status ===
-      "fulfilled" &&
-      Array.isArray(
-        result.value
-      )
-    ) {
-      combined.push(
-        ...result.value
-      );
-    }
-  }
-
-  return combined
-    .map(normalizeResult)
-    .filter(
-      result =>
-        result.title &&
-        result.url
-    )
-    .map(result => ({
-      ...result,
-      score:
-        relevanceScore(
-          result,
-          query,
-          recent
-        )
-    }));
-}
-
-function filterRelevantResults(
-  results,
-  query
-) {
-  const words =
-    uniqueWords(
-      getQueryWords(query)
-    );
-
-  if (!words.length) {
-    return results;
-  }
-
-  return results.filter(
-    result => {
-      const combined =
-        `${result.title} ${result.snippet}`
-          .toLowerCase();
-
-      const matches =
-        words.filter(
-          word =>
-            combined.includes(
-              word
-            )
-        ).length;
-
-      // Keep results with reasonable
-      // relevance. Do not require every
-      // query word because that is too strict
-      // for natural-language searches.
-      return (
-        matches >=
-        Math.max(
-          1,
-          Math.ceil(
-            words.length * 0.25
-          )
-        )
-      );
-    }
-  );
-}
-
-async function searchWeb(
-  query,
-  options = {}
-) {
-  const cleanQuery =
-    cleanText(query);
-
-  if (!cleanQuery) {
+  if (!query) {
     return {
+      ok: false,
       query: "",
-      searchedAt:
-        getZambiaDateTime(),
-      results: []
+      results: [],
+      message: "No search query provided."
     };
   }
 
-  const recent =
-    Boolean(
-      options.recent ??
-      isRecentRequest(
-        cleanQuery
-      )
-    );
+  const recentRequest =
+    options.recentRequest ??
+    isRecentRequest(query);
 
+  const broadNews =
+    isBroadNewsRequest(query);
+
+  /*
+   * Broad current-news searches now use several targeted
+   * search variations so one story cannot dominate the
+   * entire result set.
+   */
   const variants =
-    buildSearchVariants(
-      cleanQuery
+    recentRequest && broadNews
+      ? buildNewsSearchVariants(query)
+      : [query];
+
+  let allResults = [];
+
+  for (const variant of variants) {
+    const results = await runSearchVariant(
+      variant,
+      recentRequest
     );
 
-  const variantResults =
-    await Promise.all(
-      variants.map(
-        variant =>
-          runSearchVariant(
-            variant,
-            { recent }
-          )
-      )
+    allResults.push(
+      ...results.map(result => ({
+        ...result,
+        searchVariant: variant
+      }))
     );
+  }
 
-  let results =
-    variantResults.flat();
+  allResults = deduplicateResults(allResults);
 
-  results =
-    deduplicateResults(
-      results
-    );
-
-  results =
-    filterRelevantResults(
-      results,
-      cleanQuery
-    );
-
-  results.sort(
-    (a, b) =>
-      Number(
-        b.score || 0
-      ) -
-      Number(
-        a.score || 0
-      )
+  allResults = allResults.filter(
+    result => !isLikelyIrrelevant(result, query)
   );
 
-  results =
-    diversifyResults(
-      results
-    );
+  allResults = allResults.map(result => ({
+    ...result,
+    _score: scoreResult(
+      result,
+      query,
+      recentRequest
+    )
+  }));
+
+  /*
+   * Current news gets more results than ordinary searches.
+   * This gives News Intelligence enough material to identify
+   * multiple different stories and people.
+   */
+  const maximumResults =
+    recentRequest && broadNews
+      ? 12
+      : recentRequest
+        ? 10
+        : 8;
+
+  const finalResults =
+    recentRequest
+      ? diversifyResults(
+          allResults,
+          query,
+          maximumResults
+        )
+      : allResults
+          .sort(
+            (a, b) =>
+              (b._score || 0) -
+              (a._score || 0)
+          )
+          .slice(0, maximumResults);
 
   return {
-    query:
-      cleanQuery,
-
-    searchedAt:
-      getZambiaDateTime(),
-
-    recent,
-
-    resultCount:
-      results.length,
-
-    results
+    ok: true,
+    query,
+    recentRequest,
+    broadNews,
+    searchVariants: variants,
+    resultCount: finalResults.length,
+    results: finalResults
   };
 }
 
-function formatPublishedDate(
-  value
-) {
-  const date =
-    parsePublishedDate(
-      value
-    );
-
-  if (!date) {
-    return "Date unavailable";
-  }
-
-  return new Intl.DateTimeFormat(
-    "en-GB",
-    {
-      timeZone: TZ,
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    }
-  ).format(date);
-}
-
-function formatWebResults(
-  searchData
-) {
-  if (
-    !searchData ||
-    !Array.isArray(
-      searchData.results
-    ) ||
-    !searchData.results.length
-  ) {
-    return (
-      "No reliable web search results were found."
-    );
-  }
-
-  const lines = [];
-
-  lines.push(
-    `WEB SEARCH QUERY: ${searchData.query}`
-  );
-
-  lines.push(
-    `SEARCHED: ${searchData.searchedAt?.date || formatDateForZambia()} ${searchData.searchedAt?.time || formatTimeForZambia()} Zambia time`
-  );
-
-  lines.push(
-    `RESULTS FOUND: ${searchData.results.length}`
-  );
-
-  lines.push("");
-
-  searchData.results.forEach(
-    (result, index) => {
-      lines.push(
-        `[${index + 1}] ${result.title}`
-      );
-
-      lines.push(
-        `Source: ${result.source || extractDomain(result.url)}`
-      );
-
-      lines.push(
-        `Published: ${formatPublishedDate(result.publishedAt)}`
-      );
-
-      if (result.snippet) {
-        lines.push(
-          `Summary: ${result.snippet}`
-        );
-      }
-
-      if (result.url) {
-        lines.push(
-          `URL: ${result.url}`
-        );
-      }
-
-      lines.push("");
-    }
-  );
-
-  return lines.join("\n");
-}
-
-function getWebSearchContext(
-  searchData
-) {
-  if (
-    !searchData ||
-    !Array.isArray(
-      searchData.results
-    )
-  ) {
+export function formatWebResults(searchData) {
+  if (!searchData || !Array.isArray(searchData.results)) {
     return "";
   }
 
-  return formatWebResults(
-    searchData
-  );
+  if (!searchData.results.length) {
+    return "No reliable web search results were found.";
+  }
+
+  return searchData.results
+    .map((result, index) => {
+      const title = cleanText(result.title || "Untitled");
+      const url = cleanText(result.url || "");
+      const source = cleanText(result.source || "");
+      const published = cleanText(
+        result.published || ""
+      );
+
+      const snippet = cleanText(
+        result.snippet ||
+        result.summary ||
+        result.description ||
+        ""
+      );
+
+      return [
+        `RESULT ${index + 1}`,
+        `Title: ${title}`,
+        `Source: ${source}`,
+        `Published: ${published}`,
+        `URL: ${url}`,
+        `Snippet: ${snippet}`
+      ].join("\n");
+    })
+    .join("\n\n");
 }
 
-function getSearchDateInfo() {
-  const now =
-    getZambiaDateTime();
+export function getWebSearchContext(searchData) {
+  if (!searchData) {
+    return "";
+  }
+
+  const currentDate = formatDateForZambia();
+  const currentDateTime = getZambiaDateTime();
+
+  return `
+WORLDWIDE WEB SEARCH DATA
+
+Current date in Zambia:
+${currentDate}
+
+Current date and time in Zambia:
+${currentDateTime}
+
+The following information was retrieved from current web/news searches.
+
+${formatWebResults(searchData)}
+
+IMPORTANT:
+- Use the supplied search results as evidence.
+- Do not invent news, names, injuries, transfers, scores, dates, or events.
+- When the user asks for latest/current news, prefer the newest dated evidence.
+- Distinguish confirmed information from reports, speculation, and pending assessments.
+- If sources disagree, say so clearly.
+`;
+}
+
+export function getSearchDateInfo() {
+  const now = new Date();
 
   return {
-    date:
-      now.date,
-
-    time:
-      now.time,
-
-    timezone:
-      TZ,
-
-    iso:
-      now.iso
+    date: formatDateForZambia(now),
+    dateTime: getZambiaDateTime(now)
   };
 }
 
-async function webSearch(
-  query,
-  options = {}
-) {
-  return searchWeb(
-    query,
-    options
-  );
-}
-
-async function searchNews(
-  query,
-  options = {}
-) {
-  return searchWeb(
-    query,
-    {
-      ...options,
-      recent: true
-    }
-  );
-}
-
-function buildWebSearchContext(
-  searchData
-) {
-  return getWebSearchContext(
-    searchData
-  );
-}
-
-export {
-  cleanText,
-  formatDateForZambia,
-  formatTimeForZambia,
-  getZambiaDateTime,
-  normalizeUrl,
-  extractDomain,
-  isRecentRequest,
-  isNewsRequest,
-  searchGoogleNews,
-  searchDuckDuckGo,
-  searchWeb,
-  webSearch,
-  searchNews,
-  formatWebResults,
-  getWebSearchContext,
-  buildWebSearchContext,
-  getSearchDateInfo,
-  deduplicateResults,
-  diversifyResults
-};
+/*
+ * Backwards-compatible aliases.
+ * These allow the existing server.js to continue using
+ * the same functions without changes.
+ */
+export const webSearch = searchWeb;
+export const searchNews = searchWeb;
+export const buildWebSearchContext = getWebSearchContext;
 
 export default {
-  webSearch,
   searchWeb,
+  webSearch,
   searchNews,
   formatWebResults,
   getWebSearchContext,

@@ -1,5 +1,5 @@
 // ============================================================
-// ZED AI INTERFACE
+// ZED AI - CURRENT INTERFACE
 // Firebase Authentication + Zed Backend
 // ============================================================
 
@@ -18,45 +18,31 @@ let onAuthStateChanged = null;
 let signOut = null;
 
 async function initializeFirebase() {
-  const firebaseAppModule =
-    await import(
-      "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js"
-    );
 
-  const firebaseAuthModule =
-    await import(
-      "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js"
-    );
+  const firebaseAppModule = await import(
+    "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js"
+  );
+
+  const firebaseAuthModule = await import(
+    "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js"
+  );
 
   const firebaseConfig = {
-    apiKey:
-      "AIzaSyD1jcmrhZK_XitZu-9Wa9whFB7BJZn0Wa8",
-
-    authDomain:
-      "zed-ai-6d201.firebaseapp.com",
-
-    projectId:
-      "zed-ai-6d201",
-
-    storageBucket:
-      "zed-ai-6d201.firebasestorage.app",
-
-    messagingSenderId:
-      "538225665227",
-
-    appId:
-      "1:538225665227:web:d61483c3cafa8e4694e74e"
+    apiKey: "AIzaSyD1jcmrhZK_XitZu-9Wa9whFB7BJZn0Wa8",
+    authDomain: "zed-ai-6d201.firebaseapp.com",
+    projectId: "zed-ai-6d201",
+    storageBucket: "zed-ai-6d201.firebasestorage.app",
+    messagingSenderId: "538225665227",
+    appId: "1:538225665227:web:d61483c3cafa8e4694e74e"
   };
 
-  const firebaseApp =
-    firebaseAppModule.initializeApp(
-      firebaseConfig
-    );
+  const firebaseApp = firebaseAppModule.initializeApp(
+    firebaseConfig
+  );
 
-  firebaseAuth =
-    firebaseAuthModule.getAuth(
-      firebaseApp
-    );
+  firebaseAuth = firebaseAuthModule.getAuth(
+    firebaseApp
+  );
 
   GoogleAuthProvider =
     firebaseAuthModule.GoogleAuthProvider;
@@ -97,117 +83,555 @@ const state = {
 // ELEMENTS
 // ============================================================
 
-const authScreen =
-  document.getElementById("authScreen");
-
 const app =
   document.getElementById("app");
 
-const googleLogin =
-  document.getElementById("googleLogin");
+const sidebar =
+  document.getElementById("sidebar");
 
-const emailLogin =
-  document.getElementById("emailLogin");
+const newChatBtn =
+  document.getElementById("newChatBtn");
 
-const emailSignup =
-  document.getElementById("emailSignup");
+const recentChats =
+  document.getElementById("recentChats");
 
-const emailInput =
-  document.getElementById("emailInput");
+const settingsBtn =
+  document.getElementById("settingsBtn");
 
-const passwordInput =
-  document.getElementById("passwordInput");
+const accountBtn =
+  document.getElementById("accountBtn");
 
-const authMessage =
-  document.getElementById("authMessage");
+const menuBtn =
+  document.getElementById("menuBtn");
 
-const logoutButton =
-  document.getElementById("logoutButton");
-
-const accountName =
-  document.getElementById("accountName");
-
-const accountEmail =
-  document.getElementById("accountEmail");
-
-const profilePhoto =
-  document.getElementById("profilePhoto");
-
-const menuButton =
-  document.getElementById("menuButton");
-
-const menuOverlay =
-  document.getElementById("menuOverlay");
-
-const drawerClose =
-  document.getElementById("drawerClose");
-
-const newChatButton =
-  document.getElementById("newChatButton");
-
-const newChatTopButton =
-  document.getElementById("newChatTopButton");
-
-const historyList =
-  document.getElementById("historyList");
-
-const searchChats =
-  document.getElementById("searchChats");
-
-const chatArea =
-  document.getElementById("chatArea");
-
-const chatContent =
-  document.getElementById("chatContent");
+const profileBtn =
+  document.getElementById("profileBtn");
 
 const welcome =
   document.getElementById("welcome");
 
-const messageInput =
-  document.getElementById("messageInput");
+const messages =
+  document.getElementById("messages");
 
-const sendButton =
-  document.getElementById("sendButton");
-
-const attachButton =
-  document.getElementById("attachButton");
+const attachBtn =
+  document.getElementById("attachBtn");
 
 const attachMenu =
   document.getElementById("attachMenu");
 
-const uploadPhotoButton =
-  document.getElementById("uploadPhotoButton");
+const uploadPhotoBtn =
+  document.getElementById("uploadPhotoBtn");
 
-const uploadFileButton =
-  document.getElementById("uploadFileButton");
+const uploadFileBtn =
+  document.getElementById("uploadFileBtn");
 
-const createImageButton =
-  document.getElementById("createImageButton");
-
-const photoInput =
-  document.getElementById("photoInput");
+const createImageBtn =
+  document.getElementById("createImageBtn");
 
 const fileInput =
   document.getElementById("fileInput");
 
-const fileName =
-  document.getElementById("fileName");
+const messageInput =
+  document.getElementById("messageInput");
 
-const micButton =
-  document.getElementById("micButton");
+const sendBtn =
+  document.getElementById("sendBtn");
 
 
 // ============================================================
-// FIREBASE USER ID
+// AUTH UI
 // ============================================================
 
-function updateUserState(user) {
+let authScreen = null;
+let authMessage = null;
+let emailInput = null;
+let passwordInput = null;
+let googleLogin = null;
+let emailLogin = null;
+let emailSignup = null;
 
-  state.firebaseUser =
-    user || null;
+let accountPanel = null;
 
-  state.userId =
-    user?.uid || null;
+
+// ============================================================
+// CREATE AUTH SCREEN
+// ============================================================
+
+function createAuthScreen() {
+
+  if (document.getElementById("zedAuthScreen")) {
+    authScreen =
+      document.getElementById("zedAuthScreen");
+
+    return;
+  }
+
+  authScreen =
+    document.createElement("div");
+
+  authScreen.id =
+    "zedAuthScreen";
+
+  authScreen.style.cssText = `
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #212121;
+    color: #f5f5f5;
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 20px;
+  `;
+
+  const box =
+    document.createElement("div");
+
+  box.style.cssText = `
+    width: 100%;
+    max-width: 390px;
+    background: #2f2f2f;
+    border: 1px solid #424242;
+    border-radius: 18px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  `;
+
+  box.innerHTML = `
+    <div style="
+      width:64px;
+      height:64px;
+      margin:0 auto 18px;
+      border-radius:18px;
+      background:#212121;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#72e6a4;
+      font-size:30px;
+      font-weight:700;
+    ">Z</div>
+
+    <h1 style="
+      text-align:center;
+      font-size:25px;
+      margin-bottom:8px;
+    ">Welcome to Zed AI</h1>
+
+    <p style="
+      text-align:center;
+      color:#a7a7a7;
+      font-size:14px;
+      margin-bottom:22px;
+    ">Sign in to continue</p>
+
+    <button id="googleLogin" style="
+      width:100%;
+      height:44px;
+      border:0;
+      border-radius:10px;
+      background:#f5f5f5;
+      color:#202020;
+      cursor:pointer;
+      font-weight:600;
+      margin-bottom:16px;
+    ">Continue with Google</button>
+
+    <div style="
+      text-align:center;
+      color:#777;
+      font-size:12px;
+      margin:10px 0;
+    ">or</div>
+
+    <input id="emailInput"
+      type="email"
+      placeholder="Email"
+      style="
+        width:100%;
+        height:44px;
+        margin-bottom:10px;
+        padding:0 12px;
+        border:1px solid #424242;
+        border-radius:9px;
+        outline:none;
+        background:#212121;
+        color:#f5f5f5;
+      "
+    >
+
+    <input id="passwordInput"
+      type="password"
+      placeholder="Password"
+      style="
+        width:100%;
+        height:44px;
+        margin-bottom:12px;
+        padding:0 12px;
+        border:1px solid #424242;
+        border-radius:9px;
+        outline:none;
+        background:#212121;
+        color:#f5f5f5;
+      "
+    >
+
+    <div style="
+      display:flex;
+      gap:8px;
+    ">
+      <button id="emailLogin" style="
+        flex:1;
+        height:42px;
+        border:0;
+        border-radius:9px;
+        background:#72e6a4;
+        color:#111;
+        cursor:pointer;
+        font-weight:700;
+      ">Login</button>
+
+      <button id="emailSignup" style="
+        flex:1;
+        height:42px;
+        border:1px solid #555;
+        border-radius:9px;
+        background:#212121;
+        color:#f5f5f5;
+        cursor:pointer;
+      ">Sign up</button>
+    </div>
+
+    <div id="authMessage" style="
+      min-height:20px;
+      margin-top:14px;
+      text-align:center;
+      color:#ff8c8c;
+      font-size:12px;
+    "></div>
+  `;
+
+  authScreen.appendChild(box);
+  document.body.appendChild(authScreen);
+
+  googleLogin =
+    document.getElementById("googleLogin");
+
+  emailLogin =
+    document.getElementById("emailLogin");
+
+  emailSignup =
+    document.getElementById("emailSignup");
+
+  emailInput =
+    document.getElementById("emailInput");
+
+  passwordInput =
+    document.getElementById("passwordInput");
+
+  authMessage =
+    document.getElementById("authMessage");
+}
+
+
+// ============================================================
+// ACCOUNT PANEL
+// ============================================================
+
+function createAccountPanel() {
+
+  if (accountPanel) {
+    return;
+  }
+
+  accountPanel =
+    document.createElement("div");
+
+  accountPanel.style.cssText = `
+    position:fixed;
+    right:16px;
+    top:58px;
+    z-index:500;
+    width:280px;
+    background:#2f2f2f;
+    border:1px solid #424242;
+    border-radius:14px;
+    padding:18px;
+    box-shadow:0 15px 40px rgba(0,0,0,.45);
+    display:none;
+  `;
+
+  accountPanel.innerHTML = `
+    <div id="zedAccountName"
+      style="font-weight:700;font-size:15px;margin-bottom:5px;">
+    </div>
+
+    <div id="zedAccountEmail"
+      style="color:#a7a7a7;font-size:12px;margin-bottom:18px;">
+    </div>
+
+    <button id="zedLogout"
+      style="
+        width:100%;
+        height:40px;
+        border:0;
+        border-radius:9px;
+        background:#444;
+        color:#fff;
+        cursor:pointer;
+      ">
+      Log out
+    </button>
+  `;
+
+  document.body.appendChild(
+    accountPanel
+  );
+
+  document
+    .getElementById("zedLogout")
+    .addEventListener(
+      "click",
+      async () => {
+
+        try {
+          await signOut(firebaseAuth);
+        } catch (error) {
+          console.error(error);
+        }
+
+      }
+    );
+}
+
+
+function updateAccountPanel() {
+
+  if (!accountPanel) {
+    return;
+  }
+
+  const name =
+    document.getElementById(
+      "zedAccountName"
+    );
+
+  const email =
+    document.getElementById(
+      "zedAccountEmail"
+    );
+
+  if (name) {
+    name.textContent =
+      state.firebaseUser?.displayName ||
+      "Zed User";
+  }
+
+  if (email) {
+    email.textContent =
+      state.firebaseUser?.email ||
+      "";
+  }
+}
+
+
+// ============================================================
+// AUTH HELPERS
+// ============================================================
+
+function showAuthMessage(
+  message = ""
+) {
+
+  if (authMessage) {
+    authMessage.textContent =
+      message;
+  }
+}
+
+
+function showAuth() {
+
+  if (authScreen) {
+    authScreen.style.display =
+      "flex";
+  }
+
+  if (app) {
+    app.style.display =
+      "none";
+  }
+}
+
+
+function showApp() {
+
+  if (authScreen) {
+    authScreen.style.display =
+      "none";
+  }
+
+  if (app) {
+    app.style.display =
+      "flex";
+  }
+}
+
+
+// ============================================================
+// AUTH BUTTONS
+// ============================================================
+
+function setupAuthButtons() {
+
+  googleLogin?.addEventListener(
+    "click",
+    async () => {
+
+      try {
+
+        showAuthMessage("");
+
+        googleLogin.disabled =
+          true;
+
+        const provider =
+          new GoogleAuthProvider();
+
+        await signInWithPopup(
+          firebaseAuth,
+          provider
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Google login error:",
+          error
+        );
+
+        showAuthMessage(
+          error.message
+        );
+
+      } finally {
+
+        googleLogin.disabled =
+          false;
+
+      }
+
+    }
+  );
+
+
+  emailLogin?.addEventListener(
+    "click",
+    async () => {
+
+      try {
+
+        showAuthMessage("");
+
+        const email =
+          emailInput.value.trim();
+
+        const password =
+          passwordInput.value;
+
+        if (!email || !password) {
+          throw new Error(
+            "Enter your email and password."
+          );
+        }
+
+        emailLogin.disabled =
+          true;
+
+        await signInWithEmailAndPassword(
+          firebaseAuth,
+          email,
+          password
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Email login error:",
+          error
+        );
+
+        showAuthMessage(
+          error.message
+        );
+
+      } finally {
+
+        emailLogin.disabled =
+          false;
+
+      }
+
+    }
+  );
+
+
+  emailSignup?.addEventListener(
+    "click",
+    async () => {
+
+      try {
+
+        showAuthMessage("");
+
+        const email =
+          emailInput.value.trim();
+
+        const password =
+          passwordInput.value;
+
+        if (!email || !password) {
+          throw new Error(
+            "Enter an email and password."
+          );
+        }
+
+        if (password.length < 6) {
+          throw new Error(
+            "Password must contain at least 6 characters."
+          );
+        }
+
+        emailSignup.disabled =
+          true;
+
+        await createUserWithEmailAndPassword(
+          firebaseAuth,
+          email,
+          password
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Signup error:",
+          error
+        );
+
+        showAuthMessage(
+          error.message
+        );
+
+      } finally {
+
+        emailSignup.disabled =
+          false;
+
+      }
+
+    }
+  );
 }
 
 
@@ -215,7 +639,9 @@ function updateUserState(user) {
 // HELPERS
 // ============================================================
 
-function escapeHtml(value = "") {
+function escapeHtml(
+  value = ""
+) {
 
   return String(value)
     .replace(/&/g, "&amp;")
@@ -226,7 +652,9 @@ function escapeHtml(value = "") {
 }
 
 
-async function parseResponse(response) {
+async function parseResponse(
+  response
+) {
 
   const text =
     await response.text();
@@ -236,81 +664,31 @@ async function parseResponse(response) {
   }
 
   try {
-
     return JSON.parse(text);
-
   } catch {
-
     return {
       ok: false,
       error:
         "The server returned an invalid response."
     };
-
   }
 }
 
 
-function removeElement(element) {
-
-  if (
-    element &&
-    element.parentNode
-  ) {
-
-    element.parentNode.removeChild(
-      element
-    );
-
-  }
-}
-
-
-function showAuthMessage(message = "") {
-
-  if (authMessage) {
-    authMessage.textContent =
-      message;
-  }
-}
-
-
-function showApp() {
-
-  authScreen?.classList.add(
-    "hidden"
-  );
-
-  app?.classList.remove(
-    "hidden"
-  );
-}
-
-
-function showAuth() {
-
-  authScreen?.classList.remove(
-    "hidden"
-  );
-
-  app?.classList.add(
-    "hidden"
-  );
-}
-
-
-function setSending(value) {
+function setSending(
+  value
+) {
 
   state.sending =
     value;
 
-  if (sendButton) {
-    sendButton.disabled =
+  if (sendBtn) {
+    sendBtn.disabled =
       value;
   }
 
-  if (attachButton) {
-    attachButton.disabled =
+  if (attachBtn) {
+    attachBtn.disabled =
       value;
   }
 
@@ -325,64 +703,63 @@ function setSending(value) {
 // MENU
 // ============================================================
 
-function openMenu() {
+function toggleSidebar() {
 
-  menuOverlay?.classList.remove(
-    "closed"
+  sidebar?.classList.toggle(
+    "open"
   );
 }
 
 
-function closeMenu() {
-
-  menuOverlay?.classList.add(
-    "closed"
-  );
-}
+menuBtn?.addEventListener(
+  "click",
+  toggleSidebar
+);
 
 
-function toggleMenu() {
+profileBtn?.addEventListener(
+  "click",
+  () => {
 
-  if (
-    menuOverlay?.classList.contains(
-      "closed"
-    )
-  ) {
+    if (!accountPanel) {
+      return;
+    }
 
-    openMenu();
-
-  } else {
-
-    closeMenu();
+    accountPanel.style.display =
+      accountPanel.style.display ===
+      "none"
+        ? "block"
+        : "none";
 
   }
-}
-
-
-menuButton?.addEventListener(
-  "click",
-  toggleMenu
 );
 
 
-drawerClose?.addEventListener(
+accountBtn?.addEventListener(
   "click",
-  closeMenu
-);
+  () => {
 
-
-menuOverlay?.addEventListener(
-  "click",
-  event => {
-
-    if (
-      event.target ===
-      menuOverlay
-    ) {
-
-      closeMenu();
-
+    if (!accountPanel) {
+      return;
     }
+
+    accountPanel.style.display =
+      accountPanel.style.display ===
+      "none"
+        ? "block"
+        : "none";
+
+  }
+);
+
+
+settingsBtn?.addEventListener(
+  "click",
+  () => {
+
+    alert(
+      "Zed AI settings are coming soon."
+    );
 
   }
 );
@@ -394,26 +771,26 @@ menuOverlay?.addEventListener(
 
 function renderMessages() {
 
-  if (!chatContent) {
+  if (!messages) {
     return;
   }
 
-  chatContent.innerHTML =
+  messages.innerHTML =
     "";
 
-  if (
-    !state.messages.length
-  ) {
+  if (!state.messages.length) {
 
     if (welcome) {
-
-      chatContent.appendChild(
-        welcome
-      );
-
+      welcome.style.display =
+        "block";
     }
 
     return;
+  }
+
+  if (welcome) {
+    welcome.style.display =
+      "none";
   }
 
   for (
@@ -421,103 +798,68 @@ function renderMessages() {
   ) {
 
     const wrapper =
-      document.createElement(
-        "div"
-      );
+      document.createElement("div");
 
     wrapper.className =
       "message " +
       (
         message.role === "user"
-          ? "user"
-          : "assistant"
+          ? "message-user"
+          : "message-assistant"
       );
 
-    const inner =
-      document.createElement(
-        "div"
-      );
+    const content =
+      document.createElement("div");
 
-    inner.className =
-      "messageInner";
+    content.className =
+      "message-content";
 
-    const label =
-      document.createElement(
-        "div"
-      );
-
-    label.className =
-      "messageLabel";
-
-    label.textContent =
-      message.role === "user"
-        ? "You"
-        : "Zed";
-
-    inner.appendChild(
-      label
-    );
-
-    const body =
-      document.createElement(
-        "div"
-      );
-
-    body.className =
-      "messageBody";
-
-    body.textContent =
+    content.textContent =
       message.content || "";
 
-    inner.appendChild(
-      body
+    wrapper.appendChild(
+      content
     );
 
-    if (
-      message.image
-    ) {
+    if (message.image) {
 
       const image =
-        document.createElement(
-          "img"
-        );
-
-      image.className =
-        "generatedImage";
+        document.createElement("img");
 
       image.src =
         message.image;
 
       image.alt =
-        "Image created by Zed";
+        "Image created by Zed AI";
 
-      image.loading =
-        "lazy";
+      image.style.cssText = `
+        display:block;
+        max-width:100%;
+        margin-top:12px;
+        border-radius:12px;
+      `;
 
-      inner.appendChild(
+      content.appendChild(
         image
       );
-
     }
 
-    wrapper.appendChild(
-      inner
-    );
-
-    chatContent.appendChild(
+    messages.appendChild(
       wrapper
     );
-
   }
 
   requestAnimationFrame(
     () => {
 
-      if (chatArea) {
+      const chatArea =
+        document.querySelector(
+          ".chat-area"
+        );
 
+      if (chatArea) {
         chatArea.scrollTop =
           chatArea.scrollHeight;
-
       }
 
     }
@@ -532,98 +874,45 @@ function renderMessages() {
 function showThinking() {
 
   const wrapper =
-    document.createElement(
-      "div"
-    );
+    document.createElement("div");
 
   wrapper.className =
-    "message assistant";
+    "message message-assistant";
 
   wrapper.id =
     "thinkingMessage";
 
-  const inner =
-    document.createElement(
-      "div"
-    );
+  const content =
+    document.createElement("div");
 
-  inner.className =
-    "messageInner";
+  content.className =
+    "message-content";
 
-  const label =
-    document.createElement(
-      "div"
-    );
-
-  label.className =
-    "messageLabel";
-
-  label.textContent =
-    "Zed";
-
-  const thinking =
-    document.createElement(
-      "div"
-    );
-
-  thinking.className =
-    "thinkingMessage";
-
-  thinking.innerHTML = `
-    <span>Thinking</span>
-    <span class="thinkingDots">
-      <span></span>
-      <span></span>
-      <span></span>
-    </span>
-  `;
-
-  inner.appendChild(
-    label
-  );
-
-  inner.appendChild(
-    thinking
-  );
+  content.textContent =
+    "Zed is thinking...";
 
   wrapper.appendChild(
-    inner
+    content
   );
 
-  chatContent.appendChild(
+  messages?.appendChild(
     wrapper
-  );
-
-  requestAnimationFrame(
-    () => {
-
-      if (chatArea) {
-
-        chatArea.scrollTop =
-          chatArea.scrollHeight;
-
-      }
-
-    }
   );
 }
 
 
 function removeThinking() {
 
-  const thinking =
-    document.getElementById(
+  document
+    .getElementById(
       "thinkingMessage"
-    );
-
-  if (thinking) {
-    thinking.remove();
-  }
+    )
+    ?.remove();
 }
 
 
 // ============================================================
-// LOAD RECENT CHATS
+// LOAD CHATS
 // ============================================================
 
 async function loadChats() {
@@ -646,16 +935,11 @@ async function loadChats() {
         response
       );
 
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-
+    if (!response.ok || !data.ok) {
       throw new Error(
         data.error ||
         "Unable to load chats."
       );
-
     }
 
     state.chats =
@@ -677,40 +961,33 @@ async function loadChats() {
 
 
 // ============================================================
-// RENDER RECENT CHATS
+// RECENT CHATS
 // ============================================================
 
 function renderRecentChats() {
 
-  if (!historyList) {
+  if (!recentChats) {
     return;
   }
 
-  historyList.innerHTML =
+  recentChats.innerHTML =
     "";
 
-  if (
-    !state.chats.length
-  ) {
+  if (!state.chats.length) {
 
     const empty =
-      document.createElement(
-        "div"
-      );
+      document.createElement("div");
 
-    empty.style.padding =
-      "12px 8px";
-
-    empty.style.color =
-      "#666";
-
-    empty.style.fontSize =
-      "12px";
+    empty.style.cssText = `
+      color:#666;
+      font-size:12px;
+      padding:10px;
+    `;
 
     empty.textContent =
       "No conversations yet.";
 
-    historyList.appendChild(
+    recentChats.appendChild(
       empty
     );
 
@@ -721,21 +998,22 @@ function renderRecentChats() {
     const chat of state.chats
   ) {
 
-    const conversationId =
+    const id =
       chat.id ||
       chat.conversationId;
 
-    if (!conversationId) {
+    if (!id) {
       continue;
     }
 
     const item =
-      document.createElement(
-        "div"
-      );
+      document.createElement("button");
 
     item.className =
-      "historyItem";
+      "recent-chat";
+
+    item.type =
+      "button";
 
     item.textContent =
       chat.title ||
@@ -745,16 +1023,20 @@ function renderRecentChats() {
       "click",
       async () => {
 
-        await loadConversation(
-          conversationId
-        );
+        await loadConversation(id);
 
-        closeMenu();
+        if (
+          window.innerWidth <= 700
+        ) {
+          sidebar?.classList.remove(
+            "open"
+          );
+        }
 
       }
     );
 
-    historyList.appendChild(
+    recentChats.appendChild(
       item
     );
   }
@@ -792,16 +1074,11 @@ async function loadConversation(
         response
       );
 
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-
+    if (!response.ok || !data.ok) {
       throw new Error(
         data.error ||
         "Unable to load conversation."
       );
-
     }
 
     state.conversationId =
@@ -819,21 +1096,9 @@ async function loadConversation(
   } catch (error) {
 
     console.error(
-      "Load conversation error:",
+      "Conversation error:",
       error
     );
-
-    state.messages = [
-      {
-        role:
-          "assistant",
-
-        content:
-          "I couldn't load that conversation."
-      }
-    ];
-
-    renderMessages();
 
   }
 }
@@ -858,19 +1123,17 @@ async function createNewChat() {
       await fetch(
         "/api/new-chat",
         {
-          method:
-            "POST",
+          method:"POST",
 
-          headers: {
+          headers:{
             "Content-Type":
               "application/json"
           },
 
-          body:
-            JSON.stringify({
-              userId:
-                state.userId
-            })
+          body:JSON.stringify({
+            userId:
+              state.userId
+          })
         }
       );
 
@@ -879,16 +1142,11 @@ async function createNewChat() {
         response
       );
 
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-
+    if (!response.ok || !data.ok) {
       throw new Error(
         data.error ||
         "Unable to create a new chat."
       );
-
     }
 
     state.conversationId =
@@ -898,24 +1156,11 @@ async function createNewChat() {
 
     state.messages = [];
 
-    state.selectedFile =
-      null;
-
-    if (fileName) {
-      fileName.textContent =
-        "";
-    }
-
-    if (messageInput) {
-      messageInput.value =
-        "";
-    }
+    state.selectedFile = null;
 
     renderMessages();
 
     await loadChats();
-
-    closeMenu();
 
     messageInput?.focus();
 
@@ -930,238 +1175,10 @@ async function createNewChat() {
 }
 
 
-newChatButton?.addEventListener(
+newChatBtn?.addEventListener(
   "click",
   createNewChat
 );
-
-
-newChatTopButton?.addEventListener(
-  "click",
-  createNewChat
-);
-
-
-// ============================================================
-// SEND MESSAGE
-// ============================================================
-
-async function sendMessage() {
-
-  if (
-    state.sending ||
-    !state.userId ||
-    !messageInput
-  ) {
-    return;
-  }
-
-  const text =
-    messageInput.value.trim();
-
-  if (
-    !text &&
-    !state.selectedFile
-  ) {
-    return;
-  }
-
-  setSending(true);
-
-  const userMessage = {
-    role:
-      "user",
-
-    content:
-      text ||
-      "Please analyze this uploaded file."
-  };
-
-  state.messages.push(
-    userMessage
-  );
-
-  renderMessages();
-
-  messageInput.value =
-    "";
-
-  messageInput.style.height =
-    "auto";
-
-  let filePayload =
-    null;
-
-  if (
-    state.selectedFile
-  ) {
-
-    try {
-
-      filePayload =
-        await readFileAsDataURL(
-          state.selectedFile
-        );
-
-    } catch (error) {
-
-      console.error(
-        "File reading error:",
-        error
-      );
-
-      state.messages.push({
-        role:
-          "assistant",
-
-        content:
-          "I couldn't read that file. Please try uploading it again."
-      });
-
-      renderMessages();
-
-      setSending(false);
-
-      return;
-    }
-  }
-
-  showThinking();
-
-  try {
-
-    const response =
-      await fetch(
-        "/api/chat",
-        {
-          method:
-            "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-
-              message:
-                text,
-
-              userId:
-                state.userId,
-
-              conversationId:
-                state.conversationId,
-
-              conversation:
-                state.messages
-                  .slice(0, -1)
-                  .map(
-                    message => ({
-                      role:
-                        message.role,
-
-                      text:
-                        message.content
-                    })
-                  ),
-
-              file:
-                filePayload
-
-            })
-        }
-      );
-
-    const data =
-      await parseResponse(
-        response
-      );
-
-    removeThinking();
-
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-
-      throw new Error(
-        data.error ||
-        data.answer ||
-        "Zed could not respond."
-      );
-
-    }
-
-    state.conversationId =
-      data.conversationId ||
-      state.conversationId;
-
-    state.messages.push({
-
-      role:
-        "assistant",
-
-      content:
-        data.answer ||
-        data.reply ||
-        "Zed did not return an answer."
-
-    });
-
-    renderMessages();
-
-    await loadChats();
-
-  } catch (error) {
-
-    console.error(
-      "Chat error:",
-      error
-    );
-
-    removeThinking();
-
-    state.messages.push({
-
-      role:
-        "assistant",
-
-      content:
-        "I couldn't complete that request.\n\n" +
-        error.message
-
-    });
-
-    renderMessages();
-
-  } finally {
-
-    state.selectedFile =
-      null;
-
-    if (fileName) {
-      fileName.textContent =
-        "";
-    }
-
-    if (photoInput) {
-      photoInput.value =
-        "";
-    }
-
-    if (fileInput) {
-      fileInput.value =
-        "";
-    }
-
-    setSending(false);
-
-    messageInput.focus();
-
-  }
-}
 
 
 // ============================================================
@@ -1207,6 +1224,308 @@ function readFileAsDataURL(
 
 
 // ============================================================
+// SEND MESSAGE
+// ============================================================
+
+async function sendMessage() {
+
+  if (
+    state.sending ||
+    !state.userId
+  ) {
+    return;
+  }
+
+  const text =
+    messageInput?.value.trim() ||
+    "";
+
+  if (
+    !text &&
+    !state.selectedFile
+  ) {
+    return;
+  }
+
+  setSending(true);
+
+  const previousMessages =
+    state.messages.slice();
+
+  state.messages.push({
+    role:"user",
+    content:
+      text ||
+      "Please analyze this uploaded file."
+  });
+
+  renderMessages();
+
+  messageInput.value =
+    "";
+
+  messageInput.style.height =
+    "auto";
+
+  let filePayload =
+    null;
+
+  try {
+
+    if (state.selectedFile) {
+
+      filePayload =
+        await readFileAsDataURL(
+          state.selectedFile
+        );
+    }
+
+    showThinking();
+
+    const response =
+      await fetch(
+        "/api/chat",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+
+          body:JSON.stringify({
+
+            message:
+              text,
+
+            userId:
+              state.userId,
+
+            conversationId:
+              state.conversationId,
+
+            conversation:
+              previousMessages.map(
+                message => ({
+                  role:
+                    message.role,
+
+                  text:
+                    message.content
+                })
+              ),
+
+            file:
+              filePayload
+
+          })
+        }
+      );
+
+    const data =
+      await parseResponse(
+        response
+      );
+
+    removeThinking();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(
+        data.error ||
+        data.answer ||
+        "Zed could not respond."
+      );
+    }
+
+    state.conversationId =
+      data.conversationId ||
+      state.conversationId;
+
+    state.messages.push({
+      role:"assistant",
+      content:
+        data.answer ||
+        data.reply ||
+        "Zed did not return an answer."
+    });
+
+    renderMessages();
+
+    await loadChats();
+
+  } catch (error) {
+
+    console.error(
+      "Chat error:",
+      error
+    );
+
+    removeThinking();
+
+    state.messages.push({
+      role:"assistant",
+      content:
+        "I couldn't complete that request.\n\n" +
+        error.message
+    });
+
+    renderMessages();
+
+  } finally {
+
+    state.selectedFile =
+      null;
+
+    if (fileInput) {
+      fileInput.value =
+        "";
+    }
+
+    setSending(false);
+
+    messageInput?.focus();
+  }
+}
+
+
+sendBtn?.addEventListener(
+  "click",
+  sendMessage
+);
+
+
+// ============================================================
+// INPUT
+// ============================================================
+
+messageInput?.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey
+    ) {
+
+      event.preventDefault();
+
+      sendMessage();
+    }
+
+  }
+);
+
+
+messageInput?.addEventListener(
+  "input",
+  () => {
+
+    messageInput.style.height =
+      "auto";
+
+    messageInput.style.height =
+      Math.min(
+        messageInput.scrollHeight,
+        180
+      ) + "px";
+
+  }
+);
+
+
+// ============================================================
+// ATTACHMENTS
+// ============================================================
+
+attachBtn?.addEventListener(
+  "click",
+  event => {
+
+    event.stopPropagation();
+
+    if (state.sending) {
+      return;
+    }
+
+    attachMenu?.classList.toggle(
+      "show"
+    );
+  }
+);
+
+
+document.addEventListener(
+  "click",
+  event => {
+
+    if (
+      attachMenu &&
+      !attachMenu.contains(event.target) &&
+      event.target !== attachBtn
+    ) {
+
+      attachMenu.classList.remove(
+        "show"
+      );
+
+    }
+
+  }
+);
+
+
+uploadPhotoBtn?.addEventListener(
+  "click",
+  () => {
+
+    attachMenu?.classList.remove(
+      "show"
+    );
+
+    fileInput?.click();
+
+  }
+);
+
+
+uploadFileBtn?.addEventListener(
+  "click",
+  () => {
+
+    attachMenu?.classList.remove(
+      "show"
+    );
+
+    fileInput?.click();
+
+  }
+);
+
+
+fileInput?.addEventListener(
+  "change",
+  () => {
+
+    const file =
+      fileInput.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    state.selectedFile =
+      file;
+
+    messageInput.value =
+      `Please analyze ${file.name}`;
+
+    messageInput.focus();
+
+  }
+);
+
+
+// ============================================================
 // IMAGE GENERATION
 // ============================================================
 
@@ -1231,30 +1550,23 @@ async function createImage() {
     return;
   }
 
-  attachMenu?.classList.add(
-    "hidden"
+  attachMenu?.classList.remove(
+    "show"
   );
 
   setSending(true);
 
   state.messages.push({
-
-    role:
-      "user",
-
+    role:"user",
     content:
       "Create an image: " +
       prompt
-
   });
 
   renderMessages();
 
   messageInput.value =
     "";
-
-  messageInput.style.height =
-    "auto";
 
   showThinking();
 
@@ -1264,18 +1576,16 @@ async function createImage() {
       await fetch(
         "/api/generate-image",
         {
-          method:
-            "POST",
+          method:"POST",
 
-          headers: {
+          headers:{
             "Content-Type":
               "application/json"
           },
 
-          body:
-            JSON.stringify({
-              prompt
-            })
+          body:JSON.stringify({
+            prompt
+          })
         }
       );
 
@@ -1286,16 +1596,11 @@ async function createImage() {
 
     removeThinking();
 
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
-
+    if (!response.ok || !data.ok) {
       throw new Error(
         data.error ||
         "Image generation failed."
       );
-
     }
 
     const result =
@@ -1318,13 +1623,10 @@ async function createImage() {
 
       imageSource =
         data.image;
-
     }
 
     state.messages.push({
-
-      role:
-        "assistant",
+      role:"assistant",
 
       content:
         imageSource
@@ -1333,7 +1635,6 @@ async function createImage() {
 
       image:
         imageSource
-
     });
 
     renderMessages();
@@ -1350,14 +1651,11 @@ async function createImage() {
     removeThinking();
 
     state.messages.push({
-
-      role:
-        "assistant",
+      role:"assistant",
 
       content:
         "I couldn't create that image right now.\n\n" +
         error.message
-
     });
 
     renderMessages();
@@ -1366,426 +1664,77 @@ async function createImage() {
 
     setSending(false);
 
-    messageInput.focus();
-
+    messageInput?.focus();
   }
 }
 
 
-// ============================================================
-// ATTACHMENTS
-// ============================================================
-
-attachButton?.addEventListener(
-  "click",
-  () => {
-
-    if (state.sending) {
-      return;
-    }
-
-    attachMenu?.classList.toggle(
-      "hidden"
-    );
-
-  }
-);
-
-
-uploadPhotoButton?.addEventListener(
-  "click",
-  () => {
-
-    attachMenu?.classList.add(
-      "hidden"
-    );
-
-    photoInput?.click();
-
-  }
-);
-
-
-uploadFileButton?.addEventListener(
-  "click",
-  () => {
-
-    attachMenu?.classList.add(
-      "hidden"
-    );
-
-    fileInput?.click();
-
-  }
-);
-
-
-createImageButton?.addEventListener(
+createImageBtn?.addEventListener(
   "click",
   createImage
 );
 
 
-photoInput?.addEventListener(
-  "change",
-  () => {
-
-    const file =
-      photoInput.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    state.selectedFile =
-      file;
-
-    if (fileName) {
-
-      fileName.textContent =
-        "Selected: " +
-        file.name;
-
-    }
-
-  }
-);
-
-
-fileInput?.addEventListener(
-  "change",
-  () => {
-
-    const file =
-      fileInput.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    state.selectedFile =
-      file;
-
-    if (fileName) {
-
-      fileName.textContent =
-        "Selected: " +
-        file.name;
-
-    }
-
-  }
-);
-
-
 // ============================================================
-// INPUT
+// VOICE INPUT
 // ============================================================
 
-sendButton?.addEventListener(
-  "click",
-  sendMessage
-);
+let recognition = null;
 
+const SpeechRecognition =
+  window.SpeechRecognition ||
+  window.webkitSpeechRecognition;
 
-messageInput?.addEventListener(
-  "keydown",
-  event => {
+if (SpeechRecognition) {
 
-    if (
-      event.key === "Enter" &&
-      !event.shiftKey
-    ) {
+  recognition =
+    new SpeechRecognition();
 
-      event.preventDefault();
+  recognition.lang =
+    "en-US";
 
-      sendMessage();
+  recognition.interimResults =
+    false;
 
-    }
+  recognition.continuous =
+    false;
 
-  }
-);
+  recognition.onresult =
+    event => {
 
+      const transcript =
+        event.results[0][0]
+          .transcript;
 
-messageInput?.addEventListener(
-  "input",
-  () => {
+      if (messageInput) {
 
-    messageInput.style.height =
-      "auto";
+        messageInput.value =
+          transcript;
 
-    messageInput.style.height =
-      Math.min(
-        messageInput.scrollHeight,
-        150
-      ) + "px";
-
-  }
-);
-
-
-// ============================================================
-// SEARCH CHATS
-// ============================================================
-
-searchChats?.addEventListener(
-  "input",
-  () => {
-
-    const search =
-      searchChats.value
-        .trim()
-        .toLowerCase();
-
-    const filtered =
-      state.chats.filter(
-        chat =>
-          String(
-            chat.title || ""
-          )
-            .toLowerCase()
-            .includes(search)
-      );
-
-    if (!search) {
-
-      renderRecentChats();
-
-      return;
-    }
-
-    if (!historyList) {
-      return;
-    }
-
-    historyList.innerHTML =
-      "";
-
-    for (
-      const chat of filtered
-    ) {
-
-      const conversationId =
-        chat.id ||
-        chat.conversationId;
-
-      if (!conversationId) {
-        continue;
-      }
-
-      const item =
-        document.createElement(
-          "div"
+        messageInput.dispatchEvent(
+          new Event("input")
         );
 
-      item.className =
-        "historyItem";
+        messageInput.focus();
+      }
 
-      item.textContent =
-        chat.title ||
-        "New chat";
+    };
 
-      item.addEventListener(
-        "click",
-        async () => {
+  recognition.onerror =
+    error => {
 
-          await loadConversation(
-            conversationId
-          );
-
-          closeMenu();
-
-        }
+      console.error(
+        "Voice recognition error:",
+        error
       );
 
-      historyList.appendChild(
-        item
-      );
-
-    }
-
-  }
-);
+    };
+}
 
 
 // ============================================================
-// AUTHENTICATION
+// PROFILE / ACCOUNT
 // ============================================================
-
-googleLogin?.addEventListener(
-  "click",
-  async () => {
-
-    try {
-
-      showAuthMessage("");
-
-      googleLogin.disabled =
-        true;
-
-      const provider =
-        new GoogleAuthProvider();
-
-      await signInWithPopup(
-        firebaseAuth,
-        provider
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Google login error:",
-        error
-      );
-
-      showAuthMessage(
-        error.message
-      );
-
-    } finally {
-
-      googleLogin.disabled =
-        false;
-
-    }
-
-  }
-);
-
-
-emailLogin?.addEventListener(
-  "click",
-  async () => {
-
-    try {
-
-      showAuthMessage("");
-
-      emailLogin.disabled =
-        true;
-
-      const email =
-        emailInput.value.trim();
-
-      const password =
-        passwordInput.value;
-
-      if (
-        !email ||
-        !password
-      ) {
-
-        throw new Error(
-          "Enter your email and password."
-        );
-
-      }
-
-      await signInWithEmailAndPassword(
-        firebaseAuth,
-        email,
-        password
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Email login error:",
-        error
-      );
-
-      showAuthMessage(
-        error.message
-      );
-
-    } finally {
-
-      emailLogin.disabled =
-        false;
-
-    }
-
-  }
-);
-
-
-emailSignup?.addEventListener(
-  "click",
-  async () => {
-
-    try {
-
-      showAuthMessage("");
-
-      emailSignup.disabled =
-        true;
-
-      const email =
-        emailInput.value.trim();
-
-      const password =
-        passwordInput.value;
-
-      if (
-        !email ||
-        !password
-      ) {
-
-        throw new Error(
-          "Enter an email and password."
-        );
-
-      }
-
-      await createUserWithEmailAndPassword(
-        firebaseAuth,
-        email,
-        password
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Account creation error:",
-        error
-      );
-
-      showAuthMessage(
-        error.message
-      );
-
-    } finally {
-
-      emailSignup.disabled =
-        false;
-
-    }
-
-  }
-);
-
-
-logoutButton?.addEventListener(
-  "click",
-  async () => {
-
-    try {
-
-      await signOut(
-        firebaseAuth
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Logout error:",
-        error
-      );
-
-    }
-
-  }
-);
 
 
 // ============================================================
@@ -1798,9 +1747,11 @@ function setupAuthListener() {
     firebaseAuth,
     async user => {
 
-      updateUserState(
-        user
-      );
+      state.firebaseUser =
+        user || null;
+
+      state.userId =
+        user?.uid || null;
 
       if (user) {
 
@@ -1810,55 +1761,7 @@ function setupAuthListener() {
         state.messages =
           [];
 
-        if (accountName) {
-
-          accountName.textContent =
-            user.displayName ||
-            "Zed User";
-
-        }
-
-        if (accountEmail) {
-
-          accountEmail.textContent =
-            user.email ||
-            "";
-
-        }
-
-        if (
-          profilePhoto &&
-          user.photoURL
-        ) {
-
-          profilePhoto.src =
-            user.photoURL;
-
-        } else if (
-          profilePhoto
-        ) {
-
-          profilePhoto.src =
-            "data:image/svg+xml," +
-            encodeURIComponent(`
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="80"
-                   height="80">
-                <rect width="100%"
-                      height="100%"
-                      fill="#444"/>
-                <text x="50%"
-                      y="57%"
-                      text-anchor="middle"
-                      fill="white"
-                      font-family="Arial"
-                      font-size="30">
-                  Z
-                </text>
-              </svg>
-            `);
-
-        }
+        updateAccountPanel();
 
         showApp();
 
@@ -1889,8 +1792,6 @@ function setupAuthListener() {
 
         showAuth();
 
-        closeMenu();
-
       }
 
     }
@@ -1899,144 +1800,22 @@ function setupAuthListener() {
 
 
 // ============================================================
-// VOICE INPUT
-// ============================================================
-
-let recognition =
-  null;
-
-
-if (
-  "webkitSpeechRecognition" in window ||
-  "SpeechRecognition" in window
-) {
-
-  const SpeechRecognition =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-  recognition =
-    new SpeechRecognition();
-
-  recognition.lang =
-    "en-US";
-
-  recognition.interimResults =
-    false;
-
-  recognition.continuous =
-    false;
-
-  recognition.onstart =
-    () => {
-
-      if (micButton) {
-
-        micButton.style.background =
-          "#4a4a4a";
-
-      }
-
-    };
-
-  recognition.onend =
-    () => {
-
-      if (micButton) {
-
-        micButton.style.background =
-          "transparent";
-
-      }
-
-    };
-
-  recognition.onresult =
-    event => {
-
-      const transcript =
-        event.results[0][0]
-          .transcript;
-
-      if (messageInput) {
-
-        messageInput.value =
-          transcript;
-
-        messageInput.dispatchEvent(
-          new Event("input")
-        );
-
-        messageInput.focus();
-
-      }
-
-    };
-
-  recognition.onerror =
-    error => {
-
-      console.error(
-        "Voice recognition error:",
-        error
-      );
-
-      if (micButton) {
-
-        micButton.style.background =
-          "transparent";
-
-      }
-
-    };
-
-}
-
-
-micButton?.addEventListener(
-  "click",
-  () => {
-
-    if (!recognition) {
-
-      alert(
-        "Voice input is not supported by this browser."
-      );
-
-      return;
-
-    }
-
-    if (state.sending) {
-      return;
-    }
-
-    try {
-
-      recognition.start();
-
-    } catch (error) {
-
-      console.error(
-        "Voice start error:",
-        error
-      );
-
-    }
-
-  }
-);
-
-
-// ============================================================
-// START ZED
+// START
 // ============================================================
 
 async function initialize() {
 
+  createAuthScreen();
+
+  createAccountPanel();
+
+  showAuth();
+
   try {
 
     await initializeFirebase();
+
+    setupAuthButtons();
 
     setupAuthListener();
 
@@ -2052,7 +1831,6 @@ async function initialize() {
     );
 
   }
-
 }
 
 

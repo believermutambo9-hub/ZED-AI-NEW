@@ -1,21 +1,36 @@
 // web-search.js
+// Reliable web/news search engine for Zed
+
+const TZ = "Africa/Lusaka";
+const USER_AGENT =
+  "Mozilla/5.0 (compatible; Zed/1.0; +https://zed-ai-h7h4.onrender.com)";
+
+const FETCH_TIMEOUT = 10000;
+const MAX_RESULTS = 10;
 
 function cleanText(value = "") {
   return String(value)
     .replace(/<[^>]*>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&#(\d+);/g, (_, code) => {
+      try {
+        return String.fromCodePoint(Number(code));
+      } catch {
+        return "";
+      }
+    })
     .replace(/\s+/g, " ")
     .trim();
 }
 
 function formatDateForZambia(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Lusaka",
+    timeZone: TZ,
     year: "numeric",
     month: "2-digit",
     day: "2-digit"
@@ -24,19 +39,15 @@ function formatDateForZambia(date = new Date()) {
 
 function getZambiaDateTime(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Lusaka",
+    timeZone: TZ,
     dateStyle: "full",
     timeStyle: "short"
   }).format(date);
 }
 
-function escapeRegex(value = "") {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function normalizeUrl(url = "") {
   try {
-    const parsed = new URL(url);
+    const parsed = new URL(String(url).trim());
 
     parsed.hash = "";
 
@@ -62,6 +73,14 @@ function normalizeUrl(url = "") {
   }
 }
 
+function extractDomain(url = "") {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 function extractImportantQueryWords(query = "") {
   const stopWords = new Set([
     "the",
@@ -84,6 +103,20 @@ function extractImportantQueryWords(query = "") {
     "who",
     "why",
     "how",
+    "is",
+    "are",
+    "was",
+    "were",
+    "has",
+    "have",
+    "had",
+    "do",
+    "does",
+    "did",
+    "tell",
+    "me",
+    "show",
+    "give",
     "latest",
     "news",
     "today",
@@ -94,25 +127,25 @@ function extractImportantQueryWords(query = "") {
     "breaking",
     "report",
     "reports",
-    "information",
-    "tell",
-    "me",
-    "show",
-    "give"
+    "information"
   ]);
 
   return cleanText(query)
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s-]/gu, " ")
     .split(/\s+/)
-    .filter(word => word.length >= 3 && !stopWords.has(word))
-    .slice(0, 12);
+    .filter(
+      word =>
+        word.length >= 3 &&
+        !stopWords.has(word)
+    )
+    .slice(0, 15);
 }
 
 function isRecentRequest(query = "") {
   const text = cleanText(query).toLowerCase();
 
-  return [
+  const recentTerms = [
     "latest",
     "today",
     "current",
@@ -124,60 +157,83 @@ function isRecentRequest(query = "") {
     "just in",
     "newest",
     "latest news",
-    "what happened"
-  ].some(term => text.includes(term));
+    "what happened",
+    "what's happening",
+    "whats happening"
+  ];
+
+  return recentTerms.some(term =>
+    text.includes(term)
+  );
+}
+
+function isNewsRequest(query = "") {
+  const text = cleanText(query).toLowerCase();
+
+  return /\b(news|updates?|headlines?|breaking)\b/i.test(
+    text
+  );
 }
 
 function isBroadNewsRequest(query = "") {
   const text = cleanText(query).toLowerCase();
 
   const hasNewsWord =
-    /\b(news|updates?|headlines?|happen(ed|ing)?|latest|breaking)\b/i.test(text);
+    /\b(news|updates?|headlines?|happen(ed|ing)?|latest|breaking)\b/i.test(
+      text
+    );
 
-  const hasSpecificStoryQuestion =
-    /\b(why|how|when|where|who|did|does|is|are|was|were)\b/i.test(text);
+  const hasSpecificQuestion =
+    /\b(why|how|when|where|who|did|does|is|are|was|were)\b/i.test(
+      text
+    );
 
-  return hasNewsWord && !hasSpecificStoryQuestion;
+  return hasNewsWord && !hasSpecificQuestion;
 }
 
 function extractMainTopic(query = "") {
-  let text = cleanText(query);
-
-  text = text
+  return cleanText(query)
     .replace(
       /\b(latest|today|current|recent|breaking|news|updates?|headlines?|right now|this morning|this evening)\b/gi,
       " "
     )
     .replace(/\s+/g, " ")
     .trim();
-
-  return text;
 }
 
 function buildNewsSearchVariants(userQuery = "") {
   const topic = extractMainTopic(userQuery);
 
   if (!topic) {
-    return [userQuery];
+    return [cleanText(userQuery)];
   }
 
-  const variants = [userQuery];
+  const variants = [
+    userQuery
+  ];
 
   if (isBroadNewsRequest(userQuery)) {
     variants.push(
       `${topic} latest news`,
-      `${topic} injury news`,
-      `${topic} transfer news`,
       `${topic} team news`,
-      `${topic} international duty`
+      `${topic} injury news`,
+      `${topic} transfer news`
     );
   }
 
-  return [...new Set(variants.map(cleanText).filter(Boolean))];
+  return [
+    ...new Set(
+      variants
+        .map(cleanText)
+        .filter(Boolean)
+    )
+  ];
 }
 
 function parsePublishedDate(value = "") {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
 
   const date = new Date(value);
 
@@ -189,36 +245,14 @@ function parsePublishedDate(value = "") {
 }
 
 function daysSince(date) {
-  if (!date) return 9999;
-
-  const difference =
-    Date.now() - date.getTime();
-
-  return difference / (1000 * 60 * 60 * 24);
-}
-
-function isLikelyIrrelevant(result, query) {
-  const title = cleanText(result.title || "").toLowerCase();
-  const snippet = cleanText(
-    result.snippet ||
-    result.summary ||
-    result.description ||
-    ""
-  ).toLowerCase();
-
-  const combined = `${title} ${snippet}`;
-
-  const words = extractImportantQueryWords(query);
-
-  if (!words.length) {
-    return false;
+  if (!date) {
+    return 9999;
   }
 
-  const matched = words.filter(word =>
-    combined.includes(word)
-  );
-
-  return matched.length === 0;
+  return (
+    Date.now() - date.getTime()
+  ) /
+    (1000 * 60 * 60 * 24);
 }
 
 function tokenizeForSimilarity(text = "") {
@@ -232,8 +266,11 @@ function tokenizeForSimilarity(text = "") {
 }
 
 function similarityScore(a = "", b = "") {
-  const first = tokenizeForSimilarity(a);
-  const second = tokenizeForSimilarity(b);
+  const first =
+    tokenizeForSimilarity(a);
+
+  const second =
+    tokenizeForSimilarity(b);
 
   if (!first.size || !second.size) {
     return 0;
@@ -247,117 +284,174 @@ function similarityScore(a = "", b = "") {
     }
   }
 
-  return overlap / Math.min(first.size, second.size);
+  return overlap /
+    Math.min(first.size, second.size);
 }
 
 function getStoryText(result) {
   return cleanText(
-    `${result.title || ""} ${result.snippet || result.summary || result.description || ""}`
+    `${result.title || ""} ${
+      result.snippet ||
+      result.summary ||
+      result.description ||
+      ""
+    }`
   );
 }
 
-function scoreResult(result, query, recentRequest = false) {
-  const title = cleanText(result.title || "").toLowerCase();
-  const snippet = cleanText(
-    result.snippet ||
-    result.summary ||
-    result.description ||
-    ""
-  ).toLowerCase();
+function isLikelyIrrelevant(result, query) {
+  const title =
+    cleanText(result.title || "")
+      .toLowerCase();
 
-  const combined = `${title} ${snippet}`;
-  const queryWords = extractImportantQueryWords(query);
+  const snippet =
+    cleanText(
+      result.snippet ||
+        result.summary ||
+        result.description ||
+        ""
+    ).toLowerCase();
+
+  const combined =
+    `${title} ${snippet}`;
+
+  const words =
+    extractImportantQueryWords(query);
+
+  if (!words.length) {
+    return false;
+  }
+
+  return !words.some(word =>
+    combined.includes(word)
+  );
+}
+
+function scoreResult(
+  result,
+  query,
+  recentRequest = false
+) {
+  const title =
+    cleanText(result.title || "")
+      .toLowerCase();
+
+  const snippet =
+    cleanText(
+      result.snippet ||
+        result.summary ||
+        result.description ||
+        ""
+    ).toLowerCase();
+
+  const queryWords =
+    extractImportantQueryWords(query);
 
   let score = 0;
 
   for (const word of queryWords) {
     if (title.includes(word)) {
-      score += 8;
+      score += 10;
     } else if (snippet.includes(word)) {
-      score += 3;
+      score += 4;
     }
-  }
-
-  if (title.includes("arsenal") && query.toLowerCase().includes("arsenal")) {
-    score += 10;
   }
 
   if (
     title.includes("latest") ||
-    title.includes("update") ||
-    title.includes("breaking")
+    title.includes("breaking") ||
+    title.includes("update")
   ) {
     score += 2;
   }
 
-  const published = parsePublishedDate(
-    result.published ||
-    result.pubDate ||
-    result.date ||
-    ""
-  );
+  const published =
+    parsePublishedDate(
+      result.published ||
+        result.pubDate ||
+        result.date ||
+        ""
+    );
 
   if (recentRequest && published) {
     const age = daysSince(published);
 
     if (age <= 1) {
-      score += 20;
+      score += 25;
     } else if (age <= 2) {
-      score += 15;
+      score += 18;
     } else if (age <= 3) {
-      score += 10;
+      score += 12;
     } else if (age <= 7) {
-      score += 4;
+      score += 5;
     }
   }
 
   if (result.source) {
-    score += 1;
+    score += 2;
   }
 
   return score;
 }
 
-function diversifyResults(results, query, maxResults = 12) {
+function diversifyResults(
+  results,
+  query,
+  maxResults = MAX_RESULTS
+) {
   const sorted = [...results].sort(
-    (a, b) => (b._score || 0) - (a._score || 0)
+    (a, b) =>
+      (b._score || 0) -
+      (a._score || 0)
   );
 
   const selected = [];
-  const selectedStories = [];
+  const stories = [];
 
   for (const result of sorted) {
-    if (selected.length >= maxResults) {
+    if (
+      selected.length >= maxResults
+    ) {
       break;
     }
 
-    const storyText = getStoryText(result);
+    const story =
+      getStoryText(result);
 
-    let tooSimilar = false;
+    let duplicate = false;
 
-    for (const previousStory of selectedStories) {
-      if (similarityScore(storyText, previousStory) >= 0.72) {
-        tooSimilar = true;
+    for (const previous of stories) {
+      if (
+        similarityScore(
+          story,
+          previous
+        ) >= 0.72
+      ) {
+        duplicate = true;
         break;
       }
     }
 
-    if (tooSimilar) {
+    if (duplicate) {
       continue;
     }
 
     selected.push(result);
-    selectedStories.push(storyText);
+    stories.push(story);
   }
 
-  /*
-   * If diversity filtering removed too many results,
-   * fill the remaining slots with the highest-ranked
-   * results that were not already selected.
-   */
-  if (selected.length < Math.min(maxResults, sorted.length)) {
+  if (
+    selected.length <
+    Math.min(
+      maxResults,
+      sorted.length
+    )
+  ) {
     for (const result of sorted) {
-      if (selected.length >= maxResults) {
+      if (
+        selected.length >=
+        maxResults
+      ) {
         break;
       }
 
@@ -367,137 +461,219 @@ function diversifyResults(results, query, maxResults = 12) {
     }
   }
 
-  return selected.slice(0, maxResults);
+  return selected.slice(
+    0,
+    maxResults
+  );
 }
 
-async function fetchText(url, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (compatible; ZedAI/1.0; +https://zed-ai-h7h4.onrender.com)",
-      "Accept":
-        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      ...(options.headers || {})
-    }
-  });
+async function fetchText(
+  url,
+  options = {}
+) {
+  const controller =
+    new AbortController();
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  return response.text();
-}
-
-async function searchGoogleNews(userQuery, recentRequest = false) {
-  const searchUrl =
-    `https://news.google.com/rss/search?q=` +
-    encodeURIComponent(
-      recentRequest
-        ? `${userQuery} when:7d`
-        : userQuery
-    ) +
-    `&hl=en-US&gl=US&ceid=US:en`;
+  const timeout = setTimeout(
+    () => controller.abort(),
+    FETCH_TIMEOUT
+  );
 
   try {
-    const xml = await fetchText(searchUrl);
+    const response =
+      await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          "User-Agent":
+            USER_AGENT,
+          "Accept":
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          ...(options.headers || {})
+        }
+      });
+
+    if (!response.ok) {
+      throw new Error(
+        `HTTP ${response.status}`
+      );
+    }
+
+    return await response.text();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function searchGoogleNews(
+  userQuery,
+  recentRequest = false
+) {
+  const query =
+    recentRequest
+      ? `${userQuery} when:7d`
+      : userQuery;
+
+  const searchUrl =
+    `https://news.google.com/rss/search?q=${encodeURIComponent(
+      query
+    )}&hl=en-US&gl=US&ceid=US:en`;
+
+  try {
+    const xml =
+      await fetchText(searchUrl);
 
     const items = [
-      ...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)
+      ...xml.matchAll(
+        /<item>([\s\S]*?)<\/item>/gi
+      )
     ];
 
-    return items.map(match => {
-      const item = match[1];
+    return items
+      .map(match => {
+        const item =
+          match[1];
 
-      const getTag = tag => {
-        const regex = new RegExp(
-          `<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`,
-          "i"
-        );
+        const getTag = tag => {
+          const regex =
+            new RegExp(
+              `<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`,
+              "i"
+            );
 
-        const found = item.match(regex);
-        return found ? cleanText(found[1]) : "";
-      };
+          const found =
+            item.match(regex);
 
-      const title = getTag("title");
-      const link = getTag("link");
-      const pubDate = getTag("pubDate");
-      const description = getTag("description");
-      const source = getTag("source");
+          return found
+            ? cleanText(found[1])
+            : "";
+        };
 
-      return {
-        title,
-        url: link,
-        published: pubDate,
-        source,
-        snippet: description,
-        provider: "Google News"
-      };
-    });
+        return {
+          title: getTag("title"),
+          url: getTag("link"),
+          published:
+            getTag("pubDate"),
+          source:
+            getTag("source"),
+          snippet:
+            getTag("description"),
+          provider:
+            "Google News"
+        };
+      })
+      .filter(
+        result =>
+          result.title &&
+          result.url
+      );
   } catch (error) {
-    console.error("Google News search error:", error.message);
+    console.error(
+      "Google News search error:",
+      error.message
+    );
+
     return [];
   }
 }
 
-async function searchDuckDuckGo(userQuery) {
+async function searchDuckDuckGo(
+  userQuery
+) {
   const url =
-    `https://html.duckduckgo.com/html/?q=` +
-    encodeURIComponent(userQuery);
+    `https://html.duckduckgo.com/html/?q=${encodeURIComponent(
+      userQuery
+    )}`;
 
   try {
-    const html = await fetchText(url);
+    const html =
+      await fetchText(url);
 
     const results = [];
 
-    const blocks = html.split(
-      /<div[^>]+class="result[^"]*"[^>]*>/i
-    );
-
-    for (const block of blocks.slice(1)) {
-      const titleMatch = block.match(
-        /class="result__a"[^>]*>([\s\S]*?)<\/a>/i
+    const blocks =
+      html.split(
+        /<div[^>]+class=["'][^"']*\bresult\b[^"']*["'][^>]*>/i
       );
 
-      const urlMatch = block.match(
-        /class="result__a"[^>]+href="([^"]+)"/i
-      );
+    for (
+      const block of blocks.slice(1)
+    ) {
+      const titleMatch =
+        block.match(
+          /class=["'][^"']*result__a[^"']*["'][^>]*>([\s\S]*?)<\/a>/i
+        );
 
-      const snippetMatch = block.match(
-        /class="result__snippet"[^>]*>([\s\S]*?)<\/a?>/i
-      );
+      const urlMatch =
+        block.match(
+          /class=["'][^"']*result__a[^"']*["'][^>]*href=["']([^"']+)["']/i
+        );
 
-      if (!titleMatch || !urlMatch) {
+      const snippetMatch =
+        block.match(
+          /class=["'][^"']*result__snippet[^"']*["'][^>]*>([\s\S]*?)<\/(?:a|div)>/i
+        );
+
+      if (
+        !titleMatch ||
+        !urlMatch
+      ) {
         continue;
       }
 
       results.push({
-        title: cleanText(titleMatch[1]),
-        url: cleanText(urlMatch[1]),
-        snippet: snippetMatch
-          ? cleanText(snippetMatch[1])
-          : "",
+        title:
+          cleanText(
+            titleMatch[1]
+          ),
+        url:
+          cleanText(
+            urlMatch[1]
+          ),
+        snippet:
+          snippetMatch
+            ? cleanText(
+                snippetMatch[1]
+              )
+            : "",
         published: "",
-        source: "DuckDuckGo",
-        provider: "DuckDuckGo"
+        source:
+          "DuckDuckGo",
+        provider:
+          "DuckDuckGo"
       });
     }
 
-    return results.slice(0, 10);
+    return results.slice(
+      0,
+      10
+    );
   } catch (error) {
-    console.error("DuckDuckGo search error:", error.message);
+    console.error(
+      "DuckDuckGo search error:",
+      error.message
+    );
+
     return [];
   }
 }
 
-function deduplicateResults(results) {
+function deduplicateResults(
+  results
+) {
   const seen = new Set();
   const output = [];
 
   for (const result of results) {
-    const url = normalizeUrl(result.url || "");
+    const url =
+      normalizeUrl(
+        result.url || ""
+      );
 
-    if (!url || seen.has(url)) {
+    if (
+      !url ||
+      seen.has(url)
+    ) {
       continue;
     }
 
@@ -505,42 +681,66 @@ function deduplicateResults(results) {
 
     output.push({
       ...result,
-      url
+      url,
+      domain:
+        extractDomain(url)
     });
   }
 
   return output;
 }
 
-async function runSearchVariant(query, recentRequest) {
-  const googleResults = await searchGoogleNews(
-    query,
-    recentRequest
-  );
+async function runSearchVariant(
+  query,
+  recentRequest
+) {
+  const searches = [
+    searchGoogleNews(
+      query,
+      recentRequest
+    ),
+    searchDuckDuckGo(
+      query
+    )
+  ];
 
-  let duckResults = [];
-
-  if (recentRequest) {
-    duckResults = await searchDuckDuckGo(
-      `${query} latest`
+  const results =
+    await Promise.allSettled(
+      searches
     );
-  }
+
+  const google =
+    results[0].status ===
+    "fulfilled"
+      ? results[0].value
+      : [];
+
+  const duck =
+    results[1].status ===
+    "fulfilled"
+      ? results[1].value
+      : [];
 
   return [
-    ...googleResults,
-    ...duckResults
+    ...google,
+    ...duck
   ];
 }
 
-export async function searchWeb(userQuery, options = {}) {
-  const query = cleanText(userQuery);
+export async function searchWeb(
+  userQuery,
+  options = {}
+) {
+  const query =
+    cleanText(userQuery);
 
   if (!query) {
     return {
       ok: false,
       query: "",
       results: [],
-      message: "No search query provided."
+      message:
+        "No search query provided."
     };
   }
 
@@ -548,55 +748,94 @@ export async function searchWeb(userQuery, options = {}) {
     options.recentRequest ??
     isRecentRequest(query);
 
+  const newsRequest =
+    isNewsRequest(query);
+
   const broadNews =
     isBroadNewsRequest(query);
 
-  /*
-   * Broad current-news searches now use several targeted
-   * search variations so one story cannot dominate the
-   * entire result set.
-   */
   const variants =
-    recentRequest && broadNews
-      ? buildNewsSearchVariants(query)
+    recentRequest && newsRequest
+      ? buildNewsSearchVariants(
+          query
+        )
       : [query];
 
   let allResults = [];
 
-  for (const variant of variants) {
-    const results = await runSearchVariant(
-      variant,
-      recentRequest
+  /*
+   * Search all variants in parallel.
+   * This makes current searches faster
+   * and prevents one failed provider from
+   * stopping the complete search.
+   */
+  const variantResults =
+    await Promise.all(
+      variants.map(variant =>
+        runSearchVariant(
+          variant,
+          recentRequest
+        )
+      )
     );
 
+  for (
+    let i = 0;
+    i < variantResults.length;
+    i++
+  ) {
     allResults.push(
-      ...results.map(result => ({
-        ...result,
-        searchVariant: variant
-      }))
+      ...variantResults[i].map(
+        result => ({
+          ...result,
+          searchVariant:
+            variants[i]
+        })
+      )
     );
   }
 
-  allResults = deduplicateResults(allResults);
-
-  allResults = allResults.filter(
-    result => !isLikelyIrrelevant(result, query)
-  );
-
-  allResults = allResults.map(result => ({
-    ...result,
-    _score: scoreResult(
-      result,
-      query,
-      recentRequest
-    )
-  }));
+  allResults =
+    deduplicateResults(
+      allResults
+    );
 
   /*
-   * Current news gets more results than ordinary searches.
-   * This gives News Intelligence enough material to identify
-   * multiple different stories and people.
+   * Keep results that contain at least
+   * one meaningful query word.
    */
+  const relevantResults =
+    allResults.filter(
+      result =>
+        !isLikelyIrrelevant(
+          result,
+          query
+        )
+    );
+
+  /*
+   * If relevance filtering removed
+   * everything, keep the raw results
+   * rather than returning nothing.
+   */
+  allResults =
+    relevantResults.length
+      ? relevantResults
+      : allResults;
+
+  allResults =
+    allResults.map(
+      result => ({
+        ...result,
+        _score:
+          scoreResult(
+            result,
+            query,
+            recentRequest
+          )
+      })
+    );
+
   const maximumResults =
     recentRequest && broadNews
       ? 12
@@ -617,63 +856,104 @@ export async function searchWeb(userQuery, options = {}) {
               (b._score || 0) -
               (a._score || 0)
           )
-          .slice(0, maximumResults);
+          .slice(
+            0,
+            maximumResults
+          );
 
   return {
     ok: true,
     query,
     recentRequest,
+    newsRequest,
     broadNews,
-    searchVariants: variants,
-    resultCount: finalResults.length,
-    results: finalResults
+    searchVariants:
+      variants,
+    resultCount:
+      finalResults.length,
+    results:
+      finalResults
   };
 }
 
-export function formatWebResults(searchData) {
-  if (!searchData || !Array.isArray(searchData.results)) {
+export function formatWebResults(
+  searchData
+) {
+  if (
+    !searchData ||
+    !Array.isArray(
+      searchData.results
+    )
+  ) {
     return "";
   }
 
-  if (!searchData.results.length) {
+  if (
+    !searchData.results.length
+  ) {
     return "No reliable web search results were found.";
   }
 
   return searchData.results
-    .map((result, index) => {
-      const title = cleanText(result.title || "Untitled");
-      const url = cleanText(result.url || "");
-      const source = cleanText(result.source || "");
-      const published = cleanText(
-        result.published || ""
-      );
+    .map(
+      (result, index) => {
+        const title =
+          cleanText(
+            result.title ||
+              "Untitled"
+          );
 
-      const snippet = cleanText(
-        result.snippet ||
-        result.summary ||
-        result.description ||
-        ""
-      );
+        const url =
+          cleanText(
+            result.url || ""
+          );
 
-      return [
-        `RESULT ${index + 1}`,
-        `Title: ${title}`,
-        `Source: ${source}`,
-        `Published: ${published}`,
-        `URL: ${url}`,
-        `Snippet: ${snippet}`
-      ].join("\n");
-    })
+        const source =
+          cleanText(
+            result.source ||
+              result.domain ||
+              ""
+          );
+
+        const published =
+          cleanText(
+            result.published ||
+              ""
+          );
+
+        const snippet =
+          cleanText(
+            result.snippet ||
+              result.summary ||
+              result.description ||
+              ""
+          );
+
+        return [
+          `RESULT ${index + 1}`,
+          `Title: ${title}`,
+          `Source: ${source}`,
+          `Published: ${published}`,
+          `URL: ${url}`,
+          `Snippet: ${snippet}`
+        ].join("\n");
+      }
+    )
     .join("\n\n");
 }
 
-export function getWebSearchContext(searchData) {
+export function getWebSearchContext(
+  searchData
+) {
   if (!searchData) {
     return "";
   }
 
-  const currentDate = formatDateForZambia();
-  const currentDateTime = getZambiaDateTime();
+  const currentDate =
+    formatDateForZambia();
+
+  const currentDateTime =
+    getZambiaDateTime();
 
   return `
 WORLDWIDE WEB SEARCH DATA
@@ -686,34 +966,65 @@ ${currentDateTime}
 
 The following information was retrieved from current web/news searches.
 
-${formatWebResults(searchData)}
+${formatWebResults(
+  searchData
+)}
 
 IMPORTANT:
 - Use the supplied search results as evidence.
 - Do not invent news, names, injuries, transfers, scores, dates, or events.
-- When the user asks for latest/current news, prefer the newest dated evidence.
-- Distinguish confirmed information from reports, speculation, and pending assessments.
-- If sources disagree, say so clearly.
+- For latest/current questions, prefer the newest available evidence.
+- Distinguish confirmed information from reports, speculation, and rumours.
+- If sources disagree, clearly explain the disagreement.
+- Do not claim that a search result proves something that it does not actually say.
 `;
 }
 
 export function getSearchDateInfo() {
-  const now = new Date();
+  const now =
+    new Date();
 
   return {
-    date: formatDateForZambia(now),
-    dateTime: getZambiaDateTime(now)
+    date:
+      formatDateForZambia(
+        now
+      ),
+    dateTime:
+      getZambiaDateTime(
+        now
+      )
   };
 }
 
 /*
- * Backwards-compatible aliases.
- * These allow the existing server.js to continue using
- * the same functions without changes.
+ * Backwards-compatible exports.
+ * server.js can continue using its
+ * existing imports.
  */
-export const webSearch = searchWeb;
-export const searchNews = searchWeb;
-export const buildWebSearchContext = getWebSearchContext;
+
+export const webSearch =
+  searchWeb;
+
+export const searchNews =
+  searchWeb;
+
+export const buildWebSearchContext =
+  getWebSearchContext;
+
+export {
+  cleanText,
+  formatDateForZambia,
+  getZambiaDateTime,
+  normalizeUrl,
+  extractDomain,
+  isRecentRequest,
+  isNewsRequest,
+  isBroadNewsRequest,
+  searchGoogleNews,
+  searchDuckDuckGo,
+  deduplicateResults,
+  diversifyResults
+};
 
 export default {
   searchWeb,

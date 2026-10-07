@@ -1,9 +1,11 @@
 /* =========================================================
-   ZED — PREMIUM LIQUID GLASS INTERFACE
-   ChatGPT-style layout
-   iOS-inspired liquid glass
+   ZED — PREMIUM LIQUID GLASS V2
+   ---------------------------------------------------------
+   Premium AI interface
+   Deep liquid-glass visual system
    Light + Dark themes
-   Built to work with the current Zed interface/app.js
+   Mobile + Desktop
+   Designed to work with the current Zed interface/app.js
    ========================================================= */
 /* =========================================================
    RESET
@@ -19,19 +21,19 @@ html {
   width: 100%;
   min-height: 100%;
   color-scheme: light;
-  background: #eef1f5;
+  background: #e9edf2;
   -webkit-text-size-adjust: 100%;
 }
 html[data-theme="dark"] {
   color-scheme: dark;
-  background: #08090c;
+  background: #07090d;
 }
 body {
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
   overflow: hidden;
-  color: #111214;
+  color: #111318;
   font-family:
     -apple-system,
     BlinkMacSystemFont,
@@ -47,118 +49,178 @@ body {
   text-rendering: optimizeLegibility;
   background:
     radial-gradient(
-      900px 700px at -5% -10%,
-      rgba(114, 230, 164, 0.18),
-      transparent 60%
-    ),
-    radial-gradient(
-      900px 700px at 105% 105%,
-      rgba(90, 145, 255, 0.15),
-      transparent 60%
-    ),
-    radial-gradient(
-      700px 600px at 50% 45%,
-      rgba(255, 255, 255, 0.40),
-      transparent 68%
-    ),
-    #eef1f5;
-  transition:
-    background 0.35s ease,
-    color 0.35s ease;
-}
-html[data-theme="dark"] body {
-  color: #f5f6f7;
-  background:
-    radial-gradient(
-      850px 650px at -5% -10%,
-      rgba(67, 184, 125, 0.12),
-      transparent 60%
-    ),
-    radial-gradient(
-      900px 700px at 105% 105%,
-      rgba(70, 105, 190, 0.14),
+      900px 650px at -8% -8%,
+      rgba(89, 236, 163, 0.22),
       transparent 62%
     ),
     radial-gradient(
-      700px 600px at 50% 45%,
-      rgba(255, 255, 255, 0.035),
-      transparent 68%
+      850px 650px at 108% 12%,
+      rgba(103, 157, 255, 0.17),
+      transparent 64%
     ),
-    #08090c;
+    radial-gradient(
+      800px 600px at 50% 110%,
+      rgba(214, 169, 255, 0.13),
+      transparent 65%
+    ),
+    linear-gradient(
+      135deg,
+      #f4f6f9,
+      #e9edf2
+    );
+  transition:
+    background 0.5s ease,
+    color 0.35s ease;
+}
+html[data-theme="dark"] body {
+  color: #f7f8fa;
+  background:
+    radial-gradient(
+      900px 650px at -8% -8%,
+      rgba(67, 210, 139, 0.14),
+      transparent 62%
+    ),
+    radial-gradient(
+      850px 650px at 108% 12%,
+      rgba(75, 125, 255, 0.13),
+      transparent 64%
+    ),
+    radial-gradient(
+      800px 600px at 50% 110%,
+      rgba(162, 101, 255, 0.08),
+      transparent 65%
+    ),
+    linear-gradient(
+      135deg,
+      #090b10,
+      #06070a
+    );
 }
 /* =========================================================
-   DESIGN TOKENS
+   DESIGN SYSTEM
    ========================================================= */
 :root {
-  --bg: #eef1f5;
-  --bg-deep: #e4e8ee;
-  --glass: rgba(255, 255, 255, 0.42);
-  --glass-soft: rgba(255, 255, 255, 0.27);
-  --glass-strong: rgba(255, 255, 255, 0.64);
-  --glass-solid: rgba(255, 255, 255, 0.80);
-  --glass-hover: rgba(255, 255, 255, 0.72);
-  --text: #111214;
-  --text-secondary: #4c5057;
-  --muted: #777c84;
-  --border: rgba(255, 255, 255, 0.66);
-  --border-dark: rgba(0, 0, 0, 0.08);
-  --accent: #20b26b;
-  --accent-soft: rgba(32, 178, 107, 0.13);
-  --accent-glow: rgba(32, 178, 107, 0.25);
-  --danger: #ff5256;
-  --shadow-xl:
-    0 35px 100px rgba(0, 0, 0, 0.16);
-  --shadow-lg:
-    0 22px 65px rgba(0, 0, 0, 0.12);
-  --shadow-md:
-    0 12px 35px rgba(0, 0, 0, 0.09);
+  --bg:
+    #e9edf2;
+  --text:
+    #111318;
+  --text-secondary:
+    #454a53;
+  --muted:
+    #747b86;
+  --accent:
+    #20bd70;
+  --accent-bright:
+    #36d887;
+  --accent-soft:
+    rgba(32, 189, 112, 0.13);
+  --accent-glow:
+    rgba(32, 189, 112, 0.32);
+  /* Glass */
+  --glass-1:
+    rgba(255, 255, 255, 0.26);
+  --glass-2:
+    rgba(255, 255, 255, 0.40);
+  --glass-3:
+    rgba(255, 255, 255, 0.57);
+  --glass-4:
+    rgba(255, 255, 255, 0.72);
+  --glass-solid:
+    rgba(255, 255, 255, 0.84);
+  /* Borders */
+  --glass-border:
+    rgba(255, 255, 255, 0.72);
+  --glass-border-soft:
+    rgba(255, 255, 255, 0.46);
+  --dark-border:
+    rgba(0, 0, 0, 0.07);
+  /* Shadows */
+  --shadow-xs:
+    0 3px 12px rgba(20, 30, 45, 0.055);
   --shadow-sm:
-    0 6px 20px rgba(0, 0, 0, 0.065);
-  --inner-light:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
-  --inner-dark:
+    0 8px 25px rgba(20, 30, 45, 0.08);
+  --shadow-md:
+    0 16px 45px rgba(20, 30, 45, 0.11);
+  --shadow-lg:
+    0 25px 75px rgba(20, 30, 45, 0.15);
+  --shadow-xl:
+    0 40px 110px rgba(20, 30, 45, 0.19);
+  /* Glass highlights */
+  --highlight:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  --highlight-soft:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --bottom-shadow:
     inset 0 -1px 0 rgba(0, 0, 0, 0.035);
+  /* Blur */
   --blur:
-    blur(28px) saturate(155%);
+    blur(28px) saturate(165%);
   --blur-heavy:
-    blur(42px) saturate(175%);
-  --radius-xl: 28px;
-  --radius-lg: 22px;
-  --radius-md: 17px;
-  --radius-sm: 12px;
+    blur(45px) saturate(185%);
+  /* Radius */
+  --radius-sm:
+    12px;
+  --radius-md:
+    16px;
+  --radius-lg:
+    22px;
+  --radius-xl:
+    28px;
+  --radius-pill:
+    999px;
 }
 html[data-theme="dark"] {
-  --bg: #08090c;
-  --bg-deep: #0d0f13;
-  --glass: rgba(29, 31, 37, 0.48);
-  --glass-soft: rgba(29, 31, 37, 0.30);
-  --glass-strong: rgba(39, 42, 49, 0.68);
-  --glass-solid: rgba(42, 45, 53, 0.84);
-  --glass-hover: rgba(58, 61, 70, 0.78);
-  --text: #f5f6f7;
-  --text-secondary: #c6c9cf;
-  --muted: #8d929b;
-  --border: rgba(255, 255, 255, 0.14);
-  --border-dark: rgba(255, 255, 255, 0.07);
-  --accent: #72e6a4;
-  --accent-soft: rgba(114, 230, 164, 0.13);
-  --accent-glow: rgba(114, 230, 164, 0.25);
-  --danger: #ff686c;
-  --shadow-xl:
-    0 35px 100px rgba(0, 0, 0, 0.56);
-  --shadow-lg:
-    0 22px 65px rgba(0, 0, 0, 0.48);
-  --shadow-md:
-    0 12px 35px rgba(0, 0, 0, 0.38);
+  --bg:
+    #080a0e;
+  --text:
+    #f7f8fa;
+  --text-secondary:
+    #c9cdd4;
+  --muted:
+    #8c929d;
+  --accent:
+    #72e6a4;
+  --accent-bright:
+    #91f4ba;
+  --accent-soft:
+    rgba(114, 230, 164, 0.12);
+  --accent-glow:
+    rgba(114, 230, 164, 0.27);
+  --glass-1:
+    rgba(30, 33, 40, 0.30);
+  --glass-2:
+    rgba(35, 38, 46, 0.45);
+  --glass-3:
+    rgba(42, 45, 54, 0.60);
+  --glass-4:
+    rgba(48, 51, 61, 0.72);
+  --glass-solid:
+    rgba(43, 46, 55, 0.88);
+  --glass-border:
+    rgba(255, 255, 255, 0.14);
+  --glass-border-soft:
+    rgba(255, 255, 255, 0.075);
+  --dark-border:
+    rgba(255, 255, 255, 0.055);
+  --shadow-xs:
+    0 3px 12px rgba(0, 0, 0, 0.25);
   --shadow-sm:
-    0 6px 20px rgba(0, 0, 0, 0.30);
-  --inner-light:
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
-  --inner-dark:
-    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+    0 8px 25px rgba(0, 0, 0, 0.32);
+  --shadow-md:
+    0 16px 45px rgba(0, 0, 0, 0.42);
+  --shadow-lg:
+    0 25px 75px rgba(0, 0, 0, 0.50);
+  --shadow-xl:
+    0 40px 110px rgba(0, 0, 0, 0.62);
+  --highlight:
+    inset 0 1px 0 rgba(255, 255, 255, 0.13);
+  --highlight-soft:
+    inset 0 1px 0 rgba(255, 255, 255, 0.075);
+  --bottom-shadow:
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25);
 }
 /* =========================================================
-   GLOBAL CONTROLS
+   GLOBAL
    ========================================================= */
 button,
 input,
@@ -185,7 +247,7 @@ select {
   color: var(--text);
 }
 /* =========================================================
-   APP SHELL
+   APP
    ========================================================= */
 #app,
 .app {
@@ -195,43 +257,68 @@ select {
   min-height: 100vh;
   min-height: 100dvh;
   overflow: hidden;
+  isolation: isolate;
 }
 /* =========================================================
-   LIQUID BACKGROUND LIGHT
+   LIQUID LIGHT FIELD
    ========================================================= */
 #app::before,
 .app::before {
   content: "";
   position: fixed;
-  inset: 0;
+  inset: -15%;
   pointer-events: none;
+  z-index: -2;
   background:
     radial-gradient(
-      420px 300px at 20% 15%,
-      rgba(255, 255, 255, 0.18),
+      500px 400px at 12% 12%,
+      rgba(83, 231, 159, 0.19),
       transparent 70%
     ),
     radial-gradient(
-      500px 350px at 80% 80%,
-      rgba(255, 255, 255, 0.08),
-      transparent 70%
+      600px 450px at 88% 18%,
+      rgba(92, 143, 255, 0.15),
+      transparent 72%
+    ),
+    radial-gradient(
+      650px 500px at 70% 95%,
+      rgba(205, 151, 255, 0.11),
+      transparent 72%
     );
-  opacity: 0.8;
-  z-index: 0;
+  filter: blur(10px);
+  animation:
+    liquidFloat 18s ease-in-out infinite alternate;
 }
 html[data-theme="dark"] #app::before,
 html[data-theme="dark"] .app::before {
   background:
     radial-gradient(
-      420px 300px at 20% 15%,
-      rgba(255, 255, 255, 0.025),
+      500px 400px at 12% 12%,
+      rgba(57, 210, 133, 0.12),
       transparent 70%
     ),
     radial-gradient(
-      500px 350px at 80% 80%,
-      rgba(114, 230, 164, 0.035),
-      transparent 70%
+      600px 450px at 88% 18%,
+      rgba(71, 119, 255, 0.11),
+      transparent 72%
+    ),
+    radial-gradient(
+      650px 500px at 70% 95%,
+      rgba(158, 96, 255, 0.07),
+      transparent 72%
     );
+}
+@keyframes liquidFloat {
+  from {
+    transform:
+      translate3d(-1%, -1%, 0)
+      scale(1);
+  }
+  to {
+    transform:
+      translate3d(1%, 1%, 0)
+      scale(1.035);
+  }
 }
 /* =========================================================
    SIDEBAR
@@ -239,45 +326,53 @@ html[data-theme="dark"] .app::before {
 .sidebar {
   position: relative;
   z-index: 100;
-  width: 280px;
-  min-width: 280px;
+  width: 286px;
+  min-width: 286px;
   height: 100vh;
   height: 100dvh;
   display: flex;
   flex-direction: column;
   padding:
-    max(14px, env(safe-area-inset-top))
+    max(15px, env(safe-area-inset-top))
     13px
-    max(14px, env(safe-area-inset-bottom))
+    max(15px, env(safe-area-inset-bottom))
     max(13px, env(safe-area-inset-left));
   overflow: hidden;
   background:
     linear-gradient(
       145deg,
       rgba(255, 255, 255, 0.60),
-      rgba(255, 255, 255, 0.31)
+      rgba(255, 255, 255, 0.27)
     );
-  border-right: 1px solid var(--border);
-  backdrop-filter: var(--blur-heavy);
-  -webkit-backdrop-filter: var(--blur-heavy);
+  border-right:
+    1px solid var(--glass-border);
+  backdrop-filter:
+    var(--blur-heavy);
+  -webkit-backdrop-filter:
+    var(--blur-heavy);
   box-shadow:
-    18px 0 60px rgba(0, 0, 0, 0.065),
-    var(--inner-light);
+    22px 0 70px rgba(22, 30, 45, 0.08),
+    inset -1px 0 0
+      rgba(255, 255, 255, 0.30),
+    var(--highlight);
   transition:
-    transform 0.32s cubic-bezier(.22, .61, .36, 1),
-    background 0.3s ease;
+    transform 0.34s cubic-bezier(.22,.61,.36,1),
+    background 0.35s ease;
 }
 html[data-theme="dark"] .sidebar {
   background:
     linear-gradient(
       145deg,
-      rgba(43, 46, 54, 0.68),
-      rgba(20, 22, 27, 0.52)
+      rgba(40, 43, 52, 0.73),
+      rgba(16, 18, 23, 0.61)
     );
   box-shadow:
-    20px 0 65px rgba(0, 0, 0, 0.35),
-    inset -1px 0 0 rgba(255, 255, 255, 0.05);
+    24px 0 80px rgba(0, 0, 0, 0.40),
+    inset -1px 0 0
+      rgba(255, 255, 255, 0.055),
+    var(--highlight);
 }
+/* Sidebar liquid reflection */
 .sidebar::before {
   content: "";
   position: absolute;
@@ -285,13 +380,13 @@ html[data-theme="dark"] .sidebar {
   pointer-events: none;
   background:
     linear-gradient(
-      125deg,
-      rgba(255, 255, 255, 0.30),
-      transparent 25%,
-      transparent 72%,
-      rgba(255, 255, 255, 0.045)
+      120deg,
+      rgba(255, 255, 255, 0.28),
+      transparent 22%,
+      transparent 70%,
+      rgba(255, 255, 255, 0.035)
     );
-  opacity: 0.8;
+  opacity: 0.85;
 }
 /* =========================================================
    SIDEBAR HEADER
@@ -302,28 +397,34 @@ html[data-theme="dark"] .sidebar {
   z-index: 2;
   margin-bottom: 17px;
 }
+/* =========================================================
+   NEW CHAT
+   ========================================================= */
 .new-chat-btn {
   position: relative;
   width: 100%;
-  min-height: 49px;
+  min-height: 51px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   padding: 0 15px;
-  border-radius: 16px;
+  border-radius: 17px;
   background:
     linear-gradient(
       145deg,
-      var(--glass-solid),
-      var(--glass)
+      rgba(255,255,255,0.76),
+      rgba(255,255,255,0.39)
     );
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--glass-border);
   box-shadow:
     var(--shadow-sm),
-    var(--inner-light),
-    var(--inner-dark);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+    var(--highlight),
+    var(--bottom-shadow);
+  backdrop-filter:
+    blur(25px) saturate(170%);
+  -webkit-backdrop-filter:
+    blur(25px) saturate(170%);
   color: var(--text);
   font-size: 14px;
   font-weight: 650;
@@ -332,27 +433,53 @@ html[data-theme="dark"] .sidebar {
     background 0.2s ease,
     box-shadow 0.2s ease;
 }
+html[data-theme="dark"] .new-chat-btn {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(57,60,70,0.80),
+      rgba(31,34,41,0.54)
+    );
+}
+.new-chat-btn::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      125deg,
+      rgba(255,255,255,0.30),
+      transparent 38%
+    );
+}
 .new-chat-btn:hover {
-  background: var(--glass-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  background:
+    var(--glass-4);
   box-shadow:
     var(--shadow-md),
-    var(--inner-light);
+    var(--highlight);
 }
 .new-chat-btn:active {
   transform: scale(0.975);
 }
 .new-chat-icon {
-  width: 23px;
-  height: 23px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 21px;
-  line-height: 1;
+  color: var(--accent);
+  filter:
+    drop-shadow(
+      0 3px 8px var(--accent-glow)
+    );
 }
 /* =========================================================
-   RECENT CHAT SECTION
+   RECENT CHATS
    ========================================================= */
 .recent-section {
   position: relative;
@@ -363,14 +490,15 @@ html[data-theme="dark"] .sidebar {
 }
 .section-title {
   padding:
-    10px
+    11px
     10px
     8px;
   color: var(--muted);
   font-size: 10px;
   font-weight: 750;
   text-transform: uppercase;
-  letter-spacing: 0.095em;
+  letter-spacing:
+    0.11em;
 }
 .recent-chats {
   height: 100%;
@@ -383,13 +511,13 @@ html[data-theme="dark"] .sidebar {
 .recent-chat {
   position: relative;
   width: 100%;
-  min-height: 42px;
+  min-height: 43px;
   display: flex;
   align-items: center;
   padding:
     9px
     11px;
-  border-radius: 13px;
+  border-radius: 14px;
   background: transparent;
   color: var(--text-secondary);
   text-align: left;
@@ -405,16 +533,58 @@ html[data-theme="dark"] .sidebar {
     box-shadow 0.18s ease;
 }
 .recent-chat:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background:
+    rgba(255,255,255,0.21);
   color: var(--text);
-  transform: translateX(1px);
+  transform:
+    translateX(2px);
 }
 html[data-theme="dark"] .recent-chat:hover {
-  background: rgba(255, 255, 255, 0.075);
+  background:
+    rgba(255,255,255,0.075);
+}
+/* Active conversation */
+.recent-chat.active {
+  background:
+    linear-gradient(
+      100deg,
+      rgba(255,255,255,0.58),
+      rgba(255,255,255,0.20)
+    );
+  color: var(--text);
+  box-shadow:
+    var(--highlight),
+    0 5px 18px rgba(20,30,45,0.06);
+}
+html[data-theme="dark"] .recent-chat.active {
+  background:
+    linear-gradient(
+      100deg,
+      rgba(255,255,255,0.105),
+      rgba(255,255,255,0.045)
+    );
+}
+.recent-chat.active::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  width: 3px;
+  height: 18px;
+  border-radius: 99px;
+  background:
+    linear-gradient(
+      180deg,
+      var(--accent-bright),
+      var(--accent)
+    );
+  box-shadow:
+    0 0 13px var(--accent-glow);
 }
 .recent-chat:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
+  outline:
+    2px solid var(--accent);
+  outline-offset:
+    -2px;
 }
 /* =========================================================
    SIDEBAR BOTTOM
@@ -424,22 +594,23 @@ html[data-theme="dark"] .recent-chat:hover {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   margin-top: 9px;
   padding-top: 12px;
-  border-top: 1px solid var(--border);
+  border-top:
+    1px solid var(--glass-border-soft);
 }
 .sidebar-item {
   position: relative;
   width: 100%;
-  min-height: 44px;
+  min-height: 45px;
   display: flex;
   align-items: center;
   gap: 11px;
   padding:
     10px
     11px;
-  border-radius: 13px;
+  border-radius: 14px;
   background: transparent;
   color: var(--text-secondary);
   text-align: left;
@@ -451,24 +622,29 @@ html[data-theme="dark"] .recent-chat:hover {
     transform 0.18s ease;
 }
 .sidebar-item:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background:
+    rgba(255,255,255,0.18);
   color: var(--text);
-  transform: translateX(1px);
+  transform:
+    translateX(2px);
 }
 html[data-theme="dark"] .sidebar-item:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background:
+    rgba(255,255,255,0.065);
 }
 .sidebar-item:active {
-  transform: scale(0.985);
+  transform:
+    scale(0.985);
 }
 .sidebar-item-icon {
-  width: 21px;
-  height: 21px;
-  flex: 0 0 21px;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.92;
+  opacity: 0.95;
+  color: var(--text-secondary);
 }
 .account-icon {
   font-size: 13px;
@@ -493,37 +669,40 @@ html[data-theme="dark"] .sidebar-item:hover {
 .topbar {
   position: relative;
   z-index: 20;
-  height: 66px;
-  min-height: 66px;
+  height: 70px;
+  min-height: 70px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding:
     0
-    max(20px, env(safe-area-inset-right))
+    max(21px, env(safe-area-inset-right))
     0
-    20px;
+    21px;
   background:
     linear-gradient(
       180deg,
-      var(--glass-strong),
-      rgba(255, 255, 255, 0.18)
+      rgba(255,255,255,0.56),
+      rgba(255,255,255,0.19)
     );
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
+  border-bottom:
+    1px solid var(--glass-border);
+  backdrop-filter:
+    blur(32px) saturate(175%);
+  -webkit-backdrop-filter:
+    blur(32px) saturate(175%);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.22);
+    0 8px 30px rgba(20,30,45,0.045),
+    inset 0 1px 0 rgba(255,255,255,0.48);
   transition:
-    background 0.3s ease,
-    border-color 0.3s ease;
+    background 0.35s ease;
 }
 html[data-theme="dark"] .topbar {
   background:
     linear-gradient(
       180deg,
-      rgba(33, 36, 43, 0.76),
-      rgba(20, 22, 27, 0.45)
+      rgba(34,37,45,0.76),
+      rgba(15,17,22,0.43)
     );
 }
 .topbar-left {
@@ -537,64 +716,157 @@ html[data-theme="dark"] .topbar {
    ========================================================= */
 .menu-btn {
   display: none;
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
-  background: var(--glass);
-  border: 1px solid var(--border);
+  border-radius: 15px;
+  background:
+    var(--glass-3);
+  border:
+    1px solid var(--glass-border);
   box-shadow:
-    var(--shadow-sm),
-    var(--inner-light);
+    var(--shadow-xs),
+    var(--highlight);
   font-size: 19px;
   transition:
     background 0.18s ease,
     transform 0.18s ease;
 }
 .menu-btn:hover {
-  background: var(--glass-hover);
+  background:
+    var(--glass-4);
 }
 .menu-btn:active {
-  transform: scale(0.93);
+  transform:
+    scale(0.92);
 }
 /* =========================================================
-   BRAND
+   ZED BRAND
    ========================================================= */
+.brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+/* Premium Zed logo */
+.brand::before {
+  content: "Z";
+  width: 37px;
+  height: 37px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 37px;
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 19px;
+  font-weight: 850;
+  letter-spacing: -0.06em;
+  background:
+    linear-gradient(
+      145deg,
+      #36db8b,
+      #139b5c 52%,
+      #087b49
+    );
+  border:
+    1px solid rgba(255,255,255,0.60);
+  box-shadow:
+    0 8px 24px
+      rgba(24,190,111,0.24),
+    0 0 0 4px
+      rgba(32,189,112,0.075),
+    inset 0 1px 0
+      rgba(255,255,255,0.65),
+    inset 0 -5px 12px
+      rgba(0,80,45,0.17);
+  text-shadow:
+    0 1px 3px rgba(0,0,0,0.20);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.brand:hover::before {
+  transform:
+    translateY(-1px)
+    rotate(-2deg);
+  box-shadow:
+    0 10px 30px
+      rgba(24,190,111,0.30),
+    0 0 0 5px
+      rgba(32,189,112,0.08),
+    inset 0 1px 0
+      rgba(255,255,255,0.72);
+}
+/* Brand text */
 .brand-name {
   white-space: nowrap;
   color: var(--text);
-  font-size: 17px;
-  font-weight: 720;
-  letter-spacing: -0.025em;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 760;
+  letter-spacing:
+    -0.035em;
 }
+/* Online area */
 .brand-status {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 2px;
+  gap: 7px;
+  margin-top: 5px;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 520;
+  font-weight: 550;
+  letter-spacing:
+    0.015em;
 }
-.status-dot {
+/* Online pill */
+.brand-status::before {
+  content: "";
   width: 7px;
   height: 7px;
   flex: 0 0 7px;
   border-radius: 50%;
-  background: var(--accent);
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      #b9ffd5,
+      var(--accent) 45%,
+      #0b9b59
+    );
   box-shadow:
-    0 0 0 4px var(--accent-soft),
-    0 0 17px var(--accent-glow);
+    0 0 0 3px
+      rgba(32,189,112,0.10),
+    0 0 12px
+      var(--accent-glow);
+  animation:
+    onlinePulse 2.5s ease-in-out infinite;
+}
+.status-dot {
+  display: none;
+}
+@keyframes onlinePulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.72;
+    transform: scale(0.88);
+  }
 }
 /* =========================================================
-   PROFILE BUTTON
+   PROFILE / ACCOUNT BUTTON
    ========================================================= */
 .profile-btn {
-  width: 43px;
-  height: 43px;
-  flex: 0 0 43px;
+  position: relative;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -603,30 +875,70 @@ html[data-theme="dark"] .topbar {
   background:
     linear-gradient(
       145deg,
-      var(--glass-solid),
-      var(--glass)
+      rgba(255,255,255,0.75),
+      rgba(255,255,255,0.34)
     );
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--glass-border);
   color: var(--muted);
   box-shadow:
     var(--shadow-sm),
-    var(--inner-light);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+    var(--highlight),
+    0 0 0 3px
+      rgba(255,255,255,0.13);
+  backdrop-filter:
+    blur(22px) saturate(170%);
+  -webkit-backdrop-filter:
+    blur(22px) saturate(170%);
   transition:
-    transform 0.2s ease,
-    background 0.2s ease,
-    box-shadow 0.2s ease;
+    transform 0.22s ease,
+    background 0.22s ease,
+    box-shadow 0.22s ease;
+}
+html[data-theme="dark"] .profile-btn {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(57,60,70,0.82),
+      rgba(29,32,39,0.57)
+    );
+}
+.profile-btn::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,255,255,0.32),
+      transparent 42%
+    );
 }
 .profile-btn:hover {
-  background: var(--glass-hover);
-  transform: translateY(-1px);
+  transform:
+    translateY(-2px)
+    scale(1.025);
+  background:
+    var(--glass-4);
   box-shadow:
     var(--shadow-md),
-    var(--inner-light);
+    0 0 0 4px
+      rgba(32,189,112,0.075),
+    var(--highlight);
 }
 .profile-btn:active {
-  transform: scale(0.93);
+  transform:
+    scale(0.91);
+}
+/* Profile image compatibility */
+.profile-btn img,
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
 }
 /* =========================================================
    CHAT AREA
@@ -648,42 +960,81 @@ html[data-theme="dark"] .topbar {
    ========================================================= */
 .welcome {
   width: 100%;
-  max-width: 760px;
+  max-width: 800px;
   margin: auto;
   padding:
-    50px
-    24px;
+    55px 24px;
   text-align: center;
 }
+/* Premium Zed app icon */
 .welcome-logo {
   position: relative;
-  width: 76px;
-  height: 76px;
+  width: 94px;
+  height: 94px;
   margin:
-    0
-    auto
-    23px;
+    0 auto 27px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 24px;
+  border-radius: 29px;
   background:
     linear-gradient(
       145deg,
-      rgba(255, 255, 255, 0.78),
-      rgba(255, 255, 255, 0.30)
+      rgba(255,255,255,0.78),
+      rgba(255,255,255,0.28)
     );
-  border: 1px solid var(--border);
+  border:
+    1px solid rgba(255,255,255,0.80);
   box-shadow:
-    var(--shadow-lg),
-    var(--inner-light),
-    var(--inner-dark);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  color: var(--accent);
-  font-size: 31px;
-  font-weight: 800;
+    0 25px 65px
+      rgba(25,35,50,0.13),
+    0 0 0 7px
+      rgba(255,255,255,0.12),
+    inset 0 1px 0
+      rgba(255,255,255,0.90),
+    inset 0 -8px 20px
+      rgba(0,0,0,0.035);
+  backdrop-filter:
+    blur(30px) saturate(175%);
+  -webkit-backdrop-filter:
+    blur(30px) saturate(175%);
+  color:
+    var(--accent);
+  font-size: 37px;
+  font-weight: 850;
   isolation: isolate;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+/* Z logo inside welcome icon */
+.welcome-logo::before {
+  content: "Z";
+  width: 61px;
+  height: 61px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  color: white;
+  background:
+    linear-gradient(
+      145deg,
+      #42e596,
+      #18ad67 55%,
+      #087c48
+    );
+  box-shadow:
+    0 12px 30px
+      rgba(22,188,108,0.28),
+    inset 0 1px 0
+      rgba(255,255,255,0.65),
+    inset 0 -7px 15px
+      rgba(0,80,45,0.18);
+  font-size: 32px;
+  font-weight: 850;
+  text-shadow:
+    0 2px 5px rgba(0,0,0,0.18);
 }
 .welcome-logo::after {
   content: "";
@@ -694,104 +1045,134 @@ html[data-theme="dark"] .topbar {
   background:
     linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.30),
-      transparent 40%
+      rgba(255,255,255,0.38),
+      transparent 36%,
+      transparent 75%,
+      rgba(255,255,255,0.06)
     );
-  z-index: -1;
 }
 html[data-theme="dark"] .welcome-logo {
   background:
     linear-gradient(
       145deg,
-      rgba(63, 66, 76, 0.82),
-      rgba(28, 30, 36, 0.48)
+      rgba(62,66,77,0.83),
+      rgba(26,29,36,0.48)
     );
+  border-color:
+    rgba(255,255,255,0.17);
+}
+.welcome-logo:hover {
+  transform:
+    translateY(-3px)
+    scale(1.025);
+  box-shadow:
+    0 30px 80px
+      rgba(25,35,50,0.18),
+    0 0 0 8px
+      rgba(32,189,112,0.07),
+    var(--highlight);
 }
 .welcome h1 {
-  margin-bottom: 12px;
+  margin-bottom: 13px;
   color: var(--text);
-  font-size: 33px;
-  line-height: 1.12;
-  letter-spacing: -0.048em;
-  font-weight: 730;
+  font-size: 38px;
+  line-height: 1.08;
+  letter-spacing:
+    -0.055em;
+  font-weight: 760;
 }
 .welcome p {
-  max-width: 610px;
+  max-width: 620px;
   margin: auto;
   color: var(--muted);
   font-size: 15px;
-  line-height: 1.65;
+  line-height: 1.7;
 }
 /* =========================================================
    MESSAGES
    ========================================================= */
 .messages {
   width: 100%;
-  max-width: 930px;
+  max-width: 950px;
   margin: 0 auto;
   padding:
-    32px
-    22px
-    145px;
+    34px 22px 150px;
 }
 .message {
   display: flex;
   gap: 12px;
-  margin-bottom: 28px;
-  line-height: 1.68;
+  margin-bottom: 30px;
+  line-height: 1.72;
   animation:
     messageIn
-    0.24s
-    cubic-bezier(.22, .61, .36, 1);
+    0.25s
+    cubic-bezier(.22,.61,.36,1);
 }
 @keyframes messageIn {
   from {
     opacity: 0;
-    transform: translateY(7px);
+    transform:
+      translateY(8px)
+      scale(0.99);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform:
+      translateY(0)
+      scale(1);
   }
 }
 .message-user {
   justify-content: flex-end;
 }
 .message-content {
-  max-width: 78%;
+  max-width: 80%;
   color: var(--text);
   font-size: 15px;
-  line-height: 1.68;
+  line-height: 1.72;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+/* User bubble */
 .message-user .message-content {
   padding:
-    11px
-    17px;
+    12px 18px;
   background:
     linear-gradient(
       145deg,
-      var(--glass-strong),
-      var(--glass)
+      rgba(255,255,255,0.69),
+      rgba(255,255,255,0.34)
     );
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--glass-border);
   border-radius:
-    20px
-    20px
+    21px
+    21px
     7px
-    20px;
+    21px;
   box-shadow:
     var(--shadow-sm),
-    var(--inner-light);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+    var(--highlight);
+  backdrop-filter:
+    blur(23px) saturate(160%);
+  -webkit-backdrop-filter:
+    blur(23px) saturate(160%);
 }
+html[data-theme="dark"] .message-user .message-content {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(56,59,69,0.72),
+      rgba(32,35,42,0.48)
+    );
+}
+/* Assistant response */
 .message-assistant .message-content {
   padding:
-    4px
-    0;
+    3px 0;
+  max-width:
+    82%;
 }
 /* =========================================================
    GENERATED IMAGES
@@ -800,31 +1181,32 @@ html[data-theme="dark"] .welcome-logo {
   display: block;
   max-width: 100%;
   height: auto;
-  margin-top: 12px;
-  border-radius: 17px;
-  border: 1px solid var(--border);
+  margin-top: 13px;
+  border-radius: 19px;
+  border:
+    1px solid var(--glass-border);
   box-shadow:
     var(--shadow-md),
-    var(--inner-light);
+    var(--highlight);
 }
 /* =========================================================
-   COMPOSER CONTAINER
+   COMPOSER AREA
    ========================================================= */
 .composer-container {
   position: relative;
   z-index: 30;
   width: 100%;
-  max-width: 930px;
+  max-width: 950px;
   margin: 0 auto;
   padding:
-    12px
+    13px
     22px
-    max(18px, env(safe-area-inset-bottom));
+    max(19px, env(safe-area-inset-bottom));
   background:
     linear-gradient(
       to bottom,
       transparent,
-      rgba(238, 241, 245, 0.35)
+      rgba(233,237,242,0.38)
     );
 }
 html[data-theme="dark"] .composer-container {
@@ -832,7 +1214,7 @@ html[data-theme="dark"] .composer-container {
     linear-gradient(
       to bottom,
       transparent,
-      rgba(8, 9, 12, 0.38)
+      rgba(7,9,13,0.48)
     );
 }
 /* =========================================================
@@ -840,48 +1222,92 @@ html[data-theme="dark"] .composer-container {
    ========================================================= */
 .composer {
   position: relative;
-  min-height: 63px;
+  min-height: 66px;
   display: flex;
   align-items: flex-end;
   gap: 7px;
   padding: 8px;
-  border-radius: 25px;
+  border-radius: 27px;
   background:
     linear-gradient(
       145deg,
-      var(--glass-solid),
-      var(--glass)
+      rgba(255,255,255,0.76),
+      rgba(255,255,255,0.34)
     );
-  border: 1px solid var(--border);
+  border:
+    1px solid rgba(255,255,255,0.82);
   box-shadow:
-    var(--shadow-lg),
-    var(--inner-light),
-    var(--inner-dark);
+    0 25px 70px
+      rgba(20,30,45,0.15),
+    0 0 0 5px
+      rgba(255,255,255,0.10),
+    inset 0 1px 0
+      rgba(255,255,255,0.90),
+    inset 0 -1px 0
+      rgba(0,0,0,0.025);
   backdrop-filter:
-    blur(35px)
-    saturate(170%);
+    blur(38px) saturate(180%);
   -webkit-backdrop-filter:
-    blur(35px)
-    saturate(170%);
+    blur(38px) saturate(180%);
   transition:
     border-color 0.22s ease,
     box-shadow 0.22s ease,
     transform 0.22s ease;
 }
-.composer:focus-within {
-  border-color: var(--accent-glow);
+html[data-theme="dark"] .composer {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(50,53,63,0.78),
+      rgba(24,27,33,0.53)
+    );
+  border-color:
+    rgba(255,255,255,0.15);
   box-shadow:
-    var(--shadow-lg),
-    0 0 0 3px var(--accent-soft),
-    var(--inner-light);
+    0 25px 80px
+      rgba(0,0,0,0.48),
+    0 0 0 5px
+      rgba(255,255,255,0.025),
+    inset 0 1px 0
+      rgba(255,255,255,0.12);
+}
+.composer::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      120deg,
+      rgba(255,255,255,0.30),
+      transparent 27%,
+      transparent 73%,
+      rgba(255,255,255,0.04)
+    );
+}
+.composer:focus-within {
+  transform:
+    translateY(-1px);
+  border-color:
+    rgba(32,189,112,0.38);
+  box-shadow:
+    0 28px 80px
+      rgba(20,30,45,0.17),
+    0 0 0 4px
+      var(--accent-soft),
+    inset 0 1px 0
+      rgba(255,255,255,0.90);
 }
 /* =========================================================
    TEXT INPUT
    ========================================================= */
 .composer textarea {
+  position: relative;
+  z-index: 2;
   flex: 1;
   min-width: 0;
-  min-height: 40px;
+  min-height: 42px;
   max-height: 180px;
   resize: none;
   overflow-y: auto;
@@ -890,10 +1316,9 @@ html[data-theme="dark"] .composer-container {
   background: transparent;
   color: var(--text);
   padding:
-    10px
-    5px;
+    10px 5px;
   font-size: 15px;
-  line-height: 1.45;
+  line-height: 1.48;
 }
 .composer textarea::placeholder {
   color: var(--muted);
@@ -906,15 +1331,18 @@ html[data-theme="dark"] .composer-container {
    ========================================================= */
 .composer-btn {
   position: relative;
-  width: 40px;
-  height: 40px;
-  flex: 0 0 40px;
+  z-index: 3;
+  width: 41px;
+  height: 41px;
+  flex: 0 0 41px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: transparent;
-  color: var(--text-secondary);
+  background:
+    transparent;
+  color:
+    var(--text-secondary);
   font-size: 19px;
   transition:
     background 0.18s ease,
@@ -923,16 +1351,24 @@ html[data-theme="dark"] .composer-container {
     box-shadow 0.18s ease;
 }
 .composer-btn:hover {
-  background: var(--glass-hover);
-  color: var(--text);
+  background:
+    rgba(255,255,255,0.35);
+  color:
+    var(--text);
   box-shadow:
-    var(--inner-light);
+    var(--highlight);
+}
+html[data-theme="dark"] .composer-btn:hover {
+  background:
+    rgba(255,255,255,0.08);
 }
 .composer-btn:active {
-  transform: scale(0.91);
+  transform:
+    scale(0.90);
 }
 .composer-btn:disabled {
-  opacity: 0.45;
+  opacity:
+    0.42;
 }
 /* =========================================================
    SEND BUTTON
@@ -941,41 +1377,54 @@ html[data-theme="dark"] .composer-container {
   background:
     linear-gradient(
       145deg,
-      #17191c,
-      #3a3d42
+      #202328,
+      #4a4e55
     );
-  color: #ffffff;
-  font-weight: 800;
+  color:
+    #ffffff;
+  font-weight:
+    800;
   box-shadow:
-    var(--shadow-sm),
-    inset 0 1px 0 rgba(255, 255, 255, 0.20);
-  transition:
-    transform 0.18s ease,
-    opacity 0.18s ease,
-    box-shadow 0.18s ease;
+    0 7px 18px
+      rgba(0,0,0,0.16),
+    inset 0 1px 0
+      rgba(255,255,255,0.25);
 }
 html[data-theme="dark"] .send-btn {
   background:
     linear-gradient(
       145deg,
-      #f7f8f9,
-      #d5d9de
+      #ffffff,
+      #d8dce1
     );
-  color: #111214;
+  color:
+    #101216;
+  box-shadow:
+    0 7px 20px
+      rgba(0,0,0,0.30),
+    inset 0 1px 0
+      rgba(255,255,255,0.90);
 }
 .send-btn:hover {
-  transform: scale(1.045);
+  transform:
+    scale(1.055);
   box-shadow:
-    var(--shadow-md),
-    inset 0 1px 0 rgba(255, 255, 255, 0.30);
+    0 10px 27px
+      rgba(0,0,0,0.18),
+    inset 0 1px 0
+      rgba(255,255,255,0.35);
 }
 .send-btn:active {
-  transform: scale(0.94);
+  transform:
+    scale(0.92);
 }
 .send-btn:disabled {
-  opacity: 0.42;
-  transform: none;
-  box-shadow: none;
+  opacity:
+    0.42;
+  transform:
+    none;
+  box-shadow:
+    none;
 }
 /* =========================================================
    ATTACHMENT MENU
@@ -983,29 +1432,40 @@ html[data-theme="dark"] .send-btn {
 .attach-menu {
   position: absolute;
   left: 22px;
-  bottom: 94px;
-  width: 230px;
+  bottom: 96px;
+  width: 242px;
   padding: 8px;
   display: none;
   z-index: 100;
   overflow: hidden;
-  border-radius: 19px;
+  border-radius: 21px;
   background:
     linear-gradient(
       145deg,
-      var(--glass-solid),
-      var(--glass)
+      rgba(255,255,255,0.82),
+      rgba(255,255,255,0.49)
     );
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--glass-border);
   box-shadow:
     var(--shadow-xl),
-    var(--inner-light);
-  backdrop-filter: var(--blur-heavy);
-  -webkit-backdrop-filter: var(--blur-heavy);
+    var(--highlight);
+  backdrop-filter:
+    var(--blur-heavy);
+  -webkit-backdrop-filter:
+    var(--blur-heavy);
   animation:
     menuIn
     0.18s
-    cubic-bezier(.22, .61, .36, 1);
+    cubic-bezier(.22,.61,.36,1);
+}
+html[data-theme="dark"] .attach-menu {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(51,54,64,0.90),
+      rgba(26,29,36,0.72)
+    );
 }
 .attach-menu.show {
   display: block;
@@ -1014,8 +1474,8 @@ html[data-theme="dark"] .send-btn {
   from {
     opacity: 0;
     transform:
-      translateY(8px)
-      scale(0.97);
+      translateY(9px)
+      scale(0.96);
   }
   to {
     opacity: 1;
@@ -1026,132 +1486,223 @@ html[data-theme="dark"] .send-btn {
 }
 .attach-menu button {
   width: 100%;
-  min-height: 44px;
+  min-height: 46px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   padding:
-    10px
-    12px;
-  border-radius: 13px;
-  background: transparent;
-  color: var(--text);
-  text-align: left;
-  font-size: 13px;
-  font-weight: 540;
+    10px 12px;
+  border-radius: 14px;
+  background:
+    transparent;
+  color:
+    var(--text);
+  text-align:
+    left;
+  font-size:
+    13px;
+  font-weight:
+    540;
   transition:
     background 0.18s ease,
     transform 0.18s ease;
 }
 .attach-menu button:hover {
-  background: var(--glass-hover);
-  transform: translateX(1px);
+  background:
+    rgba(255,255,255,0.36);
+  transform:
+    translateX(2px);
+}
+html[data-theme="dark"] .attach-menu button:hover {
+  background:
+    rgba(255,255,255,0.08);
 }
 .attach-menu button:active {
-  transform: scale(0.98);
+  transform:
+    scale(0.98);
 }
 /* =========================================================
    COMPOSER NOTE
    ========================================================= */
 .composer-note {
-  margin-top: 8px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.4;
-  opacity: 0.78;
+  margin-top:
+    8px;
+  text-align:
+    center;
+  color:
+    var(--muted);
+  font-size:
+    10px;
+  line-height:
+    1.4;
+  opacity:
+    0.72;
 }
 /* =========================================================
    ACCOUNT PANEL
-   Works with the dynamically-created #accountPanel
    ========================================================= */
 #zedAccountPanel {
-  color: var(--text) !important;
+  color:
+    var(--text) !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,0.78),
+      rgba(255,255,255,0.43)
+    ) !important;
+  border:
+    1px solid var(--glass-border) !important;
+  box-shadow:
+    var(--shadow-xl),
+    var(--highlight) !important;
+  backdrop-filter:
+    var(--blur-heavy) !important;
+  -webkit-backdrop-filter:
+    var(--blur-heavy) !important;
+  border-radius:
+    26px !important;
+}
+html[data-theme="dark"] #zedAccountPanel {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(49,52,62,0.89),
+      rgba(23,26,32,0.72)
+    ) !important;
 }
 #zedAccountName {
-  color: var(--text) !important;
+  color:
+    var(--text) !important;
 }
 #zedAccountEmail {
-  color: var(--muted) !important;
+  color:
+    var(--muted) !important;
 }
+/* Account photo */
+#zedAccountPanel img,
+#zedAccountPanel .profile-avatar {
+  border-radius:
+    50% !important;
+  border:
+    2px solid
+      rgba(255,255,255,0.65) !important;
+  box-shadow:
+    0 10px 30px
+      rgba(0,0,0,0.13),
+    0 0 0 5px
+      var(--accent-soft) !important;
+}
+/* Logout */
 #zedLogout {
   background:
     linear-gradient(
       145deg,
-      var(--glass-strong),
-      var(--glass)
+      var(--glass-3),
+      var(--glass-1)
     ) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
+  color:
+    var(--text) !important;
+  border:
+    1px solid var(--glass-border) !important;
   box-shadow:
-    var(--inner-light) !important;
+    var(--highlight) !important;
   transition:
     background 0.18s ease,
     transform 0.18s ease !important;
 }
 #zedLogout:hover {
-  background: var(--glass-hover) !important;
+  background:
+    var(--glass-4) !important;
 }
 #zedLogout:active {
-  transform: scale(0.98);
+  transform:
+    scale(0.98);
 }
 /* =========================================================
-   SETTINGS PANEL
-   Works with the dynamically-created #zedSettingsPanel
+   SETTINGS
    ========================================================= */
 #zedSettingsPanel {
-  color: var(--text) !important;
+  color:
+    var(--text) !important;
   background:
     linear-gradient(
       145deg,
-      var(--glass-solid),
-      var(--glass)
+      rgba(255,255,255,0.80),
+      rgba(255,255,255,0.43)
     ) !important;
-  border: 1px solid var(--border) !important;
+  border:
+    1px solid var(--glass-border) !important;
   box-shadow:
     var(--shadow-xl),
-    var(--inner-light),
-    var(--inner-dark) !important;
-  backdrop-filter: var(--blur-heavy) !important;
-  -webkit-backdrop-filter: var(--blur-heavy) !important;
-  scrollbar-width: thin;
+    var(--highlight),
+    var(--bottom-shadow) !important;
+  backdrop-filter:
+    var(--blur-heavy) !important;
+  -webkit-backdrop-filter:
+    var(--blur-heavy) !important;
+  scrollbar-width:
+    thin;
+}
+html[data-theme="dark"] #zedSettingsPanel {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(49,52,62,0.91),
+      rgba(22,25,31,0.73)
+    ) !important;
 }
 #zedSettingsPanel > div {
-  border-color: var(--border) !important;
-  background: rgba(255, 255, 255, 0.075) !important;
+  border-color:
+    var(--glass-border-soft) !important;
+  background:
+    rgba(255,255,255,0.11) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    inset 0 1px 0
+      rgba(255,255,255,0.16);
+  border-radius:
+    16px;
 }
 html[data-theme="dark"] #zedSettingsPanel > div {
-  background: rgba(255, 255, 255, 0.055) !important;
+  background:
+    rgba(255,255,255,0.055) !important;
 }
 #zedSettingsClose {
-  background: var(--glass) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
+  background:
+    var(--glass-2) !important;
+  color:
+    var(--text) !important;
+  border:
+    1px solid var(--glass-border) !important;
   box-shadow:
-    var(--inner-light);
+    var(--highlight);
   transition:
     background 0.18s ease,
     transform 0.18s ease !important;
 }
 #zedSettingsClose:hover {
-  background: var(--glass-hover) !important;
+  background:
+    var(--glass-4) !important;
 }
 #zedSettingsClose:active {
-  transform: scale(0.91);
+  transform:
+    scale(0.91);
 }
 #zedSettingsAccount {
-  color: var(--muted) !important;
+  color:
+    var(--muted) !important;
 }
 /* =========================================================
    MENU BACKDROP
    ========================================================= */
 #zedMenuBackdrop {
   background:
-    rgba(8, 10, 14, 0.28) !important;
-  backdrop-filter: blur(8px) saturate(120%) !important;
-  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+    rgba(7,9,13,0.31) !important;
+  backdrop-filter:
+    blur(12px)
+    saturate(130%) !important;
+  -webkit-backdrop-filter:
+    blur(12px)
+    saturate(130%) !important;
 }
 /* =========================================================
    AUTH SCREEN
@@ -1159,25 +1710,29 @@ html[data-theme="dark"] #zedSettingsPanel > div {
 #zedAuthScreen {
   background:
     radial-gradient(
-      650px 500px at 15% 10%,
-      rgba(114, 230, 164, 0.14),
-      transparent 62%
+      600px 480px at 10% 10%,
+      rgba(50,220,137,0.17),
+      transparent 65%
     ),
     radial-gradient(
-      650px 500px at 85% 90%,
-      rgba(80, 125, 255, 0.14),
-      transparent 62%
+      650px 500px at 90% 90%,
+      rgba(80,130,255,0.15),
+      transparent 65%
     ),
-    #0b0d10 !important;
+    linear-gradient(
+      135deg,
+      #0b0e12,
+      #07090d
+    ) !important;
   backdrop-filter:
-    blur(35px)
-    saturate(150%) !important;
+    blur(40px)
+    saturate(155%) !important;
   -webkit-backdrop-filter:
-    blur(35px)
-    saturate(150%) !important;
+    blur(40px)
+    saturate(155%) !important;
 }
 /* =========================================================
-   FOCUS STATES
+   FOCUS
    ========================================================= */
 button:focus-visible,
 input:focus-visible,
@@ -1185,32 +1740,38 @@ textarea:focus-visible,
 select:focus-visible {
   outline:
     2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset:
+    2px;
 }
 /* =========================================================
    SCROLLBARS
    ========================================================= */
 * {
-  scrollbar-width: thin;
+  scrollbar-width:
+    thin;
   scrollbar-color:
-    rgba(120, 120, 120, 0.36)
+    rgba(120,130,145,0.32)
     transparent;
 }
 *::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width:
+    7px;
+  height:
+    7px;
 }
 *::-webkit-scrollbar-track {
-  background: transparent;
+  background:
+    transparent;
 }
 *::-webkit-scrollbar-thumb {
   background:
-    rgba(120, 120, 120, 0.36);
-  border-radius: 999px;
+    rgba(120,130,145,0.32);
+  border-radius:
+    999px;
 }
 *::-webkit-scrollbar-thumb:hover {
   background:
-    rgba(120, 120, 120, 0.55);
+    rgba(100,110,125,0.52);
 }
 /* =========================================================
    MOBILE
@@ -1222,85 +1783,133 @@ select:focus-visible {
   #app,
   .app,
   .main {
-    min-height: 100dvh;
+    min-height:
+      100dvh;
   }
   .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 100;
-    width: min(310px, 87vw);
-    min-width: min(310px, 87vw);
+    position:
+      fixed;
+    left:
+      0;
+    top:
+      0;
+    bottom:
+      0;
+    z-index:
+      100;
+    width:
+      min(315px, 88vw);
+    min-width:
+      min(315px, 88vw);
     padding-top:
       max(14px, env(safe-area-inset-top));
-    transform: translateX(-105%);
+    transform:
+      translateX(-105%);
     box-shadow:
-      28px 0 80px rgba(0, 0, 0, 0.25);
+      30px 0 90px
+        rgba(0,0,0,0.27);
   }
   .sidebar.open {
-    transform: translateX(0);
+    transform:
+      translateX(0);
   }
   .menu-btn {
-    display: flex;
+    display:
+      flex;
   }
   .topbar {
-    height: 61px;
-    min-height: 61px;
+    height:
+      63px;
+    min-height:
+      63px;
     padding:
       0
       max(12px, env(safe-area-inset-right))
       0
       max(12px, env(safe-area-inset-left));
   }
+  .brand::before {
+    width:
+      34px;
+    height:
+      34px;
+    flex-basis:
+      34px;
+    border-radius:
+      11px;
+    font-size:
+      17px;
+  }
   .brand-name {
-    font-size: 16px;
+    font-size:
+      16px;
   }
   .brand-status {
-    font-size: 9px;
+    font-size:
+      9px;
   }
   .profile-btn {
-    width: 40px;
-    height: 40px;
-    flex-basis: 40px;
+    width:
+      41px;
+    height:
+      41px;
+    flex-basis:
+      41px;
   }
   .welcome {
     padding:
-      30px
-      20px;
+      34px 20px;
   }
   .welcome-logo {
-    width: 64px;
-    height: 64px;
-    margin-bottom: 19px;
-    border-radius: 21px;
-    font-size: 27px;
+    width:
+      76px;
+    height:
+      76px;
+    margin-bottom:
+      21px;
+    border-radius:
+      25px;
+  }
+  .welcome-logo::before {
+    width:
+      51px;
+    height:
+      51px;
+    border-radius:
+      17px;
+    font-size:
+      28px;
   }
   .welcome h1 {
-    font-size: 27px;
+    font-size:
+      28px;
   }
   .welcome p {
-    font-size: 14px;
+    font-size:
+      14px;
   }
   .messages {
     padding:
-      22px
+      23px
       14px
-      135px;
+      140px;
   }
   .message {
-    margin-bottom: 23px;
+    margin-bottom:
+      24px;
   }
   .message-content {
-    max-width: 91%;
-    font-size: 15px;
+    max-width:
+      92%;
+    font-size:
+      15px;
   }
   .message-user .message-content {
     border-radius:
-      18px
-      18px
+      19px
+      19px
       7px
-      18px;
+      19px;
   }
   .composer-container {
     padding:
@@ -1309,41 +1918,61 @@ select:focus-visible {
       max(12px, env(safe-area-inset-bottom));
   }
   .composer {
-    min-height: 59px;
-    padding: 7px;
-    border-radius: 22px;
+    min-height:
+      60px;
+    padding:
+      7px;
+    border-radius:
+      23px;
   }
   .composer textarea {
-    font-size: 15px;
+    font-size:
+      15px;
   }
   .composer-btn {
-    width: 39px;
-    height: 39px;
-    flex-basis: 39px;
+    width:
+      39px;
+    height:
+      39px;
+    flex-basis:
+      39px;
   }
   .attach-menu {
-    left: 10px;
-    bottom: 87px;
+    left:
+      10px;
+    bottom:
+      89px;
     width:
       min(
-        235px,
+        242px,
         calc(100vw - 20px)
       );
   }
   #zedSettingsPanel {
     width:
       min(
-        calc(100vw - 24px),
-        430px
+        calc(100vw - 22px),
+        440px
       ) !important;
     max-height:
-      min(82vh, 700px) !important;
-    border-radius: 24px !important;
-    padding: 19px !important;
+      min(84vh, 720px) !important;
+    border-radius:
+      25px !important;
+    padding:
+      20px !important;
+  }
+  #zedAccountPanel {
+    width:
+      min(
+        calc(100vw - 22px),
+        440px
+      ) !important;
+    border-radius:
+      25px !important;
   }
   .sidebar-bottom {
     padding-bottom:
-      max(4px, env(safe-area-inset-bottom));
+      max(5px, env(safe-area-inset-bottom));
   }
 }
 /* =========================================================
@@ -1352,30 +1981,53 @@ select:focus-visible {
 @media (max-width: 400px) {
   .welcome {
     padding:
-      24px
-      16px;
+      27px 16px;
+  }
+  .welcome-logo {
+    width:
+      69px;
+    height:
+      69px;
+  }
+  .welcome-logo::before {
+    width:
+      47px;
+    height:
+      47px;
+    font-size:
+      25px;
   }
   .welcome h1 {
-    font-size: 24px;
+    font-size:
+      25px;
   }
   .welcome p {
-    font-size: 13px;
+    font-size:
+      13px;
   }
   .messages {
-    padding-left: 11px;
-    padding-right: 11px;
+    padding-left:
+      11px;
+    padding-right:
+      11px;
   }
   .message-content {
-    max-width: 94%;
+    max-width:
+      94%;
   }
   .composer {
-    gap: 4px;
+    gap:
+      4px;
   }
   .composer-btn {
-    width: 37px;
-    height: 37px;
-    flex-basis: 37px;
-    font-size: 18px;
+    width:
+      37px;
+    height:
+      37px;
+    flex-basis:
+      37px;
+    font-size:
+      18px;
   }
 }
 /* =========================================================
@@ -1383,24 +2035,40 @@ select:focus-visible {
    ========================================================= */
 @media (max-height: 520px) and (orientation: landscape) {
   .topbar {
-    height: 53px;
-    min-height: 53px;
+    height:
+      54px;
+    min-height:
+      54px;
   }
   .welcome {
     padding:
-      20px
-      16px;
+      20px 16px;
   }
   .welcome-logo {
-    width: 53px;
-    height: 53px;
-    margin-bottom: 12px;
+    width:
+      55px;
+    height:
+      55px;
+    margin-bottom:
+      12px;
+  }
+  .welcome-logo::before {
+    width:
+      39px;
+    height:
+      39px;
+    border-radius:
+      13px;
+    font-size:
+      21px;
   }
   .welcome h1 {
-    font-size: 23px;
+    font-size:
+      23px;
   }
   .messages {
-    padding-bottom: 105px;
+    padding-bottom:
+      108px;
   }
 }
 /* =========================================================
@@ -1408,15 +2076,48 @@ select:focus-visible {
    ========================================================= */
 @media (min-width: 1400px) {
   .sidebar {
-    width: 292px;
-    min-width: 292px;
+    width:
+      300px;
+    min-width:
+      300px;
   }
   .messages,
   .composer-container {
-    max-width: 980px;
+    max-width:
+      1000px;
   }
   .welcome {
-    max-width: 800px;
+    max-width:
+      840px;
+  }
+}
+/* =========================================================
+   BROWSER FALLBACK
+   ========================================================= */
+@supports not (
+  backdrop-filter: blur(20px)
+) {
+  .sidebar,
+  .topbar,
+  .composer,
+  .attach-menu,
+  .profile-btn,
+  .welcome-logo,
+  #zedSettingsPanel,
+  #zedAccountPanel {
+    background:
+      rgba(255,255,255,0.92);
+  }
+  html[data-theme="dark"] .sidebar,
+  html[data-theme="dark"] .topbar,
+  html[data-theme="dark"] .composer,
+  html[data-theme="dark"] .attach-menu,
+  html[data-theme="dark"] .profile-btn,
+  html[data-theme="dark"] .welcome-logo,
+  html[data-theme="dark"] #zedSettingsPanel,
+  html[data-theme="dark"] #zedAccountPanel {
+    background:
+      rgba(31,34,41,0.96);
   }
 }
 /* =========================================================
@@ -1426,10 +2127,14 @@ select:focus-visible {
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    scroll-behavior:
+      auto !important;
+    animation-duration:
+      0.01ms !important;
+    animation-iteration-count:
+      1 !important;
+    transition-duration:
+      0.01ms !important;
   }
 }
 /* =========================================================
@@ -1440,11 +2145,13 @@ body,
 #app,
 .app,
 .main {
-  max-width: 100%;
+  max-width:
+    100%;
 }
 img,
 video,
 canvas,
 svg {
-  max-width: 100%;
+  max-width:
+    100%;
 }

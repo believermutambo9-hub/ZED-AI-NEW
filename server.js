@@ -35,14 +35,14 @@ import {
   detectForgetRequest,
   extractMemoryCandidate,
   getMemoryStats,
-  createProject,
-  getUserProjects,
   rememberFootballConversation,
   getFootballMemory,
   getSystemMemoryStats,
   clearUserMemory,
   initializeMemory,
-  forgetMemory
+  forgetMemory,
+  createProject,
+  getUserProjects
 } from "./features/memory.js";
 
 // ============================================================
@@ -120,8 +120,21 @@ function cleanText(value = "") {
     .trim();
 }
 
+/*
+ * Used for AI responses.
+ *
+ * Unlike cleanText(), this function intentionally
+ * preserves paragraphs and line breaks.
+ */
+function cleanAIAnswer(value = "") {
+  return String(value)
+    .replace(/\u0000/g, "")
+    .trim();
+}
+
 function safeUserId(value) {
-  const id = cleanText(value);
+  const id =
+    cleanText(value);
 
   if (!id) {
     return "guest";
@@ -131,7 +144,8 @@ function safeUserId(value) {
 }
 
 function safeConversationId(value) {
-  const id = cleanText(value);
+  const id =
+    cleanText(value);
 
   if (!id) {
     return "";
@@ -156,10 +170,14 @@ function getUserConversationId(
   return `user-${userId}`;
 }
 
-function formatHistory(conversation) {
+function formatHistory(
+  conversation
+) {
   if (
     !conversation ||
-    !Array.isArray(conversation.messages)
+    !Array.isArray(
+      conversation.messages
+    )
   ) {
     return "";
   }
@@ -177,6 +195,82 @@ function formatHistory(conversation) {
     .join("\n");
 }
 
+/*
+ * Converts structured search results into
+ * readable evidence for the AI.
+ *
+ * The original search object is still passed
+ * separately to the intelligence modules.
+ */
+function formatSearchEvidence(
+  searchData
+) {
+  if (
+    !searchData ||
+    !Array.isArray(
+      searchData.results
+    )
+  ) {
+    return "No web search results were found.";
+  }
+
+  if (
+    !searchData.results.length
+  ) {
+    return "No reliable web search results were found.";
+  }
+
+  return searchData.results
+    .map(
+      (result, index) => {
+        const title =
+          cleanText(
+            result.title ||
+              "Untitled"
+          );
+
+        const source =
+          cleanText(
+            result.source ||
+              result.domain ||
+              "Unknown source"
+          );
+
+        const published =
+          cleanText(
+            result.published ||
+              result.pubDate ||
+              result.date ||
+              "Date not provided"
+          );
+
+        const url =
+          cleanText(
+            result.url ||
+              ""
+          );
+
+        const snippet =
+          cleanText(
+            result.snippet ||
+              result.summary ||
+              result.description ||
+              ""
+          );
+
+        return [
+          `RESULT ${index + 1}`,
+          `Title: ${title}`,
+          `Source: ${source}`,
+          `Published: ${published}`,
+          `URL: ${url}`,
+          `Snippet: ${snippet}`
+        ].join("\n");
+      }
+    )
+    .join("\n\n");
+}
+
 // ============================================================
 // CHAT HISTORY PERSISTENCE
 // ============================================================
@@ -185,7 +279,9 @@ let chatHistoryModule = null;
 let chatHistoryLoadAttempted = false;
 
 async function getChatHistoryModule() {
-  if (chatHistoryLoadAttempted) {
+  if (
+    chatHistoryLoadAttempted
+  ) {
     return chatHistoryModule;
   }
 
@@ -263,7 +359,8 @@ async function persistConversation(
     return {
       ok: false,
       persistent: false,
-      error: error.message
+      error:
+        error.message
     };
   }
 }
@@ -344,11 +441,16 @@ function getCurrentDateForZambia() {
   return new Intl.DateTimeFormat(
     "en-GB",
     {
-      timeZone: "Africa/Lusaka",
-      dateStyle: "full",
-      timeStyle: "long"
+      timeZone:
+        "Africa/Lusaka",
+      dateStyle:
+        "full",
+      timeStyle:
+        "long"
     }
-  ).format(new Date());
+  ).format(
+    new Date()
+  );
 }
 
 // ============================================================
@@ -520,7 +622,9 @@ function shouldUseFootballData(
 // GEMINI
 // ============================================================
 
-async function askGemini(prompt) {
+async function askGemini(
+  prompt
+) {
   if (!GEMINI_API_KEY) {
     throw new Error(
       "GEMINI_API_KEY is missing."
@@ -529,36 +633,49 @@ async function askGemini(prompt) {
 
   const ai =
     new GoogleGenAI({
-      apiKey: GEMINI_API_KEY
+      apiKey:
+        GEMINI_API_KEY
     });
 
   const response =
     await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: prompt
+      model:
+        GEMINI_MODEL,
+      contents:
+        prompt
     });
 
   const answer =
     response?.text ||
-    response?.candidates?.[0]?.content?.parts
-      ?.map(part => part.text || "")
+    response?.candidates?.[0]
+      ?.content?.parts
+      ?.map(
+        part =>
+          part.text || ""
+      )
       .join("") ||
     "";
 
-  if (!cleanText(answer)) {
+  if (
+    !cleanAIAnswer(answer)
+  ) {
     throw new Error(
       "Gemini returned an empty response."
     );
   }
 
-  return cleanText(answer);
+  return cleanAIAnswer(
+    answer
+  );
 }
 
 // ============================================================
 // GROQ
 // ============================================================
 
-async function askGroq(prompt) {
+async function askGroq(
+  prompt
+) {
   if (!GROQ_API_KEY) {
     throw new Error(
       "GROQ_API_KEY is missing."
@@ -569,30 +686,38 @@ async function askGroq(prompt) {
     await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        method: "POST",
+        method:
+          "POST",
 
         headers: {
           "Authorization":
             `Bearer ${GROQ_API_KEY}`,
+
           "Content-Type":
             "application/json"
         },
 
-        body: JSON.stringify({
-          model:
-            "llama-3.3-70b-versatile",
+        body:
+          JSON.stringify({
+            model:
+              "llama-3.3-70b-versatile",
 
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
+            messages: [
+              {
+                role:
+                  "user",
 
-          temperature: 0.7,
+                content:
+                  prompt
+              }
+            ],
 
-          max_tokens: 2048
-        })
+            temperature:
+              0.7,
+
+            max_tokens:
+              2048
+          })
       }
     );
 
@@ -612,23 +737,30 @@ async function askGroq(prompt) {
     await response.json();
 
   const answer =
-    data?.choices?.[0]?.message
-      ?.content || "";
+    data?.choices?.[0]
+      ?.message?.content ||
+    "";
 
-  if (!cleanText(answer)) {
+  if (
+    !cleanAIAnswer(answer)
+  ) {
     throw new Error(
       "Groq returned an empty response."
     );
   }
 
-  return cleanText(answer);
+  return cleanAIAnswer(
+    answer
+  );
 }
 
 // ============================================================
 // OPENROUTER
 // ============================================================
 
-async function askOpenRouter(prompt) {
+async function askOpenRouter(
+  prompt
+) {
   if (!OPENROUTER_API_KEY) {
     throw new Error(
       "OPENROUTER_API_KEY is missing."
@@ -639,7 +771,8 @@ async function askOpenRouter(prompt) {
     await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        method: "POST",
+        method:
+          "POST",
 
         headers: {
           "Authorization":
@@ -652,24 +785,30 @@ async function askOpenRouter(prompt) {
             "https://zed-ai-h7h4.onrender.com",
 
           "X-Title":
-            "Zed AI"
+            "Zed"
         },
 
-        body: JSON.stringify({
-          model:
-            "meta-llama/llama-3.3-70b-instruct:free",
+        body:
+          JSON.stringify({
+            model:
+              "meta-llama/llama-3.3-70b-instruct:free",
 
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
+            messages: [
+              {
+                role:
+                  "user",
 
-          temperature: 0.7,
+                content:
+                  prompt
+              }
+            ],
 
-          max_tokens: 2048
-        })
+            temperature:
+              0.7,
+
+            max_tokens:
+              2048
+          })
       }
     );
 
@@ -689,32 +828,42 @@ async function askOpenRouter(prompt) {
     await response.json();
 
   const answer =
-    data?.choices?.[0]?.message
-      ?.content || "";
+    data?.choices?.[0]
+      ?.message?.content ||
+    "";
 
-  if (!cleanText(answer)) {
+  if (
+    !cleanAIAnswer(answer)
+  ) {
     throw new Error(
       "OpenRouter returned an empty response."
     );
   }
 
-  return cleanText(answer);
+  return cleanAIAnswer(
+    answer
+  );
 }
 
 // ============================================================
 // AI FALLBACK SYSTEM
 // ============================================================
 
-async function askAI(prompt) {
+async function askAI(
+  prompt
+) {
   const errors = [];
 
   try {
     const answer =
-      await askGemini(prompt);
+      await askGemini(
+        prompt
+      );
 
     return {
       answer,
-      provider: "gemini"
+      provider:
+        "gemini"
     };
   } catch (error) {
     errors.push(
@@ -724,11 +873,14 @@ async function askAI(prompt) {
 
   try {
     const answer =
-      await askGroq(prompt);
+      await askGroq(
+        prompt
+      );
 
     return {
       answer,
-      provider: "groq"
+      provider:
+        "groq"
     };
   } catch (error) {
     errors.push(
@@ -738,11 +890,14 @@ async function askAI(prompt) {
 
   try {
     const answer =
-      await askOpenRouter(prompt);
+      await askOpenRouter(
+        prompt
+      );
 
     return {
       answer,
-      provider: "openrouter"
+      provider:
+        "openrouter"
     };
   } catch (error) {
     errors.push(
@@ -761,7 +916,9 @@ async function askAI(prompt) {
 // MEMORY SAFETY
 // ============================================================
 
-function isSensitiveMemory(text = "") {
+function isSensitiveMemory(
+  text = ""
+) {
   const value =
     text.toLowerCase();
 
@@ -779,7 +936,9 @@ function isSensitiveMemory(text = "") {
 
   return dangerousPatterns.some(
     pattern =>
-      value.includes(pattern)
+      value.includes(
+        pattern
+      )
   );
 }
 
@@ -1048,12 +1207,14 @@ app.get(
       geminiModel:
         GEMINI_MODEL,
 
-      football: true,
+      football:
+        true,
 
       footballScope:
         "worldwide",
 
-      webSearch: true,
+      webSearch:
+        true,
 
       newsIntelligence:
         true,
@@ -1064,7 +1225,8 @@ app.get(
       memoryStats:
         getSystemMemoryStats(),
 
-      fileAnalysis: true,
+      fileAnalysis:
+        true,
 
       imageGeneration:
         Boolean(
@@ -1124,7 +1286,7 @@ app.post(
       ...(conversation.metadata || {}),
       userId,
       createdBy:
-        "zed-ai"
+        "zed"
     };
 
     await persistConversation(
@@ -1149,7 +1311,8 @@ app.delete(
   async (req, res) => {
     const conversationId =
       safeConversationId(
-        req.params.conversationId
+        req.params
+          .conversationId
       );
 
     const userId =
@@ -1163,7 +1326,8 @@ app.delete(
         conversationId
       );
 
-    let persistentDeleted = false;
+    let persistentDeleted =
+      false;
 
     try {
       const history =
@@ -1208,7 +1372,8 @@ app.get(
   async (req, res) => {
     const conversationId =
       safeConversationId(
-        req.params.conversationId
+        req.params
+          .conversationId
       );
 
     const conversation =
@@ -1282,7 +1447,8 @@ app.get(
         return res.json({
           ok: true,
           chats: [],
-          persistent: false
+          persistent:
+            false
         });
       }
 
@@ -1294,7 +1460,8 @@ app.get(
       return res.json({
         ok: true,
         chats,
-        persistent: true
+        persistent:
+          true
       });
     } catch (error) {
       console.error(
@@ -1305,7 +1472,8 @@ app.get(
       return res.json({
         ok: true,
         chats: [],
-        persistent: false,
+        persistent:
+          false,
         error:
           error.message
       });
@@ -1614,7 +1782,8 @@ async function generateCloudflareImage(
     await fetch(
       url,
       {
-        method: "POST",
+        method:
+          "POST",
 
         headers: {
           "Authorization":
@@ -1624,10 +1793,13 @@ async function generateCloudflareImage(
             "application/json"
         },
 
-        body: JSON.stringify({
-          prompt:
-            cleanText(prompt)
-        })
+        body:
+          JSON.stringify({
+            prompt:
+              cleanText(
+                prompt
+              )
+          })
       }
     );
 
@@ -1768,7 +1940,8 @@ app.post(
       if (
         !conversation.metadata
       ) {
-        conversation.metadata = {};
+        conversation.metadata =
+          {};
       }
 
       if (
@@ -1845,9 +2018,14 @@ app.post(
       // FOOTBALL DATA
       // ------------------------------------------------------
 
-      let footballUsed = false;
-      let footballMode = null;
-      let footballData = "";
+      let footballUsed =
+        false;
+
+      let footballMode =
+        null;
+
+      let footballData =
+        "";
 
       if (
         shouldUseFootballData(
@@ -1855,7 +2033,8 @@ app.post(
         )
       ) {
         try {
-          footballUsed = true;
+          footballUsed =
+            true;
 
           footballMode =
             getFootballRequestType(
@@ -1879,7 +2058,8 @@ app.post(
               );
 
             footballData =
-              typeof result === "string"
+              typeof result ===
+              "string"
                 ? result
                 : JSON.stringify(
                     result
@@ -1891,7 +2071,8 @@ app.post(
               );
 
             footballData =
-              typeof result === "string"
+              typeof result ===
+              "string"
                 ? result
                 : JSON.stringify(
                     result
@@ -1903,7 +2084,8 @@ app.post(
               );
 
             footballData =
-              typeof result === "string"
+              typeof result ===
+              "string"
                 ? result
                 : JSON.stringify(
                     result
@@ -1924,8 +2106,21 @@ app.post(
       // WEB SEARCH
       // ------------------------------------------------------
 
-      let searchUsed = false;
-      let searchData = "";
+      let searchUsed =
+        false;
+
+      /*
+       * IMPORTANT:
+       *
+       * Keep the complete search object here.
+       * Do NOT JSON.stringify it yet.
+       *
+       * current-information.js and
+       * news-intelligence.js need the
+       * structured results.
+       */
+      let searchData =
+        null;
 
       if (
         isCurrentInformationQuestion(
@@ -1941,15 +2136,15 @@ app.post(
               userMessage
             );
 
-          if (result) {
-            searchUsed = true;
+          if (
+            result &&
+            result.ok !== false
+          ) {
+            searchUsed =
+              true;
 
             searchData =
-              typeof result === "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
+              result;
           }
         } catch (error) {
           console.error(
@@ -1957,7 +2152,8 @@ app.post(
             error
           );
 
-          searchData = "";
+          searchData =
+            null;
         }
       }
 
@@ -1992,14 +2188,23 @@ app.post(
           : "";
 
       // ------------------------------------------------------
+      // FORMATTED WEB EVIDENCE FOR AI
+      // ------------------------------------------------------
+
+      const webEvidence =
+        formatSearchEvidence(
+          searchData
+        );
+
+      // ------------------------------------------------------
       // MAIN PROMPT
       // ------------------------------------------------------
 
       const prompt = `
 
-You are Zed AI.
+You are Zed.
 
-You are the AI assistant inside the Zed AI application.
+You are the AI assistant inside the Zed application.
 
 Your job is to be helpful, accurate, clear, natural and conversational.
 
@@ -2011,11 +2216,12 @@ ${currentDate}
 ABSOLUTE CURRENT-NEWS RULE
 ============================================================
 
-When WEB SEARCH DATA is supplied, it is the ONLY evidence you may
-use for current-news claims.
+When WEB SEARCH DATA is supplied, it is the primary evidence for
+current-news claims.
 
 Do not use general model knowledge to add current names, transfers,
-injuries, contracts, rumours, events or developments.
+injuries, contracts, rumours, events or developments that are not
+supported by the supplied evidence.
 
 Every current-news claim must be traceable to the supplied search
 evidence.
@@ -2031,32 +2237,22 @@ This rule is especially important for:
 - breaking news
 - current rumours
 - current negotiations
+- contracts
+- manager developments
 
 ============================================================
-NEWS EVIDENCE OVERRIDE
+NEWS EVIDENCE
 ============================================================
 
-The NEWS INTELLIGENCE section supplied above has already identified
-the rules for using current-news evidence.
+The NEWS INTELLIGENCE section below has been generated from the
+structured search results.
 
 Follow it strictly.
 
 If the search results contain specific names and specific events,
 use those names and events.
 
-Never replace them with vague wording.
-
-If a transfer name is not supported by the supplied search results,
-leave that name out.
-
-For example:
-
-If the supplied search evidence does not contain a relevant Arsenal
-transfer report involving Erling Haaland, DO NOT mention Erling
-Haaland simply because he is a famous footballer.
-
-Do not invent or reconstruct a transfer rumour from general
-football knowledge.
+Never replace specific supported information with vague wording.
 
 Accuracy is more important than having a longer answer.
 
@@ -2076,7 +2272,7 @@ Long-term memory contains useful information the user previously
 told Zed and that was intentionally saved.
 
 If long-term memory contains the user's name, preferences, projects,
-goals or other relevant information, USE IT naturally.
+goals or other relevant information, use it naturally.
 
 Do not say that you do not know something when it is explicitly
 present in the supplied memory.
@@ -2133,12 +2329,30 @@ ${
 }
 
 ============================================================
-WEB SEARCH DATA
+WEB SEARCH EVIDENCE
 ============================================================
 
 ${
-  searchData ||
+  webEvidence ||
   "No web search data was requested."
+}
+
+============================================================
+CURRENT NEWS INTELLIGENCE
+============================================================
+
+${
+  newsIntelligence ||
+  "No news intelligence was generated."
+}
+
+============================================================
+CURRENT INFORMATION INSTRUCTIONS
+============================================================
+
+${
+  currentInformation ||
+  "No additional current-information instructions were generated."
 }
 
 ============================================================
@@ -2162,18 +2376,27 @@ For each important player:
 
 Do not group different players into one vague statement.
 
-For example, if the evidence supports:
+If the evidence supports different developments involving different
+players, report them separately.
 
-- one player being forced off with a suspected injury,
-- another playing a full match,
-- another leaving international duty with a muscle problem,
-- another withdrawing for rest,
+============================================================
+SOURCE AND DATE HANDLING
+============================================================
 
-report these separately.
+When answering current-news questions:
 
-Do NOT turn all four into:
+- Prefer recent evidence.
+- Prefer official sources when available.
+- Prefer reputable journalism when official information is unavailable.
+- Use the publication date when it helps establish how current a
+  report is.
+- If a source does not provide a date, do not invent one.
+- Do not invent article titles, dates or sources.
+- When useful, mention the source naturally.
+- If several sources describe the same event, treat them as one
+  development rather than repeating it.
 
-"Arsenal have several injury concerns."
+If sources disagree, clearly explain the uncertainty.
 
 ============================================================
 TRANSFER SAFETY
@@ -2209,12 +2432,8 @@ into:
 
 Never add a transfer target because the player is famous.
 
-Never add Erling Haaland to an Arsenal answer unless the supplied
-search evidence specifically contains a relevant current Arsenal-
-Haaland report.
-
 If there is insufficient reliable transfer information, omit the
-transfer section entirely.
+transfer claim.
 
 ============================================================
 INJURY SAFETY
@@ -2234,33 +2453,14 @@ When reporting injuries:
 A previous knock does not automatically mean the player is currently
 injured.
 
-A withdrawal from international duty does not automatically mean
-the player is injured.
+A withdrawal from international duty does not automatically mean the
+player is injured.
 
 If evidence says a player was rested or managed for workload, do not
 call that an injury.
 
 If newer evidence says a player returned to action, do not describe
 that player as currently injured based only on an older report.
-
-============================================================
-SOURCE HANDLING
-============================================================
-
-When several search results describe the same event, treat them as
-one event.
-
-Prefer:
-
-1. official statements;
-2. recent reputable reporting;
-3. sources with specific details;
-4. agreement between independent sources.
-
-If reliable sources conflict, explain the uncertainty.
-
-A newer relevant report normally takes priority over an older report
-when it provides updated information.
 
 ============================================================
 FOOTBALL CURRENT INFORMATION
@@ -2277,7 +2477,7 @@ Use VERIFIED FOOTBALL DATA for:
 - match statistics
 - structured competition information
 
-Use WEB SEARCH DATA for:
+Use WEB SEARCH EVIDENCE for:
 
 - injuries
 - injury updates
@@ -2338,7 +2538,7 @@ saved memory as authoritative.
 If the user asks to forget something and it was removed, acknowledge
 that naturally.
 
-For current information, use the supplied web search data.
+For current information, use the supplied web search evidence.
 
 For football questions, use the supplied football data.
 
@@ -2366,11 +2566,7 @@ ${userMessage}
       // ------------------------------------------------------
 
       const finalPrompt =
-        `${currentInformation}
-
-${newsIntelligence}
-
-${prompt}`;
+        prompt;
 
       // ------------------------------------------------------
       // AI
@@ -2444,11 +2640,15 @@ ${prompt}`;
             chatPersistence?.persistent
           ),
 
+        searchResultCount:
+          searchData?.resultCount ||
+          0,
+
         forgetResult
       });
     } catch (error) {
       console.error(
-        "Zed AI chat error:",
+        "Zed chat error:",
         error
       );
 
@@ -2489,19 +2689,19 @@ const memoryStatus =
   initializeMemory();
 
 console.log(
-  "Zed AI memory system:",
+  "Zed memory system:",
   memoryStatus
 );
 
 console.log(
-  "Zed AI server starting..."
+  "Zed server starting..."
 );
 
 app.listen(
   PORT,
   () => {
     console.log(
-      `Zed AI running on port ${PORT}`
+      `Zed running on port ${PORT}`
     );
 
     console.log(

@@ -1,138 +1,38 @@
 /* =========================================================
-ZED — PURE LIQUID GLASS INTERFACE
-ChatGPT-style layout • iOS-inspired glass
-Automatic Light / Dark Mode
+ZED — PREMIUM LIQUID GLASS INTERFACE
+ChatGPT-style layout • iOS-inspired Liquid Glass
+Light / Dark • Responsive • Accessible
 ========================================================= */
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    }
+/* =========================================================
+RESET
+========================================================= */
 
-:root {
+*,
+*::before,
+*::after {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+
+html {
+width: 100%;
+min-height: 100%;
 color-scheme: light;
-
-–bg: #eef1f5;
-–bg-deep: #e7ebf0;
-
-–glass: rgba(255, 255, 255, 0.48);
-–glass-soft: rgba(255, 255, 255, 0.34);
-–glass-strong: rgba(255, 255, 255, 0.68);
-–glass-solid: rgba(255, 255, 255, 0.82);
-–glass-hover: rgba(255, 255, 255, 0.76);
-
-–text: #111214;
-–text-secondary: #4e5157;
-–muted: #7a7e86;
-
-–border: rgba(255, 255, 255, 0.58);
-–border-dark: rgba(0, 0, 0, 0.08);
-
-–accent: #20b26b;
-–accent-soft: rgba(32, 178, 107, 0.14);
-–accent-glow: rgba(32, 178, 107, 0.22);
-
-–danger: #ff4d4f;
-
-–shadow-xl:
-0 30px 80px rgba(0, 0, 0, 0.13);
-
-–shadow-lg:
-0 18px 50px rgba(0, 0, 0, 0.10);
-
-–shadow-md:
-0 10px 30px rgba(0, 0, 0, 0.08);
-
-–shadow-sm:
-0 5px 18px rgba(0, 0, 0, 0.06);
-
-–glass-blur: blur(30px) saturate(155%);
-–glass-blur-heavy: blur(42px) saturate(170%);
-
-–radius-xl: 28px;
-–radius-lg: 22px;
-–radius-md: 16px;
-–radius-sm: 12px;
+background: var(–bg);
 }
 
 html[data-theme=“dark”] {
 color-scheme: dark;
-
-–bg: #090a0d;
-–bg-deep: #0d0f13;
-
-–glass: rgba(30, 32, 38, 0.50);
-–glass-soft: rgba(30, 32, 38, 0.34);
-–glass-strong: rgba(42, 44, 51, 0.70);
-–glass-solid: rgba(44, 46, 54, 0.84);
-–glass-hover: rgba(55, 58, 67, 0.78);
-
-–text: #f5f6f7;
-–text-secondary: #c7c9ce;
-–muted: #8e929a;
-
-–border: rgba(255, 255, 255, 0.13);
-–border-dark: rgba(255, 255, 255, 0.08);
-
-–accent: #72e6a4;
-–accent-soft: rgba(114, 230, 164, 0.13);
-–accent-glow: rgba(114, 230, 164, 0.24);
-
-–danger: #ff6467;
-
-–shadow-xl:
-0 30px 90px rgba(0, 0, 0, 0.50);
-
-–shadow-lg:
-0 20px 60px rgba(0, 0, 0, 0.42);
-
-–shadow-md:
-0 12px 35px rgba(0, 0, 0, 0.34);
-
-–shadow-sm:
-0 6px 20px rgba(0, 0, 0, 0.28);
 }
 
-/* =========================================================
-BASE
-========================================================= */
-
-html,
 body {
 width: 100%;
-min-height: 100%;
-}
-
-html {
-background: var(–bg);
-}
-
-body {
+min-width: 0;
 min-height: 100vh;
 min-height: 100dvh;
-
 overflow: hidden;
-
-background:
-radial-gradient(
-900px 650px at 8% 5%,
-rgba(114, 230, 164, 0.12),
-transparent 62%
-),
-radial-gradient(
-850px 650px at 92% 92%,
-rgba(90, 145, 255, 0.11),
-transparent 62%
-),
-radial-gradient(
-650px 500px at 50% 45%,
-rgba(255, 255, 255, 0.18),
-transparent 65%
-),
-var(–bg);
-
-color: var(–text);
 
 font-family:
 -apple-system,
@@ -146,7 +46,11 @@ Arial,
 sans-serif;
 
 -webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
 text-rendering: optimizeLegibility;
+
+color: var(–text);
+background: var(–bg);
 
 transition:
 background 0.35s ease,
@@ -154,16 +58,16 @@ color 0.35s ease;
 }
 
 button,
-textarea,
 input,
+textarea,
 select {
 font: inherit;
 }
 
 button {
 border: 0;
-cursor: pointer;
 color: inherit;
+cursor: pointer;
 -webkit-tap-highlight-color: transparent;
 }
 
@@ -171,15 +75,16 @@ button:disabled {
 cursor: default;
 }
 
-textarea,
 input,
+textarea,
 select {
 color: inherit;
 }
 
-/* =========================================================
-SELECTION
-========================================================= */
+img {
+max-width: 100%;
+display: block;
+}
 
 ::selection {
 background: var(–accent-soft);
@@ -187,122 +92,191 @@ color: var(–text);
 }
 
 /* =========================================================
+DESIGN TOKENS — LIGHT
+========================================================= */
+
+:root {
+–bg: #edf1f5;
+–bg-deep: #e5e9ee;
+
+–glass: rgba(255, 255, 255, 0.42);
+–glass-soft: rgba(255, 255, 255, 0.28);
+–glass-strong: rgba(255, 255, 255, 0.62);
+–glass-solid: rgba(255, 255, 255, 0.78);
+–glass-hover: rgba(255, 255, 255, 0.86);
+
+–text: #101114;
+–text-secondary: #454950;
+–muted: #747982;
+
+–border: rgba(255, 255, 255, 0.68);
+–border-dark: rgba(0, 0, 0, 0.08);
+
+–accent: #18a963;
+–accent-soft: rgba(24, 169, 99, 0.13);
+–accent-glow: rgba(24, 169, 99, 0.25);
+
+–danger: #ff4d55;
+–warning: #e9a400;
+
+–shadow-xl:
+0 34px 100px rgba(0, 0, 0, 0.15);
+
+–shadow-lg:
+0 22px 65px rgba(0, 0, 0, 0.12);
+
+–shadow-md:
+0 12px 38px rgba(0, 0, 0, 0.09);
+
+–shadow-sm:
+0 6px 20px rgba(0, 0, 0, 0.07);
+
+–inner-highlight:
+inset 0 1px 0 rgba(255, 255, 255, 0.78);
+
+–inner-shadow:
+inset 0 -1px 0 rgba(0, 0, 0, 0.035);
+
+–glass-blur: blur(28px) saturate(160%);
+–glass-blur-heavy: blur(42px) saturate(180%);
+
+–radius-xl: 30px;
+–radius-lg: 24px;
+–radius-md: 17px;
+–radius-sm: 12px;
+
+–topbar-height: 66px;
+–sidebar-width: 282px;
+}
+
+/* =========================================================
+DESIGN TOKENS — DARK
+========================================================= */
+
+html[data-theme=“dark”] {
+–bg: #08090c;
+–bg-deep: #0d0f13;
+
+–glass: rgba(30, 32, 39, 0.48);
+–glass-soft: rgba(30, 32, 39, 0.32);
+–glass-strong: rgba(42, 44, 52, 0.66);
+–glass-solid: rgba(43, 45, 53, 0.82);
+–glass-hover: rgba(57, 60, 69, 0.88);
+
+–text: #f5f6f8;
+–text-secondary: #c8cbd1;
+–muted: #90949d;
+
+–border: rgba(255, 255, 255, 0.13);
+–border-dark: rgba(255, 255, 255, 0.08);
+
+–accent: #72e6a4;
+–accent-soft: rgba(114, 230, 164, 0.13);
+–accent-glow: rgba(114, 230, 164, 0.25);
+
+–danger: #ff646c;
+–warning: #ffc44d;
+
+–shadow-xl:
+0 35px 110px rgba(0, 0, 0, 0.62);
+
+–shadow-lg:
+0 24px 70px rgba(0, 0, 0, 0.52);
+
+–shadow-md:
+0 14px 42px rgba(0, 0, 0, 0.42);
+
+–shadow-sm:
+0 7px 23px rgba(0, 0, 0, 0.34);
+
+–inner-highlight:
+inset 0 1px 0 rgba(255, 255, 255, 0.10);
+
+–inner-shadow:
+inset 0 -1px 0 rgba(0, 0, 0, 0.20);
+}
+
+/* =========================================================
+BACKGROUND ATMOSPHERE
+========================================================= */
+
+body {
+background:
+radial-gradient(
+850px 600px at 4% 0%,
+rgba(95, 190, 145, 0.15),
+transparent 66%
+),
+radial-gradient(
+900px 700px at 100% 100%,
+rgba(90, 130, 255, 0.13),
+transparent 67%
+),
+radial-gradient(
+700px 550px at 55% 42%,
+rgba(255, 255, 255, 0.20),
+transparent 70%
+),
+linear-gradient(
+135deg,
+var(–bg),
+var(–bg-deep)
+);
+}
+
+html[data-theme=“dark”] body {
+background:
+radial-gradient(
+850px 600px at 0% 0%,
+rgba(45, 125, 90, 0.15),
+transparent 67%
+),
+radial-gradient(
+900px 700px at 100% 100%,
+rgba(55, 80, 165, 0.13),
+transparent 68%
+),
+radial-gradient(
+650px 500px at 55% 45%,
+rgba(255, 255, 255, 0.025),
+transparent 70%
+),
+linear-gradient(
+135deg,
+var(–bg),
+var(–bg-deep)
+);
+}
+
+/* =========================================================
 APP
 ========================================================= */
 
 .app {
+position: relative;
+
 display: flex;
 
 width: 100%;
+min-width: 0;
 min-height: 100vh;
 min-height: 100dvh;
 
-position: relative;
-}
-
-/* =========================================================
-LIQUID GLASS SIDEBAR
-========================================================= */
-
-.sidebar {
-position: relative;
-
-width: 278px;
-min-width: 278px;
-height: 100vh;
-height: 100dvh;
-
-display: flex;
-flex-direction: column;
-
-padding:
-14px
-13px
-max(14px, env(safe-area-inset-bottom));
-
-background:
-linear-gradient(
-145deg,
-rgba(255, 255, 255, 0.58),
-rgba(255, 255, 255, 0.32)
-);
-
-border-right: 1px solid var(–border);
-
-backdrop-filter: var(–glass-blur-heavy);
--webkit-backdrop-filter: var(–glass-blur-heavy);
-
-box-shadow:
-12px 0 50px rgba(0, 0, 0, 0.06),
-inset -1px 0 0 rgba(255, 255, 255, 0.34);
-
 overflow: hidden;
-
-transition:
-transform 0.3s cubic-bezier(.22, .61, .36, 1),
-background 0.3s ease;
-}
-
-html[data-theme=“dark”] .sidebar {
-background:
-linear-gradient(
-145deg,
-rgba(42, 44, 51, 0.64),
-rgba(24, 26, 31, 0.48)
-);
-
-box-shadow:
-15px 0 55px rgba(0, 0, 0, 0.30),
-inset -1px 0 0 rgba(255, 255, 255, 0.06);
-}
-
-.sidebar::before {
-content: “”;
-
-position: absolute;
-
-inset: 0;
-
-pointer-events: none;
-
-background:
-linear-gradient(
-135deg,
-rgba(255, 255, 255, 0.28),
-transparent 28%,
-transparent 72%,
-rgba(255, 255, 255, 0.05)
-);
-
-opacity: 0.8;
 }
 
 /* =========================================================
-SIDEBAR HEADER
+UNIVERSAL GLASS SURFACE
 ========================================================= */
 
-.sidebar-header,
-.sidebar-top {
-margin-bottom: 18px;
-
+.sidebar,
+.topbar,
+.composer,
+.attach-menu,
+.profile-btn,
+.new-chat-btn,
+.message-user .message-content {
 position: relative;
-z-index: 1;
-}
-
-.new-chat-btn {
-position: relative;
-
-width: 100%;
-min-height: 48px;
-
-display: flex;
-align-items: center;
-
-gap: 10px;
-
-padding: 0 15px;
-
-border-radius: 16px;
 
 background:
 linear-gradient(
@@ -313,22 +287,137 @@ var(–glass)
 
 border: 1px solid var(–border);
 
+backdrop-filter: var(–glass-blur);
+-webkit-backdrop-filter: var(–glass-blur);
+
 box-shadow:
-var(–shadow-sm),
-inset 0 1px 0 rgba(255, 255, 255, 0.55);
+var(–shadow-md),
+var(–inner-highlight),
+var(–inner-shadow);
+}
+
+/* =========================================================
+SIDEBAR
+========================================================= */
+
+.sidebar {
+position: relative;
+
+width: var(–sidebar-width);
+min-width: var(–sidebar-width);
+
+height: 100vh;
+height: 100dvh;
+
+display: flex;
+flex-direction: column;
+
+padding:
+max(14px, env(safe-area-inset-top))
+13px
+max(14px, env(safe-area-inset-bottom));
+
+border-top: 0;
+border-bottom: 0;
+border-left: 0;
+border-radius: 0;
+
+overflow: hidden;
+
+z-index: 30;
+
+transition:
+transform 0.32s cubic-bezier(.22, .61, .36, 1),
+background 0.3s ease,
+box-shadow 0.3s ease;
+}
+
+.sidebar::before,
+.topbar::before,
+.composer::before,
+.attach-menu::before,
+.profile-btn::before,
+.new-chat-btn::before {
+content: “”;
+
+position: absolute;
+inset: 0;
+
+pointer-events: none;
+
+background:
+linear-gradient(
+135deg,
+rgba(255, 255, 255, 0.36),
+transparent 25%,
+transparent 68%,
+rgba(255, 255, 255, 0.07)
+);
+
+opacity: 0.8;
+}
+
+html[data-theme=“dark”] .sidebar::before,
+html[data-theme=“dark”] .topbar::before,
+html[data-theme=“dark”] .composer::before,
+html[data-theme=“dark”] .attach-menu::before,
+html[data-theme=“dark”] .profile-btn::before,
+html[data-theme=“dark”] .new-chat-btn::before {
+background:
+linear-gradient(
+135deg,
+rgba(255, 255, 255, 0.10),
+transparent 27%,
+transparent 70%,
+rgba(255, 255, 255, 0.025)
+);
+}
+
+/* =========================================================
+SIDEBAR HEADER
+========================================================= */
+
+.sidebar-header,
+.sidebar-top {
+position: relative;
+z-index: 2;
+
+margin-bottom: 16px;
+}
+
+/* =========================================================
+NEW CHAT
+========================================================= */
+
+.new-chat-btn {
+width: 100%;
+min-height: 49px;
+
+display: flex;
+align-items: center;
+
+gap: 10px;
+
+padding: 0 15px;
+
+border-radius: 16px;
 
 color: var(–text);
 
 font-size: 14px;
-font-weight: 600;
+font-weight: 650;
 
-backdrop-filter: blur(24px);
--webkit-backdrop-filter: blur(24px);
+overflow: hidden;
 
 transition:
 transform 0.2s ease,
 background 0.2s ease,
 box-shadow 0.2s ease;
+}
+
+.new-chat-btn > * {
+position: relative;
+z-index: 1;
 }
 
 .new-chat-btn:hover {
@@ -338,7 +427,7 @@ transform: translateY(-1px);
 
 box-shadow:
 var(–shadow-md),
-inset 0 1px 0 rgba(255, 255, 255, 0.62);
+var(–inner-highlight);
 }
 
 .new-chat-btn:active {
@@ -346,8 +435,8 @@ transform: scale(0.975);
 }
 
 .new-chat-icon {
-width: 23px;
-height: 23px;
+width: 24px;
+height: 24px;
 
 display: inline-flex;
 align-items: center;
@@ -358,62 +447,63 @@ line-height: 1;
 }
 
 /* =========================================================
-RECENT CHATS
+RECENT SECTION
 ========================================================= */
 
 .recent-section {
-flex: 1;
+position: relative;
+z-index: 2;
 
+flex: 1;
 min-height: 0;
 
 overflow: hidden;
-
-position: relative;
-z-index: 1;
 }
 
 .section-title {
 padding:
-9px
+10px
 10px
 8px;
 
 color: var(–muted);
 
 font-size: 10px;
-font-weight: 700;
+font-weight: 750;
 
+letter-spacing: 0.10em;
 text-transform: uppercase;
-
-letter-spacing: 0.09em;
 }
 
 .recent-chats {
+height: 100%;
+
 display: flex;
 flex-direction: column;
 
-gap: 2px;
+gap: 3px;
 
-height: 100%;
-
+overflow-x: hidden;
 overflow-y: auto;
 
 padding-right: 2px;
 }
 
 .recent-chat {
-width: 100%;
+position: relative;
 
-min-height: 40px;
+width: 100%;
+min-height: 41px;
 
 display: flex;
 align-items: center;
 
 padding:
 9px
-11px;
+12px;
 
-border-radius: 12px;
+border: 1px solid transparent;
+border-radius: 13px;
 
 background: transparent;
 
@@ -426,15 +516,19 @@ overflow: hidden;
 text-overflow: ellipsis;
 
 font-size: 13px;
+font-weight: 500;
 
 transition:
 background 0.18s ease,
 color 0.18s ease,
-transform 0.18s ease;
+transform 0.18s ease,
+border-color 0.18s ease;
 }
 
 .recent-chat:hover {
 background: rgba(255, 255, 255, 0.16);
+
+border-color: rgba(255, 255, 255, 0.22);
 
 color: var(–text);
 
@@ -442,7 +536,25 @@ transform: translateX(1px);
 }
 
 html[data-theme=“dark”] .recent-chat:hover {
-background: rgba(255, 255, 255, 0.07);
+background: rgba(255, 255, 255, 0.065);
+border-color: rgba(255, 255, 255, 0.08);
+}
+
+.recent-chat.active,
+.recent-chat[aria-current=“page”] {
+background:
+linear-gradient(
+135deg,
+var(–accent-soft),
+rgba(255, 255, 255, 0.10)
+);
+
+border-color: var(–accent-glow);
+
+color: var(–text);
+
+box-shadow:
+inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
 /* =========================================================
@@ -450,34 +562,35 @@ SIDEBAR BOTTOM
 ========================================================= */
 
 .sidebar-bottom {
+position: relative;
+z-index: 2;
+
 display: flex;
 flex-direction: column;
 
 gap: 3px;
 
+margin-top: 9px;
 padding-top: 12px;
 
-margin-top: 8px;
-
 border-top: 1px solid var(–border);
-
-position: relative;
-z-index: 1;
 }
 
 .sidebar-item {
-min-height: 43px;
+width: 100%;
+min-height: 44px;
 
 display: flex;
 align-items: center;
 
 gap: 11px;
 
-width: 100%;
+padding:
+10px
+12px;
 
-padding: 10px 11px;
-
-border-radius: 12px;
+border: 1px solid transparent;
+border-radius: 13px;
 
 background: transparent;
 
@@ -486,16 +599,19 @@ color: var(–text-secondary);
 text-align: left;
 
 font-size: 13px;
-font-weight: 500;
+font-weight: 520;
 
 transition:
 background 0.18s ease,
 color 0.18s ease,
-transform 0.18s ease;
+transform 0.18s ease,
+border-color 0.18s ease;
 }
 
 .sidebar-item:hover {
 background: rgba(255, 255, 255, 0.15);
+
+border-color: rgba(255, 255, 255, 0.20);
 
 color: var(–text);
 
@@ -504,20 +620,26 @@ transform: translateX(1px);
 
 html[data-theme=“dark”] .sidebar-item:hover {
 background: rgba(255, 255, 255, 0.07);
+border-color: rgba(255, 255, 255, 0.07);
+}
+
+.sidebar-item:active {
+transform: scale(0.985);
 }
 
 .sidebar-item-icon {
 width: 21px;
+min-width: 21px;
 
 display: inline-flex;
 align-items: center;
 justify-content: center;
 
-flex: 0 0 21px;
+font-size: 16px;
 }
 
 .account-icon {
-font-size: 13px;
+font-size: 14px;
 }
 
 /* =========================================================
@@ -525,8 +647,9 @@ MAIN
 ========================================================= */
 
 .main {
-flex: 1;
+position: relative;
 
+flex: 1;
 min-width: 0;
 min-height: 100vh;
 min-height: 100dvh;
@@ -534,20 +657,19 @@ min-height: 100dvh;
 display: flex;
 flex-direction: column;
 
-position: relative;
-
 overflow: hidden;
 }
 
 /* =========================================================
-TOP BAR
+TOPBAR
 ========================================================= */
 
 .topbar {
 position: relative;
 
-height: 66px;
-min-height: 66px;
+width: 100%;
+height: var(–topbar-height);
+min-height: var(–topbar-height);
 
 display: flex;
 align-items: center;
@@ -555,51 +677,47 @@ justify-content: space-between;
 
 padding:
 0
-20px;
+max(20px, env(safe-area-inset-right));
 
-border-bottom: 1px solid var(–border);
+border-top: 0;
+border-right: 0;
+border-left: 0;
+border-radius: 0;
 
-background:
-linear-gradient(
-180deg,
-var(–glass-strong),
-rgba(255, 255, 255, 0.22)
-);
+z-index: 20;
 
-backdrop-filter: var(–glass-blur);
--webkit-backdrop-filter: var(–glass-blur);
+overflow: hidden;
 
 box-shadow:
-0 1px 0 rgba(255, 255, 255, 0.22);
-
-z-index: 10;
+0 10px 35px rgba(0, 0, 0, 0.045),
+inset 0 -1px 0 rgba(255, 255, 255, 0.20);
 }
 
-html[data-theme=“dark”] .topbar {
-background:
-linear-gradient(
-180deg,
-rgba(31, 33, 39, 0.74),
-rgba(20, 22, 27, 0.45)
-);
+.topbar-left,
+.profile-btn {
+position: relative;
+z-index: 2;
 }
 
 .topbar-left {
+min-width: 0;
+
 display: flex;
 align-items: center;
 
 gap: 12px;
-
-min-width: 0;
 }
+
+/* =========================================================
+MENU BUTTON
+========================================================= */
 
 .menu-btn {
 display: none;
 
 width: 42px;
 height: 42px;
-
-flex: 0 0 42px;
+min-width: 42px;
 
 align-items: center;
 justify-content: center;
@@ -610,11 +728,16 @@ background: var(–glass);
 
 border: 1px solid var(–border);
 
+color: var(–text);
+
 font-size: 19px;
 
 box-shadow:
 var(–shadow-sm),
-inset 0 1px 0 rgba(255, 255, 255, 0.4);
+var(–inner-highlight);
+
+backdrop-filter: blur(20px);
+-webkit-backdrop-filter: blur(20px);
 
 transition:
 background 0.18s ease,
@@ -626,7 +749,7 @@ background: var(–glass-hover);
 }
 
 .menu-btn:active {
-transform: scale(0.94);
+transform: scale(0.93);
 }
 
 /* =========================================================
@@ -634,12 +757,17 @@ BRAND
 ========================================================= */
 
 .brand-name {
-font-size: 17px;
-font-weight: 700;
+overflow: hidden;
 
-letter-spacing: -0.025em;
+color: var(–text);
+
+font-size: 17px;
+font-weight: 750;
+
+letter-spacing: -0.03em;
 
 white-space: nowrap;
+text-overflow: ellipsis;
 }
 
 .brand-status {
@@ -653,14 +781,13 @@ margin-top: 2px;
 color: var(–muted);
 
 font-size: 10px;
-font-weight: 500;
+font-weight: 520;
 }
 
 .status-dot {
 width: 7px;
 height: 7px;
-
-flex: 0 0 7px;
+min-width: 7px;
 
 border-radius: 50%;
 
@@ -668,7 +795,7 @@ background: var(–accent);
 
 box-shadow:
 0 0 0 4px var(–accent-soft),
-0 0 16px var(–accent-glow);
+0 0 18px var(–accent-glow);
 }
 
 /* =========================================================
@@ -676,10 +803,9 @@ PROFILE BUTTON
 ========================================================= */
 
 .profile-btn {
-width: 42px;
-height: 42px;
-
-flex: 0 0 42px;
+width: 43px;
+height: 43px;
+min-width: 43px;
 
 display: flex;
 align-items: center;
@@ -698,14 +824,14 @@ border: 1px solid var(–border);
 
 color: var(–muted);
 
+overflow: hidden;
+
 box-shadow:
 var(–shadow-sm),
-inset 0 1px 0 rgba(255, 255, 255, 0.48);
+var(–inner-highlight);
 
-backdrop-filter: blur(20px);
--webkit-backdrop-filter: blur(20px);
-
-overflow: hidden;
+backdrop-filter: blur(24px);
+-webkit-backdrop-filter: blur(24px);
 
 transition:
 transform 0.2s ease,
@@ -720,11 +846,41 @@ transform: translateY(-1px);
 
 box-shadow:
 var(–shadow-md),
-inset 0 1px 0 rgba(255, 255, 255, 0.55);
+var(–inner-highlight);
 }
 
 .profile-btn:active {
-transform: scale(0.94);
+transform: scale(0.93);
+}
+
+.profile-btn img,
+.profile-image,
+.profile-avatar {
+width: 100%;
+height: 100%;
+
+object-fit: cover;
+
+border-radius: inherit;
+}
+
+.profile-placeholder,
+.avatar-placeholder {
+display: flex;
+align-items: center;
+justify-content: center;
+
+width: 100%;
+height: 100%;
+
+background:
+linear-gradient(
+145deg,
+var(–glass-hover),
+var(–glass)
+);
+
+color: var(–muted);
 }
 
 /* =========================================================
@@ -732,12 +888,13 @@ CHAT AREA
 ========================================================= */
 
 .chat-area {
-flex: 1;
+position: relative;
 
+flex: 1;
 min-height: 0;
 
-overflow-y: auto;
 overflow-x: hidden;
+overflow-y: auto;
 
 display: flex;
 flex-direction: column;
@@ -755,85 +912,114 @@ WELCOME
 
 .welcome {
 width: 100%;
-max-width: 720px;
+max-width: 760px;
 
 margin: auto;
 
 padding:
-50px
+54px
 24px;
 
 text-align: center;
 }
 
 .welcome-logo {
-width: 72px;
-height: 72px;
+position: relative;
+
+width: 76px;
+height: 76px;
 
 margin:
 0
 auto
-22px;
+23px;
 
 display: flex;
 align-items: center;
 justify-content: center;
 
-border-radius: 23px;
+border-radius: 25px;
 
 background:
 linear-gradient(
 145deg,
-rgba(255, 255, 255, 0.72),
+rgba(255, 255, 255, 0.76),
 rgba(255, 255, 255, 0.34)
 );
 
 border: 1px solid var(–border);
 
-box-shadow:
-var(–shadow-lg),
-inset 0 1px 0 rgba(255, 255, 255, 0.70),
-inset 0 -1px 0 rgba(255, 255, 255, 0.12);
-
 color: var(–accent);
 
-font-size: 30px;
-font-weight: 800;
+font-size: 31px;
+font-weight: 850;
+
+box-shadow:
+var(–shadow-lg),
+inset 0 1px 0 rgba(255, 255, 255, 0.82),
+inset 0 -1px 0 rgba(0, 0, 0, 0.04);
 
 backdrop-filter: var(–glass-blur);
 -webkit-backdrop-filter: var(–glass-blur);
+
+overflow: hidden;
+}
+
+.welcome-logo::after {
+content: “”;
+
+position: absolute;
+
+width: 55%;
+height: 140%;
+
+top: -40%;
+left: -15%;
+
+transform: rotate(24deg);
+
+background:
+linear-gradient(
+90deg,
+transparent,
+rgba(255, 255, 255, 0.35),
+transparent
+);
+
+pointer-events: none;
 }
 
 html[data-theme=“dark”] .welcome-logo {
 background:
 linear-gradient(
 145deg,
-rgba(60, 63, 72, 0.82),
-rgba(30, 32, 38, 0.50)
+rgba(60, 63, 72, 0.84),
+rgba(29, 31, 37, 0.52)
 );
 }
 
 .welcome h1 {
 margin-bottom: 12px;
 
-font-size: 32px;
-line-height: 1.13;
+color: var(–text);
 
-letter-spacing: -0.045em;
+font-size: 33px;
+line-height: 1.12;
 
-font-weight: 700;
+letter-spacing: -0.05em;
+
+font-weight: 750;
 }
 
 .welcome p {
-max-width: 600px;
+max-width: 610px;
 
 margin: auto;
 
 color: var(–muted);
 
-line-height: 1.6;
-
 font-size: 15px;
+line-height: 1.65;
 }
 
 /* =========================================================
@@ -842,14 +1028,14 @@ MESSAGES
 
 .messages {
 width: 100%;
-max-width: 900px;
+max-width: 920px;
 
 margin: 0 auto;
 
 padding:
-30px
+32px
 22px
-140px;
+150px;
 }
 
 .message {
@@ -857,9 +1043,9 @@ display: flex;
 
 gap: 12px;
 
-margin-bottom: 28px;
+margin-bottom: 27px;
 
-line-height: 1.68;
+line-height: 1.7;
 
 animation:
 messageIn
@@ -870,12 +1056,12 @@ cubic-bezier(.22, .61, .36, 1);
 @keyframes messageIn {
 from {
 opacity: 0;
-transform: translateY(7px);
+transform: translateY(7px) scale(0.995);
 }
 
 to {
 opacity: 1;
-transform: translateY(0);
+transform: translateY(0) scale(1);
 }
 }
 
@@ -886,10 +1072,9 @@ justify-content: flex-end;
 .message-content {
 max-width: 78%;
 
-white-space: pre-wrap;
-
 overflow-wrap: anywhere;
 word-break: break-word;
+white-space: pre-wrap;
 
 color: var(–text);
 
@@ -901,6 +1086,12 @@ padding:
 11px
 17px;
 
+border-radius:
+21px
+21px
+7px
+21px;
+
 background:
 linear-gradient(
 145deg,
@@ -910,18 +1101,12 @@ var(–glass)
 
 border: 1px solid var(–border);
 
-border-radius:
-20px
-20px
-7px
-20px;
-
 box-shadow:
 var(–shadow-sm),
-inset 0 1px 0 rgba(255, 255, 255, 0.42);
+inset 0 1px 0 rgba(255, 255, 255, 0.46);
 
-backdrop-filter: blur(22px);
--webkit-backdrop-filter: blur(22px);
+backdrop-filter: blur(24px);
+-webkit-backdrop-filter: blur(24px);
 }
 
 .message-assistant .message-content {
@@ -930,15 +1115,29 @@ padding:
 0;
 }
 
+/* Generated images */
+.message-content img {
+max-width: min(100%, 720px);
+height: auto;
+
+border-radius: 18px;
+
+border: 1px solid var(–border);
+
+box-shadow:
+var(–shadow-lg),
+var(–inner-highlight);
+}
+
 /* =========================================================
-COMPOSER AREA
+COMPOSER CONTAINER
 ========================================================= */
 
 .composer-container {
 position: relative;
 
 width: 100%;
-max-width: 900px;
+max-width: 920px;
 
 margin: 0 auto;
 
@@ -947,11 +1146,23 @@ padding:
 22px
 max(18px, env(safe-area-inset-bottom));
 
-z-index: 20;
+z-index: 25;
+
+pointer-events: none;
 }
 
+.composer-container > * {
+pointer-events: auto;
+}
+
+/* =========================================================
+COMPOSER
+========================================================= */
+
 .composer {
-min-height: 62px;
+position: relative;
+
+min-height: 63px;
 
 display: flex;
 align-items: flex-end;
@@ -960,24 +1171,17 @@ gap: 7px;
 
 padding: 8px;
 
-background:
-linear-gradient(
-145deg,
-var(–glass-solid),
-var(–glass)
-);
+border-radius: 25px;
 
-border: 1px solid var(–border);
-
-border-radius: 24px;
+overflow: visible;
 
 box-shadow:
 var(–shadow-lg),
-inset 0 1px 0 rgba(255, 255, 255, 0.62),
-inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+inset 0 1px 0 rgba(255, 255, 255, 0.68),
+inset 0 -1px 0 rgba(0, 0, 0, 0.04);
 
-backdrop-filter: blur(34px) saturate(165%);
--webkit-backdrop-filter: blur(34px) saturate(165%);
+backdrop-filter: blur(38px) saturate(175%);
+-webkit-backdrop-filter: blur(38px) saturate(175%);
 
 transition:
 border-color 0.22s ease,
@@ -991,20 +1195,22 @@ border-color: var(–accent-glow);
 box-shadow:
 var(–shadow-lg),
 0 0 0 3px var(–accent-soft),
-inset 0 1px 0 rgba(255, 255, 255, 0.62);
+inset 0 1px 0 rgba(255, 255, 255, 0.68);
 }
 
 .composer textarea {
 flex: 1;
 
 min-width: 0;
-
 min-height: 40px;
 max-height: 180px;
 
 resize: none;
-
 overflow-y: auto;
+
+padding:
+10px
+5px;
 
 border: 0;
 outline: 0;
@@ -1013,13 +1219,8 @@ background: transparent;
 
 color: var(–text);
 
-padding:
-10px
-5px;
-
-line-height: 1.45;
-
 font-size: 15px;
+line-height: 1.45;
 }
 
 .composer textarea::placeholder {
@@ -1035,16 +1236,18 @@ COMPOSER BUTTONS
 ========================================================= */
 
 .composer-btn {
+position: relative;
+
 flex: 0 0 40px;
 
 width: 40px;
 height: 40px;
 
-border-radius: 50%;
-
 display: flex;
 align-items: center;
 justify-content: center;
+
+border-radius: 50%;
 
 background: transparent;
 
@@ -1080,17 +1283,17 @@ SEND BUTTON
 background:
 linear-gradient(
 145deg,
-var(–text),
-rgba(35, 35, 35, 0.90)
+#181a1d,
+#373a3f
 );
 
-color: var(–bg);
+color: #ffffff;
 
 font-weight: 800;
 
 box-shadow:
-var(–shadow-sm),
-inset 0 1px 0 rgba(255, 255, 255, 0.16);
+0 6px 18px rgba(0, 0, 0, 0.16),
+inset 0 1px 0 rgba(255, 255, 255, 0.20);
 
 transition:
 transform 0.18s ease,
@@ -1102,23 +1305,27 @@ html[data-theme=“dark”] .send-btn {
 background:
 linear-gradient(
 145deg,
-#f4f5f6,
-#d9dce0
+#f7f8fa,
+#d9dce1
 );
 
-color: #111214;
+color: #101114;
 }
 
 .send-btn:hover {
 transform: scale(1.045);
 
 box-shadow:
-var(–shadow-md),
-inset 0 1px 0 rgba(255, 255, 255, 0.28);
+0 10px 28px rgba(0, 0, 0, 0.20),
+inset 0 1px 0 rgba(255, 255, 255, 0.30);
+}
+
+.send-btn:active {
+transform: scale(0.94);
 }
 
 .send-btn:disabled {
-opacity: 0.45;
+opacity: 0.42;
 
 transform: none;
 
@@ -1135,33 +1342,24 @@ position: absolute;
 left: 22px;
 bottom: 94px;
 
-width: 220px;
+width: 228px;
 
 padding: 8px;
 
-background:
-linear-gradient(
-145deg,
-var(–glass-solid),
-var(–glass)
-);
-
-border: 1px solid var(–border);
-
-border-radius: 18px;
-
-box-shadow:
-var(–shadow-xl),
-inset 0 1px 0 rgba(255, 255, 255, 0.58);
-
-backdrop-filter: var(–glass-blur-heavy);
--webkit-backdrop-filter: var(–glass-blur-heavy);
+border-radius: 19px;
 
 display: none;
 
-z-index: 50;
+z-index: 60;
 
 overflow: hidden;
+
+box-shadow:
+var(–shadow-xl),
+inset 0 1px 0 rgba(255, 255, 255, 0.66);
+
+backdrop-filter: var(–glass-blur-heavy);
+-webkit-backdrop-filter: var(–glass-blur-heavy);
 
 animation:
 menuIn
@@ -1178,7 +1376,7 @@ from {
 opacity: 0;
 transform:
 translateY(8px)
-scale(0.97);
+scale(0.965);
 }
 
 to {
@@ -1190,9 +1388,10 @@ scale(1);
 }
 
 .attach-menu button {
-width: 100%;
+position: relative;
 
-min-height: 43px;
+width: 100%;
+min-height: 45px;
 
 display: flex;
 align-items: center;
@@ -1201,9 +1400,9 @@ gap: 10px;
 
 padding:
 10px
-11px;
+12px;
 
-border-radius: 12px;
+border-radius: 13px;
 
 background: transparent;
 
@@ -1212,7 +1411,7 @@ color: var(–text);
 text-align: left;
 
 font-size: 13px;
-font-weight: 500;
+font-weight: 520;
 
 transition:
 background 0.18s ease,
@@ -1234,21 +1433,291 @@ COMPOSER NOTE
 ========================================================= */
 
 .composer-note {
-text-align: center;
+margin-top: 8px;
 
 color: var(–muted);
 
-font-size: 10px;
+text-align: center;
 
-margin-top: 8px;
+font-size: 10px;
+line-height: 1.4;
 
 opacity: 0.78;
-
-line-height: 1.4;
 }
 
 /* =========================================================
-FOCUS STATES
+SETTINGS / ACCOUNT GLASS SUPPORT
+Works with existing and future panels.
+========================================================= */
+
+.settings-panel,
+.account-panel,
+.modal,
+.dialog,
+.settings-modal,
+.account-modal {
+position: fixed;
+
+z-index: 200;
+
+max-width: calc(100vw - 28px);
+max-height: calc(100dvh - 28px);
+
+overflow: auto;
+
+color: var(–text);
+
+background:
+linear-gradient(
+145deg,
+var(–glass-solid),
+var(–glass)
+);
+
+border: 1px solid var(–border);
+
+border-radius: 27px;
+
+box-shadow:
+var(–shadow-xl),
+inset 0 1px 0 rgba(255, 255, 255, 0.65);
+
+backdrop-filter: var(–glass-blur-heavy);
+-webkit-backdrop-filter: var(–glass-blur-heavy);
+}
+
+.settings-panel::before,
+.account-panel::before,
+.modal::before,
+.dialog::before,
+.settings-modal::before,
+.account-modal::before {
+content: “”;
+
+position: absolute;
+inset: 0;
+
+pointer-events: none;
+
+border-radius: inherit;
+
+background:
+linear-gradient(
+135deg,
+rgba(255, 255, 255, 0.24),
+transparent 30%,
+transparent 72%,
+rgba(255, 255, 255, 0.05)
+);
+}
+
+.settings-panel button,
+.account-panel button,
+.modal button,
+.dialog button,
+.settings-modal button,
+.account-modal button {
+transition:
+background 0.18s ease,
+transform 0.18s ease,
+opacity 0.18s ease;
+}
+
+.settings-panel button:hover,
+.account-panel button:hover,
+.modal button:hover,
+.dialog button:hover,
+.settings-modal button:hover,
+.account-modal button:hover {
+background: var(–glass-hover);
+}
+
+.settings-panel input,
+.settings-panel select,
+.settings-panel textarea,
+.account-panel input,
+.account-panel select,
+.account-panel textarea {
+border: 1px solid var(–border);
+
+border-radius: 13px;
+
+background: var(–glass);
+
+outline: none;
+
+backdrop-filter: blur(18px);
+-webkit-backdrop-filter: blur(18px);
+}
+
+.settings-panel input:focus,
+.settings-panel select:focus,
+.settings-panel textarea:focus,
+.account-panel input:focus,
+.account-panel select:focus,
+.account-panel textarea:focus {
+border-color: var(–accent);
+
+box-shadow:
+0 0 0 3px var(–accent-soft);
+}
+
+/* Common settings rows */
+.settings-row,
+.setting-row,
+.account-row {
+display: flex;
+align-items: center;
+justify-content: space-between;
+
+gap: 16px;
+
+min-height: 54px;
+
+padding:
+11px
+13px;
+
+border-radius: 14px;
+}
+
+.settings-row:hover,
+.setting-row:hover,
+.account-row:hover {
+background: rgba(255, 255, 255, 0.08);
+}
+
+/* Toggle compatibility */
+.toggle,
+.switch {
+position: relative;
+
+width: 48px;
+height: 28px;
+
+flex: 0 0 48px;
+
+border-radius: 999px;
+
+background: rgba(120, 125, 135, 0.28);
+
+border: 1px solid var(–border);
+}
+
+.toggle::after,
+.switch::after {
+content: “”;
+
+position: absolute;
+
+top: 3px;
+left: 3px;
+
+width: 20px;
+height: 20px;
+
+border-radius: 50%;
+
+background: #fff;
+
+box-shadow:
+0 2px 6px rgba(0, 0, 0, 0.18);
+
+transition:
+transform 0.2s ease;
+}
+
+.toggle.active,
+.switch.active,
+.toggle[aria-checked=“true”],
+.switch[aria-checked=“true”] {
+background: var(–accent);
+}
+
+.toggle.active::after,
+.switch.active::after,
+.toggle[aria-checked=“true”]::after,
+.switch[aria-checked=“true”]::after {
+transform: translateX(20px);
+}
+
+/* =========================================================
+ACCOUNT PROFILE IMAGE
+========================================================= */
+
+.account-profile-image,
+.account-avatar,
+.user-avatar,
+.profile-photo {
+width: 76px;
+height: 76px;
+
+border-radius: 50%;
+
+object-fit: cover;
+
+border: 2px solid var(–border);
+
+background:
+linear-gradient(
+145deg,
+var(–glass-hover),
+var(–glass)
+);
+
+box-shadow:
+var(–shadow-md),
+inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* =========================================================
+OVERLAY SUPPORT
+========================================================= */
+
+.overlay,
+.modal-overlay,
+.settings-overlay,
+.account-overlay {
+position: fixed;
+
+inset: 0;
+
+z-index: 190;
+
+background: rgba(8, 10, 14, 0.22);
+
+backdrop-filter: blur(12px) saturate(125%);
+-webkit-backdrop-filter: blur(12px) saturate(125%);
+}
+
+html[data-theme=“dark”] .overlay,
+html[data-theme=“dark”] .modal-overlay,
+html[data-theme=“dark”] .settings-overlay,
+html[data-theme=“dark”] .account-overlay {
+background: rgba(0, 0, 0, 0.45);
+}
+
+/* =========================================================
+ERROR / STATUS
+========================================================= */
+
+.error,
+.error-message {
+color: var(–danger);
+}
+
+.success,
+.success-message {
+color: var(–accent);
+}
+
+.warning,
+.warning-message {
+color: var(–warning);
+}
+
+/* =========================================================
+FOCUS
 ========================================================= */
 
 button:focus-visible,
@@ -1256,7 +1725,6 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
 outline: 2px solid var(–accent);
-
 outline-offset: 2px;
 }
 
@@ -1267,7 +1735,7 @@ SCROLLBARS
 * {
     scrollbar-width: thin;
     scrollbar-color:
-    rgba(120, 120, 120, 0.38)
+    rgba(120, 125, 135, 0.34)
     transparent;
     }
 
@@ -1282,14 +1750,14 @@ background: transparent;
 
 *::-webkit-scrollbar-thumb {
 background:
-rgba(120, 120, 120, 0.38);
+rgba(120, 125, 135, 0.34);
 
-border-radius: 20px;
+border-radius: 999px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
 background:
-rgba(120, 120, 120, 0.55);
+rgba(120, 125, 135, 0.52);
 }
 
 /* =========================================================
@@ -1297,7 +1765,6 @@ MOBILE
 ========================================================= */
 
 @media (max-width: 700px) {
-
 body {
 overflow: hidden;
 }
@@ -1310,17 +1777,22 @@ min-height: 100dvh;
 .sidebar {
 position: fixed;
 
-z-index: 100;
-left: 0;
 top: 0;
+left: 0;
 bottom: 0;
-width: min(300px, 86vw);
-min-width: min(300px, 86vw);
+width: min(306px, 87vw);
+min-width: min(306px, 87vw);
 padding-top:
   max(14px, env(safe-area-inset-top));
 transform: translateX(-105%);
+border-right: 1px solid var(--border);
+border-radius:
+  0
+  25px
+  25px
+  0;
 box-shadow:
-  25px 0 75px rgba(0, 0, 0, 0.24);
+  28px 0 85px rgba(0, 0, 0, 0.25);
 
 }
 
@@ -1333,16 +1805,14 @@ display: flex;
 }
 
 .topbar {
-height: 60px;
-min-height: 60px;
+height: 61px;
+min-height: 61px;
 
 padding:
   0
-  12px;
+  max(12px, env(safe-area-inset-right));
 padding-left:
   max(12px, env(safe-area-inset-left));
-padding-right:
-  max(12px, env(safe-area-inset-right));
 
 }
 
@@ -1357,7 +1827,7 @@ font-size: 9px;
 .profile-btn {
 width: 40px;
 height: 40px;
-flex-basis: 40px;
+min-width: 40px;
 }
 
 .welcome {
@@ -1367,19 +1837,17 @@ padding:
 }
 
 .welcome-logo {
-width: 62px;
-height: 62px;
+width: 64px;
+height: 64px;
 
-border-radius: 20px;
+margin-bottom: 20px;
+border-radius: 21px;
 font-size: 27px;
 
 }
 
 .welcome h1 {
-font-size: 26px;
-
-letter-spacing: -0.04em;
-
+font-size: 27px;
 }
 
 .welcome p {
@@ -1390,7 +1858,7 @@ font-size: 14px;
 padding:
 22px
 14px
-130px;
+132px;
 }
 
 .message {
@@ -1406,10 +1874,10 @@ font-size: 15px;
 
 .message-user .message-content {
 border-radius:
-18px
-18px
+19px
+19px
 7px
-18px;
+19px;
 }
 
 .composer-container {
@@ -1420,10 +1888,10 @@ max(12px, env(safe-area-inset-bottom));
 }
 
 .composer {
-min-height: 58px;
+min-height: 59px;
 
 padding: 7px;
-border-radius: 21px;
+border-radius: 22px;
 
 }
 
@@ -1434,6 +1902,7 @@ font-size: 15px;
 .composer-btn {
 width: 39px;
 height: 39px;
+min-width: 39px;
 
 flex-basis: 39px;
 
@@ -1443,7 +1912,26 @@ flex-basis: 39px;
 left: 10px;
 bottom: 86px;
 
-width: min(220px, calc(100vw - 20px));
+width:
+  min(
+    228px,
+    calc(100vw - 20px)
+  );
+
+}
+
+.settings-panel,
+.account-panel,
+.modal,
+.dialog,
+.settings-modal,
+.account-modal {
+width: calc(100vw - 20px);
+
+max-width: calc(100vw - 20px);
+max-height:
+  calc(100dvh - 20px);
+border-radius: 23px;
 
 }
 }
@@ -1453,7 +1941,6 @@ SMALL PHONES
 ========================================================= */
 
 @media (max-width: 400px) {
-
 .welcome {
 padding:
 24px
@@ -1461,7 +1948,7 @@ padding:
 }
 
 .welcome h1 {
-font-size: 23px;
+font-size: 24px;
 }
 
 .welcome p {
@@ -1477,29 +1964,29 @@ padding-right: 11px;
 max-width: 94%;
 }
 
+.composer {
+gap: 4px;
+}
+
 .composer-btn {
 width: 37px;
 height: 37px;
+min-width: 37px;
 
 flex-basis: 37px;
 font-size: 18px;
 
 }
-
-.composer {
-gap: 4px;
-}
 }
 
 /* =========================================================
-VERY SMALL / LANDSCAPE SAFETY
+LANDSCAPE SAFETY
 ========================================================= */
 
 @media (max-height: 520px) and (orientation: landscape) {
-
 .topbar {
-height: 52px;
-min-height: 52px;
+height: 53px;
+min-height: 53px;
 }
 
 .welcome {
@@ -1530,7 +2017,6 @@ REDUCED MOTION
 ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-
 *,
 *::before,
 *::after {

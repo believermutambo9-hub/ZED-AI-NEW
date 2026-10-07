@@ -1,6 +1,7 @@
 // ============================================================
 // ZED AI - CURRENT INTERFACE
 // Firebase Authentication + Zed Backend
+// Liquid Glass Interface Controls
 // ============================================================
 
 
@@ -36,13 +37,11 @@ async function initializeFirebase() {
     appId: "1:538225665227:web:d61483c3cafa8e4694e74e"
   };
 
-  const firebaseApp = firebaseAppModule.initializeApp(
-    firebaseConfig
-  );
+  const firebaseApp =
+    firebaseAppModule.initializeApp(firebaseConfig);
 
-  firebaseAuth = firebaseAuthModule.getAuth(
-    firebaseApp
-  );
+  firebaseAuth =
+    firebaseAuthModule.getAuth(firebaseApp);
 
   GoogleAuthProvider =
     firebaseAuthModule.GoogleAuthProvider;
@@ -75,7 +74,8 @@ const state = {
   messages: [],
   chats: [],
   selectedFile: null,
-  sending: false
+  sending: false,
+  settingsOpen: false
 };
 
 
@@ -151,6 +151,8 @@ let emailLogin = null;
 let emailSignup = null;
 
 let accountPanel = null;
+let settingsPanel = null;
+let menuBackdrop = null;
 
 
 // ============================================================
@@ -160,6 +162,7 @@ let accountPanel = null;
 function createAuthScreen() {
 
   if (document.getElementById("zedAuthScreen")) {
+
     authScreen =
       document.getElementById("zedAuthScreen");
 
@@ -179,10 +182,15 @@ function createAuthScreen() {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #212121;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(114,230,164,.12), transparent 30%),
+      radial-gradient(circle at 80% 80%, rgba(100,160,255,.12), transparent 30%),
+      #101114;
     color: #f5f5f5;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     padding: 20px;
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
   `;
 
   const box =
@@ -191,11 +199,15 @@ function createAuthScreen() {
   box.style.cssText = `
     width: 100%;
     max-width: 390px;
-    background: #2f2f2f;
-    border: 1px solid #424242;
-    border-radius: 18px;
+    background: rgba(42,44,51,.72);
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 26px;
     padding: 28px;
-    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    box-shadow:
+      0 30px 80px rgba(0,0,0,.40),
+      inset 0 1px 0 rgba(255,255,255,.16);
+    backdrop-filter: blur(35px) saturate(150%);
+    -webkit-backdrop-filter: blur(35px) saturate(150%);
   `;
 
   box.innerHTML = `
@@ -203,14 +215,16 @@ function createAuthScreen() {
       width:64px;
       height:64px;
       margin:0 auto 18px;
-      border-radius:18px;
-      background:#212121;
+      border-radius:20px;
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.14);
       display:flex;
       align-items:center;
       justify-content:center;
       color:#72e6a4;
       font-size:30px;
       font-weight:700;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.20);
     ">Z</div>
 
     <h1 style="
@@ -230,8 +244,8 @@ function createAuthScreen() {
       width:100%;
       height:44px;
       border:0;
-      border-radius:10px;
-      background:#f5f5f5;
+      border-radius:13px;
+      background:rgba(255,255,255,.92);
       color:#202020;
       cursor:pointer;
       font-weight:600;
@@ -253,10 +267,10 @@ function createAuthScreen() {
         height:44px;
         margin-bottom:10px;
         padding:0 12px;
-        border:1px solid #424242;
-        border-radius:9px;
+        border:1px solid rgba(255,255,255,.10);
+        border-radius:13px;
         outline:none;
-        background:#212121;
+        background:rgba(0,0,0,.16);
         color:#f5f5f5;
       "
     >
@@ -269,10 +283,10 @@ function createAuthScreen() {
         height:44px;
         margin-bottom:12px;
         padding:0 12px;
-        border:1px solid #424242;
-        border-radius:9px;
+        border:1px solid rgba(255,255,255,.10);
+        border-radius:13px;
         outline:none;
-        background:#212121;
+        background:rgba(0,0,0,.16);
         color:#f5f5f5;
       "
     >
@@ -285,7 +299,7 @@ function createAuthScreen() {
         flex:1;
         height:42px;
         border:0;
-        border-radius:9px;
+        border-radius:13px;
         background:#72e6a4;
         color:#111;
         cursor:pointer;
@@ -295,9 +309,9 @@ function createAuthScreen() {
       <button id="emailSignup" style="
         flex:1;
         height:42px;
-        border:1px solid #555;
-        border-radius:9px;
-        background:#212121;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:13px;
+        background:rgba(255,255,255,.06);
         color:#f5f5f5;
         cursor:pointer;
       ">Sign up</button>
@@ -351,14 +365,18 @@ function createAccountPanel() {
   accountPanel.style.cssText = `
     position:fixed;
     right:16px;
-    top:58px;
-    z-index:500;
+    top:68px;
+    z-index:600;
     width:280px;
-    background:#2f2f2f;
-    border:1px solid #424242;
-    border-radius:14px;
+    background:rgba(42,44,51,.78);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:20px;
     padding:18px;
-    box-shadow:0 15px 40px rgba(0,0,0,.45);
+    box-shadow:
+      0 20px 60px rgba(0,0,0,.35),
+      inset 0 1px 0 rgba(255,255,255,.14);
+    backdrop-filter:blur(30px) saturate(150%);
+    -webkit-backdrop-filter:blur(30px) saturate(150%);
     display:none;
   `;
 
@@ -375,9 +393,9 @@ function createAccountPanel() {
       style="
         width:100%;
         height:40px;
-        border:0;
-        border-radius:9px;
-        background:#444;
+        border:1px solid rgba(255,255,255,.10);
+        border-radius:12px;
+        background:rgba(255,255,255,.08);
         color:#fff;
         cursor:pointer;
       ">
@@ -385,9 +403,7 @@ function createAccountPanel() {
     </button>
   `;
 
-  document.body.appendChild(
-    accountPanel
-  );
+  document.body.appendChild(accountPanel);
 
   document
     .getElementById("zedLogout")
@@ -413,14 +429,10 @@ function updateAccountPanel() {
   }
 
   const name =
-    document.getElementById(
-      "zedAccountName"
-    );
+    document.getElementById("zedAccountName");
 
   const email =
-    document.getElementById(
-      "zedAccountEmail"
-    );
+    document.getElementById("zedAccountEmail");
 
   if (name) {
     name.textContent =
@@ -434,6 +446,417 @@ function updateAccountPanel() {
       "";
   }
 }
+
+
+// ============================================================
+// SETTINGS PANEL
+// ============================================================
+
+function createSettingsPanel() {
+
+  if (settingsPanel) {
+    return;
+  }
+
+  settingsPanel =
+    document.createElement("div");
+
+  settingsPanel.id =
+    "zedSettingsPanel";
+
+  settingsPanel.style.cssText = `
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%) scale(.96);
+    width:min(92vw, 430px);
+    max-height:80vh;
+    overflow:auto;
+    z-index:1000;
+    display:none;
+    background:rgba(42,44,51,.82);
+    border:1px solid rgba(255,255,255,.13);
+    border-radius:26px;
+    padding:22px;
+    box-shadow:
+      0 30px 90px rgba(0,0,0,.45),
+      inset 0 1px 0 rgba(255,255,255,.16);
+    backdrop-filter:blur(35px) saturate(150%);
+    -webkit-backdrop-filter:blur(35px) saturate(150%);
+    color:#f5f5f5;
+  `;
+
+  settingsPanel.innerHTML = `
+    <div style="
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:20px;
+    ">
+      <div>
+        <div style="
+          font-size:20px;
+          font-weight:700;
+        ">Settings</div>
+
+        <div style="
+          color:#929292;
+          font-size:12px;
+          margin-top:4px;
+        ">Customize your Zed AI experience</div>
+      </div>
+
+      <button id="zedSettingsClose"
+        aria-label="Close settings"
+        style="
+          width:36px;
+          height:36px;
+          border-radius:50%;
+          background:rgba(255,255,255,.08);
+          border:1px solid rgba(255,255,255,.10);
+          color:#fff;
+          cursor:pointer;
+          font-size:18px;
+        ">×</button>
+    </div>
+
+    <div style="
+      padding:15px;
+      margin-bottom:10px;
+      border-radius:17px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+    ">
+      <div style="font-weight:600;">Appearance</div>
+      <div style="
+        color:#929292;
+        font-size:12px;
+        margin-top:5px;
+      ">
+        Zed uses the Liquid Glass interface.
+      </div>
+    </div>
+
+    <div style="
+      padding:15px;
+      margin-bottom:10px;
+      border-radius:17px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+    ">
+      <div style="font-weight:600;">Account</div>
+      <div id="zedSettingsAccount"
+        style="
+          color:#929292;
+          font-size:12px;
+          margin-top:5px;
+        ">
+      </div>
+    </div>
+
+    <div style="
+      padding:15px;
+      border-radius:17px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+    ">
+      <div style="font-weight:600;">Zed AI</div>
+      <div style="
+        color:#929292;
+        font-size:12px;
+        margin-top:5px;
+      ">
+        Your conversations, files and AI tools are managed by Zed AI.
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(settingsPanel);
+
+  document
+    .getElementById("zedSettingsClose")
+    ?.addEventListener(
+      "click",
+      closeSettings
+    );
+}
+
+
+function openSettings() {
+
+  if (!settingsPanel) {
+    createSettingsPanel();
+  }
+
+  if (accountPanel) {
+    accountPanel.style.display =
+      "none";
+  }
+
+  const accountText =
+    document.getElementById(
+      "zedSettingsAccount"
+    );
+
+  if (accountText) {
+    accountText.textContent =
+      state.firebaseUser?.email ||
+      "Signed in user";
+  }
+
+  settingsPanel.style.display =
+    "block";
+
+  requestAnimationFrame(() => {
+    settingsPanel.style.transform =
+      "translate(-50%,-50%) scale(1)";
+  });
+
+  state.settingsOpen =
+    true;
+}
+
+
+function closeSettings() {
+
+  if (!settingsPanel) {
+    return;
+  }
+
+  settingsPanel.style.transform =
+    "translate(-50%,-50%) scale(.96)";
+
+  setTimeout(() => {
+
+    if (!state.settingsOpen) {
+      return;
+    }
+
+    settingsPanel.style.display =
+      "none";
+
+  }, 140);
+
+  state.settingsOpen =
+    false;
+}
+
+
+// ============================================================
+// MENU BACKDROP
+// ============================================================
+
+function createMenuBackdrop() {
+
+  if (menuBackdrop) {
+    return;
+  }
+
+  menuBackdrop =
+    document.createElement("div");
+
+  menuBackdrop.id =
+    "zedMenuBackdrop";
+
+  menuBackdrop.style.cssText = `
+    position:fixed;
+    inset:0;
+    z-index:90;
+    background:rgba(0,0,0,.28);
+    backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
+    display:none;
+  `;
+
+  document.body.appendChild(menuBackdrop);
+
+  menuBackdrop.addEventListener(
+    "click",
+    closeSidebar
+  );
+}
+
+
+// ============================================================
+// SIDEBAR
+// ============================================================
+
+function openSidebar() {
+
+  if (!sidebar) {
+    return;
+  }
+
+  sidebar.classList.add("open");
+
+  if (menuBackdrop && window.innerWidth <= 700) {
+    menuBackdrop.style.display =
+      "block";
+  }
+}
+
+
+function closeSidebar() {
+
+  if (!sidebar) {
+    return;
+  }
+
+  sidebar.classList.remove("open");
+
+  if (menuBackdrop) {
+    menuBackdrop.style.display =
+      "none";
+  }
+}
+
+
+function toggleSidebar() {
+
+  if (!sidebar) {
+    return;
+  }
+
+  if (sidebar.classList.contains("open")) {
+    closeSidebar();
+  } else {
+    openSidebar();
+  }
+}
+
+
+menuBtn?.addEventListener(
+  "click",
+  event => {
+
+    event.stopPropagation();
+
+    if (window.innerWidth <= 700) {
+      toggleSidebar();
+    }
+
+  }
+);
+
+
+// Close sidebar when switching to desktop
+
+window.addEventListener(
+  "resize",
+  () => {
+
+    if (window.innerWidth > 700) {
+      closeSidebar();
+    }
+
+  }
+);
+
+
+// ============================================================
+// ACCOUNT
+// ============================================================
+
+function toggleAccountPanel() {
+
+  if (!accountPanel) {
+    return;
+  }
+
+  if (
+    accountPanel.style.display ===
+    "none" ||
+    !accountPanel.style.display
+  ) {
+
+    updateAccountPanel();
+
+    accountPanel.style.display =
+      "block";
+
+  } else {
+
+    accountPanel.style.display =
+      "none";
+
+  }
+}
+
+
+profileBtn?.addEventListener(
+  "click",
+  event => {
+
+    event.stopPropagation();
+
+    closeSettings();
+
+    toggleAccountPanel();
+
+  }
+);
+
+
+accountBtn?.addEventListener(
+  "click",
+  event => {
+
+    event.stopPropagation();
+
+    closeSidebar();
+    closeSettings();
+
+    toggleAccountPanel();
+
+  }
+);
+
+
+// ============================================================
+// SETTINGS BUTTON
+// ============================================================
+
+settingsBtn?.addEventListener(
+  "click",
+  event => {
+
+    event.stopPropagation();
+
+    closeSidebar();
+
+    if (accountPanel) {
+      accountPanel.style.display =
+        "none";
+    }
+
+    openSettings();
+
+  }
+);
+
+
+// ============================================================
+// CLOSE FLOATING PANELS
+// ============================================================
+
+document.addEventListener(
+  "click",
+  event => {
+
+    if (
+      accountPanel &&
+      !accountPanel.contains(event.target) &&
+      event.target !== profileBtn &&
+      event.target !== accountBtn
+    ) {
+
+      accountPanel.style.display =
+        "none";
+
+    }
+
+  }
+);
 
 
 // ============================================================
@@ -700,72 +1123,6 @@ function setSending(
 
 
 // ============================================================
-// MENU
-// ============================================================
-
-function toggleSidebar() {
-
-  sidebar?.classList.toggle(
-    "open"
-  );
-}
-
-
-menuBtn?.addEventListener(
-  "click",
-  toggleSidebar
-);
-
-
-profileBtn?.addEventListener(
-  "click",
-  () => {
-
-    if (!accountPanel) {
-      return;
-    }
-
-    accountPanel.style.display =
-      accountPanel.style.display ===
-      "none"
-        ? "block"
-        : "none";
-
-  }
-);
-
-
-accountBtn?.addEventListener(
-  "click",
-  () => {
-
-    if (!accountPanel) {
-      return;
-    }
-
-    accountPanel.style.display =
-      accountPanel.style.display ===
-      "none"
-        ? "block"
-        : "none";
-
-  }
-);
-
-
-settingsBtn?.addEventListener(
-  "click",
-  () => {
-
-    alert(
-      "Zed AI settings are coming soon."
-    );
-
-  }
-);
-
-
-// ============================================================
 // MESSAGE RENDERING
 // ============================================================
 
@@ -836,7 +1193,8 @@ function renderMessages() {
         display:block;
         max-width:100%;
         margin-top:12px;
-        border-radius:12px;
+        border-radius:16px;
+        border:1px solid rgba(255,255,255,.10);
       `;
 
       content.appendChild(
@@ -979,7 +1337,7 @@ function renderRecentChats() {
       document.createElement("div");
 
     empty.style.cssText = `
-      color:#666;
+      color:#777;
       font-size:12px;
       padding:10px;
     `;
@@ -1025,13 +1383,7 @@ function renderRecentChats() {
 
         await loadConversation(id);
 
-        if (
-          window.innerWidth <= 700
-        ) {
-          sidebar?.classList.remove(
-            "open"
-          );
-        }
+        closeSidebar();
 
       }
     );
@@ -1161,6 +1513,8 @@ async function createNewChat() {
     renderMessages();
 
     await loadChats();
+
+    closeSidebar();
 
     messageInput?.focus();
 
@@ -1733,11 +2087,6 @@ if (SpeechRecognition) {
 
 
 // ============================================================
-// PROFILE / ACCOUNT
-// ============================================================
-
-
-// ============================================================
 // AUTH STATE
 // ============================================================
 
@@ -1788,6 +2137,14 @@ function setupAuthListener() {
         state.chats =
           [];
 
+        closeSidebar();
+        closeSettings();
+
+        if (accountPanel) {
+          accountPanel.style.display =
+            "none";
+        }
+
         renderMessages();
 
         showAuth();
@@ -1808,6 +2165,10 @@ async function initialize() {
   createAuthScreen();
 
   createAccountPanel();
+
+  createSettingsPanel();
+
+  createMenuBackdrop();
 
   showAuth();
 

@@ -1,68 +1,222 @@
 // ============================================================
 // ZED AI INTERFACE
+// Firebase Authentication + Zed Backend
 // ============================================================
+
+
+// ============================================================
+// FIREBASE
+// ============================================================
+
+let firebaseAuth = null;
+
+let GoogleAuthProvider = null;
+let signInWithPopup = null;
+let signInWithEmailAndPassword = null;
+let createUserWithEmailAndPassword = null;
+let onAuthStateChanged = null;
+let signOut = null;
+
+async function initializeFirebase() {
+  const firebaseAppModule =
+    await import(
+      "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js"
+    );
+
+  const firebaseAuthModule =
+    await import(
+      "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js"
+    );
+
+  const firebaseConfig = {
+    apiKey:
+      "AIzaSyD1jcmrhZK_XitZu-9Wa9whFB7BJZn0Wa8",
+
+    authDomain:
+      "zed-ai-6d201.firebaseapp.com",
+
+    projectId:
+      "zed-ai-6d201",
+
+    storageBucket:
+      "zed-ai-6d201.firebasestorage.app",
+
+    messagingSenderId:
+      "538225665227",
+
+    appId:
+      "1:538225665227:web:d61483c3cafa8e4694e74e"
+  };
+
+  const firebaseApp =
+    firebaseAppModule.initializeApp(
+      firebaseConfig
+    );
+
+  firebaseAuth =
+    firebaseAuthModule.getAuth(
+      firebaseApp
+    );
+
+  GoogleAuthProvider =
+    firebaseAuthModule.GoogleAuthProvider;
+
+  signInWithPopup =
+    firebaseAuthModule.signInWithPopup;
+
+  signInWithEmailAndPassword =
+    firebaseAuthModule.signInWithEmailAndPassword;
+
+  createUserWithEmailAndPassword =
+    firebaseAuthModule.createUserWithEmailAndPassword;
+
+  onAuthStateChanged =
+    firebaseAuthModule.onAuthStateChanged;
+
+  signOut =
+    firebaseAuthModule.signOut;
+}
+
+
+// ============================================================
+// STATE
+// ============================================================
+
 const state = {
-  userId: "guest",
+  userId: null,
+  firebaseUser: null,
   conversationId: null,
-  sending: false,
-  chats: []
+  messages: [],
+  chats: [],
+  selectedFile: null,
+  sending: false
 };
+
+
 // ============================================================
 // ELEMENTS
 // ============================================================
-const messagesEl =
-  document.getElementById("messages");
-const welcomeEl =
+
+const authScreen =
+  document.getElementById("authScreen");
+
+const app =
+  document.getElementById("app");
+
+const googleLogin =
+  document.getElementById("googleLogin");
+
+const emailLogin =
+  document.getElementById("emailLogin");
+
+const emailSignup =
+  document.getElementById("emailSignup");
+
+const emailInput =
+  document.getElementById("emailInput");
+
+const passwordInput =
+  document.getElementById("passwordInput");
+
+const authMessage =
+  document.getElementById("authMessage");
+
+const logoutButton =
+  document.getElementById("logoutButton");
+
+const accountName =
+  document.getElementById("accountName");
+
+const accountEmail =
+  document.getElementById("accountEmail");
+
+const profilePhoto =
+  document.getElementById("profilePhoto");
+
+const menuButton =
+  document.getElementById("menuButton");
+
+const menuOverlay =
+  document.getElementById("menuOverlay");
+
+const drawerClose =
+  document.getElementById("drawerClose");
+
+const newChatButton =
+  document.getElementById("newChatButton");
+
+const newChatTopButton =
+  document.getElementById("newChatTopButton");
+
+const historyList =
+  document.getElementById("historyList");
+
+const searchChats =
+  document.getElementById("searchChats");
+
+const chatArea =
+  document.getElementById("chatArea");
+
+const chatContent =
+  document.getElementById("chatContent");
+
+const welcome =
   document.getElementById("welcome");
+
 const messageInput =
   document.getElementById("messageInput");
-const sendBtn =
-  document.getElementById("sendBtn");
-const newChatBtn =
-  document.getElementById("newChatBtn");
-const recentChatsEl =
-  document.getElementById("recentChats");
-const attachBtn =
-  document.getElementById("attachBtn");
+
+const sendButton =
+  document.getElementById("sendButton");
+
+const attachButton =
+  document.getElementById("attachButton");
+
 const attachMenu =
   document.getElementById("attachMenu");
+
+const uploadPhotoButton =
+  document.getElementById("uploadPhotoButton");
+
+const uploadFileButton =
+  document.getElementById("uploadFileButton");
+
+const createImageButton =
+  document.getElementById("createImageButton");
+
+const photoInput =
+  document.getElementById("photoInput");
+
 const fileInput =
   document.getElementById("fileInput");
-const uploadPhotoBtn =
-  document.getElementById("uploadPhotoBtn");
-const uploadFileBtn =
-  document.getElementById("uploadFileBtn");
-const createImageBtn =
-  document.getElementById("createImageBtn");
-const menuBtn =
-  document.getElementById("menuBtn");
-const sidebar =
-  document.getElementById("sidebar");
+
+const fileName =
+  document.getElementById("fileName");
+
+const micButton =
+  document.getElementById("micButton");
+
+
 // ============================================================
-// USER ID
+// FIREBASE USER ID
 // ============================================================
-function getUserId() {
-  let userId =
-    localStorage.getItem(
-      "zedAIUserId"
-    );
-  if (!userId) {
-    userId =
-      "guest-" +
-      crypto.randomUUID();
-    localStorage.setItem(
-      "zedAIUserId",
-      userId
-    );
-  }
-  return userId;
+
+function updateUserState(user) {
+
+  state.firebaseUser =
+    user || null;
+
+  state.userId =
+    user?.uid || null;
 }
-state.userId =
-  getUserId();
+
+
 // ============================================================
 // HELPERS
 // ============================================================
+
 function escapeHtml(value = "") {
+
   return String(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -70,97 +224,560 @@ function escapeHtml(value = "") {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
-function scrollToBottom() {
-  const chatArea =
-    document.querySelector(
-      ".chat-area"
+
+
+async function parseResponse(response) {
+
+  const text =
+    await response.text();
+
+  if (!text) {
+    return {};
+  }
+
+  try {
+
+    return JSON.parse(text);
+
+  } catch {
+
+    return {
+      ok: false,
+      error:
+        "The server returned an invalid response."
+    };
+
+  }
+}
+
+
+function removeElement(element) {
+
+  if (
+    element &&
+    element.parentNode
+  ) {
+
+    element.parentNode.removeChild(
+      element
     );
-  if (chatArea) {
-    chatArea.scrollTop =
-      chatArea.scrollHeight;
+
   }
 }
-function showWelcome(show = true) {
-  if (!welcomeEl) {
-    return;
+
+
+function showAuthMessage(message = "") {
+
+  if (authMessage) {
+    authMessage.textContent =
+      message;
   }
-  welcomeEl.style.display =
-    show ? "block" : "none";
 }
+
+
+function showApp() {
+
+  authScreen?.classList.add(
+    "hidden"
+  );
+
+  app?.classList.remove(
+    "hidden"
+  );
+}
+
+
+function showAuth() {
+
+  authScreen?.classList.remove(
+    "hidden"
+  );
+
+  app?.classList.add(
+    "hidden"
+  );
+}
+
+
 function setSending(value) {
-  state.sending = value;
-  if (sendBtn) {
-    sendBtn.disabled =
+
+  state.sending =
+    value;
+
+  if (sendButton) {
+    sendButton.disabled =
       value;
-    sendBtn.style.opacity =
-      value ? "0.5" : "1";
   }
+
+  if (attachButton) {
+    attachButton.disabled =
+      value;
+  }
+
   if (messageInput) {
     messageInput.disabled =
       value;
   }
 }
+
+
 // ============================================================
-// MESSAGE DISPLAY
+// MENU
 // ============================================================
-function addMessage(
-  role,
-  content
-) {
-  if (!messagesEl) {
+
+function openMenu() {
+
+  menuOverlay?.classList.remove(
+    "closed"
+  );
+}
+
+
+function closeMenu() {
+
+  menuOverlay?.classList.add(
+    "closed"
+  );
+}
+
+
+function toggleMenu() {
+
+  if (
+    menuOverlay?.classList.contains(
+      "closed"
+    )
+  ) {
+
+    openMenu();
+
+  } else {
+
+    closeMenu();
+
+  }
+}
+
+
+menuButton?.addEventListener(
+  "click",
+  toggleMenu
+);
+
+
+drawerClose?.addEventListener(
+  "click",
+  closeMenu
+);
+
+
+menuOverlay?.addEventListener(
+  "click",
+  event => {
+
+    if (
+      event.target ===
+      menuOverlay
+    ) {
+
+      closeMenu();
+
+    }
+
+  }
+);
+
+
+// ============================================================
+// MESSAGE RENDERING
+// ============================================================
+
+function renderMessages() {
+
+  if (!chatContent) {
     return;
   }
-  showWelcome(false);
-  const message =
-    document.createElement("div");
-  message.className =
-    `message message-${role}`;
-  const contentEl =
-    document.createElement("div");
-  contentEl.className =
-    "message-content";
-  contentEl.textContent =
-    content;
-  message.appendChild(
-    contentEl
-  );
-  messagesEl.appendChild(
-    message
-  );
-  scrollToBottom();
-  return message;
-}
-function addLoadingMessage() {
-  if (!messagesEl) {
-    return null;
+
+  chatContent.innerHTML =
+    "";
+
+  if (
+    !state.messages.length
+  ) {
+
+    if (welcome) {
+
+      chatContent.appendChild(
+        welcome
+      );
+
+    }
+
+    return;
   }
-  showWelcome(false);
-  const message =
-    document.createElement("div");
-  message.className =
-    "message message-assistant";
-  const content =
-    document.createElement("div");
-  content.className =
-    "message-content";
-  content.textContent =
-    "Zed is thinking...";
-  message.appendChild(
-    content
+
+  for (
+    const message of state.messages
+  ) {
+
+    const wrapper =
+      document.createElement(
+        "div"
+      );
+
+    wrapper.className =
+      "message " +
+      (
+        message.role === "user"
+          ? "user"
+          : "assistant"
+      );
+
+    const inner =
+      document.createElement(
+        "div"
+      );
+
+    inner.className =
+      "messageInner";
+
+    const label =
+      document.createElement(
+        "div"
+      );
+
+    label.className =
+      "messageLabel";
+
+    label.textContent =
+      message.role === "user"
+        ? "You"
+        : "Zed";
+
+    inner.appendChild(
+      label
+    );
+
+    const body =
+      document.createElement(
+        "div"
+      );
+
+    body.className =
+      "messageBody";
+
+    body.textContent =
+      message.content || "";
+
+    inner.appendChild(
+      body
+    );
+
+    if (
+      message.image
+    ) {
+
+      const image =
+        document.createElement(
+          "img"
+        );
+
+      image.className =
+        "generatedImage";
+
+      image.src =
+        message.image;
+
+      image.alt =
+        "Image created by Zed";
+
+      image.loading =
+        "lazy";
+
+      inner.appendChild(
+        image
+      );
+
+    }
+
+    wrapper.appendChild(
+      inner
+    );
+
+    chatContent.appendChild(
+      wrapper
+    );
+
+  }
+
+  requestAnimationFrame(
+    () => {
+
+      if (chatArea) {
+
+        chatArea.scrollTop =
+          chatArea.scrollHeight;
+
+      }
+
+    }
   );
-  messagesEl.appendChild(
-    message
-  );
-  scrollToBottom();
-  return message;
 }
+
+
+// ============================================================
+// THINKING
+// ============================================================
+
+function showThinking() {
+
+  const wrapper =
+    document.createElement(
+      "div"
+    );
+
+  wrapper.className =
+    "message assistant";
+
+  wrapper.id =
+    "thinkingMessage";
+
+  const inner =
+    document.createElement(
+      "div"
+    );
+
+  inner.className =
+    "messageInner";
+
+  const label =
+    document.createElement(
+      "div"
+    );
+
+  label.className =
+    "messageLabel";
+
+  label.textContent =
+    "Zed";
+
+  const thinking =
+    document.createElement(
+      "div"
+    );
+
+  thinking.className =
+    "thinkingMessage";
+
+  thinking.innerHTML = `
+    <span>Thinking</span>
+    <span class="thinkingDots">
+      <span></span>
+      <span></span>
+      <span></span>
+    </span>
+  `;
+
+  inner.appendChild(
+    label
+  );
+
+  inner.appendChild(
+    thinking
+  );
+
+  wrapper.appendChild(
+    inner
+  );
+
+  chatContent.appendChild(
+    wrapper
+  );
+
+  requestAnimationFrame(
+    () => {
+
+      if (chatArea) {
+
+        chatArea.scrollTop =
+          chatArea.scrollHeight;
+
+      }
+
+    }
+  );
+}
+
+
+function removeThinking() {
+
+  const thinking =
+    document.getElementById(
+      "thinkingMessage"
+    );
+
+  if (thinking) {
+    thinking.remove();
+  }
+}
+
+
+// ============================================================
+// LOAD RECENT CHATS
+// ============================================================
+
+async function loadChats() {
+
+  if (!state.userId) {
+    return;
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        `/api/chats?userId=${encodeURIComponent(
+          state.userId
+        )}`
+      );
+
+    const data =
+      await parseResponse(
+        response
+      );
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to load chats."
+      );
+
+    }
+
+    state.chats =
+      Array.isArray(data.chats)
+        ? data.chats
+        : [];
+
+    renderRecentChats();
+
+  } catch (error) {
+
+    console.error(
+      "Load chats error:",
+      error
+    );
+
+  }
+}
+
+
+// ============================================================
+// RENDER RECENT CHATS
+// ============================================================
+
+function renderRecentChats() {
+
+  if (!historyList) {
+    return;
+  }
+
+  historyList.innerHTML =
+    "";
+
+  if (
+    !state.chats.length
+  ) {
+
+    const empty =
+      document.createElement(
+        "div"
+      );
+
+    empty.style.padding =
+      "12px 8px";
+
+    empty.style.color =
+      "#666";
+
+    empty.style.fontSize =
+      "12px";
+
+    empty.textContent =
+      "No conversations yet.";
+
+    historyList.appendChild(
+      empty
+    );
+
+    return;
+  }
+
+  for (
+    const chat of state.chats
+  ) {
+
+    const conversationId =
+      chat.id ||
+      chat.conversationId;
+
+    if (!conversationId) {
+      continue;
+    }
+
+    const item =
+      document.createElement(
+        "div"
+      );
+
+    item.className =
+      "historyItem";
+
+    item.textContent =
+      chat.title ||
+      "New chat";
+
+    item.addEventListener(
+      "click",
+      async () => {
+
+        await loadConversation(
+          conversationId
+        );
+
+        closeMenu();
+
+      }
+    );
+
+    historyList.appendChild(
+      item
+    );
+  }
+}
+
+
 // ============================================================
 // LOAD CONVERSATION
 // ============================================================
+
 async function loadConversation(
   conversationId
 ) {
+
+  if (
+    !state.userId ||
+    !conversationId
+  ) {
+    return;
+  }
+
   try {
+
     const response =
       await fetch(
         `/api/chat/${encodeURIComponent(
@@ -169,143 +786,86 @@ async function loadConversation(
           state.userId
         )}`
       );
+
     const data =
-      await response.json();
-    if (!response.ok || !data.ok) {
+      await parseResponse(
+        response
+      );
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
       throw new Error(
         data.error ||
         "Unable to load conversation."
       );
+
     }
+
     state.conversationId =
       data.conversation.id;
-    messagesEl.innerHTML = "";
-    const messages =
-      data.conversation.messages ||
-      [];
-    if (!messages.length) {
-      showWelcome(true);
-      return;
-    }
-    showWelcome(false);
-    for (
-      const message of messages
-    ) {
-      addMessage(
-        message.role,
-        message.content
-      );
-    }
-    scrollToBottom();
+
+    state.messages =
+      Array.isArray(
+        data.conversation.messages
+      )
+        ? data.conversation.messages
+        : [];
+
+    renderMessages();
+
   } catch (error) {
+
     console.error(
       "Load conversation error:",
       error
     );
-    addMessage(
-      "assistant",
-      "I couldn't load that conversation."
-    );
-  }
-}
-// ============================================================
-// LOAD RECENT CHATS
-// ============================================================
-async function loadChats() {
-  try {
-    const response =
-      await fetch(
-        `/api/chats?userId=${encodeURIComponent(
-          state.userId
-        )}`
-      );
-    const data =
-      await response.json();
-    if (!response.ok || !data.ok) {
-      return;
-    }
-    state.chats =
-      Array.isArray(data.chats)
-        ? data.chats
-        : [];
-    renderRecentChats();
-  } catch (error) {
-    console.error(
-      "Load chats error:",
-      error
-    );
-  }
-}
-// ============================================================
-// RENDER RECENT CHATS
-// ============================================================
-function renderRecentChats() {
-  if (!recentChatsEl) {
-    return;
-  }
-  recentChatsEl.innerHTML = "";
-  if (!state.chats.length) {
-    const empty =
-      document.createElement(
-        "div"
-      );
-    empty.style.color =
-      "#777";
-    empty.style.fontSize =
-      "12px";
-    empty.style.padding =
-      "10px";
-    empty.textContent =
-      "No recent chats";
-    recentChatsEl.appendChild(
-      empty
-    );
-    return;
-  }
-  for (
-    const chat of state.chats
-  ) {
-    const button =
-      document.createElement(
-        "button"
-      );
-    button.className =
-      "recent-chat";
-    button.textContent =
-      chat.title ||
-      "New chat";
-    button.title =
-      chat.title ||
-      "New chat";
-    button.addEventListener(
-      "click",
-      async () => {
-        await loadConversation(
-          chat.id ||
-          chat.conversationId
-        );
-        closeSidebarMobile();
+
+    state.messages = [
+      {
+        role:
+          "assistant",
+
+        content:
+          "I couldn't load that conversation."
       }
-    );
-    recentChatsEl.appendChild(
-      button
-    );
+    ];
+
+    renderMessages();
+
   }
 }
+
+
 // ============================================================
 // NEW CHAT
 // ============================================================
+
 async function createNewChat() {
+
+  if (
+    state.sending ||
+    !state.userId
+  ) {
+    return;
+  }
+
   try {
+
     const response =
       await fetch(
         "/api/new-chat",
         {
-          method: "POST",
+          method:
+            "POST",
+
           headers: {
             "Content-Type":
               "application/json"
           },
+
           body:
             JSON.stringify({
               userId:
@@ -313,428 +873,1187 @@ async function createNewChat() {
             })
         }
       );
+
     const data =
-      await response.json();
-    if (!response.ok || !data.ok) {
+      await parseResponse(
+        response
+      );
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
       throw new Error(
         data.error ||
-        "Unable to create chat."
+        "Unable to create a new chat."
       );
+
     }
+
     state.conversationId =
-      data.conversationId;
-    messagesEl.innerHTML = "";
-    showWelcome(true);
-    messageInput.value = "";
+      data.conversationId ||
+      data.conversation?.id ||
+      null;
+
+    state.messages = [];
+
+    state.selectedFile =
+      null;
+
+    if (fileName) {
+      fileName.textContent =
+        "";
+    }
+
+    if (messageInput) {
+      messageInput.value =
+        "";
+    }
+
+    renderMessages();
+
     await loadChats();
-    messageInput.focus();
-    closeSidebarMobile();
+
+    closeMenu();
+
+    messageInput?.focus();
+
   } catch (error) {
+
     console.error(
       "New chat error:",
       error
     );
-    addMessage(
-      "assistant",
-      "I couldn't create a new chat."
-    );
+
   }
 }
+
+
+newChatButton?.addEventListener(
+  "click",
+  createNewChat
+);
+
+
+newChatTopButton?.addEventListener(
+  "click",
+  createNewChat
+);
+
+
 // ============================================================
 // SEND MESSAGE
 // ============================================================
+
 async function sendMessage() {
-  if (state.sending) {
+
+  if (
+    state.sending ||
+    !state.userId ||
+    !messageInput
+  ) {
     return;
   }
-  const message =
+
+  const text =
     messageInput.value.trim();
-  if (!message) {
+
+  if (
+    !text &&
+    !state.selectedFile
+  ) {
     return;
   }
+
   setSending(true);
-  addMessage(
-    "user",
-    message
+
+  const userMessage = {
+    role:
+      "user",
+
+    content:
+      text ||
+      "Please analyze this uploaded file."
+  };
+
+  state.messages.push(
+    userMessage
   );
-  messageInput.value = "";
-  autoResizeTextarea();
-  const loading =
-    addLoadingMessage();
+
+  renderMessages();
+
+  messageInput.value =
+    "";
+
+  messageInput.style.height =
+    "auto";
+
+  let filePayload =
+    null;
+
+  if (
+    state.selectedFile
+  ) {
+
+    try {
+
+      filePayload =
+        await readFileAsDataURL(
+          state.selectedFile
+        );
+
+    } catch (error) {
+
+      console.error(
+        "File reading error:",
+        error
+      );
+
+      state.messages.push({
+        role:
+          "assistant",
+
+        content:
+          "I couldn't read that file. Please try uploading it again."
+      });
+
+      renderMessages();
+
+      setSending(false);
+
+      return;
+    }
+  }
+
+  showThinking();
+
   try {
+
     const response =
       await fetch(
         "/api/chat",
         {
-          method: "POST",
+          method:
+            "POST",
+
           headers: {
             "Content-Type":
               "application/json"
           },
+
           body:
             JSON.stringify({
-              message,
+
+              message:
+                text,
+
               userId:
                 state.userId,
+
               conversationId:
-                state.conversationId
+                state.conversationId,
+
+              conversation:
+                state.messages
+                  .slice(0, -1)
+                  .map(
+                    message => ({
+                      role:
+                        message.role,
+
+                      text:
+                        message.content
+                    })
+                  ),
+
+              file:
+                filePayload
+
             })
         }
       );
+
     const data =
-      await response.json();
-    if (
-      loading &&
-      loading.parentNode
-    ) {
-      loading.parentNode.removeChild(
-        loading
+      await parseResponse(
+        response
       );
-    }
-    if (!response.ok || !data.ok) {
+
+    removeThinking();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
       throw new Error(
         data.error ||
         data.answer ||
-        "Zed AI request failed."
+        "Zed could not respond."
       );
+
     }
+
     state.conversationId =
       data.conversationId ||
       state.conversationId;
-    addMessage(
-      "assistant",
-      data.answer ||
-      "I received your message, but no answer was returned."
-    );
+
+    state.messages.push({
+
+      role:
+        "assistant",
+
+      content:
+        data.answer ||
+        data.reply ||
+        "Zed did not return an answer."
+
+    });
+
+    renderMessages();
+
     await loadChats();
+
   } catch (error) {
+
     console.error(
-      "Send message error:",
+      "Chat error:",
       error
     );
-    if (
-      loading &&
-      loading.parentNode
-    ) {
-      loading.parentNode.removeChild(
-        loading
-      );
-    }
-    addMessage(
-      "assistant",
-      `Sorry, something went wrong: ${error.message}`
-    );
+
+    removeThinking();
+
+    state.messages.push({
+
+      role:
+        "assistant",
+
+      content:
+        "I couldn't complete that request.\n\n" +
+        error.message
+
+    });
+
+    renderMessages();
+
   } finally {
+
+    state.selectedFile =
+      null;
+
+    if (fileName) {
+      fileName.textContent =
+        "";
+    }
+
+    if (photoInput) {
+      photoInput.value =
+        "";
+    }
+
+    if (fileInput) {
+      fileInput.value =
+        "";
+    }
+
     setSending(false);
+
     messageInput.focus();
+
   }
 }
+
+
 // ============================================================
-// TEXTAREA AUTO RESIZE
+// FILE READER
 // ============================================================
-function autoResizeTextarea() {
-  if (!messageInput) {
-    return;
-  }
-  messageInput.style.height =
-    "auto";
-  messageInput.style.height =
-    Math.min(
-      messageInput.scrollHeight,
-      180
-    ) + "px";
-}
-// ============================================================
-// ATTACH MENU
-// ============================================================
-function toggleAttachMenu() {
-  if (!attachMenu) {
-    return;
-  }
-  attachMenu.classList.toggle(
-    "show"
-  );
-}
-function closeAttachMenu() {
-  if (!attachMenu) {
-    return;
-  }
-  attachMenu.classList.remove(
-    "show"
-  );
-}
-// ============================================================
-// FILE UPLOAD
-// ============================================================
-function openFilePicker() {
-  closeAttachMenu();
-  if (fileInput) {
-    fileInput.click();
-  }
-}
-function handleSelectedFile(
+
+function readFileAsDataURL(
   file
 ) {
-  if (!file) {
-    return;
-  }
-  addMessage(
-    "user",
-    `Selected file: ${file.name}`
-  );
-  addMessage(
-    "assistant",
-    "File upload is selected. The next step is connecting this interface to your existing file-analysis endpoint."
+
+  return new Promise(
+    (resolve, reject) => {
+
+      const reader =
+        new FileReader();
+
+      reader.onload =
+        () => {
+
+          resolve({
+            name:
+              file.name,
+
+            mimeType:
+              file.type,
+
+            data:
+              reader.result
+          });
+
+        };
+
+      reader.onerror =
+        reject;
+
+      reader.readAsDataURL(
+        file
+      );
+
+    }
   );
 }
+
+
 // ============================================================
 // IMAGE GENERATION
 // ============================================================
+
 async function createImage() {
-  closeAttachMenu();
-  const prompt =
-    window.prompt(
-      "What image would you like Zed AI to create?"
-    );
-  if (!prompt || !prompt.trim()) {
+
+  if (
+    state.sending ||
+    !state.userId
+  ) {
     return;
   }
-  const loading =
-    addLoadingMessage();
+
+  const prompt =
+    messageInput?.value.trim();
+
+  if (!prompt) {
+
+    alert(
+      "Describe the image you want Zed to create."
+    );
+
+    return;
+  }
+
+  attachMenu?.classList.add(
+    "hidden"
+  );
+
+  setSending(true);
+
+  state.messages.push({
+
+    role:
+      "user",
+
+    content:
+      "Create an image: " +
+      prompt
+
+  });
+
+  renderMessages();
+
+  messageInput.value =
+    "";
+
+  messageInput.style.height =
+    "auto";
+
+  showThinking();
+
   try {
+
     const response =
       await fetch(
         "/api/generate-image",
         {
-          method: "POST",
+          method:
+            "POST",
+
           headers: {
             "Content-Type":
               "application/json"
           },
+
           body:
             JSON.stringify({
-              prompt:
-                prompt.trim()
+              prompt
             })
         }
       );
+
     const data =
-      await response.json();
-    if (
-      loading &&
-      loading.parentNode
-    ) {
-      loading.parentNode.removeChild(
-        loading
+      await parseResponse(
+        response
       );
-    }
-    if (!response.ok || !data.ok) {
+
+    removeThinking();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
       throw new Error(
         data.error ||
         "Image generation failed."
       );
+
     }
-    displayGeneratedImage(
-      data.result
-    );
+
+    const result =
+      data.result || {};
+
+    let imageSource =
+      null;
+
+    if (
+      result.image &&
+      result.contentType
+    ) {
+
+      imageSource =
+        `data:${result.contentType};base64,${result.image}`;
+
+    } else if (
+      data.image
+    ) {
+
+      imageSource =
+        data.image;
+
+    }
+
+    state.messages.push({
+
+      role:
+        "assistant",
+
+      content:
+        imageSource
+          ? "I created the image you requested."
+          : "The image service returned a result, but no image could be displayed.",
+
+      image:
+        imageSource
+
+    });
+
+    renderMessages();
+
+    await loadChats();
+
   } catch (error) {
+
     console.error(
       "Image generation error:",
       error
     );
-    if (
-      loading &&
-      loading.parentNode
-    ) {
-      loading.parentNode.removeChild(
-        loading
-      );
-    }
-    addMessage(
-      "assistant",
-      `Image generation failed: ${error.message}`
-    );
+
+    removeThinking();
+
+    state.messages.push({
+
+      role:
+        "assistant",
+
+      content:
+        "I couldn't create that image right now.\n\n" +
+        error.message
+
+    });
+
+    renderMessages();
+
+  } finally {
+
+    setSending(false);
+
+    messageInput.focus();
+
   }
 }
+
+
 // ============================================================
-// DISPLAY GENERATED IMAGE
+// ATTACHMENTS
 // ============================================================
-function displayGeneratedImage(
-  result
-) {
-  if (!messagesEl) {
-    return;
-  }
-  showWelcome(false);
-  const message =
-    document.createElement("div");
-  message.className =
-    "message message-assistant";
-  const content =
-    document.createElement("div");
-  content.className =
-    "message-content";
-  if (
-    result?.image &&
-    result?.contentType
-  ) {
-    const img =
-      document.createElement("img");
-    img.src =
-      `data:${result.contentType};base64,${result.image}`;
-    img.alt =
-      "Generated by Zed AI";
-    img.style.maxWidth =
-      "100%";
-    img.style.borderRadius =
-      "14px";
-    content.appendChild(
-      img
-    );
-  } else {
-    content.textContent =
-      "Zed generated a result, but the image format returned by the server is not currently supported by this interface.";
-  }
-  message.appendChild(
-    content
-  );
-  messagesEl.appendChild(
-    message
-  );
-  scrollToBottom();
-}
-// ============================================================
-// MOBILE SIDEBAR
-// ============================================================
-function toggleSidebarMobile() {
-  if (!sidebar) {
-    return;
-  }
-  sidebar.classList.toggle(
-    "open"
-  );
-}
-function closeSidebarMobile() {
-  if (!sidebar) {
-    return;
-  }
-  sidebar.classList.remove(
-    "open"
-  );
-}
-// ============================================================
-// EVENT LISTENERS
-// ============================================================
-if (sendBtn) {
-  sendBtn.addEventListener(
-    "click",
-    sendMessage
-  );
-}
-if (newChatBtn) {
-  newChatBtn.addEventListener(
-    "click",
-    createNewChat
-  );
-}
-if (attachBtn) {
-  attachBtn.addEventListener(
-    "click",
-    toggleAttachMenu
-  );
-}
-if (uploadFileBtn) {
-  uploadFileBtn.addEventListener(
-    "click",
-    openFilePicker
-  );
-}
-if (uploadPhotoBtn) {
-  uploadPhotoBtn.addEventListener(
-    "click",
-    () => {
-      closeAttachMenu();
-      if (fileInput) {
-        fileInput.accept =
-          "image/*";
-        fileInput.click();
-      }
-    }
-  );
-}
-if (createImageBtn) {
-  createImageBtn.addEventListener(
-    "click",
-    createImage
-  );
-}
-if (fileInput) {
-  fileInput.addEventListener(
-    "change",
-    event => {
-      const file =
-        event.target.files?.[0];
-      handleSelectedFile(
-        file
-      );
-      event.target.value =
-        "";
-    }
-  );
-}
-if (menuBtn) {
-  menuBtn.addEventListener(
-    "click",
-    toggleSidebarMobile
-  );
-}
-if (messageInput) {
-  messageInput.addEventListener(
-    "input",
-    autoResizeTextarea
-  );
-  messageInput.addEventListener(
-    "keydown",
-    event => {
-      if (
-        event.key === "Enter" &&
-        !event.shiftKey
-      ) {
-        event.preventDefault();
-        sendMessage();
-      }
-    }
-  );
-}
-document.addEventListener(
+
+attachButton?.addEventListener(
   "click",
-  event => {
-    if (
-      attachMenu &&
-      attachBtn &&
-      !attachMenu.contains(
-        event.target
-      ) &&
-      !attachBtn.contains(
-        event.target
-      )
-    ) {
-      closeAttachMenu();
+  () => {
+
+    if (state.sending) {
+      return;
     }
+
+    attachMenu?.classList.toggle(
+      "hidden"
+    );
+
   }
 );
+
+
+uploadPhotoButton?.addEventListener(
+  "click",
+  () => {
+
+    attachMenu?.classList.add(
+      "hidden"
+    );
+
+    photoInput?.click();
+
+  }
+);
+
+
+uploadFileButton?.addEventListener(
+  "click",
+  () => {
+
+    attachMenu?.classList.add(
+      "hidden"
+    );
+
+    fileInput?.click();
+
+  }
+);
+
+
+createImageButton?.addEventListener(
+  "click",
+  createImage
+);
+
+
+photoInput?.addEventListener(
+  "change",
+  () => {
+
+    const file =
+      photoInput.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    state.selectedFile =
+      file;
+
+    if (fileName) {
+
+      fileName.textContent =
+        "Selected: " +
+        file.name;
+
+    }
+
+  }
+);
+
+
+fileInput?.addEventListener(
+  "change",
+  () => {
+
+    const file =
+      fileInput.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    state.selectedFile =
+      file;
+
+    if (fileName) {
+
+      fileName.textContent =
+        "Selected: " +
+        file.name;
+
+    }
+
+  }
+);
+
+
 // ============================================================
-// INITIALIZE
+// INPUT
 // ============================================================
+
+sendButton?.addEventListener(
+  "click",
+  sendMessage
+);
+
+
+messageInput?.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey
+    ) {
+
+      event.preventDefault();
+
+      sendMessage();
+
+    }
+
+  }
+);
+
+
+messageInput?.addEventListener(
+  "input",
+  () => {
+
+    messageInput.style.height =
+      "auto";
+
+    messageInput.style.height =
+      Math.min(
+        messageInput.scrollHeight,
+        150
+      ) + "px";
+
+  }
+);
+
+
+// ============================================================
+// SEARCH CHATS
+// ============================================================
+
+searchChats?.addEventListener(
+  "input",
+  () => {
+
+    const search =
+      searchChats.value
+        .trim()
+        .toLowerCase();
+
+    const filtered =
+      state.chats.filter(
+        chat =>
+          String(
+            chat.title || ""
+          )
+            .toLowerCase()
+            .includes(search)
+      );
+
+    if (!search) {
+
+      renderRecentChats();
+
+      return;
+    }
+
+    if (!historyList) {
+      return;
+    }
+
+    historyList.innerHTML =
+      "";
+
+    for (
+      const chat of filtered
+    ) {
+
+      const conversationId =
+        chat.id ||
+        chat.conversationId;
+
+      if (!conversationId) {
+        continue;
+      }
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+      item.className =
+        "historyItem";
+
+      item.textContent =
+        chat.title ||
+        "New chat";
+
+      item.addEventListener(
+        "click",
+        async () => {
+
+          await loadConversation(
+            conversationId
+          );
+
+          closeMenu();
+
+        }
+      );
+
+      historyList.appendChild(
+        item
+      );
+
+    }
+
+  }
+);
+
+
+// ============================================================
+// AUTHENTICATION
+// ============================================================
+
+googleLogin?.addEventListener(
+  "click",
+  async () => {
+
+    try {
+
+      showAuthMessage("");
+
+      googleLogin.disabled =
+        true;
+
+      const provider =
+        new GoogleAuthProvider();
+
+      await signInWithPopup(
+        firebaseAuth,
+        provider
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Google login error:",
+        error
+      );
+
+      showAuthMessage(
+        error.message
+      );
+
+    } finally {
+
+      googleLogin.disabled =
+        false;
+
+    }
+
+  }
+);
+
+
+emailLogin?.addEventListener(
+  "click",
+  async () => {
+
+    try {
+
+      showAuthMessage("");
+
+      emailLogin.disabled =
+        true;
+
+      const email =
+        emailInput.value.trim();
+
+      const password =
+        passwordInput.value;
+
+      if (
+        !email ||
+        !password
+      ) {
+
+        throw new Error(
+          "Enter your email and password."
+        );
+
+      }
+
+      await signInWithEmailAndPassword(
+        firebaseAuth,
+        email,
+        password
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Email login error:",
+        error
+      );
+
+      showAuthMessage(
+        error.message
+      );
+
+    } finally {
+
+      emailLogin.disabled =
+        false;
+
+    }
+
+  }
+);
+
+
+emailSignup?.addEventListener(
+  "click",
+  async () => {
+
+    try {
+
+      showAuthMessage("");
+
+      emailSignup.disabled =
+        true;
+
+      const email =
+        emailInput.value.trim();
+
+      const password =
+        passwordInput.value;
+
+      if (
+        !email ||
+        !password
+      ) {
+
+        throw new Error(
+          "Enter an email and password."
+        );
+
+      }
+
+      await createUserWithEmailAndPassword(
+        firebaseAuth,
+        email,
+        password
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Account creation error:",
+        error
+      );
+
+      showAuthMessage(
+        error.message
+      );
+
+    } finally {
+
+      emailSignup.disabled =
+        false;
+
+    }
+
+  }
+);
+
+
+logoutButton?.addEventListener(
+  "click",
+  async () => {
+
+    try {
+
+      await signOut(
+        firebaseAuth
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Logout error:",
+        error
+      );
+
+    }
+
+  }
+);
+
+
+// ============================================================
+// AUTH STATE
+// ============================================================
+
+function setupAuthListener() {
+
+  onAuthStateChanged(
+    firebaseAuth,
+    async user => {
+
+      updateUserState(
+        user
+      );
+
+      if (user) {
+
+        state.conversationId =
+          null;
+
+        state.messages =
+          [];
+
+        if (accountName) {
+
+          accountName.textContent =
+            user.displayName ||
+            "Zed User";
+
+        }
+
+        if (accountEmail) {
+
+          accountEmail.textContent =
+            user.email ||
+            "";
+
+        }
+
+        if (
+          profilePhoto &&
+          user.photoURL
+        ) {
+
+          profilePhoto.src =
+            user.photoURL;
+
+        } else if (
+          profilePhoto
+        ) {
+
+          profilePhoto.src =
+            "data:image/svg+xml," +
+            encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="80"
+                   height="80">
+                <rect width="100%"
+                      height="100%"
+                      fill="#444"/>
+                <text x="50%"
+                      y="57%"
+                      text-anchor="middle"
+                      fill="white"
+                      font-family="Arial"
+                      font-size="30">
+                  Z
+                </text>
+              </svg>
+            `);
+
+        }
+
+        showApp();
+
+        renderMessages();
+
+        await loadChats();
+
+        messageInput?.focus();
+
+      } else {
+
+        state.userId =
+          null;
+
+        state.firebaseUser =
+          null;
+
+        state.conversationId =
+          null;
+
+        state.messages =
+          [];
+
+        state.chats =
+          [];
+
+        renderMessages();
+
+        showAuth();
+
+        closeMenu();
+
+      }
+
+    }
+  );
+}
+
+
+// ============================================================
+// VOICE INPUT
+// ============================================================
+
+let recognition =
+  null;
+
+
+if (
+  "webkitSpeechRecognition" in window ||
+  "SpeechRecognition" in window
+) {
+
+  const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  recognition =
+    new SpeechRecognition();
+
+  recognition.lang =
+    "en-US";
+
+  recognition.interimResults =
+    false;
+
+  recognition.continuous =
+    false;
+
+  recognition.onstart =
+    () => {
+
+      if (micButton) {
+
+        micButton.style.background =
+          "#4a4a4a";
+
+      }
+
+    };
+
+  recognition.onend =
+    () => {
+
+      if (micButton) {
+
+        micButton.style.background =
+          "transparent";
+
+      }
+
+    };
+
+  recognition.onresult =
+    event => {
+
+      const transcript =
+        event.results[0][0]
+          .transcript;
+
+      if (messageInput) {
+
+        messageInput.value =
+          transcript;
+
+        messageInput.dispatchEvent(
+          new Event("input")
+        );
+
+        messageInput.focus();
+
+      }
+
+    };
+
+  recognition.onerror =
+    error => {
+
+      console.error(
+        "Voice recognition error:",
+        error
+      );
+
+      if (micButton) {
+
+        micButton.style.background =
+          "transparent";
+
+      }
+
+    };
+
+}
+
+
+micButton?.addEventListener(
+  "click",
+  () => {
+
+    if (!recognition) {
+
+      alert(
+        "Voice input is not supported by this browser."
+      );
+
+      return;
+
+    }
+
+    if (state.sending) {
+      return;
+    }
+
+    try {
+
+      recognition.start();
+
+    } catch (error) {
+
+      console.error(
+        "Voice start error:",
+        error
+      );
+
+    }
+
+  }
+);
+
+
+// ============================================================
+// START ZED
+// ============================================================
+
 async function initialize() {
+
   try {
-    await loadChats();
+
+    await initializeFirebase();
+
+    setupAuthListener();
+
   } catch (error) {
+
     console.error(
-      "Initialization error:",
+      "Firebase initialization failed:",
       error
     );
+
+    showAuthMessage(
+      "Zed could not connect to the account system."
+    );
+
   }
-  messageInput?.focus();
+
 }
+
+
 initialize();

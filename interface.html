@@ -1,278 +1,291 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Zed AI</title>
-
-  <meta
-    name="description"
-    content="Zed AI — your intelligent AI assistant."
-  >
-
-  <!-- Prevent theme flashing while the page loads -->
+  <meta name="theme-color" content="#101116">
+  <meta name="description" content="Zed is your AI assistant for writing, learning, business, research, and everyday tasks.">
+  <title>Zed — Your AI Assistant</title>
   <script>
-    (function () {
-      const savedTheme = localStorage.getItem("zed-theme");
-
-      if (savedTheme === "light" || savedTheme === "dark") {
-        document.documentElement.dataset.theme = savedTheme;
-      } else {
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        ).matches;
-
+    (() => {
+      try {
+        const savedTheme = localStorage.getItem("zed-theme");
         document.documentElement.dataset.theme =
-          prefersDark ? "dark" : "light";
+          savedTheme === "light" ? "light" : "dark";
+      } catch {
+        document.documentElement.dataset.theme = "dark";
       }
     })();
   </script>
-
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
 </head>
-
 <body>
-
   <div class="app" id="app">
-
-    <!-- =========================
-         SIDEBAR
-    ========================== -->
-    <aside class="sidebar" id="sidebar">
-
+    <!-- Mobile sidebar backdrop -->
+<!-- Sidebar -->
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
       <div class="sidebar-header">
-
+        <a class="brand" href="#" aria-label="Zed home">
+          <span class="brand-icon" aria-hidden="true">Z</span>
+          <span class="brand-name">Zed</span>
+        </a>
         <button
-          class="new-chat-btn"
-          id="newChatBtn"
+          class="icon-button sidebar-collapse-btn"
+          id="zedSidebarCollapse"
           type="button"
-        >
-          <span class="new-chat-icon">＋</span>
+          aria-label="Close sidebar"
+          title="Close sidebar">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3.5" y="4" width="17" height="16" rx="3" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M9 4v16" stroke="currentColor" stroke-width="1.6"/>
+          </svg>
+        </button>
+      </div>
+      <div class="sidebar-actions">
+        <button class="new-chat-btn" id="newChatBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
           <span>New chat</span>
+          <span class="new-chat-shortcut">+</span>
         </button>
-
       </div>
-
-      <div class="recent-section">
-
-        <div class="section-title">
-          Recent
+      <nav class="sidebar-nav" aria-label="Workspace">
+        <div class="sidebar-section">
+          <div class="sidebar-section-heading">
+            <span>Workspace</span>
+          </div>
+          <button class="sidebar-item" id="settingsBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/>
+              <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.6 2.77-.09-.02a1.7 1.7 0 0 0-1.72.65l-.05.08h-3.2l-.03-.09a1.7 1.7 0 0 0-1.45-1.1 1.7 1.7 0 0 0-1.2.4l-.07.05-2.77-1.6.02-.09a1.7 1.7 0 0 0-.65-1.72l-.08-.05v-3.2l.09-.03a1.7 1.7 0 0 0 1.1-1.45 1.7 1.7 0 0 0-.4-1.2l-.05-.07 1.6-2.77.09.02a1.7 1.7 0 0 0 1.72-.65l.05-.08h3.2l.03.09a1.7 1.7 0 0 0 1.45 1.1 1.7 1.7 0 0 0 1.2-.4l.07-.05 2.77 1.6-.02.09a1.7 1.7 0 0 0 .65 1.72l.08.05V14l-.09.03a1.7 1.7 0 0 0-1.1 1.45Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" transform="translate(-1 -1)"/>
+            </svg>
+            <span>Settings</span>
+          </button>
+          <button class="sidebar-item" id="accountBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.7"/>
+              <path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+            <span>Account</span>
+          </button>
         </div>
-
-        <div
-          class="recent-chats"
-          id="recentChats"
-        >
-          <!-- Added by app.js -->
+        <div class="sidebar-section recent-section">
+          <div class="sidebar-section-heading">
+            <span>Recent chats</span>
+            <span class="section-count" id="zedChatCount">0</span>
+          </div>
+          <div class="recent-chats" id="recentChats" aria-live="polite">
+            <div class="empty-chats">Your conversations will appear here.</div>
+          </div>
         </div>
-
-      </div>
-
-      <div class="sidebar-bottom">
-
-        <button
-          class="sidebar-item"
-          id="settingsBtn"
-          type="button"
-        >
-          <span class="sidebar-item-icon">⚙</span>
-          <span>Settings</span>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="sidebar-profile" id="profileBtn" type="button">
+          <span class="profile-avatar" aria-hidden="true">Z</span>
+          <span class="profile-details">
+            <span class="profile-name">Zed account</span>
+            <span class="profile-status">AI assistant</span>
+          </span>
+          <svg class="profile-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </button>
-
-        <button
-          class="sidebar-item"
-          id="accountBtn"
-          type="button"
-        >
-          <span class="sidebar-item-icon account-icon">●</span>
-          <span>Account</span>
-        </button>
-
       </div>
-
     </aside>
-
-    <!-- =========================
-         MAIN CONTENT
-    ========================== -->
+    <!-- Main application -->
     <main class="main">
-
-      <!-- =========================
-           TOP BAR
-      ========================== -->
       <header class="topbar">
-
         <div class="topbar-left">
-
           <button
-            class="menu-btn"
+            class="icon-button menu-btn"
             id="menuBtn"
             type="button"
-            aria-label="Open menu"
-          >
-            ☰
+            aria-label="Open navigation"
+            title="Open navigation">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
           </button>
-
-          <div class="brand">
-
-            <div class="brand-name">
-              Zed AI
-            </div>
-
-            <div class="brand-status">
-
-              <span class="status-dot"></span>
-
-              <span>Online</span>
-
-            </div>
-
+          <a class="mobile-brand" href="#" aria-label="Zed home">
+            <span class="brand-icon" aria-hidden="true">Z</span>
+            <span class="brand-name">Zed</span>
+          </a>
+          <div class="model-selector" aria-label="Current assistant">
+            <span>Zed</span>
+            <span class="model-label">AI Assistant</span>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
           </div>
-
         </div>
-
-        <button
-          class="profile-btn"
-          id="profileBtn"
-          type="button"
-          aria-label="Account"
-        >
-          ●
-        </button>
-
-      </header>
-
-      <!-- =========================
-           CHAT AREA
-      ========================== -->
-      <section class="chat-area">
-
-        <!-- Welcome -->
-        <div
-          class="welcome"
-          id="welcome"
-        >
-
-          <div class="welcome-logo">
-            Z
-          </div>
-
-          <h1>
-            How can I help you?
-          </h1>
-
-          <p>
-            Ask Zed AI anything. Study, write, search,
-            analyze files, explore football, or work
-            on your ideas.
-          </p>
-
-        </div>
-
-        <!-- Conversation messages -->
-        <div
-          class="messages"
-          id="messages"
-        >
-          <!-- Messages inserted by app.js -->
-        </div>
-
-      </section>
-
-      <!-- =========================
-           MESSAGE COMPOSER
-      ========================== -->
-      <footer class="composer-container">
-
-        <div class="composer">
-
-          <!-- Attachment -->
+        <div class="topbar-right">
+          <span class="connection-status" id="zedConnectionStatus">
+            <span class="status-dot"></span>
+            Ready
+          </span>
           <button
-            class="composer-btn attach-button"
-            id="attachBtn"
+            class="icon-button"
+            id="profileBtnTop"
             type="button"
-            aria-label="Add attachment"
-          >
-            ＋
+            aria-label="Account"
+            title="Account"
+            hidden>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.7"/>
+              <path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
           </button>
-
-          <!-- File input -->
+        </div>
+      </header>
+      <section class="chat-area" aria-label="Chat conversation">
+        <!-- Welcome screen -->
+        <div class="welcome" id="welcome">
+          <div class="welcome-logo" aria-hidden="true">
+            <span>Z</span>
+          </div>
+          <p class="welcome-eyebrow">YOUR AI ASSISTANT</p>
+          <h1>What can I help you with?</h1>
+          <p class="welcome-description">
+            Ask questions, explore ideas, learn new skills, or get help with your work.
+          </p>
+          <div class="suggestions" aria-label="Suggested prompts">
+            <button class="suggestion-card" type="button" data-prompt="Teach me computer basics step by step.">
+              <span class="suggestion-icon">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/>
+                  <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <span class="suggestion-title">Learn something</span>
+              <span class="suggestion-description">Understand a new topic step by step</span>
+            </button>
+            <button class="suggestion-card" type="button" data-prompt="Help me write a professional message.">
+              <span class="suggestion-icon">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                  <path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20M8 7h8M8 11h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <span class="suggestion-title">Write something</span>
+              <span class="suggestion-description">Messages, documents, and ideas</span>
+            </button>
+            <button class="suggestion-card" type="button" data-prompt="Help me develop a practical business plan for Zambia on a small budget.">
+              <span class="suggestion-icon">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/>
+                  <path d="M8 7V4h8v3M3 12h18M10 12v2h4v-2" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="suggestion-title">Build a business</span>
+              <span class="suggestion-description">Plans, strategies, and practical steps</span>
+            </button>
+            <button class="suggestion-card" type="button" data-prompt="Help me research a topic and explain the evidence clearly.">
+              <span class="suggestion-icon">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.7"/>
+                  <path d="m15.5 15.5 5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <span class="suggestion-title">Research a topic</span>
+              <span class="suggestion-description">Explore questions and compare information</span>
+            </button>
+          </div>
+        </div>
+        <!-- Conversation messages -->
+        <div class="messages" id="messages" aria-live="polite" aria-relevant="additions">
+        </div>
+      </section>
+      <!-- Composer -->
+      <footer class="composer-area">
+        <div class="composer-context" id="zedComposerContext" hidden></div>
+        <div class="composer" id="zedComposer">
+          <div class="attachment-menu" id="attachMenu" role="menu" aria-label="Attachment options">
+            <button class="attachment-option" id="uploadPhotoBtn" type="button" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/>
+                <circle cx="8.5" cy="9" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <path d="m4 17 5-5 4 4 3-3 4 4" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+              </svg>
+              <span>Upload photo</span>
+            </button>
+            <button class="attachment-option" id="uploadFileBtn" type="button" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M7 3h7l5 5v13H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                <path d="M14 3v5h5M9 13h6M9 17h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+              <span>Upload file</span>
+            </button>
+            <button class="attachment-option" id="createImageBtn" type="button" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/>
+                <path d="m4 17 5-5 4 4 3-3 4 4M16 8h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Create image</span>
+            </button>
+          </div>
           <input
-            type="file"
             id="fileInput"
-            hidden
+            type="file"
             accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,image/*"
-          >
-
-          <!-- Message -->
+            hidden>
           <textarea
             id="messageInput"
             rows="1"
-            placeholder="Message Zed AI..."
-            autocomplete="off"
-            aria-label="Message Zed AI"
-          ></textarea>
-
-          <!-- Send -->
-          <button
-            class="composer-btn send-btn"
-            id="sendBtn"
-            type="button"
-            aria-label="Send message"
-          >
-            ↑
-          </button>
-
+            placeholder="Message Zed..."
+            aria-label="Message Zed"
+            maxlength="20000"></textarea>
+          <div class="composer-toolbar">
+            <div class="composer-tools">
+              <button
+                class="icon-button attach-btn"
+                id="attachBtn"
+                type="button"
+                aria-label="Add attachment"
+                aria-haspopup="true"
+                aria-controls="attachMenu"
+                title="Add attachment">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <span class="composer-hint">Ask anything</span>
+            </div>
+            <div class="composer-actions">
+              <button
+                class="icon-button voice-btn"
+                id="zedVoiceBtn"
+                type="button"
+                aria-label="Use voice input"
+                title="Use voice input">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="9" y="3" width="6" height="12" rx="3" stroke="currentColor" stroke-width="1.7"/>
+                  <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <button
+                class="send-btn"
+                id="sendBtn"
+                type="button"
+                aria-label="Send message"
+                title="Send message">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
-
-        <!-- =========================
-             ATTACHMENT MENU
-        ========================== -->
-        <div
-          class="attach-menu"
-          id="attachMenu"
-        >
-
-          <button
-            id="uploadPhotoBtn"
-            type="button"
-          >
-            <span>🖼️</span>
-            <span>Upload photo</span>
-          </button>
-
-          <button
-            id="uploadFileBtn"
-            type="button"
-          >
-            <span>📎</span>
-            <span>Upload file</span>
-          </button>
-
-          <button
-            id="createImageBtn"
-            type="button"
-          >
-            <span>🎨</span>
-            <span>Create image</span>
-          </button>
-
-        </div>
-
-        <!-- Disclaimer -->
-        <div class="composer-note">
-          Zed AI can make mistakes. Check important information.
-        </div>
-
+        <p class="composer-disclaimer">
+          Zed can make mistakes. Check important information.
+        </p>
       </footer>
-
     </main>
-
   </div>
-
-  <!-- Main application JavaScript -->
-  <script src="app.js"></script>
-
+  <!-- app.js owns chat, authentication, history, attachments, and sidebar behavior. -->
 </body>
 </html>

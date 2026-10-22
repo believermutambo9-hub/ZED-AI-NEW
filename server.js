@@ -2647,7 +2647,9 @@ ${fileContext}
       const result =
         await askAI(
           finalPrompt,
-          uploadedFile?.inlineData || null
+          uploadedFile?.inlineData && !uploadedFile.extractedText?.trim()
+            ? uploadedFile.inlineData
+            : null
         );
 
       // ------------------------------------------------------

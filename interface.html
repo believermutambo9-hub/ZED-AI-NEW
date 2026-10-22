@@ -294,16 +294,6 @@
   <!-- app.js handles authentication, account, settings, chat history,
        messaging, attachments, voice input, and image generation. -->
   <script>
-    // Prompt cards fill the composer without duplicating app.js listeners.
-    document.querySelectorAll("[data-prompt]").forEach((card) => {
-      card.addEventListener("click", () => {
-        const input = document.getElementById("messageInput");
-        if (!input) return;
-        input.value = card.dataset.prompt || "";
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-        input.focus();
-      });
-    });
     // Keep the recent-chat count in sync with the sidebar.
     const recentChats = document.getElementById("recentChats");
     const chatCount = document.getElementById("zedChatCount");
@@ -313,30 +303,54 @@
           recentChats.querySelectorAll(".recent-chat").length
         );
       });
-      observer.observe(recentChats, {
-        childList: true,
-        subtree: true
-      });
+      observer.observe(recentChats, { childList: true, subtree: true });
     }
-    // Keep the composer keyboard accessible.
+
+    // app.js owns message submission and prompt-card listeners.
+    // Keep textarea resizing here as a presentation-only behavior.
     const messageInput = document.getElementById("messageInput");
     if (messageInput) {
-      messageInput.addEventListener("keydown", (event) => {
-        if (
-          event.key === "Enter" &&
-          !event.shiftKey &&
-          !event.isComposing
-        ) {
-          event.preventDefault();
-          document.getElementById("sendBtn")?.click();
-        }
-      });
       messageInput.addEventListener("input", () => {
         messageInput.style.height = "auto";
         messageInput.style.height =
           Math.min(messageInput.scrollHeight, 180) + "px";
       });
     }
+
+    // Wire the mobile menu; app.js intentionally avoids duplicating it.
+    const menuBtn = document.getElementById("menuBtn");
+    const sidebar = document.getElementById("sidebar");
+    const backdrop = document.getElementById("zedSidebarBackdrop");
+    const closeSidebar = () => {
+      sidebar?.classList.remove("open");
+      backdrop?.classList.remove("show");
+      document.body.classList.remove("sidebar-open");
+    };
+
+    if (menuBtn && sidebar) {
+      menuBtn.addEventListener("click", () => {
+        const isOpen = sidebar.classList.toggle("open");
+        backdrop?.classList.toggle("show", isOpen);
+        document.body.classList.toggle("sidebar-open", isOpen);
+      });
+    }
+
+    backdrop?.addEventListener("click", closeSidebar);
+    sidebar?.querySelectorAll("button, a").forEach((item) => {
+      item.addEventListener("click", (event) => {
+        if (event.target.closest("#zedSidebarCollapse")) {
+          closeSidebar();
+        } else if (window.matchMedia("(max-width: 760px)").matches) {
+          closeSidebar();
+        }
+      });
+    });
+
+    window.addEventListener("resize", () => {
+      if (!window.matchMedia("(max-width: 760px)").matches) {
+        closeSidebar();
+      }
+    });
   </script>
 </body>
 </html>

@@ -626,7 +626,7 @@ async function prepareUploadedFile(file) {
   const dataUrl = typeof file === 'string' ? file : file.data;
   const fileName = String(typeof file === 'object' ? file.name || 'uploaded-file' : 'uploaded-file');
   const declaredType = String(typeof file === 'object' ? file.type || '' : '');
-  const match = /^data:([^;,]+)?;base64,([\\s\\S]+)$/.exec(String(dataUrl || ''));
+  const match = /^data:([^;,]+)?;base64,([\s\S]+)$/.exec(String(dataUrl || ''));
   if (!match) throw new Error('The uploaded file could not be read. Please upload it again.');
   const mimeType = (match[1] || declaredType || 'application/octet-stream').toLowerCase();
   const base64 = match[2];
@@ -650,11 +650,11 @@ async function prepareUploadedFile(file) {
   if (['.xlsx', '.xls'].includes(extension) || mimeType.includes('spreadsheet') || mimeType.includes('ms-excel')) {
     const XLSX = await import('xlsx');
     const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const extractedText = workbook.SheetNames.map(name => 'Sheet: ' + name + '\\n' + XLSX.utils.sheet_to_csv(workbook.Sheets[name])).join('\\n\\n');
+    const extractedText = workbook.SheetNames.map(name => 'Sheet: ' + name + '\n' + XLSX.utils.sheet_to_csv(workbook.Sheets[name])).join('\n\n');
     return { fileName, mimeType, extractedText: cleanAIAnswer(extractedText).slice(0, 100000) };
   }
   if (mimeType.startsWith('text/') || ['application/json','application/xml','application/javascript','application/rtf'].includes(mimeType) || ['.txt','.csv','.tsv','.md','.json','.xml','.html','.htm','.js','.css','.log','.rtf'].includes(extension)) {
-    return { fileName, mimeType, extractedText: buffer.toString('utf8').replace(/^\\uFEFF/, '').slice(0, 100000) };
+    return { fileName, mimeType, extractedText: buffer.toString('utf8').replace(/^\uFEFF/, '').slice(0, 100000) };
   }
   if (extension === '.doc') throw new Error('Legacy .doc files are not supported yet. Please save as .docx or PDF and upload again.');
   throw new Error('This file type is not supported. Upload a PDF, image, DOCX, XLSX, XLS, CSV, or text-based file.');

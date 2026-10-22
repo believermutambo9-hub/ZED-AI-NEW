@@ -1509,40 +1509,66 @@ createImageBtn?.addEventListener(
 // VOICE INPUT
 // ============================================================
 let recognition = null;
+const voiceBtn = document.getElementById("zedVoiceBtn");
 const SpeechRecognition =
   window.SpeechRecognition ||
   window.webkitSpeechRecognition;
-if (SpeechRecognition) {
-  recognition =
-    new SpeechRecognition();
-  recognition.lang =
-    "en-US";
-  recognition.interimResults =
-    false;
-  recognition.continuous =
-    false;
-  recognition.onresult =
-    event => {
-      const transcript =
-        event.results[0][0]
-          .transcript;
-      if (messageInput) {
-        messageInput.value =
-          transcript;
-        messageInput.dispatchEvent(
-          new Event("input")
-        );
-        messageInput.focus();
-      }
-    };
-  recognition.onerror =
-    error => {
-      console.error(
-        "Voice recognition error:",
-        error
-      );
-    };
+
+function setVoiceListening(listening) {
+  voiceBtn?.classList.toggle("listening", listening);
+  voiceBtn?.setAttribute(
+    "aria-label",
+    listening ? "Stop voice input" : "Use voice input"
+  );
+  voiceBtn?.setAttribute(
+    "title",
+    listening ? "Stop voice input" : "Use voice input"
+  );
 }
+
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+  recognition.continuous = false;
+
+  recognition.onstart = () => setVoiceListening(true);
+  recognition.onend = () => setVoiceListening(false);
+  recognition.onerror = (event) => {
+    setVoiceListening(false);
+    console.error("Voice recognition error:", event.error || event);
+    if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+      alert("Zed needs microphone permission to use voice input.");
+    }
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results?.[0]?.[0]?.transcript?.trim();
+    if (transcript && messageInput) {
+      messageInput.value = transcript;
+      messageInput.dispatchEvent(new Event("input", { bubbles: true }));
+      messageInput.focus();
+    }
+  };
+}
+
+voiceBtn?.addEventListener("click", () => {
+  if (!recognition) {
+    alert("Voice input is not supported by this browser. Try a browser with speech recognition support.");
+    return;
+  }
+
+  try {
+    if (voiceBtn.classList.contains("listening")) {
+      recognition.stop();
+    } else {
+      recognition.start();
+    }
+  } catch (error) {
+    console.error("Unable to start voice input:", error);
+    setVoiceListening(false);
+  }
+});
 // ============================================================
 // AUTH STATE
 // ============================================================

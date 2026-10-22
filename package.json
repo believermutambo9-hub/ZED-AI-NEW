@@ -9,6 +9,9 @@
   "dependencies": {
     "express": "^5.1.0",
     "@google/genai": "^2.3.0",
-    "firebase-admin": "^13.6.0"
+    "firebase-admin": "^13.6.0",
+    "pdf-parse": "^1.1.1",
+    "mammoth": "^1.9.1",
+    "xlsx": "^0.18.5"
   }
 }

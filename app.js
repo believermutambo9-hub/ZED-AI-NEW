@@ -1238,7 +1238,7 @@ async function sendMessage() {
           },
           body:JSON.stringify({
             message:
-              text,
+              text || (state.selectedFile ? 'Please analyse the attached file.' : ''),
             userId:
               state.userId,
             conversationId:
@@ -1254,6 +1254,12 @@ async function sendMessage() {
               ),
             file:
               filePayload
+                ? {
+                    data: filePayload,
+                    name: state.selectedFile?.name || 'uploaded-file',
+                    type: state.selectedFile?.type || ''
+                  }
+                : null
           })
         }
       );

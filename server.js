@@ -914,6 +914,13 @@ async function askAI(
     errors.push(
       `Gemini: ${error.message}`
     );
+
+    // Never pretend a text-only provider has inspected an image or scanned PDF.
+    if (inlineData) {
+      throw new Error(
+        `Gemini could not analyse the attached image/PDF. Please try again later. ${error.message}`
+      );
+    }
   }
 
   try {

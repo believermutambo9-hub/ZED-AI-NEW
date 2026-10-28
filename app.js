@@ -71,7 +71,7 @@ async function apiFetch(url, options = {}) {
   const headers = new Headers(options.headers || {});
   headers.set("Authorization", `Bearer ${token}`);
 
-  return apiFetch(url, {
+  return fetch(url, {
     ...options,
     headers
   });

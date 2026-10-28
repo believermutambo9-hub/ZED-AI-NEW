@@ -1905,7 +1905,8 @@ export function updateMemory(
 // ============================================================
 
 export function forgetMemory(
-  memoryId
+  memoryId,
+  userId = null
 ) {
   const id =
     normalizeText(
@@ -1916,6 +1917,13 @@ export function forgetMemory(
     memories.get(id);
 
   if (!memory) {
+    return false;
+  }
+
+  if (
+    userId !== null &&
+    memory.userId !== normalizeUserId(userId)
+  ) {
     return false;
   }
 

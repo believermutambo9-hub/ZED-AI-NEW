@@ -2464,3 +2464,24 @@ body {
     --zed-composer: #303030;
   }
 }
+
+
+/* =========================================================
+   ZED SUPER BRAIN BRAND ICON
+   Uses the exact artwork in super-brain.svg.
+   ========================================================= */
+.welcome-logo {
+  background: #080b1b url("super-brain.svg") center / cover no-repeat !important;
+  border: 1px solid rgba(70, 160, 255, 0.25) !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  box-shadow: 0 0 28px rgba(0, 153, 255, 0.14) !important;
+}
+.welcome-logo::before {
+  content: none !important;
+  display: none !important;
+}
+.welcome-logo::after {
+  content: none !important;
+  display: none !important;
+}

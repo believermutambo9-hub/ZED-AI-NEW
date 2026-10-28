@@ -40,19 +40,32 @@ export async function saveChat({
     cleanText(conversationId) ||
     `chat-${Date.now()}`;
 
+  const chatRef = db
+    .collection(COLLECTION)
+    .doc(safeConversationId);
+
+  // Never let a save overwrite a conversation already owned by another account.
+  const existing = await chatRef.get();
+  if (existing.exists && existing.data()?.userId !== safeUserId) {
+    return {
+      ok: false,
+      persistent: false,
+      error: "Conversation ownership mismatch."
+    };
+  }
+
   const chatData = {
     userId: safeUserId,
     conversationId: safeConversationId,
     title: cleanText(title) || "New chat",
     messages: Array.isArray(messages) ? messages : [],
     updatedAt: Date.now(),
-    createdAt: Date.now()
+    createdAt: existing.exists
+      ? (existing.data()?.createdAt || Date.now())
+      : Date.now()
   };
 
-  await db
-    .collection(COLLECTION)
-    .doc(safeConversationId)
-    .set(chatData, { merge: true });
+  await chatRef.set(chatData, { merge: true });
 
   return {
     ok: true,

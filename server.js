@@ -2,6 +2,8 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
+import { getAuth } from "firebase-admin/auth";
+import { getFirebaseAdminApp } from "./config/firebase-admin.js";
 
 import {
   footballFeature,
@@ -107,6 +109,30 @@ app.use(
 app.use(
   express.static(__dirname)
 );
+
+// Firebase ID-token verification for user APIs.
+app.use(async (req, res, next) => {
+  if (!req.path.startsWith("/api/") || req.path === "/api/gemini-test") {
+    return next();
+  }
+
+  const match = (req.get("authorization") || "").match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    return res.status(401).json({ ok: false, error: "Sign in is required." });
+  }
+
+  try {
+    const decoded = await getAuth(getFirebaseAdminApp()).verifyIdToken(match[1]);
+    req.user = { uid: decoded.uid, email: decoded.email || null };
+    return next();
+  } catch (error) {
+    console.warn("API authentication failed:", error.code || error.message);
+    return res.status(401).json({
+      ok: false,
+      error: "Your session is invalid or expired. Please sign in again."
+    });
+  }
+});
 
 // ============================================================
 // HELPERS
@@ -1340,9 +1366,7 @@ app.post(
   "/api/new-chat",
   async (req, res) => {
     const userId =
-      safeUserId(
-        req.body?.userId
-      );
+      req.user.uid;
 
     const conversation =
       getConversation();
@@ -1381,10 +1405,7 @@ app.delete(
       );
 
     const userId =
-      safeUserId(
-        req.query?.userId ||
-        req.body?.userId
-      );
+      req.user.uid;
 
     // Only remove an in-memory conversation when its recorded owner matches.
     // Persistent deletion independently verifies ownership in chat-history.js.
@@ -1462,9 +1483,7 @@ app.get(
       );
 
     const userId =
-      safeUserId(
-        req.query?.userId
-      );
+      req.user.uid;
 
     if (conversation) {
       const ownerId =
@@ -1529,9 +1548,7 @@ app.get(
   "/api/chats",
   async (req, res) => {
     const userId =
-      safeUserId(
-        req.query?.userId
-      );
+      req.user.uid;
 
     try {
       const history =
@@ -1583,9 +1600,7 @@ app.get(
   "/api/memory",
   (req, res) => {
     const userId =
-      safeUserId(
-        req.query?.userId
-      );
+      req.user.uid;
 
     const userMemories =
       getUserMemories(
@@ -1617,9 +1632,7 @@ app.post(
   (req, res) => {
     try {
       const userId =
-        safeUserId(
-          req.body?.userId
-        );
+        req.user.uid;
 
       const content =
         cleanText(
@@ -1718,9 +1731,7 @@ app.delete(
   "/api/memory/user/:userId",
   (req, res) => {
     const userId =
-      safeUserId(
-        req.params.userId
-      );
+      req.user.uid;
 
     const result =
       clearUserMemory(
@@ -1742,9 +1753,7 @@ app.get(
   "/api/memory/search",
   (req, res) => {
     const userId =
-      safeUserId(
-        req.query?.userId
-      );
+      req.user.uid;
 
     const query =
       cleanText(
@@ -1785,9 +1794,7 @@ app.post(
     const project =
       createProject({
         userId:
-          safeUserId(
-            req.body?.userId
-          ),
+          req.user.uid,
 
         name:
           req.body?.name,
@@ -1819,9 +1826,7 @@ app.get(
   (req, res) => {
     const projects =
       getUserProjects(
-        safeUserId(
-          req.query?.userId
-        )
+        req.user.uid
       );
 
     res.json({
@@ -1839,9 +1844,7 @@ app.get(
   "/api/football/memory",
   (req, res) => {
     const userId =
-      safeUserId(
-        req.query?.userId
-      );
+      req.user.uid;
 
     res.json({
       ok: true,
@@ -2015,9 +2018,7 @@ app.post(
       // ------------------------------------------------------
 
       const userId =
-        safeUserId(
-          req.body?.userId
-        );
+        req.user.uid;
 
       // ------------------------------------------------------
       // CONVERSATION

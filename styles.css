@@ -2155,24 +2155,3 @@ svg {
   max-width:
     100%;
 }
-
-
-/* Voice input recording state */
-.voice-btn.listening {
-  color: #ffffff;
-  background: #d94b4b;
-  border-color: rgba(255, 110, 110, 0.65);
-  box-shadow: 0 0 0 4px rgba(217, 75, 75, 0.16);
-  animation: zed-voice-pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes zed-voice-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(217, 75, 75, 0.12); }
-  50% { box-shadow: 0 0 0 7px rgba(217, 75, 75, 0.22); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .voice-btn.listening {
-    animation: none;
-  }
-}

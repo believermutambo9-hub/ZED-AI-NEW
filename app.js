@@ -170,7 +170,7 @@ function createAuthScreen() {
       font-size:30px;
       font-weight:700;
       box-shadow:inset 0 1px 0 rgba(255,255,255,.20);
-    ">Z</div>
+    "><img src="/super-brain.svg?v=2" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:19px;display:block;"></div>
     <h1 style="
       text-align:center;
       font-size:25px;

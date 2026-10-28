@@ -2034,6 +2034,17 @@ app.post(
           conversationId
         );
 
+      // Refuse to append to a conversation already associated with another user.
+      if (
+        conversation.metadata?.userId &&
+        conversation.metadata.userId !== userId
+      ) {
+        return res.status(404).json({
+          ok: false,
+          answer: "Conversation not found."
+        });
+      }
+
       await restoreConversation(
         userId,
         conversation

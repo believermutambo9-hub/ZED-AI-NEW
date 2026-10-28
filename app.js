@@ -175,7 +175,7 @@ function createAuthScreen() {
       text-align:center;
       font-size:25px;
       margin-bottom:8px;
-    ">Welcome to Zed AI</h1>
+    ">Welcome to Super Brain</h1>
     <p style="
       text-align:center;
       color:#a7a7a7;

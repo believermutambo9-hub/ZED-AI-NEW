@@ -171,7 +171,8 @@ function getUserConversationId(
 }
 
 function formatHistory(
-  conversation
+  conversation,
+  { excludeLatestUserMessage = false } = {}
 ) {
   if (
     !conversation ||
@@ -182,7 +183,19 @@ function formatHistory(
     return "";
   }
 
-  return conversation.messages
+  const messages = conversation.messages.slice();
+
+  // The current request is also sent separately in the prompt.
+  // Exclude it from history to avoid showing it to the model twice.
+  if (
+    excludeLatestUserMessage &&
+    messages.length > 0 &&
+    messages[messages.length - 1]?.role === "user"
+  ) {
+    messages.pop();
+  }
+
+  return messages
     .slice(-30)
     .map(message => {
       const role =
@@ -2071,7 +2084,8 @@ app.post(
 
       const conversationHistory =
         formatHistory(
-          conversation
+          conversation,
+          { excludeLatestUserMessage: true }
         );
 
       // ------------------------------------------------------

@@ -59,6 +59,25 @@ const state = {
   settingsOpen: false
 };
 // ============================================================
+// AUTHENTICATED API REQUESTS
+// ============================================================
+async function apiFetch(url, options = {}) {
+  const user = state.firebaseUser;
+  if (!user) {
+    throw new Error("Please sign in to continue.");
+  }
+
+  const token = await user.getIdToken();
+  const headers = new Headers(options.headers || {});
+  headers.set("Authorization", `Bearer ${token}`);
+
+  return apiFetch(url, {
+    ...options,
+    headers
+  });
+}
+
+// ============================================================
 // ELEMENTS
 // ============================================================
 const app =
@@ -970,7 +989,7 @@ async function loadChats() {
   }
   try {
     const response =
-      await fetch(
+      await apiFetch(
         `/api/chats?userId=${encodeURIComponent(
           state.userId
         )}`
@@ -1065,7 +1084,7 @@ async function loadConversation(
   }
   try {
     const response =
-      await fetch(
+      await apiFetch(
         `/api/chat/${encodeURIComponent(
           conversationId
         )}?userId=${encodeURIComponent(
@@ -1110,7 +1129,7 @@ async function createNewChat() {
   }
   try {
     const response =
-      await fetch(
+      await apiFetch(
         "/api/new-chat",
         {
           method:"POST",
@@ -1228,7 +1247,7 @@ async function sendMessage() {
     }
     showThinking();
     const response =
-      await fetch(
+      await apiFetch(
         "/api/chat",
         {
           method:"POST",
@@ -1432,7 +1451,7 @@ async function createImage() {
   showThinking();
   try {
     const response =
-      await fetch(
+      await apiFetch(
         "/api/generate-image",
         {
           method:"POST",

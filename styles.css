@@ -2471,7 +2471,7 @@ body {
    Uses the exact artwork in super-brain.svg.
    ========================================================= */
 .welcome-logo {
-  background: #080b1b url("super-brain.svg") center / cover no-repeat !important;
+  background: #080b1b url("super-brain.svg?v=2") center / cover no-repeat !important;
   border: 1px solid rgba(70, 160, 255, 0.25) !important;
   border-radius: 50% !important;
   overflow: hidden !important;

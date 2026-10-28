@@ -1386,10 +1386,25 @@ app.delete(
         req.body?.userId
       );
 
+    // Only remove an in-memory conversation when its recorded owner matches.
+    // Persistent deletion independently verifies ownership in chat-history.js.
+    const localConversation =
+      getConversationDetails(conversationId);
+
+    if (
+      localConversation?.metadata?.userId &&
+      localConversation.metadata.userId !== userId
+    ) {
+      return res.status(404).json({
+        ok: false,
+        error: "Conversation not found."
+      });
+    }
+
     const localDeleted =
-      deleteConversation(
-        conversationId
-      );
+      localConversation?.metadata?.userId === userId
+        ? deleteConversation(conversationId)
+        : false;
 
     let persistentDeleted =
       false;
@@ -1446,17 +1461,31 @@ app.get(
         conversationId
       );
 
-    if (conversation) {
-      return res.json({
-        ok: true,
-        conversation
-      });
-    }
-
     const userId =
       safeUserId(
         req.query?.userId
       );
+
+    if (conversation) {
+      const ownerId =
+        conversation.metadata?.userId;
+
+      if (ownerId === userId) {
+        return res.json({
+          ok: true,
+          conversation
+        });
+      }
+
+      // Do not expose an in-memory conversation without a matching owner.
+      // Continue to persistent lookup, which checks its stored userId.
+      if (ownerId) {
+        return res.status(404).json({
+          ok: false,
+          error: "Conversation not found."
+        });
+      }
+    }
 
     try {
       const history =

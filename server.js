@@ -1731,12 +1731,18 @@ app.delete(
 app.delete(
   "/api/memory/user/:userId",
   (req, res) => {
-    const userId =
-      req.user.uid;
+    // The URL must not imply that a caller can clear another user's memory.
+    // The authenticated Firebase UID remains the source of truth.
+    if (req.params.userId !== req.user.uid) {
+      return res.status(404).json({
+        ok: false,
+        error: "Memory not found."
+      });
+    }
 
     const result =
       clearUserMemory(
-        userId
+        req.user.uid
       );
 
     res.json({

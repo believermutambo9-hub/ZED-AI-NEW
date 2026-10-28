@@ -1705,7 +1705,8 @@ app.delete(
     try {
       const deleted =
         forgetMemory(
-          req.params.memoryId
+          req.params.memoryId,
+          req.user.uid
         );
 
       res.json({

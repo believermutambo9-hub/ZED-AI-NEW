@@ -112,7 +112,7 @@ app.use(
 
 // Firebase ID-token verification for user APIs.
 app.use(async (req, res, next) => {
-  if (!req.path.startsWith("/api/") || req.path === "/api/gemini-test") {
+  if (!req.path.startsWith("/api/")) {
     return next();
   }
 

@@ -2485,3 +2485,10 @@ body {
   content: none !important;
   display: none !important;
 }
+
+
+/* Remove the old green Z tile; keep the Super Brain logo image. */
+.brand::before {
+  content: none !important;
+  display: none !important;
+}

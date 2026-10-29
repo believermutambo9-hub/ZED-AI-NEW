@@ -56,3 +56,19 @@ test("chat endpoint fails closed on legacy conversations without an owner", () =
   assert.ok(restoreCall < assignOwner, "owner assignment must happen only after restore");
   assert.match(server.slice(ownerGuard - 200, restoreCall), /conversation\.messages\.length > 0/);
 });
+
+test("memory list and search use only the authenticated Firebase UID", () => {
+  assert.match(server, /app\.get\(\s*"\/api\/memory",\s*\(req, res\) => \{[\s\S]{0,180}req\.user\.uid/);
+  assert.match(server, /getUserMemories\(\s*userId/);
+  assert.match(server, /app\.get\(\s*"\/api\/memory\/search",\s*\(req, res\) => \{[\s\S]{0,180}req\.user\.uid/);
+  assert.match(server, /searchMemories\(\s*userId/);
+});
+
+test("memory creation assigns the authenticated UID instead of trusting request ownership", () => {
+  const start = server.indexOf('app.post(\n  "/api/memory"');
+  const end = server.indexOf('// ============================================================', start + 30);
+  const route = server.slice(start, end);
+  assert.match(route, /const userId =\s*req\.user\.uid/);
+  assert.match(route, /remember\(\{[\s\S]*?userId,/);
+  assert.doesNotMatch(route, /userId:\s*req\.body\?\.userId/);
+});

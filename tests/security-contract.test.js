@@ -293,3 +293,11 @@ test("uploaded images are restricted to supported image MIME types", () => {
   assert.match(server, /supportedImageTypes\.has\(mimeType\)/);
   assert.match(server, /This image format is not supported/);
 });
+
+
+test("file uploads reject malformed base64 before decoding", () => {
+  assert.match(server, /Reject malformed payloads/);
+  assert.match(server, /A-Za-z0-9\+\//);
+  assert.match(server, /The uploaded file data is invalid/);
+  assert.ok(server.indexOf("The uploaded file data is invalid") < server.indexOf("Buffer.from(base64, 'base64')"));
+});

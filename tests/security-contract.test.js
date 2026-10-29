@@ -310,7 +310,7 @@ test("uploaded filenames are sanitized and length-limited", () => {
   assert.ok(fileAnalysis.includes("const rawFileName = String("));
   assert.match(fileAnalysis, /\.replace\(\/\[\\u0000-\\u001f\\u007f\]\/g/);
   assert.ok(fileAnalysis.includes(".slice(0, 255)"));
-  assert.ok(server.includes('"|| \"uploaded-file\""') || server.includes('|| "uploaded-file"'));
+  assert.ok(fileAnalysis.includes('|| "uploaded-file"'));
 });
 
 
@@ -392,7 +392,7 @@ function dataUrl(bytes, mime = "application/octet-stream") {
 
 test("functional upload parser extracts UTF-8 text and sanitizes the filename", async () => {
   const result = await prepareUploadedFile({
-    name: "../notes\\u0000.txt",
+    name: "../notes\u0000.txt",
     type: "text/plain",
     data: dataUrl(Buffer.from("First line\\nSecond line", "utf8"), "text/plain")
   });

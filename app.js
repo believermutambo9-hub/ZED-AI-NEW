@@ -1298,6 +1298,12 @@ async function sendMessage() {
         data.reply ||
         "Zed did not return an answer."
     });
+    if (data.chatPersistent === false) {
+      state.messages.push({
+        role:"assistant",
+        content:"Warning: this reply could not be saved to your chat history. Copy anything important before leaving this conversation."
+      });
+    }
     renderMessages();
     await loadChats();
   } catch (error) {

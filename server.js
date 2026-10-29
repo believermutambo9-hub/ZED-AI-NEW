@@ -47,7 +47,8 @@ import {
   getProject,
   getUserProjects,
   updateProject,
-  deleteProject
+  deleteProject,
+  rememberProject
 } from "./features/memory.js";
 
 // ============================================================
@@ -1908,6 +1909,45 @@ app.delete(
     const deleted = deleteProject(req.params.projectId);
 
     return res.json({ ok: true, deleted });
+  }
+);
+
+app.post(
+  "/api/projects/:projectId/memories",
+  (req, res) => {
+    const content = cleanText(req.body?.content);
+
+    if (!content) {
+      return res.status(400).json({
+        ok: false,
+        error: "Memory content is required."
+      });
+    }
+
+    const result = rememberProject({
+      userId: req.user.uid,
+      projectId: req.params.projectId,
+      content,
+      category: req.body?.category || "project",
+      type: req.body?.type || "project",
+      importance: req.body?.importance,
+      confidence: req.body?.confidence,
+      tags: Array.isArray(req.body?.tags) ? req.body.tags : [],
+      metadata: req.body?.metadata
+    });
+
+    if (!result.created && !result.updated) {
+      const status = result.reason === "user-mismatch" || result.reason === "project-not-found" ? 404 : 400;
+      return res.status(status).json({
+        ok: false,
+        error: status === 404 ? "Project not found." : "Unable to save project memory."
+      });
+    }
+
+    return res.status(result.created ? 201 : 200).json({
+      ok: true,
+      result
+    });
   }
 );
 

@@ -259,8 +259,12 @@ async function firestoreDeleteAndWait(
   collection,
   id
 ) {
-  if (!firestore || !id) {
+  if (!id) {
     return;
+  }
+
+  if (!firestore) {
+    throw new Error("Firestore is unavailable; data was not deleted.");
   }
 
   await firestore

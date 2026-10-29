@@ -1422,6 +1422,19 @@ fileInput?.addEventListener(
     if (!file) {
       return;
     }
+
+    const maxUploadBytes =
+      18 * 1024 * 1024;
+
+    if (file.size > maxUploadBytes) {
+      state.selectedFile = null;
+      fileInput.value = "";
+      alert(
+        "This file is too large. Please choose a file smaller than 18 MB."
+      );
+      return;
+    }
+
     state.selectedFile =
       file;
     messageInput.value =

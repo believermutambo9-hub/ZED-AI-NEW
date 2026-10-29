@@ -267,10 +267,12 @@ async function firestoreDeleteAndWait(
     throw new Error("Firestore is unavailable; data was not deleted.");
   }
 
-  await firestore
-    .collection(collection)
-    .doc(id)
-    .delete();
+  const document = firestore.collection(collection).doc(id);
+  const existing = await document.get();
+  if (existing.exists) {
+    await document.delete();
+  }
+  return existing.exists;
 }
 
 async function firestoreDeleteUserRecordsAndWait(collection, userId) {
@@ -4604,7 +4606,7 @@ export async function clearUserMemoryAndWait(userId) {
 
   // Query Firestore by owner, rather than trusting only the in-memory index.
   // This also clears records when hydration was incomplete after a restart.
-  const [persistentMemoryCount, persistentProjectCount] = await Promise.all([
+  const [persistentMemoryCount, persistentProjectCount, persistentFootballDeleted] = await Promise.all([
     firestoreDeleteUserRecordsAndWait("zedMemories", normalizedUserId),
     firestoreDeleteUserRecordsAndWait("zedProjects", normalizedUserId),
     firestoreDeleteAndWait("zedFootballMemory", normalizedUserId)
@@ -4632,7 +4634,7 @@ export async function clearUserMemoryAndWait(userId) {
   return {
     memories: Math.max(memoryIds.length, persistentMemoryCount),
     projects: Math.max(projectIds.length, persistentProjectCount),
-    football: hadFootballMemory || true
+    football: hadFootballMemory || persistentFootballDeleted
   };
 }
 

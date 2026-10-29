@@ -31,3 +31,16 @@ test("memory deletion accepts an owner and checks it before deleting", () => {
   assert.match(memory, /export function forgetMemory\([\s\S]*?userId = null/);
   assert.match(memory, /memory\.userId !== normalizeUserId\(userId\)/);
 });
+
+test("chat reads return data only after matching the requested owner", () => {
+  assert.match(history, /export async function getChat\(userId, conversationId\)/);
+  assert.match(history, /if \(data\.userId !== safeUserId\) \{\s*return null;/);
+});
+
+test("memory API uses the authenticated user when deleting a memory", () => {
+  assert.match(server, /forgetMemory\([\s\S]{0,180}req\.user\.uid/);
+});
+
+test("memory lookup rejects a user ID that differs from the authenticated UID", () => {
+  assert.match(server, /req\.params\.userId !== req\.user\.uid/);
+});

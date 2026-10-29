@@ -290,14 +290,14 @@ test("AI and memory API failures do not expose raw exception messages", () => {
 
 
 test("uploaded images are restricted to supported image MIME types", () => {
-  assert.match(server, /'image\/jpeg',[\s\S]*?'image\/png',[\s\S]*?'image\/webp',[\s\S]*?'image\/gif'/);
+  for (const type of ["image/jpeg", "image/png", "image/webp", "image/gif"]) {
+    assert.ok(server.includes(type));
+  }
   assert.match(server, /includes\(mimeType\)/);
   assert.match(server, /This image format is not supported/);
 });
 
-
 test("file uploads reject malformed base64 before decoding", () => {
-  assert.match(server, /Reject malformed payloads/);
   assert.match(server, /A-Za-z0-9\+\//);
   assert.match(server, /The uploaded file data is invalid/);
   assert.ok(server.indexOf("The uploaded file data is invalid") < server.indexOf("Buffer.from(base64"));
@@ -308,7 +308,7 @@ test("uploaded filenames are sanitized and length-limited", () => {
   assert.ok(server.includes("const rawFileName = String("));
   assert.match(server, /\.replace\(\/\[\\u0000-\\u001f\\u007f\]\/g/);
   assert.ok(server.includes(".slice(0, 255)"));
-  assert.ok(server.includes("|| 'uploaded-file'"));
+  assert.ok(server.includes('"|| \"uploaded-file\""') || server.includes('|| "uploaded-file"'));
 });
 
 

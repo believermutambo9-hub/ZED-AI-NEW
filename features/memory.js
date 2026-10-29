@@ -255,6 +255,39 @@ function firestoreDelete(
     });
 }
 
+async function firestoreDeleteAndWait(
+  collection,
+  id
+) {
+  if (!id) {
+    return;
+  }
+
+  if (!firestore) {
+    throw new Error("Firestore is unavailable; data was not deleted.");
+  }
+
+  await firestore
+    .collection(collection)
+    .doc(id)
+    .delete();
+}
+
+async function firestoreWriteAndWait(
+  collection,
+  id,
+  data
+) {
+  if (!firestore || !id) {
+    throw new Error("Firestore is unavailable; data was not persisted.");
+  }
+
+  await firestore
+    .collection(collection)
+    .doc(id)
+    .set(cloneForFirestore(data));
+}
+
 
 // ============================================================
 // FIRESTORE HYDRATION
@@ -1544,6 +1577,14 @@ function persistMemory(
   );
 }
 
+export async function persistMemoryAndWait(memory) {
+  if (!memory?.id) {
+    throw new Error("A valid memory is required for persistence.");
+  }
+
+  await firestoreWriteAndWait("zedMemories", memory.id, memory);
+}
+
 
 // ============================================================
 // SAVE LONG-TERM MEMORY
@@ -1905,7 +1946,8 @@ export function updateMemory(
 // ============================================================
 
 export function forgetMemory(
-  memoryId
+  memoryId,
+  userId = null
 ) {
   const id =
     normalizeText(
@@ -1916,6 +1958,13 @@ export function forgetMemory(
     memories.get(id);
 
   if (!memory) {
+    return false;
+  }
+
+  if (
+    userId !== null &&
+    memory.userId !== normalizeUserId(userId)
+  ) {
     return false;
   }
 
@@ -1934,6 +1983,28 @@ export function forgetMemory(
     "zedMemories",
     id
   );
+
+  return true;
+}
+
+export async function forgetMemoryAndWait(
+  memoryId,
+  userId
+) {
+  const id = normalizeText(memoryId);
+  const memory = memories.get(id);
+
+  if (!id || !memory || memory.userId !== normalizeUserId(userId)) {
+    return false;
+  }
+
+  await firestoreDeleteAndWait("zedMemories", id);
+
+  memories.delete(id);
+  const index = userMemoryIndex.get(memory.userId);
+  if (index) {
+    index.delete(id);
+  }
 
   return true;
 }
@@ -3140,16 +3211,14 @@ export function getMemoryStats(
 // PROJECT PERSISTENCE
 // ============================================================
 
-function persistProject(
+async function persistProject(
   project
 ) {
-  if (
-    !project
-  ) {
-    return;
+  if (!project) {
+    throw new Error("Project is required for persistence.");
   }
 
-  firestoreWrite(
+  await firestoreWriteAndWait(
     "zedProjects",
     project.id,
     project
@@ -3161,7 +3230,7 @@ function persistProject(
 // PROJECT MEMORY
 // ============================================================
 
-export function createProject({
+export async function createProject({
   userId,
   name,
   description = "",
@@ -3217,12 +3286,10 @@ export function createProject({
   };
 
 
+  await persistProject(project);
+
   projects.set(
     project.id,
-    project
-  );
-
-  persistProject(
     project
   );
 
@@ -3299,7 +3366,7 @@ export function getUserProjects(
 // UPDATE PROJECT
 // ============================================================
 
-export function updateProject(
+export async function updateProject(
   projectId,
   updates = {}
 ) {
@@ -3355,9 +3422,7 @@ export function updateProject(
   project.updatedAt =
     now();
 
-  persistProject(
-    project
-  );
+  await persistProject(project);
 
   return {
     ...project
@@ -3369,82 +3434,48 @@ export function updateProject(
 // DELETE PROJECT
 // ============================================================
 
-export function deleteProject(
+export async function deleteProject(
   projectId
 ) {
-  const id =
-    normalizeText(
-      projectId
-    );
-
-  const project =
-    projects.get(id);
+  const id = normalizeText(projectId);
+  const project = projects.get(id);
 
   if (!project) {
     return false;
   }
 
-
-  const userIndex =
-    userMemoryIndex.get(
-      project.userId
-    );
-
+  const linkedMemoryIds = [];
+  const userIndex = userMemoryIndex.get(project.userId);
 
   if (userIndex) {
-
-    for (
-      const memoryId
-      of [
-        ...userIndex
-      ]
-    ) {
-
-      const memory =
-        memories.get(
-          memoryId
-        );
-
-      if (
-        memory &&
-        memory.projectId ===
-          id
-      ) {
-
-        memories.delete(
-          memoryId
-        );
-
-        userIndex.delete(
-          memoryId
-        );
-
-        firestoreDelete(
-          "zedMemories",
-          memoryId
-        );
+    for (const memoryId of userIndex) {
+      const memory = memories.get(memoryId);
+      if (memory && memory.projectId === id) {
+        linkedMemoryIds.push(memoryId);
       }
     }
   }
 
+  // Complete persistent deletion before changing the in-memory cache.
+  // If Firestore fails, throw so the API reports failure and the project
+  // remains available for a retry instead of silently losing local state.
+  await Promise.all([
+    ...linkedMemoryIds.map(memoryId =>
+      firestoreDeleteAndWait("zedMemories", memoryId)
+    ),
+    firestoreDeleteAndWait("zedProjects", id)
+  ]);
 
-  const deleted =
-    projects.delete(
-      id
-    );
-
-  if (deleted) {
-    firestoreDelete(
-      "zedProjects",
-      id
-    );
+  for (const memoryId of linkedMemoryIds) {
+    memories.delete(memoryId);
+    userIndex?.delete(memoryId);
   }
 
-  return deleted;
+  projects.delete(id);
+  return true;
 }
 
 
-// ============================================================
 // PROJECT MEMORY
 // ============================================================
 
@@ -4575,6 +4606,39 @@ export function importUserMemory(
 // ============================================================
 // CLEAR USER DATA
 // ============================================================
+
+
+export async function clearUserMemoryAndWait(userId) {
+  const normalizedUserId = normalizeUserId(userId);
+  if (!normalizedUserId) {
+    return { memories: 0, projects: 0, football: false };
+  }
+
+  const memoryIds = [...(userMemoryIndex.get(normalizedUserId) || [])]
+    .filter(id => memories.has(id));
+  const userProjects = [...projects.values()]
+    .filter(project => project.userId === normalizedUserId);
+  const hasFootballMemory = footballMemory.has(normalizedUserId);
+
+  await Promise.all([
+    ...memoryIds.map(id => firestoreDeleteAndWait("zedMemories", id)),
+    ...userProjects.map(project => firestoreDeleteAndWait("zedProjects", project.id)),
+    ...(hasFootballMemory
+      ? [firestoreDeleteAndWait("zedFootballMemory", normalizedUserId)]
+      : [])
+  ]);
+
+  for (const id of memoryIds) memories.delete(id);
+  userMemoryIndex.delete(normalizedUserId);
+  for (const project of userProjects) projects.delete(project.id);
+  footballMemory.delete(normalizedUserId);
+
+  return {
+    memories: memoryIds.length,
+    projects: userProjects.length,
+    football: hasFootballMemory
+  };
+}
 
 export function clearUserMemory(
   userId

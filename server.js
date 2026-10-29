@@ -2,6 +2,8 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
+import { getAuth } from "firebase-admin/auth";
+import { getFirebaseAdminApp } from "./config/firebase-admin.js";
 
 import {
   footballFeature,
@@ -28,6 +30,7 @@ import {
   getConversationDetails,
   deleteConversation,
   remember,
+  persistMemoryAndWait,
   getUserMemories,
   searchMemories,
   buildMemoryContext,
@@ -41,8 +44,13 @@ import {
   clearUserMemory,
   initializeMemory,
   forgetMemory,
+  forgetMemoryAndWait,
   createProject,
-  getUserProjects
+  getProject,
+  getUserProjects,
+  updateProject,
+  deleteProject,
+  rememberProject
 } from "./features/memory.js";
 
 // ============================================================
@@ -93,7 +101,7 @@ const CLOUDFLARE_IMAGE_MODEL =
 
 app.use(
   express.json({
-    limit: "25mb"
+    limit: "30mb"
   })
 );
 
@@ -107,6 +115,30 @@ app.use(
 app.use(
   express.static(__dirname)
 );
+
+// Firebase ID-token verification for user APIs.
+app.use(async (req, res, next) => {
+  if (!req.path.startsWith("/api/")) {
+    return next();
+  }
+
+  const match = (req.get("authorization") || "").match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    return res.status(401).json({ ok: false, error: "Sign in is required." });
+  }
+
+  try {
+    const decoded = await getAuth(getFirebaseAdminApp()).verifyIdToken(match[1]);
+    req.user = { uid: decoded.uid, email: decoded.email || null };
+    return next();
+  } catch (error) {
+    console.warn("API authentication failed:", error.code || "TOKEN_VERIFICATION_FAILED");
+    return res.status(401).json({
+      ok: false,
+      error: "Your session is invalid or expired. Please sign in again."
+    });
+  }
+});
 
 // ============================================================
 // HELPERS
@@ -171,7 +203,8 @@ function getUserConversationId(
 }
 
 function formatHistory(
-  conversation
+  conversation,
+  { excludeLatestUserMessage = false } = {}
 ) {
   if (
     !conversation ||
@@ -182,7 +215,19 @@ function formatHistory(
     return "";
   }
 
-  return conversation.messages
+  const messages = conversation.messages.slice();
+
+  // The current request is also sent separately in the prompt.
+  // Exclude it from history to avoid showing it to the model twice.
+  if (
+    excludeLatestUserMessage &&
+    messages.length > 0 &&
+    messages[messages.length - 1]?.role === "user"
+  ) {
+    messages.pop();
+  }
+
+  return messages
     .slice(-30)
     .map(message => {
       const role =
@@ -620,45 +665,8 @@ function shouldUseFootballData(
 
 // ============================================================
 // UPLOADED FILE ANALYSIS
-// ============================================================
-async function prepareUploadedFile(file) {
-  if (!file) return null;
-  const dataUrl = typeof file === 'string' ? file : file.data;
-  const fileName = String(typeof file === 'object' ? file.name || 'uploaded-file' : 'uploaded-file');
-  const declaredType = String(typeof file === 'object' ? file.type || '' : '');
-  const match = /^data:([^;,]+)?;base64,([\s\S]+)$/.exec(String(dataUrl || ''));
-  if (!match) throw new Error('The uploaded file could not be read. Please upload it again.');
-  const mimeType = (match[1] || declaredType || 'application/octet-stream').toLowerCase();
-  const base64 = match[2];
-  const buffer = Buffer.from(base64, 'base64');
-  const extension = path.extname(fileName).toLowerCase();
-  if (!buffer.length) throw new Error('The uploaded file is empty or invalid.');
-  if (buffer.length > 18 * 1024 * 1024) throw new Error('This file is too large to analyse. Please upload a file smaller than 18 MB.');
-  if (mimeType.startsWith('image/')) return { fileName, mimeType, inlineData: { mimeType, data: base64 }, extractedText: '' };
-  if (mimeType === 'application/pdf' || extension === '.pdf') {
-    let extractedText = '';
-    try { const pdfModule = await import('pdf-parse'); const parsePdf = pdfModule.default || pdfModule; const parsed = await parsePdf(buffer); extractedText = cleanAIAnswer(parsed.text || ''); }
-    catch (error) { console.warn('PDF text extraction unavailable:', error.message); }
-    return { fileName, mimeType: 'application/pdf', inlineData: { mimeType: 'application/pdf', data: base64 }, extractedText };
-  }
-  if (extension === '.docx' || mimeType.includes('wordprocessingml')) {
-    const mammoth = await import('mammoth');
-    const extractRawText = mammoth.extractRawText || mammoth.default?.extractRawText;
-    const result = await extractRawText({ buffer });
-    return { fileName, mimeType, extractedText: cleanAIAnswer(result.value || '') };
-  }
-  if (['.xlsx', '.xls'].includes(extension) || mimeType.includes('spreadsheet') || mimeType.includes('ms-excel')) {
-    const XLSX = await import('xlsx');
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const extractedText = workbook.SheetNames.map(name => 'Sheet: ' + name + '\n' + XLSX.utils.sheet_to_csv(workbook.Sheets[name])).join('\n\n');
-    return { fileName, mimeType, extractedText: cleanAIAnswer(extractedText).slice(0, 100000) };
-  }
-  if (mimeType.startsWith('text/') || ['application/json','application/xml','application/javascript','application/rtf'].includes(mimeType) || ['.txt','.csv','.tsv','.md','.json','.xml','.html','.htm','.js','.css','.log','.rtf'].includes(extension)) {
-    return { fileName, mimeType, extractedText: buffer.toString('utf8').replace(/^\uFEFF/, '').slice(0, 100000) };
-  }
-  if (extension === '.doc') throw new Error('Legacy .doc files are not supported yet. Please save as .docx or PDF and upload again.');
-  throw new Error('This file type is not supported. Upload a PDF, image, DOCX, XLSX, XLS, CSV, or text-based file.');
-}
+import { prepareUploadedFile } from "./features/file-analysis.js";
+
 // ============================================================
 // GEMINI
 // ============================================================
@@ -731,6 +739,9 @@ async function askGroq(
       {
         method:
           "POST",
+
+        signal:
+          AbortSignal.timeout(45_000),
 
         headers: {
           "Authorization":
@@ -816,6 +827,9 @@ async function askOpenRouter(
       {
         method:
           "POST",
+
+        signal:
+          AbortSignal.timeout(45_000),
 
         headers: {
           "Authorization":
@@ -957,11 +971,16 @@ async function askAI(
     );
   }
 
-  throw new Error(
-    `All AI services failed. ${errors.join(
-      " | "
-    )}`
+  // Keep provider diagnostics in server logs only; return a stable error
+  // message so internal endpoints, response bodies, and key-related details
+  // are never exposed to the chat route's caller.
+  console.error("All configured AI providers failed:", errors);
+
+  const error = new Error(
+    "All AI services are temporarily unavailable. Please try again shortly."
   );
+  error.code = "AI_PROVIDERS_UNAVAILABLE";
+  throw error;
 }
 
 // ============================================================
@@ -1149,7 +1168,8 @@ function processForgetRequest(
     ) {
       if (
         forgetMemory(
-          memory.id
+          memory.id,
+          userId
         )
       ) {
         deleted++;
@@ -1299,7 +1319,7 @@ app.get(
     try {
       const result =
         await askAI(
-          "Reply with exactly: Zed AI is working."
+          "Reply with exactly: Zed is working."
         );
 
       res.json({
@@ -1310,10 +1330,10 @@ app.get(
           result.provider
       });
     } catch (error) {
+      console.error("Gemini test failed:", error.message);
       res.status(500).json({
         ok: false,
-        error:
-          error.message
+        error: "The AI service is temporarily unavailable. Please try again."
       });
     }
   }
@@ -1327,9 +1347,7 @@ app.post(
   "/api/new-chat",
   async (req, res) => {
     const userId =
-      safeUserId(
-        req.body?.userId
-      );
+      req.user.uid;
 
     const conversation =
       getConversation();
@@ -1341,10 +1359,19 @@ app.post(
         "zed"
     };
 
-    await persistConversation(
-      userId,
-      conversation
-    );
+    const persistence =
+      await persistConversation(
+        userId,
+        conversation
+      );
+
+    if (!persistence?.persistent) {
+      deleteConversation(conversation.id);
+      return res.status(503).json({
+        ok: false,
+        error: "A new chat could not be saved. Please try again."
+      });
+    }
 
     res.json({
       ok: true,
@@ -1362,54 +1389,55 @@ app.delete(
   "/api/chat/:conversationId",
   async (req, res) => {
     const conversationId =
-      safeConversationId(
-        req.params
-          .conversationId
-      );
+      safeConversationId(req.params.conversationId);
+    const userId = req.user.uid;
+    const localConversation =
+      getConversationDetails(conversationId);
 
-    const userId =
-      safeUserId(
-        req.query?.userId ||
-        req.body?.userId
-      );
-
-    const localDeleted =
-      deleteConversation(
-        conversationId
-      );
-
-    let persistentDeleted =
-      false;
-
-    try {
-      const history =
-        await getChatHistoryModule();
-
-      if (history) {
-        persistentDeleted =
-          await history.deleteChat(
-            userId,
-            conversationId
-          );
-      }
-    } catch (error) {
-      console.error(
-        "Persistent chat delete error:",
-        error.message
-      );
+    if (
+      localConversation?.metadata?.userId &&
+      localConversation.metadata.userId !== userId
+    ) {
+      return res.status(404).json({
+        ok: false,
+        error: "Conversation not found."
+      });
     }
 
-    res.json({
+    let persistentDeleted = false;
+
+    try {
+      const history = await getChatHistoryModule();
+
+      // Do not remove the local copy unless persistent deletion can be checked.
+      if (!history) {
+        return res.status(503).json({
+          ok: false,
+          error: "Chat history is unavailable. Please try again."
+        });
+      }
+
+      persistentDeleted = await history.deleteChat(
+        userId,
+        conversationId
+      );
+    } catch (error) {
+      console.error("Persistent chat delete error:", error.message);
+      return res.status(503).json({
+        ok: false,
+        error: "Chat could not be deleted from history. Please try again."
+      });
+    }
+
+    const localDeleted =
+      localConversation?.metadata?.userId === userId
+        ? deleteConversation(conversationId)
+        : false;
+
+    return res.json({
       ok: true,
-
-      deleted:
-        Boolean(
-          localDeleted ||
-          persistentDeleted
-        ),
-
+      deleted: Boolean(localDeleted || persistentDeleted),
       localDeleted,
-
       persistentDeleted
     });
   }
@@ -1433,17 +1461,29 @@ app.get(
         conversationId
       );
 
-    if (conversation) {
-      return res.json({
-        ok: true,
-        conversation
-      });
-    }
-
     const userId =
-      safeUserId(
-        req.query?.userId
-      );
+      req.user.uid;
+
+    if (conversation) {
+      const ownerId =
+        conversation.metadata?.userId;
+
+      if (ownerId === userId) {
+        return res.json({
+          ok: true,
+          conversation
+        });
+      }
+
+      // Do not expose an in-memory conversation without a matching owner.
+      // Continue to persistent lookup, which checks its stored userId.
+      if (ownerId) {
+        return res.status(404).json({
+          ok: false,
+          error: "Conversation not found."
+        });
+      }
+    }
 
     try {
       const history =
@@ -1487,9 +1527,7 @@ app.get(
   "/api/chats",
   async (req, res) => {
     const userId =
-      safeUserId(
-        req.query?.userId
-      );
+      req.user.uid;
 
     try {
       const history =
@@ -1524,10 +1562,8 @@ app.get(
       return res.json({
         ok: true,
         chats: [],
-        persistent:
-          false,
-        error:
-          error.message
+        persistent: false,
+        error: "Chat history is temporarily unavailable. Please try again."
       });
     }
   }
@@ -1541,9 +1577,7 @@ app.get(
   "/api/memory",
   (req, res) => {
     const userId =
-      safeUserId(
-        req.query?.userId
-      );
+      req.user.uid;
 
     const userMemories =
       getUserMemories(
@@ -1572,12 +1606,10 @@ app.get(
 
 app.post(
   "/api/memory",
-  (req, res) => {
+  async (req, res) => {
     try {
       const userId =
-        safeUserId(
-          req.body?.userId
-        );
+        req.user.uid;
 
       const content =
         cleanText(
@@ -1626,15 +1658,27 @@ app.post(
             req.body?.tags
         });
 
-      res.json({
+      if (result.created || result.updated) {
+        try {
+          await persistMemoryAndWait(result.memory);
+        } catch (persistenceError) {
+          console.error("Memory persistence failed:", persistenceError.message);
+          return res.status(503).json({
+            ok: false,
+            error: "Memory could not be saved. Please try again."
+          });
+        }
+      }
+
+      return res.json({
         ok: true,
         result
       });
     } catch (error) {
+      console.error("Memory API request failed:", error.message);
       res.status(500).json({
         ok: false,
-        error:
-          error.message
+        error: "The memory request could not be completed. Please try again."
       });
     }
   }
@@ -1646,23 +1690,20 @@ app.post(
 
 app.delete(
   "/api/memory/:memoryId",
-  (req, res) => {
+  async (req, res) => {
     try {
-      const deleted =
-        forgetMemory(
-          req.params.memoryId
-        );
+      const deleted = await forgetMemoryAndWait(
+        req.params.memoryId,
+        req.user.uid
+      );
 
-      res.json({
-        ok: true,
-        deleted
-      });
+      return res.json({ ok: true, deleted });
     } catch (error) {
-      res.status(500).json({
+      console.error("Memory deletion failed:", error.message);
+      return res.status(503).json({
         ok: false,
         deleted: false,
-        error:
-          error.message
+        error: "Memory could not be deleted. Please try again."
       });
     }
   }
@@ -1674,21 +1715,26 @@ app.delete(
 
 app.delete(
   "/api/memory/user/:userId",
-  (req, res) => {
-    const userId =
-      safeUserId(
-        req.params.userId
-      );
+  async (req, res) => {
+    // The URL must not imply that a caller can clear another user's memory.
+    // The authenticated Firebase UID remains the source of truth.
+    if (req.params.userId !== req.user.uid) {
+      return res.status(404).json({
+        ok: false,
+        error: "Memory not found."
+      });
+    }
 
-    const result =
-      clearUserMemory(
-        userId
-      );
-
-    res.json({
-      ok: true,
-      result
-    });
+    try {
+      const result = await clearUserMemoryAndWait(req.user.uid);
+      return res.json({ ok: true, result });
+    } catch (error) {
+      console.error("Clear-all memory failed:", error.message);
+      return res.status(503).json({
+        ok: false,
+        error: "Memory could not be cleared. Please try again."
+      });
+    }
   }
 );
 
@@ -1700,9 +1746,7 @@ app.get(
   "/api/memory/search",
   (req, res) => {
     const userId =
-      safeUserId(
-        req.query?.userId
-      );
+      req.user.uid;
 
     const query =
       cleanText(
@@ -1739,36 +1783,30 @@ app.get(
 
 app.post(
   "/api/projects",
-  (req, res) => {
-    const project =
-      createProject({
-        userId:
-          safeUserId(
-            req.body?.userId
-          ),
-
-        name:
-          req.body?.name,
-
-        description:
-          req.body?.description,
-
-        metadata:
-          req.body?.metadata
+  async (req, res) => {
+    try {
+      const project = await createProject({
+        userId: req.user.uid,
+        name: req.body?.name,
+        description: req.body?.description,
+        metadata: req.body?.metadata
       });
 
-    if (!project) {
-      return res.status(400).json({
+      if (!project) {
+        return res.status(400).json({
+          ok: false,
+          error: "Unable to create project."
+        });
+      }
+
+      return res.status(201).json({ ok: true, project });
+    } catch (error) {
+      console.error("Project creation failed:", error.message);
+      return res.status(503).json({
         ok: false,
-        error:
-          "Unable to create project."
+        error: "Project could not be saved. Please try again."
       });
     }
-
-    res.json({
-      ok: true,
-      project
-    });
   }
 );
 
@@ -1777,14 +1815,140 @@ app.get(
   (req, res) => {
     const projects =
       getUserProjects(
-        safeUserId(
-          req.query?.userId
-        )
+        req.user.uid
       );
 
     res.json({
       ok: true,
       projects
+    });
+  }
+);
+
+// Read, update, and delete projects only for their authenticated owner.
+app.get(
+  "/api/projects/:projectId",
+  (req, res) => {
+    const project = getProject(req.params.projectId);
+
+    if (!project || project.userId !== req.user.uid) {
+      return res.status(404).json({
+        ok: false,
+        error: "Project not found."
+      });
+    }
+
+    return res.json({ ok: true, project });
+  }
+);
+
+app.patch(
+  "/api/projects/:projectId",
+  async (req, res) => {
+    const project = getProject(req.params.projectId);
+
+    if (!project || project.userId !== req.user.uid) {
+      return res.status(404).json({
+        ok: false,
+        error: "Project not found."
+      });
+    }
+
+    try {
+      const updated = await updateProject(req.params.projectId, {
+        name: req.body?.name,
+        description: req.body?.description,
+        metadata: req.body?.metadata
+      });
+
+      if (!updated) {
+        return res.status(404).json({
+          ok: false,
+          error: "Project not found."
+        });
+      }
+
+      return res.json({ ok: true, project: updated });
+    } catch (error) {
+      console.error("Project update failed:", error.message);
+      return res.status(503).json({
+        ok: false,
+        error: "Project changes could not be saved. Please try again."
+      });
+    }
+  }
+);
+
+app.delete(
+  "/api/projects/:projectId",
+  async (req, res) => {
+    const project = getProject(req.params.projectId);
+
+    if (!project || project.userId !== req.user.uid) {
+      return res.status(404).json({
+        ok: false,
+        error: "Project not found."
+      });
+    }
+
+    try {
+      const deleted = await deleteProject(req.params.projectId);
+      return res.json({ ok: true, deleted });
+    } catch (error) {
+      console.error("Project deletion failed:", error.message);
+      return res.status(503).json({
+        ok: false,
+        error: "Project deletion could not be completed. Please try again."
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/projects/:projectId/memories",
+  async (req, res) => {
+    const content = cleanText(req.body?.content);
+
+    if (!content) {
+      return res.status(400).json({
+        ok: false,
+        error: "Memory content is required."
+      });
+    }
+
+    const result = rememberProject({
+      userId: req.user.uid,
+      projectId: req.params.projectId,
+      content,
+      category: req.body?.category || "project",
+      type: req.body?.type || "project",
+      importance: req.body?.importance,
+      confidence: req.body?.confidence,
+      tags: Array.isArray(req.body?.tags) ? req.body.tags : [],
+      metadata: req.body?.metadata
+    });
+
+    if (!result.created && !result.updated) {
+      const status = result.reason === "user-mismatch" || result.reason === "project-not-found" ? 404 : 400;
+      return res.status(status).json({
+        ok: false,
+        error: status === 404 ? "Project not found." : "Unable to save project memory."
+      });
+    }
+
+    try {
+      await persistMemoryAndWait(result.memory);
+    } catch (error) {
+      console.error("Project memory persistence failed:", error.message);
+      return res.status(503).json({
+        ok: false,
+        error: "Project memory could not be saved. Please try again."
+      });
+    }
+
+    return res.status(result.created ? 201 : 200).json({
+      ok: true,
+      result
     });
   }
 );
@@ -1797,9 +1961,7 @@ app.get(
   "/api/football/memory",
   (req, res) => {
     const userId =
-      safeUserId(
-        req.query?.userId
-      );
+      req.user.uid;
 
     res.json({
       ok: true,
@@ -1910,8 +2072,14 @@ app.post(
       if (!prompt) {
         return res.status(400).json({
           ok: false,
-          error:
-            "Image prompt is required."
+          error: "Image prompt is required."
+        });
+      }
+
+      if (prompt.length > 2000) {
+        return res.status(400).json({
+          ok: false,
+          error: "Image prompts must be 2,000 characters or fewer."
         });
       }
 
@@ -1932,8 +2100,7 @@ app.post(
 
       res.status(500).json({
         ok: false,
-        error:
-          error.message
+        error: "Image generation is temporarily unavailable. Please try again."
       });
     }
   }
@@ -1952,9 +2119,19 @@ app.post(
           req.body?.message
         );
 
-      const uploadedFile = req.body?.file
-        ? await prepareUploadedFile(req.body.file)
-        : null;
+      let uploadedFile = null;
+      if (req.body?.file) {
+        try {
+          uploadedFile = await prepareUploadedFile(req.body.file);
+        } catch (uploadError) {
+          console.warn("Uploaded file could not be analysed:", uploadError.message);
+          return res.status(400).json({
+            ok: false,
+            answer: "I couldn't read that file. Please check that it is supported, uncorrupted, and smaller than 18 MB, then try again.",
+            error: "The uploaded file could not be analysed. Check the file type, size, and contents."
+          });
+        }
+      }
 
       if (!userMessage && !uploadedFile) {
         return res.status(400).json({
@@ -1973,9 +2150,7 @@ app.post(
       // ------------------------------------------------------
 
       const userId =
-        safeUserId(
-          req.body?.userId
-        );
+        req.user.uid;
 
       // ------------------------------------------------------
       // CONVERSATION
@@ -1991,6 +2166,31 @@ app.post(
         getConversation(
           conversationId
         );
+
+      // Fail closed for conversations with messages but no recorded owner.
+      // Older Firestore records may predate ownership metadata; never silently
+      // claim them for the currently authenticated user.
+      if (
+        Array.isArray(conversation.messages) &&
+        conversation.messages.length > 0 &&
+        !conversation.metadata?.userId
+      ) {
+        return res.status(404).json({
+          ok: false,
+          answer: "Conversation not found."
+        });
+      }
+
+      // Refuse to append to a conversation already associated with another user.
+      if (
+        conversation.metadata?.userId &&
+        conversation.metadata.userId !== userId
+      ) {
+        return res.status(404).json({
+          ok: false,
+          answer: "Conversation not found."
+        });
+      }
 
       await restoreConversation(
         userId,
@@ -2021,10 +2221,19 @@ app.post(
         userMessage
       );
 
-      await persistConversation(
-        userId,
-        conversation
-      );
+      const initialChatPersistence =
+        await persistConversation(
+          userId,
+          conversation
+        );
+
+      if (!initialChatPersistence?.persistent) {
+        conversation.messages.pop();
+        return res.status(503).json({
+          ok: false,
+          answer: "Your message could not be saved. Please try again."
+        });
+      }
 
       // ------------------------------------------------------
       // MEMORY: FORGET
@@ -2071,7 +2280,8 @@ app.post(
 
       const conversationHistory =
         formatHistory(
-          conversation
+          conversation,
+          { excludeLatestUserMessage: true }
         );
 
       // ------------------------------------------------------
@@ -2741,7 +2951,7 @@ ${fileContext}
           "I’m sorry, I couldn’t complete that request right now. Please try again.",
 
         error:
-          error.message
+          "The request could not be completed. Please try again."
       });
     }
   }

@@ -1,5 +1,5 @@
 // ============================================================
-// ZED AI - CURRENT INTERFACE
+// ZED - CURRENT INTERFACE
 // Firebase Authentication + Zed Backend
 // Liquid Glass Interface Controls
 // ============================================================
@@ -54,10 +54,30 @@ const state = {
   conversationId: null,
   messages: [],
   chats: [],
+  chatHistoryUnavailable: false,
   selectedFile: null,
   sending: false,
   settingsOpen: false
 };
+// ============================================================
+// AUTHENTICATED API REQUESTS
+// ============================================================
+async function apiFetch(url, options = {}) {
+  const user = state.firebaseUser;
+  if (!user) {
+    throw new Error("Please sign in to continue.");
+  }
+
+  const token = await user.getIdToken();
+  const headers = new Headers(options.headers || {});
+  headers.set("Authorization", `Bearer ${token}`);
+
+  return fetch(url, {
+    ...options,
+    headers
+  });
+}
+
 // ============================================================
 // ELEMENTS
 // ============================================================
@@ -175,7 +195,7 @@ function createAuthScreen() {
       text-align:center;
       font-size:25px;
       margin-bottom:8px;
-    ">Welcome to Zed AI</h1>
+    ">Welcome to Zed</h1>
     <p style="
       text-align:center;
       color:#a7a7a7;
@@ -403,7 +423,7 @@ function createSettingsPanel() {
           color:#929292;
           font-size:12px;
           margin-top:4px;
-        ">Customize your Zed AI experience</div>
+        ">Customize your Zed experience</div>
       </div>
       <button id="zedSettingsClose"
         aria-label="Close settings"
@@ -456,13 +476,13 @@ function createSettingsPanel() {
       background:rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.08);
     ">
-      <div style="font-weight:600;">Zed AI</div>
+      <div style="font-weight:600;">Zed</div>
       <div style="
         color:#929292;
         font-size:12px;
         margin-top:5px;
       ">
-        Your conversations, files and AI tools are managed by Zed AI.
+        Your conversations, files and AI tools are managed by Zed.
       </div>
     </div>
   `;
@@ -902,7 +922,7 @@ function renderMessages() {
       image.src =
         message.image;
       image.alt =
-        "Image created by Zed AI";
+        "Image created by Zed";
       image.style.cssText = `
         display:block;
         max-width:100%;
@@ -970,7 +990,7 @@ async function loadChats() {
   }
   try {
     const response =
-      await fetch(
+      await apiFetch(
         `/api/chats?userId=${encodeURIComponent(
           state.userId
         )}`
@@ -989,12 +1009,16 @@ async function loadChats() {
       Array.isArray(data.chats)
         ? data.chats
         : [];
+    state.chatHistoryUnavailable =
+      data.persistent === false;
     renderRecentChats();
   } catch (error) {
     console.error(
       "Load chats error:",
       error
     );
+    state.chatHistoryUnavailable = true;
+    renderRecentChats();
   }
 }
 // ============================================================
@@ -1014,8 +1038,9 @@ function renderRecentChats() {
       font-size:12px;
       padding:10px;
     `;
-    empty.textContent =
-      "No conversations yet.";
+    empty.textContent = state.chatHistoryUnavailable
+      ? "Chat history is temporarily unavailable. Check your connection and try again."
+      : "No conversations yet.";
     recentChats.appendChild(
       empty
     );
@@ -1065,7 +1090,7 @@ async function loadConversation(
   }
   try {
     const response =
-      await fetch(
+      await apiFetch(
         `/api/chat/${encodeURIComponent(
           conversationId
         )}?userId=${encodeURIComponent(
@@ -1110,7 +1135,7 @@ async function createNewChat() {
   }
   try {
     const response =
-      await fetch(
+      await apiFetch(
         "/api/new-chat",
         {
           method:"POST",
@@ -1203,6 +1228,14 @@ async function sendMessage() {
   ) {
     return;
   }
+  if (state.selectedFile && state.selectedFile.size > 18 * 1024 * 1024) {
+    state.messages.push({
+      role: "assistant",
+      content: "This file is too large to analyse. Please choose a file smaller than 18 MB."
+    });
+    renderMessages();
+    return;
+  }
   setSending(true);
   const previousMessages =
     state.messages.slice();
@@ -1228,7 +1261,7 @@ async function sendMessage() {
     }
     showThinking();
     const response =
-      await fetch(
+      await apiFetch(
         "/api/chat",
         {
           method:"POST",
@@ -1279,6 +1312,12 @@ async function sendMessage() {
         data.reply ||
         "Zed did not return an answer."
     });
+    if (data.chatPersistent === false) {
+      state.messages.push({
+        role:"assistant",
+        content:"Warning: this reply could not be saved to your chat history. Copy anything important before leaving this conversation."
+      });
+    }
     renderMessages();
     await loadChats();
   } catch (error) {
@@ -1391,6 +1430,19 @@ fileInput?.addEventListener(
     if (!file) {
       return;
     }
+
+    const maxUploadBytes =
+      18 * 1024 * 1024;
+
+    if (file.size > maxUploadBytes) {
+      state.selectedFile = null;
+      fileInput.value = "";
+      alert(
+        "This file is too large. Please choose a file smaller than 18 MB."
+      );
+      return;
+    }
+
     state.selectedFile =
       file;
     messageInput.value =
@@ -1432,7 +1484,7 @@ async function createImage() {
   showThinking();
   try {
     const response =
-      await fetch(
+      await apiFetch(
         "/api/generate-image",
         {
           method:"POST",

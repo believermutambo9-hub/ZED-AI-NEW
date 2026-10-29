@@ -130,17 +130,16 @@
     if (messageInput && !messageInput.disabled) messageInput.focus();
   });
 
-  // Mark the selected conversation in the sidebar.
-  if (recentChats) {
-    const activeObserver = new MutationObserver(() => {
-      recentChats.querySelectorAll(".recent-chat").forEach(item => {
-        const isActive = item.dataset.conversationId &&
-          item.dataset.conversationId === window.zedActiveConversationId;
-        item.classList.toggle("active", Boolean(isActive));
-      });
+  // Highlight the selected conversation without changing history API behavior.
+  recentChats?.addEventListener("click", event => {
+    const item = event.target.closest(".recent-chat");
+    if (!item) return;
+    recentChats.querySelectorAll(".recent-chat").forEach(chat => {
+      chat.classList.toggle("active", chat === item);
+      if (chat === item) chat.setAttribute("aria-current", "true");
+      else chat.removeAttribute("aria-current");
     });
-    activeObserver.observe(recentChats, { childList: true, subtree: true });
-  }
+  });
 
   // Respect reduced-motion preferences for people who request it.
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {

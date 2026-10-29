@@ -231,7 +231,7 @@ function isBroadNewsRequest(query = "") {
 function extractMainTopic(query = "") {
   return cleanText(query)
     .replace(
-      /\b(latest|today|current|recent|breaking|news|updates?|headlines?|right now|this morning|this evening)\b/gi,
+      /\b(latest|today|current|recent|breaking|news|updates?|headlines?|published|publication|articles?|sources?|verified|relevant|right now|this morning|this evening)\b/gi,
       " "
     )
     .replace(/\s+/g, " ")

@@ -229,3 +229,11 @@ test("clear-all memory waits for every Firestore delete before clearing local st
   assert.match(route, /Memory could not be cleared\. Please try again\./);
   assert.match(route, /req\.params\.userId !== req\.user\.uid/);
 });
+
+
+test("delete-all chat history chunks Firestore writes below the 500-write limit", () => {
+  assert.match(history, /const batchSize = 450/);
+  assert.match(history, /for \(let start = 0; start < snapshot\.docs\.length; start \+= batchSize\)/);
+  assert.match(history, /snapshot\.docs\.slice\(start, start \+ batchSize\)/);
+  assert.match(history, /await batch\.commit\(\)/);
+});

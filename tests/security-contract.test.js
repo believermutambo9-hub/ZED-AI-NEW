@@ -222,9 +222,12 @@ test("individual memory deletion waits for Firestore before removing local memor
 });
 
 
-test("clear-all memory waits for every Firestore delete before clearing local state", () => {
+test("clear-all memory queries persistent user records before clearing local state", () => {
   assert.match(memory, /export async function clearUserMemoryAndWait\(userId\)/);
-  assert.match(memory, /await Promise\.all\(\[[\s\S]*?firestoreDeleteAndWait\("zedMemories"/);
+  assert.match(memory, /firestoreDeleteUserRecordsAndWait\("zedMemories", normalizedUserId\)/);
+  assert.match(memory, /firestoreDeleteUserRecordsAndWait\("zedProjects", normalizedUserId\)/);
+  assert.match(memory, /await Promise\.all\(\[[\s\S]*?firestoreDeleteUserRecordsAndWait/);
+  assert.match(memory, /for \(const \[id, memory\] of memories\)/);
   const start = server.indexOf('app.delete(\n  "/api/memory/user/:userId",');
   const end = server.indexOf("// MEMORY SEARCH", start);
   const route = server.slice(start, end);
@@ -232,6 +235,15 @@ test("clear-all memory waits for every Firestore delete before clearing local st
   assert.match(route, /await clearUserMemoryAndWait\(req\.user\.uid\)/);
   assert.match(route, /Memory could not be cleared\. Please try again\./);
   assert.match(route, /req\.params\.userId !== req\.user\.uid/);
+});
+
+test("memory relevance requires content or tag overlap before recency can affect ranking", () => {
+  const start = memory.indexOf("export function calculateMemoryRelevance(");
+  const end = memory.indexOf("// RECENCY SCORE", start);
+  const relevance = memory.slice(start, end);
+  assert.match(relevance, /if \(lexicalScore === 0\)\s*\{\s*return 0;/);
+  assert.match(relevance, /contentScore \* 0\.62/);
+  assert.match(relevance, /tagScore \* 0\.18/);
 });
 
 

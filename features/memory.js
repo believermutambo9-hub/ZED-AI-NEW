@@ -273,6 +273,32 @@ async function firestoreDeleteAndWait(
     .delete();
 }
 
+async function firestoreDeleteUserRecordsAndWait(collection, userId) {
+  if (!firestore) {
+    throw new Error("Firestore is unavailable; data was not deleted.");
+  }
+
+  const snapshot = await firestore
+    .collection(collection)
+    .where("userId", "==", userId)
+    .get();
+
+  if (snapshot.empty) {
+    return 0;
+  }
+
+  // Firestore batches support at most 500 writes. Keep a safety margin.
+  for (let start = 0; start < snapshot.docs.length; start += 450) {
+    const batch = firestore.batch();
+    for (const document of snapshot.docs.slice(start, start + 450)) {
+      batch.delete(document.ref);
+    }
+    await batch.commit();
+  }
+
+  return snapshot.size;
+}
+
 async function firestoreWriteAndWait(
   collection,
   id,
@@ -2320,73 +2346,35 @@ export function calculateMemoryRelevance(
     return 0;
   }
 
-  const contentScore =
-    tokenSimilarity(
-      memory.content,
-      query
-    );
+  const contentScore = tokenSimilarity(memory.content, query);
+  const tagScore = tokenSimilarity((memory.tags || []).join(" "), query);
+  const lexicalScore = Math.max(contentScore, tagScore);
 
-  const tagScore =
-    tokenSimilarity(
-      memory.tags.join(" "),
-      query
-    );
-
-  const categoryScore =
-    tokenSimilarity(
-      memory.category,
-      query
-    );
-
-  const typeScore =
-    tokenSimilarity(
-      memory.type,
-      query
-    );
-
-  const recencyScore =
-    calculateRecencyScore(
-      memory.updatedAt
-    );
-
-  const importanceScore =
-    memory.importance /
-    100;
-
-  const confidenceScore =
-    clamp01(
-      memory.confidence
-    );
-
-
-  let score =
-    contentScore * 0.50 +
-    tagScore * 0.15 +
-    categoryScore * 0.05 +
-    typeScore * 0.05 +
-    recencyScore * 0.10 +
-    importanceScore * 0.10 +
-    confidenceScore * 0.05;
-
-
-  if (
-    memory.lastUsedAt
-  ) {
-    const usageBoost =
-      Math.min(
-        (
-          memory.usageCount ||
-          0
-        ) * 0.005,
-        0.05
-      );
-
-    score +=
-      usageBoost;
+  // Importance and recency must never make an unrelated memory relevant.
+  // Require at least one meaningful content/tag overlap before ranking it.
+  if (lexicalScore === 0) {
+    return 0;
   }
 
+  const categoryScore = tokenSimilarity(memory.category, query);
+  const typeScore = tokenSimilarity(memory.type, query);
+  const recencyScore = calculateRecencyScore(memory.updatedAt);
+  const importanceScore = safeNumber(memory.importance, 0, 0, 100) / 100;
+  const confidenceScore = clamp01(memory.confidence);
+
+  const usageBoost = memory.lastUsedAt
+    ? Math.min((memory.usageCount || 0) * 0.005, 0.03)
+    : 0;
+
   return clamp01(
-    score
+    contentScore * 0.62 +
+    tagScore * 0.18 +
+    categoryScore * 0.04 +
+    typeScore * 0.03 +
+    recencyScore * 0.04 +
+    importanceScore * 0.05 +
+    confidenceScore * 0.04 +
+    usageBoost
   );
 }
 
@@ -4614,29 +4602,37 @@ export async function clearUserMemoryAndWait(userId) {
     return { memories: 0, projects: 0, football: false };
   }
 
-  const memoryIds = [...(userMemoryIndex.get(normalizedUserId) || [])]
-    .filter(id => memories.has(id));
-  const userProjects = [...projects.values()]
-    .filter(project => project.userId === normalizedUserId);
-  const hasFootballMemory = footballMemory.has(normalizedUserId);
-
-  await Promise.all([
-    ...memoryIds.map(id => firestoreDeleteAndWait("zedMemories", id)),
-    ...userProjects.map(project => firestoreDeleteAndWait("zedProjects", project.id)),
-    ...(hasFootballMemory
-      ? [firestoreDeleteAndWait("zedFootballMemory", normalizedUserId)]
-      : [])
+  // Query Firestore by owner, rather than trusting only the in-memory index.
+  // This also clears records when hydration was incomplete after a restart.
+  const [persistentMemoryCount, persistentProjectCount] = await Promise.all([
+    firestoreDeleteUserRecordsAndWait("zedMemories", normalizedUserId),
+    firestoreDeleteUserRecordsAndWait("zedProjects", normalizedUserId),
+    firestoreDeleteAndWait("zedFootballMemory", normalizedUserId)
   ]);
 
-  for (const id of memoryIds) memories.delete(id);
+  const memoryIds = [];
+  for (const [id, memory] of memories) {
+    if (memory.userId === normalizedUserId) {
+      memoryIds.push(id);
+      memories.delete(id);
+    }
+  }
   userMemoryIndex.delete(normalizedUserId);
-  for (const project of userProjects) projects.delete(project.id);
-  footballMemory.delete(normalizedUserId);
+
+  const projectIds = [];
+  for (const [id, project] of projects) {
+    if (project.userId === normalizedUserId) {
+      projectIds.push(id);
+      projects.delete(id);
+    }
+  }
+
+  const hadFootballMemory = footballMemory.delete(normalizedUserId);
 
   return {
-    memories: memoryIds.length,
-    projects: userProjects.length,
-    football: hasFootballMemory
+    memories: Math.max(memoryIds.length, persistentMemoryCount),
+    projects: Math.max(projectIds.length, persistentProjectCount),
+    football: hadFootballMemory || true
   };
 }
 

@@ -771,8 +771,7 @@ export async function searchWeb(
   const todayRequest = isTodayRequest(query);
   const recentRequest =
     options.recentRequest ??
-    isRecentRequest(intentQuery) ||
-    todayRequest;
+    (isRecentRequest(intentQuery) || todayRequest);
 
   const newsRequest =
     isNewsRequest(intentQuery);

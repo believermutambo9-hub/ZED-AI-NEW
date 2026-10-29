@@ -1415,16 +1415,8 @@ app.delete(
   "/api/chat/:conversationId",
   async (req, res) => {
     const conversationId =
-      safeConversationId(
-        req.params
-          .conversationId
-      );
-
-    const userId =
-      req.user.uid;
-
-    // Only remove an in-memory conversation when its recorded owner matches.
-    // Persistent deletion independently verifies ownership in chat-history.js.
+      safeConversationId(req.params.conversationId);
+    const userId = req.user.uid;
     const localConversation =
       getConversationDetails(conversationId);
 
@@ -1438,43 +1430,40 @@ app.delete(
       });
     }
 
+    let persistentDeleted = false;
+
+    try {
+      const history = await getChatHistoryModule();
+
+      // Do not remove the local copy unless persistent deletion can be checked.
+      if (!history) {
+        return res.status(503).json({
+          ok: false,
+          error: "Chat history is unavailable. Please try again."
+        });
+      }
+
+      persistentDeleted = await history.deleteChat(
+        userId,
+        conversationId
+      );
+    } catch (error) {
+      console.error("Persistent chat delete error:", error.message);
+      return res.status(503).json({
+        ok: false,
+        error: "Chat could not be deleted from history. Please try again."
+      });
+    }
+
     const localDeleted =
       localConversation?.metadata?.userId === userId
         ? deleteConversation(conversationId)
         : false;
 
-    let persistentDeleted =
-      false;
-
-    try {
-      const history =
-        await getChatHistoryModule();
-
-      if (history) {
-        persistentDeleted =
-          await history.deleteChat(
-            userId,
-            conversationId
-          );
-      }
-    } catch (error) {
-      console.error(
-        "Persistent chat delete error:",
-        error.message
-      );
-    }
-
-    res.json({
+    return res.json({
       ok: true,
-
-      deleted:
-        Boolean(
-          localDeleted ||
-          persistentDeleted
-        ),
-
+      deleted: Boolean(localDeleted || persistentDeleted),
       localDeleted,
-
       persistentDeleted
     });
   }

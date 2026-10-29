@@ -509,3 +509,9 @@ test("all-provider failures return a safe message without leaking provider detai
   assert.match(fallback, /error\.code = "AI_PROVIDERS_UNAVAILABLE"/);
   assert.doesNotMatch(fallback, /throw new Error\(\s*`All AI services failed/);
 });
+
+
+test("authentication failures do not log raw error messages", () => {
+  assert.match(server, /console\.warn\("API authentication failed:", error\.code \|\| "TOKEN_VERIFICATION_FAILED"\)/);
+  assert.doesNotMatch(server, /console\.warn\("API authentication failed:", error\.code \|\| error\.message\)/);
+});

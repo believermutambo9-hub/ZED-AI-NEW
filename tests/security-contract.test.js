@@ -38,7 +38,7 @@ test("chat reads return data only after matching the requested owner", () => {
 });
 
 test("memory API uses the authenticated user when deleting a memory", () => {
-  assert.match(server, /forgetMemory\([\s\S]{0,180}req\.user\.uid/);
+  assert.match(server, /forgetMemoryAndWait\([\s\S]{0,180}req\.user\.uid/);
 });
 
 test("memory lookup rejects a user ID that differs from the authenticated UID", () => {

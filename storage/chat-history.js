@@ -193,13 +193,20 @@ export async function deleteAllChats(userId) {
     return 0;
   }
 
-  const batch = db.batch();
+  // Firestore batches are limited to 500 writes. Stay below that limit
+  // so clearing a large chat history succeeds instead of failing as one batch.
+  const batchSize = 450;
 
-  snapshot.docs.forEach(doc => {
-    batch.delete(doc.ref);
-  });
+  for (let start = 0; start < snapshot.docs.length; start += batchSize) {
+    const batch = db.batch();
+    const chunk = snapshot.docs.slice(start, start + batchSize);
 
-  await batch.commit();
+    chunk.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+  }
 
   return snapshot.size;
 }

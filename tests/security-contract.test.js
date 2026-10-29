@@ -130,3 +130,26 @@ test("project updates cannot overwrite project ownership", () => {
 test("project listing is scoped to the authenticated user", () => {
   assert.match(server, /app\.get\(\s*"\/api\/projects"[\s\S]*?getUserProjects\(\s*req\.user\.uid\s*\)/);
 });
+
+
+test("project creation and updates await confirmed Firestore persistence", () => {
+  assert.match(memory, /async function firestoreWriteAndWait\([\s\S]*?await firestore[\s\S]*?\.set\(cloneForFirestore\(data\)\)/);
+  assert.match(memory, /async function persistProject\([\s\S]*?await firestoreWriteAndWait\([\s\S]*?"zedProjects"/);
+  const createStart = memory.indexOf("export async function createProject");
+  const createEnd = memory.indexOf("// GET PROJECT", createStart);
+  const createImpl = memory.slice(createStart, createEnd);
+  assert.match(createImpl, /await persistProject\(project\)/);
+  assert.ok(createImpl.indexOf("await persistProject(project)") < createImpl.indexOf("projects.set("));
+  const updateStart = memory.indexOf("export async function updateProject");
+  const updateEnd = memory.indexOf("// DELETE PROJECT", updateStart);
+  assert.match(memory.slice(updateStart, updateEnd), /await persistProject\(project\)/);
+});
+
+test("project create and update APIs await persistence and return retryable failures", () => {
+  assert.match(server, /app\.post\(\s*"\/api\/projects",\s*async \(req, res\)/);
+  assert.match(server, /const project = await createProject\(/);
+  assert.match(server, /Project could not be saved\. Please try again\./);
+  assert.match(server, /app\.patch\(\s*"\/api\/projects\/:projectId",\s*async \(req, res\)/);
+  assert.match(server, /const updated = await updateProject\(/);
+  assert.match(server, /Project changes could not be saved\. Please try again\./);
+});

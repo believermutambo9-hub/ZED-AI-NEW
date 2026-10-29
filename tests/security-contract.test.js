@@ -295,8 +295,8 @@ test("uploaded images are restricted to supported image MIME types", () => {
   for (const type of ["image/jpeg", "image/png", "image/webp", "image/gif"]) {
     assert.ok(fileAnalysis.includes(type));
   }
-  assert.match(server, /includes\(mimeType\)/);
-  assert.match(server, /This image format is not supported/);
+  assert.match(fileAnalysis, /includes\(mimeType\)/);
+  assert.match(fileAnalysis, /This image format is not supported/);
 });
 
 test("file uploads reject malformed base64 before decoding", () => {

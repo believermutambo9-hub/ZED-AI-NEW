@@ -269,6 +269,21 @@ async function firestoreDeleteAndWait(
     .delete();
 }
 
+async function firestoreWriteAndWait(
+  collection,
+  id,
+  data
+) {
+  if (!firestore || !id) {
+    throw new Error("Firestore is unavailable; data was not persisted.");
+  }
+
+  await firestore
+    .collection(collection)
+    .doc(id)
+    .set(cloneForFirestore(data));
+}
+
 
 // ============================================================
 // FIRESTORE HYDRATION
@@ -3162,16 +3177,14 @@ export function getMemoryStats(
 // PROJECT PERSISTENCE
 // ============================================================
 
-function persistProject(
+async function persistProject(
   project
 ) {
-  if (
-    !project
-  ) {
-    return;
+  if (!project) {
+    throw new Error("Project is required for persistence.");
   }
 
-  firestoreWrite(
+  await firestoreWriteAndWait(
     "zedProjects",
     project.id,
     project
@@ -3183,7 +3196,7 @@ function persistProject(
 // PROJECT MEMORY
 // ============================================================
 
-export function createProject({
+export async function createProject({
   userId,
   name,
   description = "",
@@ -3239,12 +3252,10 @@ export function createProject({
   };
 
 
+  await persistProject(project);
+
   projects.set(
     project.id,
-    project
-  );
-
-  persistProject(
     project
   );
 
@@ -3321,7 +3332,7 @@ export function getUserProjects(
 // UPDATE PROJECT
 // ============================================================
 
-export function updateProject(
+export async function updateProject(
   projectId,
   updates = {}
 ) {
@@ -3377,9 +3388,7 @@ export function updateProject(
   project.updatedAt =
     now();
 
-  persistProject(
-    project
-  );
+  await persistProject(project);
 
   return {
     ...project

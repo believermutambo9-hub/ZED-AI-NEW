@@ -669,7 +669,11 @@ function shouldUseFootballData(
 async function prepareUploadedFile(file) {
   if (!file) return null;
   const dataUrl = typeof file === 'string' ? file : file.data;
-  const fileName = String(typeof file === 'object' ? file.name || 'uploaded-file' : 'uploaded-file');
+  const rawFileName = String(typeof file === 'object' ? file.name || 'uploaded-file' : 'uploaded-file');
+  // Treat filenames as untrusted metadata: remove control characters and cap length.
+  const fileName = rawFileName
+    .replace(/[\\u0000-\\u001f\\u007f]/g, '')
+    .slice(0, 255) || 'uploaded-file';
   const declaredType = String(typeof file === 'object' ? file.type || '' : '');
   const match = /^data:([^;,]+)?;base64,([\s\S]+)$/.exec(String(dataUrl || ''));
   if (!match) throw new Error('The uploaded file could not be read. Please upload it again.');

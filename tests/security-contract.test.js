@@ -670,3 +670,11 @@ test("web search prompt keeps the article list and source list consistent", () =
   assert.match(server, /displayed article list and any source list must contain the same articles/);
   assert.match(server, /fewer than requested results have verified publication dates/);
 });
+
+
+test("exact-date web searches retry a broader recent index before returning no results", async () => {
+  const { content } = await import("node:fs/promises").then(fs => fs.readFile(new URL("../web-search.js", import.meta.url), "utf8"));
+  assert.match(content, /if \(!allResults\.some\(isPublishedToday\)\)/);
+  assert.match(content, /runSearchVariant\(variant, true, false\)/);
+  assert.match(content, /allResults = allResults\.filter\(isPublishedToday\)/);
+});

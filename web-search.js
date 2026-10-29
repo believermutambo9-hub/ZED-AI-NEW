@@ -606,6 +606,48 @@ async function searchGoogleNews(
   }
 }
 
+async function searchBingNews(
+  userQuery,
+  recentRequest = false,
+  todayRequest = false
+) {
+  // Bing News RSS provides a second dated-news index. Do not send Google's
+  // when:1d operator to Bing; exact-date filtering is performed locally
+  // against the provider's published timestamp.
+  const query = cleanText(userQuery)
+    .replace(/\\b(published today|today)\\b/gi, " ")
+    .replace(/\\s+/g, " ")
+    .trim();
+  const searchUrl =
+    `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss`;
+
+  try {
+    const xml = await fetchText(searchUrl);
+    const items = [...xml.matchAll(/<item>([\\s\\S]*?)<\\/item>/gi)];
+
+    return items.map(match => {
+      const item = match[1];
+      const getTag = tag => {
+        const found = item.match(
+          new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)<\\/${tag}>`, "i")
+        );
+        return found ? cleanText(found[1]) : "";
+      };
+      return {
+        title: getTag("title"),
+        url: getTag("link"),
+        published: getTag("pubDate"),
+        source: getTag("source") || "Bing News",
+        snippet: getTag("description"),
+        provider: "Bing News"
+      };
+    }).filter(result => result.title && result.url);
+  } catch (error) {
+    console.error("Bing News search error:", error.message);
+    return [];
+  }
+}
+
 async function searchDuckDuckGo(
   userQuery
 ) {
@@ -725,37 +767,19 @@ async function runSearchVariant(
   todayRequest = false
 ) {
   const searches = [
-    searchGoogleNews(
-      query,
-      recentRequest,
-      todayRequest
-    ),
-    searchDuckDuckGo(
-      query
-    )
+    searchGoogleNews(query, recentRequest, todayRequest),
+    searchBingNews(query, recentRequest, todayRequest),
+    searchDuckDuckGo(query)
   ];
 
-  const results =
-    await Promise.allSettled(
-      searches
-    );
+  const results = await Promise.allSettled(searches);
+  const values = results.map(result =>
+    result.status === "fulfilled" && Array.isArray(result.value)
+      ? result.value
+      : []
+  );
 
-  const google =
-    results[0].status ===
-    "fulfilled"
-      ? results[0].value
-      : [];
-
-  const duck =
-    results[1].status ===
-    "fulfilled"
-      ? results[1].value
-      : [];
-
-  return [
-    ...google,
-    ...duck
-  ];
+  return values.flat();
 }
 
 export async function searchWeb(
@@ -1084,6 +1108,7 @@ export {
   isNewsRequest,
   isBroadNewsRequest,
   searchGoogleNews,
+  searchBingNews,
   searchDuckDuckGo,
   deduplicateResults,
   diversifyResults

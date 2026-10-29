@@ -1983,6 +1983,28 @@ export function forgetMemory(
   return true;
 }
 
+export async function forgetMemoryAndWait(
+  memoryId,
+  userId
+) {
+  const id = normalizeText(memoryId);
+  const memory = memories.get(id);
+
+  if (!id || !memory || memory.userId !== normalizeUserId(userId)) {
+    return false;
+  }
+
+  await firestoreDeleteAndWait("zedMemories", id);
+
+  memories.delete(id);
+  const index = userMemoryIndex.get(memory.userId);
+  if (index) {
+    index.delete(id);
+  }
+
+  return true;
+}
+
 
 // ============================================================
 // FORGET ALL USER MEMORY

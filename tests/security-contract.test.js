@@ -600,3 +600,25 @@ test("premium message interactions use safe text rendering and accessible copy c
   assert.match(interfaceStyles, /@keyframes zedThinking/);
   assert.match(uiEnhancements, /event\.key\.toLowerCase\(\) === "k"/);
 });
+
+
+test("ChatGPT-style layout stays minimal, responsive, and preserves core interface controls", async () => {
+  const [interfaceHtml, styles] = await Promise.all([
+    readFile(new URL("../interface.html", import.meta.url), "utf8"),
+    readFile(new URL("../styles.css", import.meta.url), "utf8")
+  ]);
+  assert.match(interfaceHtml, /id="newChatBtn"/);
+  assert.match(interfaceHtml, /id="recentChats"/);
+  assert.match(interfaceHtml, /id="messageInput"/);
+  assert.match(interfaceHtml, /id="attachBtn"/);
+  assert.match(interfaceHtml, /id="sendBtn"/);
+  assert.match(interfaceHtml, /id="settingsBtn"/);
+  assert.match(interfaceHtml, /id="accountBtn"/);
+  assert.match(styles, /--zed-bg:\s*#212121/);
+  assert.match(styles, /--zed-panel:\s*#171717/);
+  assert.match(styles, /\.message-assistant \.message-content/);
+  assert.match(styles, /\.message-user \.message-content/);
+  assert.match(styles, /@media \(max-width:760px\)/);
+  assert.match(styles, /env\(safe-area-inset-bottom\)/);
+  assert.match(styles, /\.suggestion-card:hover/);
+});

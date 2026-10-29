@@ -1906,9 +1906,16 @@ app.delete(
       });
     }
 
-    const deleted = deleteProject(req.params.projectId);
-
-    return res.json({ ok: true, deleted });
+    try {
+      const deleted = await deleteProject(req.params.projectId);
+      return res.json({ ok: true, deleted });
+    } catch (error) {
+      console.error("Project deletion failed:", error.message);
+      return res.status(503).json({
+        ok: false,
+        error: "Project deletion could not be completed. Please try again."
+      });
+    }
   }
 );
 

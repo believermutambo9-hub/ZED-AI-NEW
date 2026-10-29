@@ -44,34 +44,38 @@ export async function saveChat({
     .collection(COLLECTION)
     .doc(safeConversationId);
 
-  // Never let a save overwrite a conversation already owned by another account.
-  const existing = await chatRef.get();
-  if (existing.exists && existing.data()?.userId !== safeUserId) {
-    return {
-      ok: false,
-      persistent: false,
-      error: "Conversation ownership mismatch."
+  // Use a transaction so concurrent requests cannot pass the ownership
+  // check and overwrite a conversation owned by another account.
+  return db.runTransaction(async transaction => {
+    const existing = await transaction.get(chatRef);
+    const existingData = existing.exists ? existing.data() : null;
+
+    if (existingData && existingData.userId !== safeUserId) {
+      return {
+        ok: false,
+        persistent: false,
+        error: "Conversation ownership mismatch."
+      };
+    }
+
+    const timestamp = Date.now();
+    const chatData = {
+      userId: safeUserId,
+      conversationId: safeConversationId,
+      title: cleanText(title) || "New chat",
+      messages: Array.isArray(messages) ? messages : [],
+      updatedAt: timestamp,
+      createdAt: existingData?.createdAt || timestamp
     };
-  }
 
-  const chatData = {
-    userId: safeUserId,
-    conversationId: safeConversationId,
-    title: cleanText(title) || "New chat",
-    messages: Array.isArray(messages) ? messages : [],
-    updatedAt: Date.now(),
-    createdAt: existing.exists
-      ? (existing.data()?.createdAt || Date.now())
-      : Date.now()
-  };
+    transaction.set(chatRef, chatData, { merge: true });
 
-  await chatRef.set(chatData, { merge: true });
-
-  return {
-    ok: true,
-    persistent: true,
-    conversationId: safeConversationId
-  };
+    return {
+      ok: true,
+      persistent: true,
+      conversationId: safeConversationId
+    };
+  });
 }
 
 export async function getChats(userId) {

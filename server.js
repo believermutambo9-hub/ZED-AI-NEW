@@ -1896,7 +1896,7 @@ app.patch(
 
 app.delete(
   "/api/projects/:projectId",
-  (req, res) => {
+  async (req, res) => {
     const project = getProject(req.params.projectId);
 
     if (!project || project.userId !== req.user.uid) {

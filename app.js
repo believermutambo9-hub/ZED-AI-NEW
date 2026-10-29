@@ -1228,6 +1228,14 @@ async function sendMessage() {
   ) {
     return;
   }
+  if (state.selectedFile && state.selectedFile.size > 18 * 1024 * 1024) {
+    state.messages.push({
+      role: "assistant",
+      content: "This file is too large to analyse. Please choose a file smaller than 18 MB."
+    });
+    renderMessages();
+    return;
+  }
   setSending(true);
   const previousMessages =
     state.messages.slice();

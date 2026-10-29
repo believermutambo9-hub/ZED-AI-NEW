@@ -502,6 +502,12 @@ function getCurrentDateForZambia() {
 // CURRENT INFORMATION DETECTION
 // ============================================================
 
+function isExplicitWebSearchRequest(message = "") {
+  return /\\b(search (the )?web|web search|search online|look up online|find online|browse (the )?web|internet search|on the internet)\\b/i.test(
+    String(message)
+  );
+}
+
 function isCurrentInformationQuestion(
   message = ""
 ) {
@@ -2392,12 +2398,17 @@ app.post(
       let searchData =
         null;
 
+      const explicitWebSearch =
+        isExplicitWebSearchRequest(userMessage);
+
       if (
-        isCurrentInformationQuestion(
-          userMessage
+        (
+          explicitWebSearch ||
+          isCurrentInformationQuestion(userMessage)
         ) &&
-        !shouldUseFootballData(
-          userMessage
+        (
+          explicitWebSearch ||
+          !shouldUseFootballData(userMessage)
         )
       ) {
         try {
@@ -2935,6 +2946,16 @@ ${fileContext}
         searchResultCount:
           searchData?.resultCount ||
           0,
+
+        webSources:
+          Array.isArray(searchData?.results)
+            ? searchData.results.slice(0, 8).map(result => ({
+                title: cleanText(result.title || "Untitled").slice(0, 180),
+                url: cleanText(result.url || ""),
+                source: cleanText(result.source || result.domain || ""),
+                published: cleanText(result.published || result.pubDate || "")
+              }))
+            : [],
 
         forgetResult
       });

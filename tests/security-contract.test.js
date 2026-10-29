@@ -411,7 +411,7 @@ test("functional upload parser rejects malformed base64", async () => {
 test("functional upload parser rejects filename/signature mismatches", async () => {
   await assert.rejects(
     prepareUploadedFile({ name: "fake.pdf", type: "application/pdf", data: dataUrl(Buffer.from("this is not a PDF"), "application/pdf") }),
-    /do not match a valid PDF/
+    /do not match the file type/
   );
 });
 

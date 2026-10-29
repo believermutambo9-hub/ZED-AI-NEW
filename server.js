@@ -101,7 +101,7 @@ const CLOUDFLARE_IMAGE_MODEL =
 
 app.use(
   express.json({
-    limit: "25mb"
+    limit: "30mb"
   })
 );
 

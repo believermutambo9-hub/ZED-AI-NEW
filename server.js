@@ -2100,8 +2100,14 @@ app.post(
       if (!prompt) {
         return res.status(400).json({
           ok: false,
-          error:
-            "Image prompt is required."
+          error: "Image prompt is required."
+        });
+      }
+
+      if (prompt.length > 2000) {
+        return res.status(400).json({
+          ok: false,
+          error: "Image prompts must be 2,000 characters or fewer."
         });
       }
 

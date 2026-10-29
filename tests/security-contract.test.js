@@ -382,3 +382,50 @@ test("file picker advertises formats supported by the server and omits unsupport
   }
   assert.doesNotMatch(picker, /\.doc(?:,|")/);
 });
+
+
+import { prepareUploadedFile, detectUploadedSignature } from "../features/file-analysis.js";
+
+function dataUrl(bytes, mime = "application/octet-stream") {
+  return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
+}
+
+test("functional upload parser extracts UTF-8 text and sanitizes the filename", async () => {
+  const result = await prepareUploadedFile({
+    name: "../notes\\u0000.txt",
+    type: "text/plain",
+    data: dataUrl(Buffer.from("First line\\nSecond line", "utf8"), "text/plain")
+  });
+  assert.equal(result.fileName, "../notes.txt");
+  assert.equal(result.extractedText, "First line\\nSecond line");
+  assert.equal(result.mimeType, "text/plain");
+});
+
+test("functional upload parser rejects malformed base64", async () => {
+  await assert.rejects(
+    prepareUploadedFile({ name: "notes.txt", type: "text/plain", data: "data:text/plain;base64,%%%invalid%%%" }),
+    /uploaded file data is invalid/
+  );
+});
+
+test("functional upload parser rejects filename/signature mismatches", async () => {
+  await assert.rejects(
+    prepareUploadedFile({ name: "fake.pdf", type: "application/pdf", data: dataUrl(Buffer.from("this is not a PDF"), "application/pdf") }),
+    /do not match a valid PDF/
+  );
+});
+
+test("functional upload parser preserves supported images as Gemini inline data", async () => {
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+  const result = await prepareUploadedFile({ name: "photo.png", type: "image/png", data: dataUrl(png, "image/png") });
+  assert.equal(result.mimeType, "image/png");
+  assert.deepEqual(result.inlineData, { mimeType: "image/png", data: png.toString("base64") });
+  assert.equal(result.extractedText, "");
+});
+
+test("signature detection identifies PDF, PNG, JPEG and ZIP documents", () => {
+  assert.equal(detectUploadedSignature(Buffer.from("%PDF-1.7")), "application/pdf");
+  assert.equal(detectUploadedSignature(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])), "image/png");
+  assert.equal(detectUploadedSignature(Buffer.from([0xff, 0xd8, 0xff, 0x00])), "image/jpeg");
+  assert.equal(detectUploadedSignature(Buffer.from([0x50, 0x4b, 0x03, 0x04])), "application/zip");
+});

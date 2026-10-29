@@ -487,3 +487,14 @@ test("chat UI rejects oversized files before base64 encoding", () => {
   const sendHandler = app.slice(sendStart, sendEnd);
   assert.ok(sendHandler.indexOf("state.selectedFile.size > 18 * 1024 * 1024") < sendHandler.indexOf("readFileAsDataURL("));
 });
+
+ 
+test("Groq and OpenRouter requests have bounded provider timeouts", () => {
+  const groqStart = server.indexOf("async function askGroq(");
+  const openRouterStart = server.indexOf("async function askOpenRouter(");
+  const fallbackStart = server.indexOf("async function askAI(");
+  const groq = server.slice(groqStart, openRouterStart);
+  const openRouter = server.slice(openRouterStart, fallbackStart);
+  assert.match(groq, /signal:\s*AbortSignal\.timeout\(45_000\)/);
+  assert.match(openRouter, /signal:\s*AbortSignal\.timeout\(45_000\)/);
+});

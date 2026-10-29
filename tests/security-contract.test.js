@@ -515,3 +515,14 @@ test("authentication failures do not log raw error messages", () => {
   assert.match(server, /console\.warn\("API authentication failed:", error\.code \|\| "TOKEN_VERIFICATION_FAILED"\)/);
   assert.doesNotMatch(server, /console\.warn\("API authentication failed:", error\.code \|\| error\.message\)/);
 });
+
+
+test("persistent deletion fails closed when Firestore is unavailable", () => {
+  const start = memory.indexOf("async function firestoreDeleteAndWait(");
+  const end = memory.indexOf("async function firestoreWriteAndWait(", start);
+  const helper = memory.slice(start, end);
+
+  assert.match(helper, /if \(!id\)\s*\{\s*return;\s*\}/);
+  assert.match(helper, /if \(!firestore\)\s*\{\s*throw new Error\("Firestore is unavailable; data was not deleted\."\);\s*\}/);
+  assert.ok(helper.indexOf("throw new Error") < helper.indexOf(".collection(collection)"));
+});

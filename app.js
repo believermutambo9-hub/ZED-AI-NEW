@@ -54,6 +54,7 @@ const state = {
   conversationId: null,
   messages: [],
   chats: [],
+  chatHistoryUnavailable: false,
   selectedFile: null,
   sending: false,
   settingsOpen: false
@@ -1008,12 +1009,16 @@ async function loadChats() {
       Array.isArray(data.chats)
         ? data.chats
         : [];
+    state.chatHistoryUnavailable =
+      data.persistent === false;
     renderRecentChats();
   } catch (error) {
     console.error(
       "Load chats error:",
       error
     );
+    state.chatHistoryUnavailable = true;
+    renderRecentChats();
   }
 }
 // ============================================================
@@ -1033,8 +1038,9 @@ function renderRecentChats() {
       font-size:12px;
       padding:10px;
     `;
-    empty.textContent =
-      "No conversations yet.";
+    empty.textContent = state.chatHistoryUnavailable
+      ? "Chat history is temporarily unavailable. Check your connection and try again."
+      : "No conversations yet.";
     recentChats.appendChild(
       empty
     );

@@ -93,15 +93,21 @@ test("project memory creation is scoped to the authenticated user and project", 
   assert.match(memory, /export function rememberProject\([\s\S]*?project\.userId !==\s*normalizeUserId\(\s*userId\s*\)/);
 });
 
-test("project deletion removes its linked memories and Firestore records", () => {
-  const start = memory.indexOf("export function deleteProject");
+test("project deletion awaits Firestore cleanup before clearing the cache", () => {
+  const start = memory.indexOf("export async function deleteProject");
   const end = memory.indexOf("// PROJECT MEMORY", start + 30);
   const implementation = memory.slice(start, end);
-  assert.match(implementation, /memory\.projectId ===\s*id/);
-  assert.match(implementation, /memories\.delete\(\s*memoryId\s*\)/);
-  assert.match(implementation, /firestoreDelete\(\s*"zedMemories",\s*memoryId\s*\)/);
-  assert.match(implementation, /projects\.delete\(\s*id\s*\)/);
-  assert.match(implementation, /firestoreDelete\(\s*"zedProjects",\s*id\s*\)/);
+  assert.match(implementation, /await Promise\.all\(\[/);
+  assert.match(implementation, /firestoreDeleteAndWait\("zedMemories", memoryId\)/);
+  assert.match(implementation, /firestoreDeleteAndWait\("zedProjects", id\)/);
+  assert.ok(implementation.indexOf("await Promise.all") < implementation.indexOf("memories.delete(memoryId)"));
+  assert.ok(implementation.indexOf("await Promise.all") < implementation.indexOf("projects.delete(id)"));
+});
+
+test("project delete API waits for persistence and returns retryable failure", () => {
+  assert.match(server, /const deleted = await deleteProject\(req\.params\.projectId\)/);
+  assert.match(server, /res\.status\(503\)/);
+  assert.match(server, /Project deletion could not be completed/);
 });
 
 test("project memory cannot be attached by a different user", () => {

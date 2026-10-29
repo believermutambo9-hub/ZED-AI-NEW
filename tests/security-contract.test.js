@@ -469,11 +469,11 @@ test("ZIP archive validation rejects malformed archive metadata", () => {
 
 
 test("chat route returns a safe client error when upload analysis fails", () => {
-  const routeStart = server.indexOf('app.post(\\n  "/api/chat"');
-  const routeEnd = server.indexOf("// ============================================================\\n// FRONTEND FALLBACK", routeStart);
+  const routeStart = server.indexOf('app.post(\n  "/api/chat"');
+  const routeEnd = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", routeStart);
   const route = server.slice(routeStart, routeEnd);
-  assert.match(route, /catch \\(uploadError\\)/);
-  assert.match(route, /res\\.status\\(400\\)/);
-  assert.match(route, /The uploaded file could not be analysed\\. Check the file type, size, and contents\\./);
-  assert.doesNotMatch(route, /uploadError\\.stack/);
+  assert.match(route, /catch \(uploadError\)/);
+  assert.match(route, /res\.status\(400\)/);
+  assert.match(route, /The uploaded file could not be analysed\. Check the file type, size, and contents\./);
+  assert.doesNotMatch(route, /uploadError\.stack/);
 });

@@ -1482,7 +1482,7 @@ app.get(
     try {
       const result =
         await askAI(
-          "Reply with exactly: Zed AI is working."
+          "Reply with exactly: Zed is working."
         );
 
       res.json({

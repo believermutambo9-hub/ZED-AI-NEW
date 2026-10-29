@@ -255,6 +255,20 @@ function firestoreDelete(
     });
 }
 
+async function firestoreDeleteAndWait(
+  collection,
+  id
+) {
+  if (!firestore || !id) {
+    return;
+  }
+
+  await firestore
+    .collection(collection)
+    .doc(id)
+    .delete();
+}
+
 
 // ============================================================
 // FIRESTORE HYDRATION
@@ -3377,82 +3391,48 @@ export function updateProject(
 // DELETE PROJECT
 // ============================================================
 
-export function deleteProject(
+export async function deleteProject(
   projectId
 ) {
-  const id =
-    normalizeText(
-      projectId
-    );
-
-  const project =
-    projects.get(id);
+  const id = normalizeText(projectId);
+  const project = projects.get(id);
 
   if (!project) {
     return false;
   }
 
-
-  const userIndex =
-    userMemoryIndex.get(
-      project.userId
-    );
-
+  const linkedMemoryIds = [];
+  const userIndex = userMemoryIndex.get(project.userId);
 
   if (userIndex) {
-
-    for (
-      const memoryId
-      of [
-        ...userIndex
-      ]
-    ) {
-
-      const memory =
-        memories.get(
-          memoryId
-        );
-
-      if (
-        memory &&
-        memory.projectId ===
-          id
-      ) {
-
-        memories.delete(
-          memoryId
-        );
-
-        userIndex.delete(
-          memoryId
-        );
-
-        firestoreDelete(
-          "zedMemories",
-          memoryId
-        );
+    for (const memoryId of userIndex) {
+      const memory = memories.get(memoryId);
+      if (memory && memory.projectId === id) {
+        linkedMemoryIds.push(memoryId);
       }
     }
   }
 
+  // Complete persistent deletion before changing the in-memory cache.
+  // If Firestore fails, throw so the API reports failure and the project
+  // remains available for a retry instead of silently losing local state.
+  await Promise.all([
+    ...linkedMemoryIds.map(memoryId =>
+      firestoreDeleteAndWait("zedMemories", memoryId)
+    ),
+    firestoreDeleteAndWait("zedProjects", id)
+  ]);
 
-  const deleted =
-    projects.delete(
-      id
-    );
-
-  if (deleted) {
-    firestoreDelete(
-      "zedProjects",
-      id
-    );
+  for (const memoryId of linkedMemoryIds) {
+    memories.delete(memoryId);
+    userIndex?.delete(memoryId);
   }
 
-  return deleted;
+  projects.delete(id);
+  return true;
 }
 
 
-// ============================================================
 // PROJECT MEMORY
 // ============================================================
 

@@ -364,3 +364,19 @@ test("vision-only uploads are not sent to text-only fallback providers", () => {
   assert.ok(ai.includes("Gemini could not analyse the attached image/PDF"));
   assert.ok(ai.indexOf("if (inlineData)") < ai.indexOf("await askGroq"));
 });
+
+
+test("browser rejects uploads over the server's 18 MB limit before reading them", () => {
+  assert.match(app, /const maxUploadBytes =\s*18 \* 1024 \* 1024/);
+  assert.match(app, /if \(file\.size > maxUploadBytes\)/);
+  assert.match(app, /state\.selectedFile = null/);
+  assert.match(app, /fileInput\.value = ""/);
+});
+
+test("file picker advertises formats supported by the server and omits unsupported legacy Office files", () => {
+  const picker = html.match(/<input[\s\S]*?id="fileInput"[\s\S]*?>/)?.[0] || "";
+  for (const extension of [".pdf", ".txt", ".csv", ".docx", ".xlsx", ".pptx", ".odt", ".odp", ".epub", ".png", ".webp", ".py"]) {
+    assert.ok(picker.includes(extension), `file picker should allow ${extension}`);
+  }
+  assert.doesNotMatch(picker, /\.doc(?:,|")/);
+});

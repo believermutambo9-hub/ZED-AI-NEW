@@ -2122,8 +2122,7 @@ app.post(
 
       res.status(500).json({
         ok: false,
-        error:
-          error.message
+        error: "Image generation is temporarily unavailable. Please try again."
       });
     }
   }

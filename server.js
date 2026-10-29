@@ -679,7 +679,25 @@ async function prepareUploadedFile(file) {
   const extension = path.extname(fileName).toLowerCase();
   if (!buffer.length) throw new Error('The uploaded file is empty or invalid.');
   if (buffer.length > 18 * 1024 * 1024) throw new Error('This file is too large to analyse. Please upload a file smaller than 18 MB.');
-  if (mimeType.startsWith('image/')) return { fileName, mimeType, inlineData: { mimeType, data: base64 }, extractedText: '' };
+  if (mimeType.startsWith('image/')) {
+    const supportedImageTypes = new Set([
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif'
+    ]);
+
+    if (!supportedImageTypes.has(mimeType)) {
+      throw new Error('This image format is not supported. Please upload a JPEG, PNG, WebP, or GIF image.');
+    }
+
+    return {
+      fileName,
+      mimeType,
+      inlineData: { mimeType, data: base64 },
+      extractedText: ''
+    };
+  }
   if (mimeType === 'application/pdf' || extension === '.pdf') {
     let extractedText = '';
     try { const pdfModule = await import('pdf-parse'); const parsePdf = pdfModule.default || pdfModule; const parsed = await parsePdf(buffer); extractedText = cleanAIAnswer(parsed.text || ''); }

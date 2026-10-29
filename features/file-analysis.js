@@ -16,6 +16,87 @@ function detectUploadedSignature(buffer) {
   return "text-or-unknown";
 }
 
+function validateZipArchive(buffer, {
+  maxEntries = 1000,
+  maxFileBytes = 32 * 1024 * 1024,
+  maxTotalBytes = 64 * 1024 * 1024
+} = {}) {
+  // Inspect ZIP metadata before unzipSync inflates any archive entries.
+  const minEocdSize = 22;
+  if (buffer.length < minEocdSize) {
+    throw new Error("This compressed document is damaged or unsupported.");
+  }
+
+  const searchStart = Math.max(0, buffer.length - minEocdSize - 0xffff);
+  let eocdOffset = -1;
+  for (let offset = buffer.length - minEocdSize; offset >= searchStart; offset--) {
+    if (buffer.readUInt32LE(offset) !== 0x06054b50) continue;
+    const commentLength = buffer.readUInt16LE(offset + 20);
+    if (offset + minEocdSize + commentLength === buffer.length) {
+      eocdOffset = offset;
+      break;
+    }
+  }
+
+  if (eocdOffset < 0) {
+    throw new Error("This compressed document is damaged or unsupported.");
+  }
+
+  const diskNumber = buffer.readUInt16LE(eocdOffset + 4);
+  const centralDirectoryDisk = buffer.readUInt16LE(eocdOffset + 6);
+  const diskEntries = buffer.readUInt16LE(eocdOffset + 8);
+  const entryCount = buffer.readUInt16LE(eocdOffset + 10);
+  const centralDirectorySize = buffer.readUInt32LE(eocdOffset + 12);
+  const centralDirectoryOffset = buffer.readUInt32LE(eocdOffset + 16);
+
+  if (
+    diskNumber !== 0 ||
+    centralDirectoryDisk !== 0 ||
+    diskEntries !== entryCount ||
+    entryCount === 0xffff ||
+    centralDirectorySize === 0xffffffff ||
+    centralDirectoryOffset === 0xffffffff ||
+    centralDirectoryOffset + centralDirectorySize > eocdOffset
+  ) {
+    throw new Error("This compressed document uses an unsupported or invalid ZIP layout.");
+  }
+  if (entryCount > maxEntries) {
+    throw new Error("This compressed document contains too many files to analyse safely.");
+  }
+
+  let offset = centralDirectoryOffset;
+  let totalUncompressedBytes = 0;
+  for (let index = 0; index < entryCount; index++) {
+    if (offset + 46 > eocdOffset || buffer.readUInt32LE(offset) !== 0x02014b50) {
+      throw new Error("This compressed document has an invalid ZIP directory.");
+    }
+
+    const uncompressedBytes = buffer.readUInt32LE(offset + 24);
+    const fileNameLength = buffer.readUInt16LE(offset + 28);
+    const extraLength = buffer.readUInt16LE(offset + 30);
+    const commentLength = buffer.readUInt16LE(offset + 32);
+    const entryLength = 46 + fileNameLength + extraLength + commentLength;
+
+    if (offset + entryLength > eocdOffset || uncompressedBytes === 0xffffffff) {
+      throw new Error("This compressed document has unsupported or invalid ZIP entries.");
+    }
+    if (uncompressedBytes > maxFileBytes) {
+      throw new Error("A file inside this compressed document is too large to analyse safely.");
+    }
+
+    totalUncompressedBytes += uncompressedBytes;
+    if (totalUncompressedBytes > maxTotalBytes) {
+      throw new Error("This compressed document expands beyond the safe analysis limit.");
+    }
+    offset += entryLength;
+  }
+
+  if (offset !== centralDirectoryOffset + centralDirectorySize) {
+    throw new Error("This compressed document has an inconsistent ZIP directory.");
+  }
+  return { entryCount, totalUncompressedBytes };
+}
+
 function extractXmlText(xml) {
   return String(xml || "")
     .replace(/<w:tab\b[^>]*\/>|<a:br\b[^>]*\/>|<text:tab\b[^>]*\/>/g, " ")
@@ -105,6 +186,9 @@ async function prepareUploadedFile(file) {
   if (expectedType && !signatureMatches) {
     throw new Error("The file contents do not match the file type. Please upload a valid, unmodified file.");
   }
+  if (isZipDocument && signature === "application/zip") {
+    validateZipArchive(buffer);
+  }
   if (!mimeLooksGeneric && expectedType && !isZipDocument && mimeType !== expectedType) {
     throw new Error("The file's declared format does not match its filename. Please check the file and upload it again.");
   }
@@ -182,4 +266,4 @@ async function prepareUploadedFile(file) {
 
 
 
-export { detectUploadedSignature, prepareUploadedFile };
+export { detectUploadedSignature, prepareUploadedFile, validateZipArchive };

@@ -42,6 +42,12 @@ test("chat requests stop if the user message was not persisted", () => {
   assert.ok(route.indexOf("if (!initialChatPersistence?.persistent)") < route.indexOf("// MEMORY: FORGET"));
 });
 
+test("chat UI warns when the assistant reply was not saved", () => {
+  assert.match(server, /chatPersistent:\s*Boolean\(\s*chatPersistence\?\.persistent/);
+  assert.match(await readFile(new URL("../app.js", import.meta.url), "utf8"), /data\.chatPersistent === false/);
+  assert.match(await readFile(new URL("../app.js", import.meta.url), "utf8"), /could not be saved to your chat history/);
+});
+
 test("chat deletion verifies ownership inside its transaction", () => {
   assert.match(history, /runTransaction\(async transaction/);
   assert.match(history, /doc\.data\(\)\?\.userId !== safeUserId/);

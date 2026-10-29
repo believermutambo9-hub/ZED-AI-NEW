@@ -1562,10 +1562,8 @@ app.get(
       return res.json({
         ok: true,
         chats: [],
-        persistent:
-          false,
-        error:
-          error.message
+        persistent: false,
+        error: "Chat history is temporarily unavailable. Please try again."
       });
     }
   }

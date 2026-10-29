@@ -153,3 +153,16 @@ test("project create and update APIs await persistence and return retryable fail
   assert.match(server, /const updated = await updateProject\(/);
   assert.match(server, /Project changes could not be saved\. Please try again\./);
 });
+
+
+test("memory API waits for Firestore persistence before confirming a save", () => {
+  assert.match(memory, /export async function persistMemoryAndWait\(memory\)/);
+  assert.match(memory, /await firestoreWriteAndWait\("zedMemories", memory\.id, memory\)/);
+  const start = server.indexOf('app.post(\n  "/api/memory",');
+  const end = server.indexOf("// DELETE ONE MEMORY", start);
+  const route = server.slice(start, end);
+  assert.match(route, /async \(req, res\) =>/);
+  assert.match(route, /await persistMemoryAndWait\(result\.memory\)/);
+  assert.match(route, /res\.status\(503\)/);
+  assert.ok(route.indexOf("await persistMemoryAndWait") < route.indexOf("return res.json({"));
+});

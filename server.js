@@ -1188,7 +1188,8 @@ function processForgetRequest(
     ) {
       if (
         forgetMemory(
-          memory.id
+          memory.id,
+          userId
         )
       ) {
         deleted++;

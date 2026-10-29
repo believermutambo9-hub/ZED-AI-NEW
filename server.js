@@ -1356,10 +1356,10 @@ app.get(
           result.provider
       });
     } catch (error) {
+      console.error("Gemini test failed:", error.message);
       res.status(500).json({
         ok: false,
-        error:
-          error.message
+        error: "The AI service is temporarily unavailable. Please try again."
       });
     }
   }
@@ -1703,10 +1703,10 @@ app.post(
         result
       });
     } catch (error) {
+      console.error("Memory API request failed:", error.message);
       res.status(500).json({
         ok: false,
-        error:
-          error.message
+        error: "The memory request could not be completed. Please try again."
       });
     }
   }
@@ -2969,7 +2969,7 @@ ${fileContext}
           "I’m sorry, I couldn’t complete that request right now. Please try again.",
 
         error:
-          error.message
+          "The request could not be completed. Please try again."
       });
     }
   }

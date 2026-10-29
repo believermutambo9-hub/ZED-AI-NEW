@@ -28,6 +28,6 @@ test("chat deletion verifies ownership inside its transaction", () => {
 });
 
 test("memory deletion accepts an owner and checks it before deleting", () => {
-  assert.match(memory, /export function forgetMemory\(memoryId, userId = null\)/);
-  assert.match(memory, /memory\.userId !== normalizedUserId/);
+  assert.match(memory, /export function forgetMemory\([\s\S]*?userId = null/);
+  assert.match(memory, /memory\.userId !== normalizeUserId\(userId\)/);
 });

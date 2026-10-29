@@ -4603,6 +4603,39 @@ export function importUserMemory(
 // CLEAR USER DATA
 // ============================================================
 
+
+export async function clearUserMemoryAndWait(userId) {
+  const normalizedUserId = normalizeUserId(userId);
+  if (!normalizedUserId) {
+    return { memories: 0, projects: 0, football: false };
+  }
+
+  const memoryIds = [...(userMemoryIndex.get(normalizedUserId) || [])]
+    .filter(id => memories.has(id));
+  const userProjects = [...projects.values()]
+    .filter(project => project.userId === normalizedUserId);
+  const hasFootballMemory = footballMemory.has(normalizedUserId);
+
+  await Promise.all([
+    ...memoryIds.map(id => firestoreDeleteAndWait("zedMemories", id)),
+    ...userProjects.map(project => firestoreDeleteAndWait("zedProjects", project.id)),
+    ...(hasFootballMemory
+      ? [firestoreDeleteAndWait("zedFootballMemory", normalizedUserId)]
+      : [])
+  ]);
+
+  for (const id of memoryIds) memories.delete(id);
+  userMemoryIndex.delete(normalizedUserId);
+  for (const project of userProjects) projects.delete(project.id);
+  footballMemory.delete(normalizedUserId);
+
+  return {
+    memories: memoryIds.length,
+    projects: userProjects.length,
+    football: hasFootballMemory
+  };
+}
+
 export function clearUserMemory(
   userId
 ) {

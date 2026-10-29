@@ -445,6 +445,21 @@ test("ZIP archive validation accepts ordinary archives and rejects expansion bom
   );
 });
 
+test("uploaded Office documents reject archives with excessive entry counts before extraction", async () => {
+  const entries = Object.fromEntries(
+    Array.from({ length: 1001 }, (_, index) => [`word/part-${index}.xml`, Buffer.from("x")])
+  );
+  const archive = zipSync(entries);
+  await assert.rejects(
+    prepareUploadedFile({
+      name: "oversized.docx",
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      data: dataUrl(Buffer.from(archive), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    }),
+    /too many files to analyse safely/
+  );
+});
+
 test("ZIP archive validation rejects malformed archive metadata", () => {
   assert.throws(
     () => validateZipArchive(Buffer.from("not a zip archive")),

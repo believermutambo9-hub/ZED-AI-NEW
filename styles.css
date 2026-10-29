@@ -2492,3 +2492,80 @@ body {
   content: none !important;
   display: none !important;
 }
+
+
+/* Zed interface upgrade: premium dark-first, responsive, accessible controls */
+.theme-toggle {
+  display:inline-flex;align-items:center;justify-content:center;
+  width:42px;height:42px;flex:0 0 42px;border:1px solid var(--glass-border);
+  border-radius:14px;color:var(--text);background:var(--glass-2);
+  box-shadow:var(--shadow-xs),var(--highlight);font-size:20px;
+  transition:transform .18s ease,background .18s ease,border-color .18s ease;
+}
+.theme-toggle:hover {background:var(--glass-4);transform:translateY(-1px)}
+.theme-toggle:active {transform:scale(.95)}
+.theme-toggle:focus-visible,.suggestion-card:focus-visible,.chat-search:focus-visible,
+.remove-file-button:focus-visible {outline:2px solid var(--accent);outline-offset:3px}
+.chat-search {
+ display:block;width:calc(100% - 12px);min-height:40px;margin:0 6px 10px;padding:0 12px;
+ color:var(--text);background:var(--glass-1);border:1px solid var(--glass-border-soft);
+ border-radius:12px;outline:none;font-size:12px;
+}
+.chat-search::placeholder {color:var(--muted)}
+.selected-file-chip {
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ width:min(100%,780px);margin:0 auto 10px;padding:9px 12px;color:var(--text-secondary);
+ background:var(--glass-2);border:1px solid var(--glass-border-soft);border-radius:12px;font-size:12px;
+}
+.selected-file-chip[hidden] {display:none}
+.selected-file-name {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.remove-file-button {
+ flex:0 0 auto;padding:6px 9px;color:var(--text);background:var(--glass-3);
+ border:1px solid var(--glass-border-soft);border-radius:8px;font-size:11px;
+}
+.zed-theme-setting {
+ display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px;margin-bottom:10px;
+ border:1px solid var(--glass-border-soft);border-radius:16px;background:var(--glass-1);
+}
+.zed-theme-setting > div {display:grid;gap:5px}
+.zed-theme-setting strong {font-size:14px}
+.zed-theme-setting span {color:var(--muted);font-size:12px}
+.zed-theme-setting select {
+ min-height:38px;padding:0 10px;color:var(--text);background:var(--glass-3);
+ border:1px solid var(--glass-border);border-radius:10px;
+}
+html[data-theme="dark"] .zed-theme-setting select {background:#252832}
+.message {animation:zedMessageEnter .2s ease both}
+@keyframes zedMessageEnter {from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.message-content {overflow-wrap:anywhere}
+button:disabled {opacity:.58}
+@media (max-width:700px) {
+ .topbar {height:62px;min-height:62px;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));gap:8px}
+ .topbar-left {gap:8px}
+ .menu-btn {display:inline-flex;width:39px;height:39px;flex-basis:39px;border-radius:12px}
+ .brand {gap:8px}.brand-name {font-size:16px}
+ .brand::before {width:32px;height:32px;flex-basis:32px;border-radius:10px;font-size:16px}
+ .brand-logo {display:none}.brand-status {display:none}
+ .profile-btn {width:38px;height:38px;flex-basis:38px}
+ .theme-toggle {width:38px;height:38px;flex-basis:38px;border-radius:12px}
+ .sidebar {width:min(86vw,320px);min-width:0}
+ .welcome {padding:26px 18px 18px}
+ .welcome h1 {font-size:clamp(27px,7vw,36px)}
+ .welcome p {max-width:340px;font-size:14px;line-height:1.65}
+ .suggestion-grid {grid-template-columns:1fr;gap:9px}
+ .suggestion-card {min-height:62px}
+ .composer-container {padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));padding-bottom:max(10px,env(safe-area-inset-bottom))}
+ .composer {border-radius:22px}.composer textarea {font-size:16px}
+ .selected-file-chip {margin-bottom:8px}
+ .zed-theme-setting {align-items:flex-start;flex-direction:column}
+ .zed-theme-setting select {width:100%}
+}
+@media (max-width:380px) {
+ .topbar {padding-left:8px;padding-right:8px}.topbar-left {gap:6px}
+ .brand-name {font-size:15px}.theme-toggle,.profile-btn {width:34px;height:34px;flex-basis:34px}
+ .suggestion-grid {grid-template-columns:1fr}
+}
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after {
+ animation-duration:.01ms!important;animation-iteration-count:1!important;
+ scroll-behavior:auto!important;transition-duration:.01ms!important;
+}

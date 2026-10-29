@@ -166,6 +166,10 @@ function cleanSearchIntent(query = "") {
     .trim();
 }
 
+function isTodayRequest(query = "") {
+  return /\\b(today|published today|this day)\\b/i.test(cleanText(query));
+}
+
 function isRecentRequest(query = "") {
   const text = cleanText(query).toLowerCase();
 
@@ -227,31 +231,19 @@ function extractMainTopic(query = "") {
 
 function buildNewsSearchVariants(userQuery = "") {
   const topic = extractMainTopic(userQuery);
+  if (!topic) return [cleanText(userQuery)];
 
-  if (!topic) {
-    return [cleanText(userQuery)];
-  }
-
-  const variants = [
-    userQuery
-  ];
-
-  if (isBroadNewsRequest(userQuery)) {
+  const variants = [userQuery, topic];
+  if (isNewsRequest(userQuery)) {
     variants.push(
-      `${topic} latest news`,
-      `${topic} team news`,
-      `${topic} injury news`,
-      `${topic} transfer news`
+      `${topic} technology news`,
+      `${topic} latest developments`,
+      `${topic} news today`,
+      `latest ${topic} news`
     );
   }
 
-  return [
-    ...new Set(
-      variants
-        .map(cleanText)
-        .filter(Boolean)
-    )
-  ];
+  return [...new Set(variants.map(cleanText).filter(Boolean))];
 }
 
 function parsePublishedDate(value = "") {
@@ -531,10 +523,12 @@ async function fetchText(
 
 async function searchGoogleNews(
   userQuery,
-  recentRequest = false
+  recentRequest = false,
+  todayRequest = false
 ) {
-  const query =
-    recentRequest
+  const query = todayRequest
+    ? `${userQuery} when:1d`
+    : recentRequest
       ? `${userQuery} when:7d`
       : userQuery;
 
@@ -716,12 +710,14 @@ function deduplicateResults(
 
 async function runSearchVariant(
   query,
-  recentRequest
+  recentRequest,
+  todayRequest = false
 ) {
   const searches = [
     searchGoogleNews(
       query,
-      recentRequest
+      recentRequest,
+      todayRequest
     ),
     searchDuckDuckGo(
       query
@@ -772,9 +768,11 @@ export async function searchWeb(
   // such as "give me three reliable sources with clickable links".
   const intentQuery = cleanSearchIntent(query) || query;
 
+  const todayRequest = isTodayRequest(query);
   const recentRequest =
     options.recentRequest ??
-    isRecentRequest(intentQuery);
+    isRecentRequest(intentQuery) ||
+    todayRequest;
 
   const newsRequest =
     isNewsRequest(intentQuery);
@@ -783,7 +781,7 @@ export async function searchWeb(
     isBroadNewsRequest(intentQuery);
 
   const variants =
-    recentRequest && newsRequest
+    newsRequest && (recentRequest || todayRequest)
       ? buildNewsSearchVariants(intentQuery)
       : [intentQuery];
 
@@ -800,7 +798,8 @@ export async function searchWeb(
       variants.map(variant =>
         runSearchVariant(
           variant,
-          recentRequest
+          recentRequest,
+          todayRequest
         )
       )
     );
@@ -835,7 +834,7 @@ export async function searchWeb(
       result =>
         !isLikelyIrrelevant(
           result,
-          query
+          intentQuery
         )
     );
 
@@ -849,6 +848,17 @@ export async function searchWeb(
       ? relevantResults
       : allResults;
 
+  // A request explicitly asking for items published today must not
+  // present older dated stories as today's news. Undated results are
+  // not eligible for this exact-date request.
+  if (todayRequest) {
+    const todayInZambia = formatDateForZambia(new Date());
+    allResults = allResults.filter(result => {
+      const date = parsePublishedDate(result.published || result.pubDate || result.date || "");
+      return date && formatDateForZambia(date) === todayInZambia;
+    });
+  }
+
   allResults =
     allResults.map(
       result => ({
@@ -856,7 +866,7 @@ export async function searchWeb(
         _score:
           scoreResult(
             result,
-            query,
+            intentQuery,
             recentRequest
           )
       })
@@ -1045,6 +1055,7 @@ export {
   normalizeUrl,
   extractDomain,
   isRecentRequest,
+  isTodayRequest,
   isNewsRequest,
   isBroadNewsRequest,
   searchGoogleNews,

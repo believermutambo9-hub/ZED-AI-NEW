@@ -2,11 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [server, history, memory, app] = await Promise.all([
+const [server, history, memory, app, pkg] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
   readFile(new URL("../storage/chat-history.js", import.meta.url), "utf8"),
   readFile(new URL("../features/memory.js", import.meta.url), "utf8"),
-  readFile(new URL("../app.js", import.meta.url), "utf8")
+  readFile(new URL("../app.js", import.meta.url), "utf8"),
+  readFile(new URL("../package.json", import.meta.url), "utf8")
 ]);
 
 test("API routes reject missing or invalid Firebase ID tokens", () => {
@@ -308,4 +309,25 @@ test("uploaded filenames are sanitized and length-limited", () => {
   assert.ok(server.includes(".replace(/[\\\\u0000-\\\\u001f\\\\u007f]/g, '')"));
   assert.ok(server.includes(".slice(0, 255)"));
   assert.ok(server.includes("|| 'uploaded-file'"));
+});
+
+
+test("uploaded files are checked against their actual signatures", () => {
+  assert.match(server, /function detectUploadedSignature\(buffer\)/);
+  assert.match(server, /signature !== "application\\/pdf"/);
+  assert.match(server, /signature !== mimeType/);
+  assert.match(server, /file contents do not match the file type/i);
+});
+
+test("file analysis supports presentations, OpenDocument files, ebooks, and source code", () => {
+  assert.match(server, /extension === "\\.pptx"/);
+  assert.match(server, /extension === "\\.odt" \\|\\| extension === "\\.odp" \\|\\| extension === "\\.epub"/);
+  assert.match(server, /"\\.py", "\\.java", "\\.c", "\\.cpp"/);
+  assert.match(server, /extractOfficeOrEbookText/);
+  assert.match(pkg, /"fflate"/);
+});
+
+test("legacy binary Office files receive an explicit conversion instruction", () => {
+  assert.match(server, /Legacy \\.doc and \\.ppt files are not supported yet/);
+  assert.match(server, /save as DOCX\\/PPTX or PDF/);
 });

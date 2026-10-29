@@ -2110,9 +2110,19 @@ app.post(
           req.body?.message
         );
 
-      const uploadedFile = req.body?.file
-        ? await prepareUploadedFile(req.body.file)
-        : null;
+      let uploadedFile = null;
+      if (req.body?.file) {
+        try {
+          uploadedFile = await prepareUploadedFile(req.body.file);
+        } catch (uploadError) {
+          console.warn("Uploaded file could not be analysed:", uploadError.message);
+          return res.status(400).json({
+            ok: false,
+            answer: "I couldn't read that file. Please check that it is supported, uncorrupted, and smaller than 18 MB, then try again.",
+            error: "The uploaded file could not be analysed. Check the file type, size, and contents."
+          });
+        }
+      }
 
       if (!userMessage && !uploadedFile) {
         return res.status(400).json({

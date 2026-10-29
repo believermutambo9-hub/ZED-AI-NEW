@@ -1745,7 +1745,7 @@ app.delete(
 
 app.delete(
   "/api/memory/user/:userId",
-  (req, res) => {
+  async (req, res) => {
     // The URL must not imply that a caller can clear another user's memory.
     // The authenticated Firebase UID remains the source of truth.
     if (req.params.userId !== req.user.uid) {
@@ -1755,15 +1755,16 @@ app.delete(
       });
     }
 
-    const result =
-      clearUserMemory(
-        req.user.uid
-      );
-
-    res.json({
-      ok: true,
-      result
-    });
+    try {
+      const result = await clearUserMemoryAndWait(req.user.uid);
+      return res.json({ ok: true, result });
+    } catch (error) {
+      console.error("Clear-all memory failed:", error.message);
+      return res.status(503).json({
+        ok: false,
+        error: "Memory could not be cleared. Please try again."
+      });
+    }
   }
 );
 

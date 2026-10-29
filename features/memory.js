@@ -1423,23 +1423,25 @@ function memorySignature(
 // SIMILARITY TOKENIZATION
 // ============================================================
 
-function tokenize(
-  text
-) {
+const MEMORY_STOP_WORDS = new Set([
+  "a", "about", "am", "an", "and", "are", "as", "at", "be", "been",
+  "being", "but", "by", "can", "could", "did", "do", "does", "for",
+  "from", "had", "has", "have", "he", "her", "here", "hers", "him",
+  "his", "how", "i", "if", "in", "into", "is", "it", "its", "just",
+  "me", "my", "of", "on", "or", "our", "ours", "she", "so", "than",
+  "that", "the", "their", "them", "then", "there", "these", "they",
+  "this", "those", "to", "too", "us", "was", "we", "were", "what",
+  "when", "where", "which", "who", "why", "will", "with", "would",
+  "you", "your", "yours", "please", "tell", "remember"
+]);
+
+function tokenize(text) {
   return [
     ...new Set(
-      normalizeKey(
-        text
-      )
-        .replace(
-          /[^a-z0-9\s]/g,
-          " "
-        )
+      normalizeKey(text)
+        .replace(/[^a-z0-9\s]/g, " ")
         .split(/\s+/)
-        .filter(
-          token =>
-            token.length >= 2
-        )
+        .filter(token => token.length >= 2 && !MEMORY_STOP_WORDS.has(token))
     )
   ];
 }

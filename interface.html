@@ -39,12 +39,14 @@
 
       <div class="sidebar-header">
 
+        <div class="sidebar-brand" aria-label="Zed home"><span class="sidebar-brand-mark">Z</span><span>Zed</span></div>
+
         <button
           class="new-chat-btn"
           id="newChatBtn"
           type="button"
         >
-          <span class="new-chat-icon">＋</span>
+          <span class="new-chat-icon" aria-hidden="true">＋</span>
           <span>New chat</span>
         </button>
 
@@ -72,7 +74,7 @@
           id="settingsBtn"
           type="button"
         >
-          <span class="sidebar-item-icon">⚙</span>
+          <span class="sidebar-item-icon" aria-hidden="true">⚙</span>
           <span>Settings</span>
         </button>
 
@@ -81,7 +83,7 @@
           id="accountBtn"
           type="button"
         >
-          <span class="sidebar-item-icon account-icon">●</span>
+          <span class="sidebar-item-icon account-icon" aria-hidden="true">◉</span>
           <span>Account</span>
         </button>
 
@@ -112,17 +114,11 @@
 
           <div class="brand">
 
-            <img class="brand-logo" src="super-brain.svg?v=2" alt="" width="32" height="32" style="width:32px;height:32px;object-fit:cover;border-radius:50%;flex-shrink:0;">
+             
 
             <div class="brand-name">Zed</div>
 
-            <div class="brand-status">
-
-              <span class="status-dot"></span>
-
-              <span>Online</span>
-
-            </div>
+            <span class="brand-chevron" aria-hidden="true">⌄</span>
 
           </div>
 
@@ -154,31 +150,31 @@
           id="welcome"
         >
 
-          <div class="welcome-logo" aria-label="Zed Super Brain logo" role="img"></div>
+           
 
           <h1>
-            How can I help you?
+            What can I help with?
           </h1>
 
           <p>
-            Your ideas, questions and next steps start here.
+            Ask anything, or tell me what you’re working on.
           </p>
 
           <div class="suggestion-grid" aria-label="Try a prompt">
             <button class="suggestion-card" type="button" data-prompt="Explain a difficult topic to me step by step, with simple examples.">
-              <span class="suggestion-icon">✳</span>
+              <span class="suggestion-icon" aria-hidden="true">✳</span>
               <span class="suggestion-copy"><strong>Learn something</strong><small>Understand a topic step by step</small></span>
             </button>
             <button class="suggestion-card" type="button" data-prompt="Help me write a clear, professional message. Ask me what it is for if needed.">
-              <span class="suggestion-icon">↗</span>
+              <span class="suggestion-icon" aria-hidden="true">↗</span>
               <span class="suggestion-copy"><strong>Write anything</strong><small>Messages, letters and ideas</small></span>
             </button>
             <button class="suggestion-card" type="button" data-prompt="Help me plan a realistic small business idea with a limited budget.">
-              <span class="suggestion-icon">⌁</span>
+              <span class="suggestion-icon" aria-hidden="true">⌁</span>
               <span class="suggestion-copy"><strong>Build an idea</strong><small>Turn a goal into a plan</small></span>
             </button>
             <button class="suggestion-card" type="button" data-prompt="Analyze this football match using current, verifiable data. Separate facts from estimates and show uncertainty.">
-              <span class="suggestion-icon">◎</span>
+              <span class="suggestion-icon" aria-hidden="true">◎</span>
               <span class="suggestion-copy"><strong>Analyze football</strong><small>Evidence-led match analysis</small></span>
             </button>
           </div>

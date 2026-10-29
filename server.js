@@ -740,6 +740,9 @@ async function askGroq(
         method:
           "POST",
 
+        signal:
+          AbortSignal.timeout(45_000),
+
         headers: {
           "Authorization":
             `Bearer ${GROQ_API_KEY}`,
@@ -824,6 +827,9 @@ async function askOpenRouter(
       {
         method:
           "POST",
+
+        signal:
+          AbortSignal.timeout(45_000),
 
         headers: {
           "Authorization":

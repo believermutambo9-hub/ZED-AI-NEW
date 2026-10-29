@@ -498,3 +498,14 @@ test("Groq and OpenRouter requests have bounded provider timeouts", () => {
   assert.match(groq, /signal:\s*AbortSignal\.timeout\(45_000\)/);
   assert.match(openRouter, /signal:\s*AbortSignal\.timeout\(45_000\)/);
 });
+
+
+test("all-provider failures return a safe message without leaking provider details", () => {
+  const fallbackStart = server.indexOf("async function askAI(");
+  const fallbackEnd = server.indexOf("// ============================================================\\n// MEMORY SAFETY", fallbackStart);
+  const fallback = server.slice(fallbackStart, fallbackEnd);
+  assert.match(fallback, /console\.error\("All configured AI providers failed:", errors\)/);
+  assert.match(fallback, /All AI services are temporarily unavailable\. Please try again shortly\./);
+  assert.match(fallback, /error\.code = "AI_PROVIDERS_UNAVAILABLE"/);
+  assert.doesNotMatch(fallback, /throw new Error\(\s*`All AI services failed/);
+});

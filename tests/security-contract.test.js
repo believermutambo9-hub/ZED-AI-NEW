@@ -256,3 +256,12 @@ test("chat deletion preserves local history when persistent deletion fails", () 
   assert.match(route, /catch \(error\) \{[\s\S]*?res\.status\(503\)/);
   assert.ok(route.indexOf("await history.deleteChat") < route.indexOf("deleteConversation(conversationId)"));
 });
+
+
+test("image generation returns a safe error message instead of internal exception details", () => {
+  const start = server.indexOf('"/api/generate-image"');
+  const end = server.indexOf('"/api/', start + 8);
+  const route = server.slice(start, end);
+  assert.match(route, /Image generation is temporarily unavailable/);
+  assert.doesNotMatch(route, /error:\\s*error\.message/);
+});

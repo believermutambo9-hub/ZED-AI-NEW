@@ -77,7 +77,7 @@ test("project detail, update, and delete routes verify project ownership", () =>
   assert.match(server, /app\.get\(\s*"\/api\/projects\/:projectId"[\s\S]*?project\.userId !== req\.user\.uid/);
   assert.match(server, /app\.patch\(\s*"\/api\/projects\/:projectId"[\s\S]*?project\.userId !== req\.user\.uid/);
   assert.match(server, /app\.delete\(\s*"\/api\/projects\/:projectId"[\s\S]*?project\.userId !== req\.user\.uid/);
-  assert.match(server, /const updated = await updateProject\\(req\\.params\\.projectId/);
+  assert.ok(server.includes("const updated = await updateProject(req.params.projectId"));
   assert.match(server, /const deleted = await deleteProject\(req\.params\.projectId\)/);
 });
 

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
-import { cleanSearchIntent, normalizeUrl, isTodayRequest } from "../web-search.js";
+import { cleanSearchIntent, normalizeUrl, isTodayRequest, formatDateForZambia } from "../web-search.js";
 
 const [server, history, memory, app, pkg, html, fileAnalysis] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
@@ -669,4 +669,24 @@ test("web search detects exact today requests for publication-date filtering", (
 test("web search prompt keeps the article list and source list consistent", () => {
   assert.match(server, /displayed article list and any source list must contain the same articles/);
   assert.match(server, /fewer than requested results have verified publication dates/);
+});
+
+
+test("exact-date web searches retry a broader recent index before returning no results", async () => {
+  const source = await import("node:fs/promises").then(fs => fs.readFile(new URL("../web-search.js", import.meta.url), "utf8"));
+  assert.match(source, /if \(!allResults\.some\(isPublishedToday\)\)/);
+  assert.match(source, /runSearchVariant\(variant, true, false\)/);
+  assert.match(source, /allResults = allResults\.filter\(isPublishedToday\)/);
+});
+
+
+test("Zambia date formatting is stable ISO regardless of runtime locale", () => {
+  assert.equal(formatDateForZambia(new Date("2026-10-28T22:30:00.000Z")), "2026-10-29");
+  assert.equal(formatDateForZambia(new Date("2026-10-29T00:30:00.000Z")), "2026-10-29");
+});
+
+test("exact-date news search retries a wider recent window but still requires today's publication date", async () => {
+  const webSearch = await readFile(new URL("../web-search.js", import.meta.url), "utf8");
+  assert.match(webSearch, /retry the same topic against the last seven days/);
+  assert.match(webSearch, /allResults = allResults\.filter\(isPublishedToday\)/);
 });

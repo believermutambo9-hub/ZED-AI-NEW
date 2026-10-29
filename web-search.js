@@ -29,12 +29,14 @@ function cleanText(value = "") {
 }
 
 function formatDateForZambia(date = new Date()) {
-  return new Intl.DateTimeFormat("en-CA", {
+  const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: TZ,
     year: "numeric",
     month: "2-digit",
     day: "2-digit"
-  }).format(date);
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function getZambiaDateTime(date = new Date()) {
@@ -856,15 +858,30 @@ export async function searchWeb(
       ? relevantResults
       : allResults;
 
-  // A request explicitly asking for items published today must not
-  // present older dated stories as today's news. Undated results are
-  // not eligible for this exact-date request.
+  // Exact-date searches can occasionally miss items because Google News'
+  // 24-hour filter is narrower than its indexed publication-date metadata.
+  // If the first pass has no dated stories for the Zambia calendar date,
+  // retry the same topic against the last seven days, then keep only results
+  // whose provider-supplied publication date matches today. Never use
+  // undated DuckDuckGo results to satisfy an exact-date request.
   if (todayRequest) {
     const todayInZambia = formatDateForZambia(new Date());
-    allResults = allResults.filter(result => {
+    const isPublishedToday = result => {
       const date = parsePublishedDate(result.published || result.pubDate || result.date || "");
       return date && formatDateForZambia(date) === todayInZambia;
-    });
+    };
+
+    if (!allResults.some(isPublishedToday)) {
+      const fallbackResults = await Promise.all(
+        variants.map(variant => runSearchVariant(variant, true, false))
+      );
+      allResults = deduplicateResults([
+        ...allResults,
+        ...fallbackResults.flat()
+      ]);
+    }
+
+    allResults = allResults.filter(isPublishedToday);
   }
 
   allResults =

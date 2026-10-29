@@ -917,6 +917,37 @@ function renderMessages() {
       content
     );
 
+    // Show actual search citations returned by the server; never inject HTML.
+    if (message.role === "assistant" && Array.isArray(message.webSources) && message.webSources.length) {
+      const sourcePanel = document.createElement("section");
+      sourcePanel.className = "web-sources";
+      sourcePanel.style.cssText = "margin-top:14px;padding-top:10px;border-top:1px solid rgba(255,255,255,.10);display:flex;flex-direction:column;gap:8px;";
+      const sourceHeading = document.createElement("div");
+      sourceHeading.textContent = "Sources";
+      sourceHeading.style.cssText = "font-size:12px;font-weight:600;color:var(--text-secondary,#a0a0a0);";
+      sourcePanel.appendChild(sourceHeading);
+
+      for (const source of message.webSources.slice(0, 8)) {
+        let parsedUrl;
+        try {
+          parsedUrl = new URL(source.url);
+        } catch {
+          continue;
+        }
+        if (!["http:", "https:"].includes(parsedUrl.protocol)) continue;
+
+        const link = document.createElement("a");
+        link.href = parsedUrl.href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = source.title || source.source || parsedUrl.hostname;
+        link.style.cssText = "color:var(--text-secondary,#a0a0a0);font-size:13px;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere;";
+        link.title = [source.source, source.published].filter(Boolean).join(" · ");
+        sourcePanel.appendChild(link);
+      }
+      if (sourcePanel.childElementCount > 1) wrapper.appendChild(sourcePanel);
+    }
+
     // Give every rendered message a reliable copy action without
     // interpreting assistant text as HTML or changing the API contract.
     const actions = document.createElement("div");
@@ -1352,7 +1383,9 @@ async function sendMessage() {
       content:
         data.answer ||
         data.reply ||
-        "Zed did not return an answer."
+        "Zed did not return an answer.",
+      webSearch: data.webSearch === true,
+      webSources: Array.isArray(data.webSources) ? data.webSources : []
     });
     if (data.chatPersistent === false) {
       state.messages.push({

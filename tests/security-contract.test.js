@@ -21,6 +21,16 @@ test("chat saves use a transaction and reject another owner's conversation", () 
   assert.match(history, /Conversation ownership mismatch\./);
 });
 
+test("new chat creation fails if persistent storage did not confirm the save", () => {
+  const start = server.indexOf('app.post(\n  "/api/new-chat"');
+  const end = server.indexOf("// DELETE CHAT", start);
+  const route = server.slice(start, end);
+  assert.match(route, /const persistence =\s*await persistConversation/);
+  assert.match(route, /if \(!persistence\?\.persistent\)/);
+  assert.match(route, /res\.status\(503\)/);
+  assert.ok(route.indexOf("if (!persistence?.persistent)") < route.indexOf("res.json({"));
+});
+
 test("chat deletion verifies ownership inside its transaction", () => {
   assert.match(history, /runTransaction\(async transaction/);
   assert.match(history, /doc\.data\(\)\?\.userId !== safeUserId/);

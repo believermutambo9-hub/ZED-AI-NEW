@@ -80,7 +80,7 @@ function normalizeUrl(url = "") {
 
     return parsed.toString();
   } catch {
-    return String(url).trim();
+    return "";
   }
 }
 
@@ -1039,6 +1039,7 @@ export const buildWebSearchContext =
 
 export {
   cleanText,
+  cleanSearchIntent,
   formatDateForZambia,
   getZambiaDateTime,
   normalizeUrl,

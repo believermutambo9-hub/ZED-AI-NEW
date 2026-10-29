@@ -2,13 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [server, history, memory, app, pkg, html] = await Promise.all([
+const [server, history, memory, app, pkg, html, fileAnalysis] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
   readFile(new URL("../storage/chat-history.js", import.meta.url), "utf8"),
   readFile(new URL("../features/memory.js", import.meta.url), "utf8"),
   readFile(new URL("../app.js", import.meta.url), "utf8"),
   readFile(new URL("../package.json", import.meta.url), "utf8"),
-  readFile(new URL("../interface.html", import.meta.url), "utf8")
+  readFile(new URL("../interface.html", import.meta.url), "utf8"),
+  readFile(new URL("../features/file-analysis.js", import.meta.url), "utf8")
 ]);
 
 test("API routes reject missing or invalid Firebase ID tokens", () => {
@@ -299,43 +300,43 @@ test("uploaded images are restricted to supported image MIME types", () => {
 });
 
 test("file uploads reject malformed base64 before decoding", () => {
-  assert.match(server, /A-Za-z0-9\+\//);
-  assert.match(server, /The uploaded file data is invalid/);
-  assert.ok(server.indexOf("The uploaded file data is invalid") < server.indexOf("Buffer.from(base64"));
+  assert.match(fileAnalysis, /A-Za-z0-9\+\//);
+  assert.match(fileAnalysis, /The uploaded file data is invalid/);
+  assert.ok(fileAnalysis.indexOf("The uploaded file data is invalid") < fileAnalysis.indexOf("Buffer.from(base64"));
 });
 
 
 test("uploaded filenames are sanitized and length-limited", () => {
-  assert.ok(server.includes("const rawFileName = String("));
-  assert.match(server, /\.replace\(\/\[\\u0000-\\u001f\\u007f\]\/g/);
-  assert.ok(server.includes(".slice(0, 255)"));
+  assert.ok(fileAnalysis.includes("const rawFileName = String("));
+  assert.match(fileAnalysis, /\.replace\(\/\[\\u0000-\\u001f\\u007f\]\/g/);
+  assert.ok(fileAnalysis.includes(".slice(0, 255)"));
   assert.ok(server.includes('"|| \"uploaded-file\""') || server.includes('|| "uploaded-file"'));
 });
 
 
 test("uploaded files are checked against their actual signatures", () => {
-  assert.ok(server.includes("function detectUploadedSignature(buffer)"));
-  assert.ok(server.includes('signature !== "application/pdf"'));
-  assert.ok(server.includes("signature !== mimeType"));
-  assert.ok(server.includes("file contents do not match the file type"));
+  assert.ok(fileAnalysis.includes("function detectUploadedSignature(buffer)"));
+  assert.ok(fileAnalysis.includes('signature !== "application/pdf"'));
+  assert.ok(fileAnalysis.includes("signature !== mimeType"));
+  assert.ok(fileAnalysis.includes("file contents do not match the file type"));
 });
 
 test("file analysis supports presentations, OpenDocument files, ebooks, and source code", () => {
-  assert.ok(server.includes('extension === ".pptx"'));
-  assert.ok(server.includes('extension === ".odt" || extension === ".odp" || extension === ".epub"'));
-  assert.ok(server.includes('".py", ".java", ".c", ".h", ".cpp"'));
-  assert.ok(server.includes("extractOfficeOrEbookText"));
+  assert.ok(fileAnalysis.includes('extension === ".pptx"'));
+  assert.ok(fileAnalysis.includes('extension === ".odt" || extension === ".odp" || extension === ".epub"'));
+  assert.ok(fileAnalysis.includes('".py", ".java", ".c", ".h", ".cpp"'));
+  assert.ok(fileAnalysis.includes("extractOfficeOrEbookText"));
   assert.ok(pkg.includes('"fflate"'));
 });
 
 test("legacy binary Office files receive an explicit conversion instruction", () => {
-  assert.ok(server.includes("Legacy .doc and .ppt files are not supported yet"));
-  assert.ok(server.includes("save as DOCX/PPTX or PDF"));
+  assert.ok(fileAnalysis.includes("Legacy .doc and .ppt files are not supported yet"));
+  assert.ok(fileAnalysis.includes("save as DOCX/PPTX or PDF"));
 });
 
 test("JSON request limit accommodates base64 expansion for accepted uploads", () => {
   assert.ok(server.includes('limit: "30mb"'));
-  assert.ok(server.includes("buffer.length > 18 * 1024 * 1024"));
+  assert.ok(fileAnalysis.includes("buffer.length > 18 * 1024 * 1024"));
 });
 
 test("browser upload payload is connected to the authenticated chat request", () => {

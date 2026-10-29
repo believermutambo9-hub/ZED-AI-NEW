@@ -132,7 +132,7 @@ app.use(async (req, res, next) => {
     req.user = { uid: decoded.uid, email: decoded.email || null };
     return next();
   } catch (error) {
-    console.warn("API authentication failed:", error.code || error.message);
+    console.warn("API authentication failed:", error.code || "TOKEN_VERIFICATION_FAILED");
     return res.status(401).json({
       ok: false,
       error: "Your session is invalid or expired. Please sign in again."

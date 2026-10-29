@@ -50,7 +50,8 @@ import {
   getUserProjects,
   updateProject,
   deleteProject,
-  rememberProject
+  rememberProject,
+  persistMemoryAndWait
 } from "./features/memory.js";
 
 // ============================================================
@@ -1936,7 +1937,7 @@ app.delete(
 
 app.post(
   "/api/projects/:projectId/memories",
-  (req, res) => {
+  async (req, res) => {
     const content = cleanText(req.body?.content);
 
     if (!content) {
@@ -1963,6 +1964,16 @@ app.post(
       return res.status(status).json({
         ok: false,
         error: status === 404 ? "Project not found." : "Unable to save project memory."
+      });
+    }
+
+    try {
+      await persistMemoryAndWait(result.memory);
+    } catch (error) {
+      console.error("Project memory persistence failed:", error.message);
+      return res.status(503).json({
+        ok: false,
+        error: "Project memory could not be saved. Please try again."
       });
     }
 

@@ -31,6 +31,17 @@ test("new chat creation fails if persistent storage did not confirm the save", (
   assert.ok(route.indexOf("if (!persistence?.persistent)") < route.indexOf("res.json({"));
 });
 
+test("chat requests stop if the user message was not persisted", () => {
+  const start = server.indexOf('app.post(\n  "/api/chat"');
+  const end = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", start);
+  const route = server.slice(start, end);
+  assert.match(route, /const initialChatPersistence =\s*await persistConversation/);
+  assert.match(route, /if \(!initialChatPersistence\?\.persistent\)/);
+  assert.match(route, /res\.status\(503\)/);
+  assert.match(route, /Your message could not be saved\. Please try again\./);
+  assert.ok(route.indexOf("if (!initialChatPersistence?.persistent)") < route.indexOf("// MEMORY: FORGET"));
+});
+
 test("chat deletion verifies ownership inside its transaction", () => {
   assert.match(history, /runTransaction\(async transaction/);
   assert.match(history, /doc\.data\(\)\?\.userId !== safeUserId/);

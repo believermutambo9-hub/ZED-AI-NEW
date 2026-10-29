@@ -477,3 +477,10 @@ test("chat route returns a safe client error when upload analysis fails", () => 
   assert.match(route, /The uploaded file could not be analysed\. Check the file type, size, and contents\./);
   assert.doesNotMatch(route, /uploadError\.stack/);
 });
+
+
+test("chat UI rejects oversized files before base64 encoding", () => {
+  assert.match(app, /state\.selectedFile\.size > 18 \* 1024 \* 1024/);
+  assert.match(app, /This file is too large to analyse\. Please choose a file smaller than 18 MB\./);
+  assert.ok(app.indexOf("state.selectedFile.size > 18 * 1024 * 1024") < app.indexOf("reader.readAsDataURL"));
+});

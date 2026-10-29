@@ -55,7 +55,7 @@
   }
 
   // Suggested prompts reuse the normal message-send path.
-  document.querySelectorAll(".suggested-prompt").forEach(button => {
+  document.querySelectorAll(".suggested-prompt, .suggestion-card").forEach(button => {
     button.addEventListener("click", () => {
       if (!messageInput || messageInput.disabled) return;
       messageInput.value = button.dataset.prompt || "";

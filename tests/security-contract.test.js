@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { zipSync } from "fflate";
 
 const [server, history, memory, app, pkg, html, fileAnalysis] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
@@ -384,7 +385,7 @@ test("file picker advertises formats supported by the server and omits unsupport
 });
 
 
-import { prepareUploadedFile, detectUploadedSignature } from "../features/file-analysis.js";
+import { prepareUploadedFile, detectUploadedSignature, validateZipArchive } from "../features/file-analysis.js";
 
 function dataUrl(bytes, mime = "application/octet-stream") {
   return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
@@ -428,4 +429,25 @@ test("signature detection identifies PDF, PNG, JPEG and ZIP documents", () => {
   assert.equal(detectUploadedSignature(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])), "image/png");
   assert.equal(detectUploadedSignature(Buffer.from([0xff, 0xd8, 0xff, 0x00])), "image/jpeg");
   assert.equal(detectUploadedSignature(Buffer.from([0x50, 0x4b, 0x03, 0x04])), "application/zip");
+});
+
+
+test("ZIP archive validation accepts ordinary archives and rejects expansion bombs", () => {
+  const ordinary = zipSync({ "word/document.xml": Buffer.from("<document>hello</document>") });
+  const stats = validateZipArchive(Buffer.from(ordinary));
+  assert.equal(stats.entryCount, 1);
+  assert.ok(stats.totalUncompressedBytes > 0);
+
+  const oversized = zipSync({ "word/document.xml": Buffer.alloc(4096, 65) });
+  assert.throws(
+    () => validateZipArchive(Buffer.from(oversized), { maxFileBytes: 1024 }),
+    /too large to analyse safely/
+  );
+});
+
+test("ZIP archive validation rejects malformed archive metadata", () => {
+  assert.throws(
+    () => validateZipArchive(Buffer.from("not a zip archive")),
+    /damaged or unsupported/
+  );
 });

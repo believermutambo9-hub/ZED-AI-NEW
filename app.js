@@ -1,5 +1,5 @@
 // ============================================================
-// ZED AI - CURRENT INTERFACE
+// ZED - CURRENT INTERFACE
 // Firebase Authentication + Zed Backend
 // Liquid Glass Interface Controls
 // ============================================================
@@ -195,7 +195,7 @@ function createAuthScreen() {
       text-align:center;
       font-size:25px;
       margin-bottom:8px;
-    ">Welcome to Zed AI</h1>
+    ">Welcome to Zed</h1>
     <p style="
       text-align:center;
       color:#a7a7a7;
@@ -423,7 +423,7 @@ function createSettingsPanel() {
           color:#929292;
           font-size:12px;
           margin-top:4px;
-        ">Customize your Zed AI experience</div>
+        ">Customize your Zed experience</div>
       </div>
       <button id="zedSettingsClose"
         aria-label="Close settings"
@@ -476,13 +476,13 @@ function createSettingsPanel() {
       background:rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.08);
     ">
-      <div style="font-weight:600;">Zed AI</div>
+      <div style="font-weight:600;">Zed</div>
       <div style="
         color:#929292;
         font-size:12px;
         margin-top:5px;
       ">
-        Your conversations, files and AI tools are managed by Zed AI.
+        Your conversations, files and AI tools are managed by Zed.
       </div>
     </div>
   `;
@@ -922,7 +922,7 @@ function renderMessages() {
       image.src =
         message.image;
       image.alt =
-        "Image created by Zed AI";
+        "Image created by Zed";
       image.style.cssText = `
         display:block;
         max-width:100%;

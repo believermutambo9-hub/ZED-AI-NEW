@@ -92,3 +92,22 @@ test("project memory creation is scoped to the authenticated user and project", 
   assert.match(server, /rememberProject\(\{[\s\S]*?projectId: req\.params\.projectId/);
   assert.match(memory, /export function rememberProject\([\s\S]*?project\.userId !==\s*normalizeUserId\(\s*userId\s*\)/);
 });
+
+test("project deletion removes its linked memories and Firestore records", () => {
+  const start = memory.indexOf("export function deleteProject");
+  const end = memory.indexOf("// PROJECT MEMORY", start + 30);
+  const implementation = memory.slice(start, end);
+  assert.match(implementation, /memory\.projectId ===\s*id/);
+  assert.match(implementation, /memories\.delete\(\s*memoryId\s*\)/);
+  assert.match(implementation, /firestoreDelete\(\s*"zedMemories",\s*memoryId\s*\)/);
+  assert.match(implementation, /projects\.delete\(\s*id\s*\)/);
+  assert.match(implementation, /firestoreDelete\(\s*"zedProjects",\s*id\s*\)/);
+});
+
+test("project memory cannot be attached by a different user", () => {
+  const start = memory.indexOf("export function rememberProject");
+  const end = memory.indexOf("// FOOTBALL MEMORY", start + 30);
+  const implementation = memory.slice(start, end);
+  assert.match(implementation, /project\.userId !==\s*normalizeUserId\(\s*userId\s*\)/);
+  assert.match(implementation, /reason:\s*"user-mismatch"/);
+});

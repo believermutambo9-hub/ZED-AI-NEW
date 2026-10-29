@@ -615,7 +615,7 @@ async function searchBingNews(
   // when:1d operator to Bing; exact-date filtering is performed locally
   // against the provider's published timestamp.
   const query = cleanText(userQuery)
-    .replace(/\\b(published today|today)\\b/gi, " ")
+    .replace(/\b(published today|today)\b/gi, " ")
     .replace(/\\s+/g, " ")
     .trim();
   const searchUrl =
@@ -623,13 +623,13 @@ async function searchBingNews(
 
   try {
     const xml = await fetchText(searchUrl);
-    const items = [...xml.matchAll(/<item>([\\s\\S]*?)<\\/item>/gi)];
+    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
 
     return items.map(match => {
       const item = match[1];
       const getTag = tag => {
         const found = item.match(
-          new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)<\\/${tag}>`, "i")
+          new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i")
         );
         return found ? cleanText(found[1]) : "";
       };

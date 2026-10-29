@@ -1,7 +1,7 @@
 import path from "node:path";
 
 function cleanAIAnswer(value = "") {
-  return String(value).replace(/\\u0000/g, "").trim();
+  return String(value).replace(/\u0000/g, "").trim();
 }
 
 // ============================================================
@@ -65,7 +65,7 @@ async function prepareUploadedFile(file) {
   if (!file) return null;
   const dataUrl = typeof file === "string" ? file : file.data;
   const rawFileName = String(typeof file === "object" ? file.name || "uploaded-file" : "uploaded-file");
-  const fileName = rawFileName.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 255) || "uploaded-file";
+  const fileName = path.basename(rawFileName.replace(/\\/g, "/")).replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 255) || "uploaded-file";
   const declaredType = String(typeof file === "object" ? file.type || "" : "").toLowerCase();
   const match = /^data:([^;,]+)?;base64,([\s\S]+)$/.exec(String(dataUrl || ""));
   if (!match) throw new Error("The uploaded file could not be read. Please upload it again.");

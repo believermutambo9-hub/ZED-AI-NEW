@@ -286,3 +286,10 @@ test("AI and memory API failures do not expose raw exception messages", () => {
   assert.match(chatRoute, /The request could not be completed/);
   assert.doesNotMatch(chatRoute, /error:\\s*error\.message/);
 });
+
+
+test("uploaded images are restricted to supported image MIME types", () => {
+  assert.match(server, /'image\/jpeg',[\s\S]*?'image\/png',[\s\S]*?'image\/webp',[\s\S]*?'image\/gif'/);
+  assert.match(server, /supportedImageTypes\.has\(mimeType\)/);
+  assert.match(server, /This image format is not supported/);
+});

@@ -275,3 +275,14 @@ test("image generation rejects oversized prompts before calling the provider", (
   assert.match(route, /Image prompts must be 2,000 characters or fewer/);
   assert.ok(route.indexOf("prompt.length > 2000") < route.indexOf("generateCloudflareImage"));
 });
+
+
+test("AI and memory API failures do not expose raw exception messages", () => {
+  assert.match(server, /The AI service is temporarily unavailable/);
+  assert.match(server, /The memory request could not be completed/);
+  const chatStart = server.indexOf('"/api/chat"');
+  const chatEnd = server.indexOf("// ============================================================\\n// FRONTEND FALLBACK", chatStart);
+  const chatRoute = server.slice(chatStart, chatEnd);
+  assert.match(chatRoute, /The request could not be completed/);
+  assert.doesNotMatch(chatRoute, /error:\\s*error\.message/);
+});

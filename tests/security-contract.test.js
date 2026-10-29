@@ -237,3 +237,11 @@ test("delete-all chat history chunks Firestore writes below the 500-write limit"
   assert.match(history, /snapshot\.docs\.slice\(start, start \+ batchSize\)/);
   assert.match(history, /await batch\.commit\(\)/);
 });
+
+
+test("chat history UI distinguishes unavailable storage from an empty history", () => {
+  assert.match(app, /chatHistoryUnavailable: false/);
+  assert.match(app, /data\.persistent === false/);
+  assert.match(app, /state\.chatHistoryUnavailable = true/);
+  assert.match(app, /Chat history is temporarily unavailable/);
+});

@@ -526,3 +526,13 @@ test("persistent deletion fails closed when Firestore is unavailable", () => {
   assert.match(helper, /if \(!firestore\)\s*\{\s*throw new Error\("Firestore is unavailable; data was not deleted\."\);\s*\}/);
   assert.ok(helper.indexOf("throw new Error") < helper.indexOf(".collection(collection)"));
 });
+
+
+test("chat history API does not expose internal persistence errors", () => {
+  const start = server.indexOf('"Chat list error:"');
+  const end = server.indexOf("// ============================================================\n// USER MEMORY API", start);
+  const route = server.slice(start, end);
+
+  assert.match(route, /error: "Chat history is temporarily unavailable\. Please try again\."/);
+  assert.doesNotMatch(route, /error:\s*error\.message/);
+});

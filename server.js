@@ -675,6 +675,13 @@ async function prepareUploadedFile(file) {
   if (!match) throw new Error('The uploaded file could not be read. Please upload it again.');
   const mimeType = (match[1] || declaredType || 'application/octet-stream').toLowerCase();
   const base64 = match[2];
+
+  // Buffer.from(..., "base64") silently ignores invalid characters.
+  // Reject malformed payloads instead of analysing truncated or altered data.
+  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(base64)) {
+    throw new Error('The uploaded file data is invalid. Please upload it again.');
+  }
+
   const buffer = Buffer.from(base64, 'base64');
   const extension = path.extname(fileName).toLowerCase();
   if (!buffer.length) throw new Error('The uploaded file is empty or invalid.');

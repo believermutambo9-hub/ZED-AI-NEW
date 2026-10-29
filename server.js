@@ -30,6 +30,7 @@ import {
   getConversationDetails,
   deleteConversation,
   remember,
+  persistMemoryAndWait,
   getUserMemories,
   searchMemories,
   buildMemoryContext,
@@ -1634,7 +1635,7 @@ app.get(
 
 app.post(
   "/api/memory",
-  (req, res) => {
+  async (req, res) => {
     try {
       const userId =
         req.user.uid;
@@ -1686,7 +1687,19 @@ app.post(
             req.body?.tags
         });
 
-      res.json({
+      if (result.created || result.updated) {
+        try {
+          await persistMemoryAndWait(result.memory);
+        } catch (persistenceError) {
+          console.error("Memory persistence failed:", persistenceError.message);
+          return res.status(503).json({
+            ok: false,
+            error: "Memory could not be saved. Please try again."
+          });
+        }
+      }
+
+      return res.json({
         ok: true,
         result
       });

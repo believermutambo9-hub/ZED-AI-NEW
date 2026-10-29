@@ -304,7 +304,8 @@ test("file uploads reject malformed base64 before decoding", () => {
 
 
 test("uploaded filenames are sanitized and length-limited", () => {
-  assert.match(server, /rawFileName[\s\S]*replace\(\/\[\\u0000-\\u001f\\u007f\]\/g, ''\)/);
-  assert.match(server, /\.slice\(0, 255\)/);
-  assert.match(server, /\|\| 'uploaded-file'/);
+  assert.ok(server.includes("const rawFileName = String("));
+  assert.ok(server.includes(".replace(/[\\\\u0000-\\\\u001f\\\\u007f]/g, '')"));
+  assert.ok(server.includes(".slice(0, 255)"));
+  assert.ok(server.includes("|| 'uploaded-file'"));
 });

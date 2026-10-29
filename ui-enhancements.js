@@ -83,6 +83,7 @@
     remove.textContent = "Remove";
     remove.setAttribute("aria-label", `Remove ${file.name}`);
     remove.addEventListener("click", () => {
+      try { state.selectedFile = null; } catch {}
       if (fileInput) fileInput.value = "";
       renderFileChip(null);
       if (messageInput && messageInput.value === `Please analyze ${file.name}`) {
@@ -92,12 +93,12 @@
     fileChip.append(label, remove);
   }
   fileInput?.addEventListener("change", () => renderFileChip(fileInput.files?.[0] || null));
-  sendButton?.addEventListener("click", () => {
-    // The core app clears the file input after a completed request.
-    window.setTimeout(() => {
-      if (!fileInput?.files?.length) renderFileChip(null);
-    }, 0);
-  });
+  if (sendButton) {
+    const sendingObserver = new MutationObserver(() => {
+      if (!sendButton.disabled && !fileInput?.files?.length) renderFileChip(null);
+    });
+    sendingObserver.observe(sendButton, { attributes: true, attributeFilter: ["disabled"] });
+  }
 
   // Make dynamically-created settings expose the same theme preference.
   const settingsObserver = new MutationObserver(() => {

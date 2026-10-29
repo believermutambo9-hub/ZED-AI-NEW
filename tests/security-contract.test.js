@@ -622,3 +622,17 @@ test("ChatGPT-style layout stays minimal, responsive, and preserves core interfa
   assert.match(styles, /env\(safe-area-inset-bottom\)/);
   assert.match(styles, /\.suggestion-card:hover/);
 });
+
+
+test("explicit web-search requests trigger search even without current-news keywords", () => {
+  assert.match(server, /function isExplicitWebSearchRequest\(message = ""\)/);
+  assert.match(server, /explicitWebSearch \|\|\s*isCurrentInformationQuestion\(userMessage\)/);
+  assert.match(server, /webSources:\s*Array\.isArray\(searchData\?\.results\)/);
+});
+
+test("web search sources are rendered as safe clickable HTTP(S) links", () => {
+  assert.match(app, /webSources: Array\.isArray\(data\.webSources\) \? data\.webSources : \[\]/);
+  assert.match(app, /new URL\(source\.url\)/);
+  assert.match(app, /\["http:", "https:"\]\.includes\(parsedUrl\.protocol\)/);
+  assert.match(app, /link\.rel = "noopener noreferrer"/);
+});

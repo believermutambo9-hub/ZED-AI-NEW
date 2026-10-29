@@ -176,7 +176,7 @@ function cleanSearchIntent(query = "") {
 }
 
 function isTodayRequest(query = "") {
-  return /\\b(today|published today|this day)\\b/i.test(cleanText(query));
+  return /\b(today|published today|this day)\b/i.test(cleanText(query));
 }
 
 function isRecentRequest(query = "") {

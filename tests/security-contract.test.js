@@ -567,3 +567,21 @@ test("clear-all memory deletes persisted records by owner, not just cache indexe
   assert.match(clear, /persistentFootballDeleted/);
   assert.doesNotMatch(clear, /hadFootballMemory \|\| true/);
 });
+
+
+test("interface upgrade includes persistent theme, prompt shortcuts, history search and removable attachments", async () => {
+  const [interfaceHtml, uiEnhancements, styles] = await Promise.all([
+    readFile(new URL("../interface.html", import.meta.url), "utf8"),
+    readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8"),
+    readFile(new URL("../styles.css", import.meta.url), "utf8")
+  ]);
+  assert.match(interfaceHtml, /id="themeToggle"/);
+  assert.match(interfaceHtml, /id="selectedFileChip"/);
+  assert.match(interfaceHtml, /src="ui-enhancements\.js"/);
+  assert.match(uiEnhancements, /localStorage\.setItem\("zed-theme"/);
+  assert.match(uiEnhancements, /chatSearch/);
+  assert.match(uiEnhancements, /suggestion-card/);
+  assert.match(uiEnhancements, /state\.selectedFile = null/);
+  assert.match(styles, /@media \(max-width:700px\)/);
+  assert.match(styles, /prefers-reduced-motion/);
+});

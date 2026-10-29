@@ -86,3 +86,9 @@ test("project endpoints hide missing and other users' projects with 404", () => 
   assert.equal((projectRoutes.match(/res\.status\(404\)/g) || []).length, 4);
   assert.match(projectRoutes, /Project not found\./);
 });
+
+test("project memory creation is scoped to the authenticated user and project", () => {
+  assert.match(server, /app\.post\(\s*"\/api\/projects\/:projectId\/memories"[\s\S]*?userId: req\.user\.uid/);
+  assert.match(server, /rememberProject\(\{[\s\S]*?projectId: req\.params\.projectId/);
+  assert.match(memory, /export function rememberProject\([\s\S]*?project\.userId !==\s*normalizeUserId\(\s*userId\s*\)/);
+});

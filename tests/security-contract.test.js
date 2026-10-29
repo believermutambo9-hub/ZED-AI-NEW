@@ -301,3 +301,10 @@ test("file uploads reject malformed base64 before decoding", () => {
   assert.match(server, /The uploaded file data is invalid/);
   assert.ok(server.indexOf("The uploaded file data is invalid") < server.indexOf("Buffer.from(base64, 'base64')"));
 });
+
+
+test("uploaded filenames are sanitized and length-limited", () => {
+  assert.match(server, /rawFileName[\s\S]*replace\(\/\[\\u0000-\\u001f\\u007f\]\/g, ''\)/);
+  assert.match(server, /\.slice\(0, 255\)/);
+  assert.match(server, /\|\| 'uploaded-file'/);
+});

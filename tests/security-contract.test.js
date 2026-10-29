@@ -2,10 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [server, history, memory] = await Promise.all([
+const [server, history, memory, app] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
   readFile(new URL("../storage/chat-history.js", import.meta.url), "utf8"),
-  readFile(new URL("../features/memory.js", import.meta.url), "utf8")
+  readFile(new URL("../features/memory.js", import.meta.url), "utf8"),
+  readFile(new URL("../app.js", import.meta.url), "utf8")
 ]);
 
 test("API routes reject missing or invalid Firebase ID tokens", () => {
@@ -44,8 +45,8 @@ test("chat requests stop if the user message was not persisted", () => {
 
 test("chat UI warns when the assistant reply was not saved", () => {
   assert.match(server, /chatPersistent:\s*Boolean\(\s*chatPersistence\?\.persistent/);
-  assert.match(await readFile(new URL("../app.js", import.meta.url), "utf8"), /data\.chatPersistent === false/);
-  assert.match(await readFile(new URL("../app.js", import.meta.url), "utf8"), /could not be saved to your chat history/);
+  assert.match(app, /data\.chatPersistent === false/);
+  assert.match(app, /could not be saved to your chat history/);
 });
 
 test("chat deletion verifies ownership inside its transaction", () => {

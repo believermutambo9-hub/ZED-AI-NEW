@@ -1385,10 +1385,19 @@ app.post(
         "zed"
     };
 
-    await persistConversation(
-      userId,
-      conversation
-    );
+    const persistence =
+      await persistConversation(
+        userId,
+        conversation
+      );
+
+    if (!persistence?.persistent) {
+      deleteConversation(conversation.id);
+      return res.status(503).json({
+        ok: false,
+        error: "A new chat could not be saved. Please try again."
+      });
+    }
 
     res.json({
       ok: true,

@@ -14,17 +14,12 @@
   <!-- Prevent theme flashing while the page loads -->
   <script>
     (function () {
-      const savedTheme = localStorage.getItem("zed-theme");
-
-      if (savedTheme === "light" || savedTheme === "dark") {
-        document.documentElement.dataset.theme = savedTheme;
-      } else {
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        ).matches;
-
+      try {
+        const savedTheme = localStorage.getItem("zed-theme");
         document.documentElement.dataset.theme =
-          prefersDark ? "dark" : "light";
+          savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
+      } catch {
+        document.documentElement.dataset.theme = "dark";
       }
     })();
   </script>
@@ -133,6 +128,10 @@
 
         </div>
 
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" title="Switch theme">
+          <span aria-hidden="true" id="themeToggleIcon">☼</span>
+        </button>
+
         <button
           class="profile-btn"
           id="profileBtn"
@@ -162,10 +161,27 @@
           </h1>
 
           <p>
-            Ask anything. Study, write, search,
-            analyze files, explore football, or work
-            on your ideas.
+            Your ideas, questions and next steps start here.
           </p>
+
+          <div class="suggestion-grid" aria-label="Try a prompt">
+            <button class="suggestion-card" type="button" data-prompt="Explain a difficult topic to me step by step, with simple examples.">
+              <span class="suggestion-icon">✳</span>
+              <span class="suggestion-copy"><strong>Learn something</strong><small>Understand a topic step by step</small></span>
+            </button>
+            <button class="suggestion-card" type="button" data-prompt="Help me write a clear, professional message. Ask me what it is for if needed.">
+              <span class="suggestion-icon">↗</span>
+              <span class="suggestion-copy"><strong>Write anything</strong><small>Messages, letters and ideas</small></span>
+            </button>
+            <button class="suggestion-card" type="button" data-prompt="Help me plan a realistic small business idea with a limited budget.">
+              <span class="suggestion-icon">⌁</span>
+              <span class="suggestion-copy"><strong>Build an idea</strong><small>Turn a goal into a plan</small></span>
+            </button>
+            <button class="suggestion-card" type="button" data-prompt="Analyze this football match using current, verifiable data. Separate facts from estimates and show uncertainty.">
+              <span class="suggestion-icon">◎</span>
+              <span class="suggestion-copy"><strong>Analyze football</strong><small>Evidence-led match analysis</small></span>
+            </button>
+          </div>
 
         </div>
 
@@ -260,6 +276,8 @@
         </div>
 
         <!-- Disclaimer -->
+        <div id="selectedFileChip" class="selected-file-chip" hidden></div>
+
         <div class="composer-note">
           Zed can make mistakes. Check important information.
         </div>
@@ -272,6 +290,7 @@
 
   <!-- Main application JavaScript -->
   <script src="app.js"></script>
+  <script src="ui-enhancements.js"></script>
 
 </body>
 </html>

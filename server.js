@@ -679,16 +679,16 @@ function detectUploadedSignature(buffer) {
 
 function extractXmlText(xml) {
   return String(xml || "")
-    .replace(/<w:tab\\b[^>]*\\/>|<a:br\\b[^>]*\\/>|<text:tab\\b[^>]*\\/>/g, " ")
+    .replace(/<w:tab\b[^>]*\/>|<a:br\b[^>]*\/>|<text:tab\b[^>]*\/>/g, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'")
-    .replace(/&#(\\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([\\da-f]+);/gi, (_, code) => String.fromCodePoint(parseInt(code, 16)))
-    .replace(/\\s+/g, " ")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([\da-f]+);/gi, (_, code) => String.fromCodePoint(parseInt(code, 16)))
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -704,12 +704,12 @@ async function extractOfficeOrEbookText(buffer, extension) {
   const entries = Object.keys(archive);
   let selected = [];
   if (extension === ".pptx") {
-    selected = entries.filter(name => /^ppt\\/slides\\/slide\\d+\\.xml$/i.test(name))
-      .sort((a, b) => Number(a.match(/slide(\\d+)/i)?.[1] || 0) - Number(b.match(/slide(\\d+)/i)?.[1] || 0));
+    selected = entries.filter(name => /^ppt\/slides\/slide\d+\.xml$/i.test(name))
+      .sort((a, b) => Number(a.match(/slide(\d+)/i)?.[1] || 0) - Number(b.match(/slide(\d+)/i)?.[1] || 0));
   } else if (extension === ".odt" || extension === ".odp") {
     selected = entries.includes("content.xml") ? ["content.xml"] : [];
   } else if (extension === ".epub") {
-    selected = entries.filter(name => /\\.(xhtml|html|htm)$/i.test(name)).sort();
+    selected = entries.filter(name => /\.(xhtml|html|htm)$/i.test(name)).sort();
   }
 
   if (!selected.length) {
@@ -717,18 +717,18 @@ async function extractOfficeOrEbookText(buffer, extension) {
   }
 
   return selected.map(name => {
-    const label = extension === ".pptx" ? "Slide " + (name.match(/slide(\\d+)/i)?.[1] || "") + ": " : "";
+    const label = extension === ".pptx" ? "Slide " + (name.match(/slide(\d+)/i)?.[1] || "") + ": " : "";
     return label + extractXmlText(strFromU8(archive[name]));
-  }).filter(Boolean).join("\\n\\n").slice(0, 100000);
+  }).filter(Boolean).join("\n\n").slice(0, 100000);
 }
 
 async function prepareUploadedFile(file) {
   if (!file) return null;
   const dataUrl = typeof file === "string" ? file : file.data;
   const rawFileName = String(typeof file === "object" ? file.name || "uploaded-file" : "uploaded-file");
-  const fileName = rawFileName.replace(/[\\u0000-\\u001f\\u007f]/g, "").slice(0, 255) || "uploaded-file";
+  const fileName = rawFileName.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 255) || "uploaded-file";
   const declaredType = String(typeof file === "object" ? file.type || "" : "").toLowerCase();
-  const match = /^data:([^;,]+)?;base64,([\\s\\S]+)$/.exec(String(dataUrl || ""));
+  const match = /^data:([^;,]+)?;base64,([\s\S]+)$/.exec(String(dataUrl || ""));
   if (!match) throw new Error("The uploaded file could not be read. Please upload it again.");
   const dataUrlType = String(match[1] || "").toLowerCase();
   const mimeType = dataUrlType || declaredType || "application/octet-stream";
@@ -816,7 +816,7 @@ async function prepareUploadedFile(file) {
     if (extension === ".xls" && signature !== "application/x-ole-storage" && signature !== "application/zip") throw new Error("This is not a valid XLS spreadsheet.");
     const XLSX = await import("xlsx");
     const workbook = XLSX.read(buffer, { type: "buffer" });
-    const extractedText = workbook.SheetNames.map(name => "Sheet: " + name + "\\n" + XLSX.utils.sheet_to_csv(workbook.Sheets[name])).join("\\n\\n");
+    const extractedText = workbook.SheetNames.map(name => "Sheet: " + name + "\n" + XLSX.utils.sheet_to_csv(workbook.Sheets[name])).join("\n\n");
     return { fileName, mimeType, extractedText: cleanAIAnswer(extractedText).slice(0, 100000) };
   }
 
@@ -831,8 +831,8 @@ async function prepareUploadedFile(file) {
     if (signature !== "text-or-unknown") {
       throw new Error("The file appears to contain binary data, not the selected text/code format.");
     }
-    const text = buffer.toString("utf8").replace(/^\\uFEFF/, "");
-    if (text.includes("\\uFFFD") || /[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f]/.test(text)) {
+    const text = buffer.toString("utf8").replace(/^\uFEFF/, "");
+    if (text.includes("\uFFFD") || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(text)) {
       throw new Error("This file does not appear to be valid readable text. Try exporting it as UTF-8 or PDF.");
     }
     return { fileName, mimeType: mimeType === "application/octet-stream" ? "text/plain" : mimeType, extractedText: text.slice(0, 100000) };

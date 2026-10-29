@@ -117,3 +117,16 @@ test("project memory cannot be attached by a different user", () => {
   assert.match(implementation, /project\.userId !==\s*normalizeUserId\(\s*userId\s*\)/);
   assert.match(implementation, /reason:\s*"user-mismatch"/);
 });
+
+test("project updates cannot overwrite project ownership", () => {
+  const start = server.indexOf('app.patch(\n  "/api/projects/:projectId"');
+  const end = server.indexOf('app.delete(\n  "/api/projects/:projectId"', start);
+  const route = server.slice(start, end);
+  assert.match(route, /project\.userId !== req\.user\.uid/);
+  assert.match(route, /updateProject\(req\.params\.projectId, \{[\s\S]*?name: req\.body\?\.name[\s\S]*?description: req\.body\?\.description[\s\S]*?metadata: req\.body\?\.metadata/);
+  assert.doesNotMatch(route, /userId:\s*req\.body\?\.userId/);
+});
+
+test("project listing is scoped to the authenticated user", () => {
+  assert.match(server, /app\.get\(\s*"\/api\/projects"[\s\S]*?getUserProjects\(\s*req\.user\.uid\s*\)/);
+});

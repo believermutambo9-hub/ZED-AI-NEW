@@ -14,17 +14,12 @@
   <!-- Prevent theme flashing while the page loads -->
   <script>
     (function () {
-      const savedTheme = localStorage.getItem("zed-theme");
-
-      if (savedTheme === "light" || savedTheme === "dark") {
-        document.documentElement.dataset.theme = savedTheme;
-      } else {
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        ).matches;
-
+      try {
+        const savedTheme = localStorage.getItem("zed-theme");
         document.documentElement.dataset.theme =
-          prefersDark ? "dark" : "light";
+          savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
+      } catch {
+        document.documentElement.dataset.theme = "dark";
       }
     })();
   </script>
@@ -132,6 +127,10 @@
           </div>
 
         </div>
+
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" title="Switch theme">
+          <span aria-hidden="true" id="themeToggleIcon">☼</span>
+        </button>
 
         <button
           class="profile-btn"
@@ -277,6 +276,8 @@
         </div>
 
         <!-- Disclaimer -->
+        <div id="selectedFileChip" class="selected-file-chip" hidden></div>
+
         <div class="composer-note">
           Zed can make mistakes. Check important information.
         </div>
@@ -289,6 +290,7 @@
 
   <!-- Main application JavaScript -->
   <script src="app.js"></script>
+  <script src="ui-enhancements.js"></script>
 
 </body>
 </html>

@@ -44,3 +44,15 @@ test("memory API uses the authenticated user when deleting a memory", () => {
 test("memory lookup rejects a user ID that differs from the authenticated UID", () => {
   assert.match(server, /req\.params\.userId !== req\.user\.uid/);
 });
+
+test("chat endpoint fails closed on legacy conversations without an owner", () => {
+  const ownerGuard = server.indexOf("!conversation.metadata?.userId");
+  const restoreCall = server.indexOf("await restoreConversation(", ownerGuard);
+  const assignOwner = server.indexOf("conversation.metadata.userId =\n          userId", restoreCall);
+  assert.notEqual(ownerGuard, -1);
+  assert.notEqual(restoreCall, -1);
+  assert.notEqual(assignOwner, -1);
+  assert.ok(ownerGuard < restoreCall, "owner guard must run before restoring stored history");
+  assert.ok(restoreCall < assignOwner, "owner assignment must happen only after restore");
+  assert.match(server.slice(ownerGuard - 200, restoreCall), /conversation\.messages\.length > 0/);
+});

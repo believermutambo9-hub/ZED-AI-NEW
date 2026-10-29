@@ -2245,10 +2245,19 @@ app.post(
         userMessage
       );
 
-      await persistConversation(
-        userId,
-        conversation
-      );
+      const initialChatPersistence =
+        await persistConversation(
+          userId,
+          conversation
+        );
+
+      if (!initialChatPersistence?.persistent) {
+        conversation.messages.pop();
+        return res.status(503).json({
+          ok: false,
+          answer: "Your message could not be saved. Please try again."
+        });
+      }
 
       // ------------------------------------------------------
       // MEMORY: FORGET

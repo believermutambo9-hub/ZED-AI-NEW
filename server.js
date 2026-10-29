@@ -971,11 +971,16 @@ async function askAI(
     );
   }
 
-  throw new Error(
-    `All AI services failed. ${errors.join(
-      " | "
-    )}`
+  // Keep provider diagnostics in server logs only; return a stable error
+  // message so internal endpoints, response bodies, and key-related details
+  // are never exposed to the chat route's caller.
+  console.error("All configured AI providers failed:", errors);
+
+  const error = new Error(
+    "All AI services are temporarily unavailable. Please try again shortly."
   );
+  error.code = "AI_PROVIDERS_UNAVAILABLE";
+  throw error;
 }
 
 // ============================================================

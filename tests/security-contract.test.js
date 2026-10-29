@@ -72,3 +72,17 @@ test("memory creation assigns the authenticated UID instead of trusting request 
   assert.match(route, /remember\(\{[\s\S]*?userId,/);
   assert.doesNotMatch(route, /userId:\s*req\.body\?\.userId/);
 });
+
+test("project detail, update, and delete routes verify project ownership", () => {
+  assert.match(server, /app\.get\(\s*"\/api\/projects\/:projectId"[\s\S]*?project\.userId !== req\.user\.uid/);
+  assert.match(server, /app\.patch\(\s*"\/api\/projects\/:projectId"[\s\S]*?project\.userId !== req\.user\.uid/);
+  assert.match(server, /app\.delete\(\s*"\/api\/projects\/:projectId"[\s\S]*?project\.userId !== req\.user\.uid/);
+  assert.match(server, /const updated = updateProject\(req\.params\.projectId/);
+  assert.match(server, /const deleted = deleteProject\(req\.params\.projectId\)/);
+});
+
+test("project endpoints hide missing and other users' projects with 404", () => {
+  const projectRoutes = server.slice(server.indexOf('app.get(\n  "/api/projects/:projectId"'), server.indexOf('// ============================================================\n// FOOTBALL MEMORY API'));
+  assert.equal((projectRoutes.match(/res\.status\(404\)/g) || []).length, 4);
+  assert.match(projectRoutes, /Project not found\./);
+});

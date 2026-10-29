@@ -265,3 +265,13 @@ test("image generation returns a safe error message instead of internal exceptio
   assert.match(route, /Image generation is temporarily unavailable/);
   assert.doesNotMatch(route, /error:\\s*error\.message/);
 });
+
+
+test("image generation rejects oversized prompts before calling the provider", () => {
+  const start = server.indexOf('"/api/generate-image"');
+  const end = server.indexOf('"/api/chat"', start + 8);
+  const route = server.slice(start, end);
+  assert.match(route, /prompt\.length > 2000/);
+  assert.match(route, /Image prompts must be 2,000 characters or fewer/);
+  assert.ok(route.indexOf("prompt.length > 2000") < route.indexOf("generateCloudflareImage"));
+});

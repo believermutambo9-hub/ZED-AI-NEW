@@ -248,9 +248,10 @@ test("chat history UI distinguishes unavailable storage from an empty history", 
 
 
 test("chat deletion preserves local history when persistent deletion fails", () => {
-  const start = server.indexOf('app.delete(\\n  "/api/chat/:conversationId"');
-  const end = server.indexOf("// ============================================================\\n// GET CHAT", start);
+  const start = server.indexOf('"/api/chat/:conversationId"');
+  const end = server.indexOf('"/api/chat/:conversationId"', start + 1);
   const route = server.slice(start, end);
+  assert.ok(start >= 0, "delete-chat route must exist");
   assert.match(route, /if \(!history\) \{[\s\S]*?res\.status\(503\)/);
   assert.match(route, /catch \(error\) \{[\s\S]*?res\.status\(503\)/);
   assert.ok(route.indexOf("await history.deleteChat") < route.indexOf("deleteConversation(conversationId)"));

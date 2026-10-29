@@ -93,6 +93,17 @@ test("project memory creation is scoped to the authenticated user and project", 
   assert.match(memory, /export function rememberProject\([\s\S]*?project\.userId !==\s*normalizeUserId\(\s*userId\s*\)/);
 });
 
+test("project memory API waits for Firestore before confirming a save", () => {
+  assert.match(server, /persistMemoryAndWait/);
+  const start = server.indexOf('app.post(\n  "/api/projects/:projectId/memories"');
+  const end = server.indexOf("// ============================================================\n// FOOTBALL MEMORY API", start);
+  const route = server.slice(start, end);
+  assert.match(route, /async \(req, res\)/);
+  assert.match(route, /await persistMemoryAndWait\(result\.memory\)/);
+  assert.match(route, /res\.status\(503\)/);
+  assert.ok(route.indexOf("await persistMemoryAndWait") < route.indexOf("return res.status(result.created ? 201 : 200)"));
+});
+
 test("project deletion awaits Firestore cleanup before clearing the cache", () => {
   const start = memory.indexOf("export async function deleteProject");
   const end = memory.indexOf("// PROJECT MEMORY", start + 30);

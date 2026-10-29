@@ -44,7 +44,10 @@ import {
   initializeMemory,
   forgetMemory,
   createProject,
-  getUserProjects
+  getProject,
+  getUserProjects,
+  updateProject,
+  deleteProject
 } from "./features/memory.js";
 
 // ============================================================
@@ -1841,6 +1844,70 @@ app.get(
       ok: true,
       projects
     });
+  }
+);
+
+// Read, update, and delete projects only for their authenticated owner.
+app.get(
+  "/api/projects/:projectId",
+  (req, res) => {
+    const project = getProject(req.params.projectId);
+
+    if (!project || project.userId !== req.user.uid) {
+      return res.status(404).json({
+        ok: false,
+        error: "Project not found."
+      });
+    }
+
+    return res.json({ ok: true, project });
+  }
+);
+
+app.patch(
+  "/api/projects/:projectId",
+  (req, res) => {
+    const project = getProject(req.params.projectId);
+
+    if (!project || project.userId !== req.user.uid) {
+      return res.status(404).json({
+        ok: false,
+        error: "Project not found."
+      });
+    }
+
+    const updated = updateProject(req.params.projectId, {
+      name: req.body?.name,
+      description: req.body?.description,
+      metadata: req.body?.metadata
+    });
+
+    if (!updated) {
+      return res.status(404).json({
+        ok: false,
+        error: "Project not found."
+      });
+    }
+
+    return res.json({ ok: true, project: updated });
+  }
+);
+
+app.delete(
+  "/api/projects/:projectId",
+  (req, res) => {
+    const project = getProject(req.params.projectId);
+
+    if (!project || project.userId !== req.user.uid) {
+      return res.status(404).json({
+        ok: false,
+        error: "Project not found."
+      });
+    }
+
+    const deleted = deleteProject(req.params.projectId);
+
+    return res.json({ ok: true, deleted });
   }
 );
 

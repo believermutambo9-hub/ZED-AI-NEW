@@ -313,21 +313,21 @@ test("uploaded filenames are sanitized and length-limited", () => {
 
 
 test("uploaded files are checked against their actual signatures", () => {
-  assert.match(server, /function detectUploadedSignature\(buffer\)/);
-  assert.match(server, /signature !== "application\\/pdf"/);
-  assert.match(server, /signature !== mimeType/);
-  assert.match(server, /file contents do not match the file type/i);
+  assert.ok(server.includes("function detectUploadedSignature(buffer)"));
+  assert.ok(server.includes('signature !== "application/pdf"'));
+  assert.ok(server.includes("signature !== mimeType"));
+  assert.ok(server.includes("file contents do not match the file type"));
 });
 
 test("file analysis supports presentations, OpenDocument files, ebooks, and source code", () => {
-  assert.match(server, /extension === "\\.pptx"/);
-  assert.match(server, /extension === "\\.odt" \\|\\| extension === "\\.odp" \\|\\| extension === "\\.epub"/);
-  assert.match(server, /"\\.py", "\\.java", "\\.c", "\\.cpp"/);
-  assert.match(server, /extractOfficeOrEbookText/);
-  assert.match(pkg, /"fflate"/);
+  assert.ok(server.includes('extension === ".pptx"'));
+  assert.ok(server.includes('extension === ".odt" || extension === ".odp" || extension === ".epub"'));
+  assert.ok(server.includes('".py", ".java", ".c", ".h", ".cpp"'));
+  assert.ok(server.includes("extractOfficeOrEbookText"));
+  assert.ok(pkg.includes('"fflate"'));
 });
 
 test("legacy binary Office files receive an explicit conversion instruction", () => {
-  assert.match(server, /Legacy \\.doc and \\.ppt files are not supported yet/);
-  assert.match(server, /save as DOCX\\/PPTX or PDF/);
+  assert.ok(server.includes("Legacy .doc and .ppt files are not supported yet"));
+  assert.ok(server.includes("save as DOCX/PPTX or PDF"));
 });

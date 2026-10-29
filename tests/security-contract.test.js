@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
+import { cleanSearchIntent, normalizeUrl } from "../web-search.js";
 
 const [server, history, memory, app, pkg, html, fileAnalysis] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
@@ -635,4 +636,26 @@ test("web search sources are rendered as safe clickable HTTP(S) links", () => {
   assert.match(app, /new URL\(source\.url\)/);
   assert.match(app, /\["http:", "https:"\]\.includes\(parsedUrl\.protocol\)/);
   assert.match(app, /link\.rel = "noopener noreferrer"/);
+});
+
+
+test("web search extracts the actual topic from citation-formatting instructions", () => {
+  const query = cleanSearchIntent("Search the web for the latest technology news published today. Give me three verified articles, each with their publication date, publisher and direct article link. If you cannot verify a detail, say so.");
+  assert.match(query, /technology/i);
+  assert.match(query, /news/i);
+  assert.doesNotMatch(query, /three|verified articles|publication date|direct article link|cannot verify/i);
+});
+
+test("web search normalizes DuckDuckGo redirect URLs and rejects unsafe or invalid URLs", () => {
+  const destination = "https://example.com/story?utm_source=search#section";
+  const wrapped = "https://duckduckgo.com/l/?uddg=" + encodeURIComponent(destination);
+  assert.equal(normalizeUrl(wrapped), "https://example.com/story");
+  assert.equal(normalizeUrl("javascript:alert(1)"), "");
+  assert.equal(normalizeUrl("not a url"), "");
+});
+
+test("web search prompt prevents fabricated source counts and unverified direct-link claims", () => {
+  assert.match(server, /If the user requests three sources but fewer than three relevant results were returned/);
+  assert.match(server, /do not pad the list with invented or unrelated sources/);
+  assert.match(server, /identify it as an aggregator link rather than calling it a direct publisher article link/);
 });

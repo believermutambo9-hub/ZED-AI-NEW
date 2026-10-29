@@ -47,8 +47,19 @@ function getZambiaDateTime(date = new Date()) {
 
 function normalizeUrl(url = "") {
   try {
-    const parsed = new URL(String(url).trim());
+    let raw = String(url).trim();
+    if (raw.startsWith("//")) raw = `https:${raw}`;
+    if (!/^https?:\/\//i.test(raw)) return "";
 
+    let parsed = new URL(raw);
+
+    // DuckDuckGo wraps destination links in a redirect URL.
+    if (/duckduckgo\.com$/i.test(parsed.hostname) && parsed.pathname.startsWith("/l/")) {
+      const destination = parsed.searchParams.get("uddg");
+      if (destination) parsed = new URL(destination);
+    }
+
+    if (!["http:", "https:"].includes(parsed.protocol)) return "";
     parsed.hash = "";
 
     const removeParams = [
@@ -69,7 +80,7 @@ function normalizeUrl(url = "") {
 
     return parsed.toString();
   } catch {
-    return String(url).trim();
+    return "";
   }
 }
 
@@ -140,6 +151,19 @@ function extractImportantQueryWords(query = "") {
         !stopWords.has(word)
     )
     .slice(0, 15);
+}
+
+function cleanSearchIntent(query = "") {
+  return cleanText(query)
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/\b(search (the )?web for|search online for|look up online|find online|browse (the )?web for|web search for|on the internet)\b/gi, " ")
+    .replace(/\b(give me|show me|find me|provide|return|list|include|with)\b/gi, " ")
+    .replace(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(reliable\s+|verified\s+|credible\s+)?(sources?|articles?|results?|links?)\b/gi, " ")
+    .replace(/\b(clickable|direct|article|publication|publisher|published|publication date|date|source|sources|link|links|verified|reliable|credible)\b/gi, " ")
+    .replace(/\b(each|with|their|and|please|for me|if you cannot verify a detail|if you cannot verify|cannot verify|say so)\b/gi, " ")
+    .replace(/[,:;!?()[\]{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function isRecentRequest(query = "") {
@@ -744,22 +768,24 @@ export async function searchWeb(
     };
   }
 
+  // Search for the user's actual topic, not request-framing words
+  // such as "give me three reliable sources with clickable links".
+  const intentQuery = cleanSearchIntent(query) || query;
+
   const recentRequest =
     options.recentRequest ??
-    isRecentRequest(query);
+    isRecentRequest(intentQuery);
 
   const newsRequest =
-    isNewsRequest(query);
+    isNewsRequest(intentQuery);
 
   const broadNews =
-    isBroadNewsRequest(query);
+    isBroadNewsRequest(intentQuery);
 
   const variants =
     recentRequest && newsRequest
-      ? buildNewsSearchVariants(
-          query
-        )
-      : [query];
+      ? buildNewsSearchVariants(intentQuery)
+      : [intentQuery];
 
   let allResults = [];
 
@@ -1013,6 +1039,7 @@ export const buildWebSearchContext =
 
 export {
   cleanText,
+  cleanSearchIntent,
   formatDateForZambia,
   getZambiaDateTime,
   normalizeUrl,

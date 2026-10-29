@@ -331,3 +331,36 @@ test("legacy binary Office files receive an explicit conversion instruction", ()
   assert.ok(server.includes("Legacy .doc and .ppt files are not supported yet"));
   assert.ok(server.includes("save as DOCX/PPTX or PDF"));
 });
+
+test("JSON request limit accommodates base64 expansion for accepted uploads", () => {
+  assert.ok(server.includes('limit: "30mb"'));
+  assert.ok(server.includes("buffer.length > 18 * 1024 * 1024"));
+});
+
+test("browser upload payload is connected to the authenticated chat request", () => {
+  assert.ok(app.includes("readFileAsDataURL("));
+  assert.ok(app.includes("file:"));
+  assert.ok(app.includes("filePayload"));
+  assert.ok(app.includes('headers.set("Authorization", `Bearer ${token}`)'));
+  assert.ok(app.includes('"Content-Type":'));
+});
+
+test("chat route validates uploads before constructing the AI prompt", () => {
+  const routeStart = server.indexOf('app.post(\n  "/api/chat"');
+  const routeEnd = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", routeStart);
+  const route = server.slice(routeStart, routeEnd);
+  assert.ok(routeStart >= 0);
+  assert.ok(route.includes("await prepareUploadedFile(req.body.file)"));
+  assert.ok(route.indexOf("await prepareUploadedFile") < route.indexOf("const prompt ="));
+  assert.ok(route.includes("UPLOADED FILE CONTENT"));
+  assert.ok(route.includes("uploadedFile?.inlineData && !uploadedFile.extractedText?.trim()"));
+});
+
+test("vision-only uploads are not sent to text-only fallback providers", () => {
+  const start = server.indexOf("async function askAI(");
+  const end = server.indexOf("// ============================================================\n//", start + 30);
+  const ai = server.slice(start, end);
+  assert.ok(ai.includes("if (inlineData)"));
+  assert.ok(ai.includes("Gemini could not analyse the attached image/PDF"));
+  assert.ok(ai.indexOf("if (inlineData)") < ai.indexOf("await askGroq"));
+});

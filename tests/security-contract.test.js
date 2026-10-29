@@ -177,3 +177,16 @@ test("individual memory deletion waits for Firestore before removing local memor
   assert.match(route, /await forgetMemoryAndWait\(/);
   assert.match(route, /Memory could not be deleted\. Please try again\./);
 });
+
+
+test("clear-all memory waits for every Firestore delete before clearing local state", () => {
+  assert.match(memory, /export async function clearUserMemoryAndWait\(userId\)/);
+  assert.match(memory, /await Promise\.all\(\[[\s\S]*?firestoreDeleteAndWait\("zedMemories"/);
+  const start = server.indexOf('app.delete(\n  "/api/memory/user/:userId",');
+  const end = server.indexOf("// MEMORY SEARCH", start);
+  const route = server.slice(start, end);
+  assert.match(route, /async \(req, res\) =>/);
+  assert.match(route, /await clearUserMemoryAndWait\(req\.user\.uid\)/);
+  assert.match(route, /Memory could not be cleared\. Please try again\./);
+  assert.match(route, /req\.params\.userId !== req\.user\.uid/);
+});

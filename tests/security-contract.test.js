@@ -548,3 +548,22 @@ test("chat history API does not expose internal persistence errors", () => {
   assert.match(route, /error: "Chat history is temporarily unavailable\. Please try again\."/);
   assert.doesNotMatch(route, /error:\s*error\.message/);
 });
+
+
+test("memory relevance requires actual content or tag overlap", () => {
+  const start = memory.indexOf("export function calculateMemoryRelevance(");
+  const end = memory.indexOf("// ============================================================\\n// RECENCY SCORE", start);
+  const relevance = memory.slice(start, end);
+  assert.match(relevance, /if \(lexicalScore === 0\)\s*\{\s*return 0;/);
+  assert.match(relevance, /contentScore \* 0\.62/);
+});
+
+test("clear-all memory deletes persisted records by owner, not just cache indexes", () => {
+  const start = memory.indexOf("export async function clearUserMemoryAndWait(");
+  const end = memory.indexOf("export function clearUserMemory(", start);
+  const clear = memory.slice(start, end);
+  assert.match(clear, /firestoreDeleteUserRecordsAndWait\("zedMemories", normalizedUserId\)/);
+  assert.match(clear, /firestoreDeleteUserRecordsAndWait\("zedProjects", normalizedUserId\)/);
+  assert.match(clear, /persistentFootballDeleted/);
+  assert.doesNotMatch(clear, /hadFootballMemory \|\| true/);
+});

@@ -1573,6 +1573,14 @@ function persistMemory(
   );
 }
 
+export async function persistMemoryAndWait(memory) {
+  if (!memory?.id) {
+    throw new Error("A valid memory is required for persistence.");
+  }
+
+  await firestoreWriteAndWait("zedMemories", memory.id, memory);
+}
+
 
 // ============================================================
 // SAVE LONG-TERM MEMORY

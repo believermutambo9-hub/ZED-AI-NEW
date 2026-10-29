@@ -585,3 +585,18 @@ test("interface upgrade includes persistent theme, prompt shortcuts, history sea
   assert.match(styles, /@media \(max-width:700px\)/);
   assert.match(styles, /prefers-reduced-motion/);
 });
+
+
+test("premium message interactions use safe text rendering and accessible copy controls", async () => {
+  const [appSource, interfaceStyles, uiEnhancements] = await Promise.all([
+    readFile(new URL("../app.js", import.meta.url), "utf8"),
+    readFile(new URL("../styles.css", import.meta.url), "utf8"),
+    readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8")
+  ]);
+  assert.match(appSource, /className = "message-actions"/);
+  assert.match(appSource, /navigator\.clipboard\.writeText/);
+  assert.match(appSource, /content\.textContent\s*=\s*message\.content/);
+  assert.match(interfaceStyles, /\.message-action:focus-visible/);
+  assert.match(interfaceStyles, /@keyframes zedThinking/);
+  assert.match(uiEnhancements, /event\.key\.toLowerCase\(\) === "k"/);
+});

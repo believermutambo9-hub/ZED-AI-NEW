@@ -121,13 +121,21 @@
   });
   settingsObserver.observe(document.body, { childList: true, subtree: true });
 
-  // Escape closes transient UI and returns focus to the composer.
+  // Keyboard shortcuts make desktop use faster while keeping native text editing.
   document.addEventListener("keydown", event => {
-    if (event.key !== "Escape") return;
-    document.getElementById("attachMenu")?.classList.remove("show");
-    document.getElementById("zedSettingsPanel")?.querySelector("#zedSettingsClose")?.click();
-    document.getElementById("zedMenuBackdrop")?.click();
-    if (messageInput && !messageInput.disabled) messageInput.focus();
+    if (event.key === "Escape") {
+      document.getElementById("attachMenu")?.classList.remove("show");
+      document.getElementById("zedSettingsPanel")?.querySelector("#zedSettingsClose")?.click();
+      document.getElementById("zedMenuBackdrop")?.click();
+      if (messageInput && !messageInput.disabled) messageInput.focus();
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      const search = document.getElementById("chatSearch");
+      if (search) search.focus();
+      else messageInput?.focus();
+    }
   });
 
   // Highlight the selected conversation without changing history API behavior.

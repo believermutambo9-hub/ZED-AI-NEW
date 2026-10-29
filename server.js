@@ -2043,6 +2043,20 @@ app.post(
           conversationId
         );
 
+      // Fail closed for conversations with messages but no recorded owner.
+      // Older Firestore records may predate ownership metadata; never silently
+      // claim them for the currently authenticated user.
+      if (
+        Array.isArray(conversation.messages) &&
+        conversation.messages.length > 0 &&
+        !conversation.metadata?.userId
+      ) {
+        return res.status(404).json({
+          ok: false,
+          answer: "Conversation not found."
+        });
+      }
+
       // Refuse to append to a conversation already associated with another user.
       if (
         conversation.metadata?.userId &&

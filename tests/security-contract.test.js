@@ -166,3 +166,14 @@ test("memory API waits for Firestore persistence before confirming a save", () =
   assert.match(route, /res\.status\(503\)/);
   assert.ok(route.indexOf("await persistMemoryAndWait") < route.indexOf("return res.json({"));
 });
+
+
+test("individual memory deletion waits for Firestore before removing local memory", () => {
+  assert.match(memory, /export async function forgetMemoryAndWait\([\s\S]*?await firestoreDeleteAndWait\("zedMemories", id\)/);
+  const start = server.indexOf('app.delete(\n  "/api/memory/:memoryId",');
+  const end = server.indexOf("// CLEAR ALL USER MEMORY", start);
+  const route = server.slice(start, end);
+  assert.match(route, /async \(req, res\) =>/);
+  assert.match(route, /await forgetMemoryAndWait\(/);
+  assert.match(route, /Memory could not be deleted\. Please try again\./);
+});

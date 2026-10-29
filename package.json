@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "check": "node --check server.js && node --check app.js && node --check storage/chat-history.js && node --check features/memory.js",
-    "test": "npm run check"
+    "test": "npm run check && node --test"
   },
   "dependencies": {
     "express": "^5.1.0",

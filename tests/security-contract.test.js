@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
-import { cleanSearchIntent, normalizeUrl } from "../web-search.js";
+import { cleanSearchIntent, normalizeUrl, isTodayRequest } from "../web-search.js";
 
 const [server, history, memory, app, pkg, html, fileAnalysis] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
@@ -658,4 +658,15 @@ test("web search prompt prevents fabricated source counts and unverified direct-
   assert.match(server, /If the user requests three sources but fewer than three relevant results were returned/);
   assert.match(server, /do not pad the list with invented or unrelated sources/);
   assert.match(server, /identify it as an aggregator link rather than calling it a direct publisher article link/);
+});
+
+
+test("web search detects exact today requests for publication-date filtering", () => {
+  assert.equal(isTodayRequest("latest technology news published today"), true);
+  assert.equal(isTodayRequest("latest technology news this week"), false);
+});
+
+test("web search prompt keeps the article list and source list consistent", () => {
+  assert.match(server, /displayed article list and any source list must contain the same articles/);
+  assert.match(server, /fewer than requested results have verified publication dates/);
 });

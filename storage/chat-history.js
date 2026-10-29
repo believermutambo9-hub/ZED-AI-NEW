@@ -157,21 +157,18 @@ export async function deleteChat(userId, conversationId) {
     .collection(COLLECTION)
     .doc(safeConversationId);
 
-  const doc = await chatRef.get();
+  // Keep the ownership check and delete in one transaction so the
+  // document cannot change owners between the check and deletion.
+  return db.runTransaction(async transaction => {
+    const doc = await transaction.get(chatRef);
 
-  if (!doc.exists) {
-    return false;
-  }
+    if (!doc.exists || doc.data()?.userId !== safeUserId) {
+      return false;
+    }
 
-  const data = doc.data();
-
-  if (data.userId !== safeUserId) {
-    return false;
-  }
-
-  await chatRef.delete();
-
-  return true;
+    transaction.delete(chatRef);
+    return true;
+  });
 }
 
 export async function deleteAllChats(userId) {

@@ -44,6 +44,7 @@ import {
   clearUserMemory,
   initializeMemory,
   forgetMemory,
+  forgetMemoryAndWait,
   createProject,
   getProject,
   getUserProjects,
@@ -1719,24 +1720,20 @@ app.post(
 
 app.delete(
   "/api/memory/:memoryId",
-  (req, res) => {
+  async (req, res) => {
     try {
-      const deleted =
-        forgetMemory(
-          req.params.memoryId,
-          req.user.uid
-        );
+      const deleted = await forgetMemoryAndWait(
+        req.params.memoryId,
+        req.user.uid
+      );
 
-      res.json({
-        ok: true,
-        deleted
-      });
+      return res.json({ ok: true, deleted });
     } catch (error) {
-      res.status(500).json({
+      console.error("Memory deletion failed:", error.message);
+      return res.status(503).json({
         ok: false,
         deleted: false,
-        error:
-          error.message
+        error: "Memory could not be deleted. Please try again."
       });
     }
   }

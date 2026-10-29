@@ -50,8 +50,7 @@ import {
   getUserProjects,
   updateProject,
   deleteProject,
-  rememberProject,
-  persistMemoryAndWait
+  rememberProject
 } from "./features/memory.js";
 
 // ============================================================

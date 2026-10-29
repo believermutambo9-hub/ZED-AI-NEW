@@ -293,7 +293,7 @@ test("AI and memory API failures do not expose raw exception messages", () => {
 
 test("uploaded images are restricted to supported image MIME types", () => {
   for (const type of ["image/jpeg", "image/png", "image/webp", "image/gif"]) {
-    assert.ok(server.includes(type));
+    assert.ok(fileAnalysis.includes(type));
   }
   assert.match(server, /includes\(mimeType\)/);
   assert.match(server, /This image format is not supported/);
@@ -396,7 +396,7 @@ test("functional upload parser extracts UTF-8 text and sanitizes the filename", 
     type: "text/plain",
     data: dataUrl(Buffer.from("First line\\nSecond line", "utf8"), "text/plain")
   });
-  assert.equal(result.fileName, "../notes.txt");
+  assert.equal(result.fileName, "notes.txt");
   assert.equal(result.extractedText, "First line\\nSecond line");
   assert.equal(result.mimeType, "text/plain");
 });

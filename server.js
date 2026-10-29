@@ -1802,34 +1802,30 @@ app.get(
 
 app.post(
   "/api/projects",
-  (req, res) => {
-    const project =
-      createProject({
-        userId:
-          req.user.uid,
-
-        name:
-          req.body?.name,
-
-        description:
-          req.body?.description,
-
-        metadata:
-          req.body?.metadata
+  async (req, res) => {
+    try {
+      const project = await createProject({
+        userId: req.user.uid,
+        name: req.body?.name,
+        description: req.body?.description,
+        metadata: req.body?.metadata
       });
 
-    if (!project) {
-      return res.status(400).json({
+      if (!project) {
+        return res.status(400).json({
+          ok: false,
+          error: "Unable to create project."
+        });
+      }
+
+      return res.status(201).json({ ok: true, project });
+    } catch (error) {
+      console.error("Project creation failed:", error.message);
+      return res.status(503).json({
         ok: false,
-        error:
-          "Unable to create project."
+        error: "Project could not be saved. Please try again."
       });
     }
-
-    res.json({
-      ok: true,
-      project
-    });
   }
 );
 
@@ -1867,7 +1863,7 @@ app.get(
 
 app.patch(
   "/api/projects/:projectId",
-  (req, res) => {
+  async (req, res) => {
     const project = getProject(req.params.projectId);
 
     if (!project || project.userId !== req.user.uid) {
@@ -1877,20 +1873,28 @@ app.patch(
       });
     }
 
-    const updated = updateProject(req.params.projectId, {
-      name: req.body?.name,
-      description: req.body?.description,
-      metadata: req.body?.metadata
-    });
+    try {
+      const updated = await updateProject(req.params.projectId, {
+        name: req.body?.name,
+        description: req.body?.description,
+        metadata: req.body?.metadata
+      });
 
-    if (!updated) {
-      return res.status(404).json({
+      if (!updated) {
+        return res.status(404).json({
+          ok: false,
+          error: "Project not found."
+        });
+      }
+
+      return res.json({ ok: true, project: updated });
+    } catch (error) {
+      console.error("Project update failed:", error.message);
+      return res.status(503).json({
         ok: false,
-        error: "Project not found."
+        error: "Project changes could not be saved. Please try again."
       });
     }
-
-    return res.json({ ok: true, project: updated });
   }
 );
 

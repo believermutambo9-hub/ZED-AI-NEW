@@ -5,7 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import { getAuth } from "firebase-admin/auth";
 import { getFirebaseAdminApp } from "./config/firebase-admin.js";
 import {
-  saveLibraryFile, listLibraryFiles, getLibraryDownload, deleteLibraryFile
+  saveLibraryFile, listLibraryFiles, getLibraryDownload, getLibraryPreview, deleteLibraryFile
 } from "./storage/user-library.js";
 import {
   createScheduledTask, listScheduledTasks, updateScheduledTask, deleteScheduledTask
@@ -1809,6 +1809,17 @@ app.post("/api/library", async (req, res) => {
     console.error("Library upload failed:", error.message);
     const status = /required|supported|invalid|smaller than|15 MB/i.test(error.message) ? 400 : 503;
     return res.status(status).json({ ok: false, error: error.message || "File could not be saved." });
+  }
+});
+
+app.get("/api/library/:fileId/preview", async (req, res) => {
+  try {
+    const file = await getLibraryPreview(req.user.uid, req.params.fileId);
+    if (!file) return res.status(404).json({ ok: false, error: "File not found." });
+    return res.json({ ok: true, ...file });
+  } catch (error) {
+    console.error("Library preview link failed:", error.message);
+    return res.status(503).json({ ok: false, error: "Preview is temporarily unavailable." });
   }
 });
 

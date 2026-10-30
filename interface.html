@@ -14,17 +14,15 @@
   <!-- Prevent theme flashing while the page loads -->
   <script>
     (function () {
-      const savedTheme = localStorage.getItem("zed-theme");
-
-      if (savedTheme === "light" || savedTheme === "dark") {
-        document.documentElement.dataset.theme = savedTheme;
-      } else {
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        ).matches;
-
-        document.documentElement.dataset.theme =
-          prefersDark ? "dark" : "light";
+      try {
+        const savedTheme = localStorage.getItem("zed-theme");
+        if (savedTheme === "light" || savedTheme === "dark") {
+          document.documentElement.dataset.theme = savedTheme;
+        } else {
+          document.documentElement.dataset.theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+      } catch {
+        document.documentElement.dataset.theme = "light";
       }
     })();
   </script>

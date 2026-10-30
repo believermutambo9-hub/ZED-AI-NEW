@@ -1420,9 +1420,6 @@ function memorySignature(
 
 
 // ============================================================
-// SIMILARITY TOKENIZATION
-// ============================================================
-
 const MEMORY_STOP_WORDS = new Set([
   "a", "about", "am", "an", "and", "are", "as", "at", "be", "been",
   "being", "but", "by", "can", "could", "did", "do", "does", "for",
@@ -2343,10 +2340,7 @@ export function calculateMemoryRelevance(
   memory,
   query
 ) {
-  if (
-    !memory ||
-    !query
-  ) {
+  if (!memory || !query) {
     return 0;
   }
 

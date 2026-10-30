@@ -616,7 +616,7 @@ async function searchBingNews(
   // against the provider's published timestamp.
   const query = cleanText(userQuery)
     .replace(/\b(published today|today)\b/gi, " ")
-    .replace(/\\s+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
   const searchUrl =
     `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss`;

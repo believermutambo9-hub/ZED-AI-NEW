@@ -916,8 +916,25 @@ function renderMessages() {
     wrapper.appendChild(
       content
     );
-
-    // Show actual search citations returned by the server; never inject HTML.
+    if (message.image) {
+      const image =
+        document.createElement("img");
+      image.src =
+        message.image;
+      image.alt =
+        "Image created by Zed";
+      image.style.cssText = `
+        display:block;
+        max-width:100%;
+        margin-top:12px;
+        border-radius:16px;
+        border:1px solid rgba(255,255,255,.10);
+      `;
+      content.appendChild(
+        image
+      );
+    }
+    // Display validated web sources as ordinary safe links.
     if (message.role === "assistant" && Array.isArray(message.webSources) && message.webSources.length) {
       const sourcePanel = document.createElement("section");
       sourcePanel.className = "web-sources";
@@ -948,8 +965,7 @@ function renderMessages() {
       if (sourcePanel.childElementCount > 1) wrapper.appendChild(sourcePanel);
     }
 
-    // Give every rendered message a reliable copy action without
-    // interpreting assistant text as HTML or changing the API contract.
+    // Provide a safe copy action for each message without interpreting text as HTML.
     const actions = document.createElement("div");
     actions.className = "message-actions";
     const copyButton = document.createElement("button");
@@ -989,24 +1005,6 @@ function renderMessages() {
     actions.appendChild(copyButton);
     wrapper.appendChild(actions);
 
-    if (message.image) {
-      const image =
-        document.createElement("img");
-      image.src =
-        message.image;
-      image.alt =
-        "Image created by Zed";
-      image.style.cssText = `
-        display:block;
-        max-width:100%;
-        margin-top:12px;
-        border-radius:16px;
-        border:1px solid rgba(255,255,255,.10);
-      `;
-      content.appendChild(
-        image
-      );
-    }
     messages.appendChild(
       wrapper
     );
@@ -1387,6 +1385,7 @@ async function sendMessage() {
       webSearch: data.webSearch === true,
       webSources: Array.isArray(data.webSources) ? data.webSources : []
     });
+    speakZedResponse(data.answer || data.reply || "Zed did not return an answer.");
     if (data.chatPersistent === false) {
       state.messages.push({
         role:"assistant",
@@ -1609,6 +1608,22 @@ async function createImage() {
         imageSource
     });
     renderMessages();
+    if (imageSource && imageSource.startsWith("data:")) {
+      try {
+        const extension = result.contentType === "image/webp" ? "webp" :
+          result.contentType === "image/jpeg" ? "jpg" :
+          result.contentType === "image/gif" ? "gif" : "png";
+        const saved = await apiFetch("/api/library", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "zed-image-" + Date.now() + "." + extension, dataUrl: imageSource })
+        });
+        const savedData = await parseResponse(saved);
+        if (!saved.ok || !savedData.ok) console.warn("Generated image was not saved to Library:", savedData.error);
+      } catch (saveError) {
+        console.warn("Generated image could not be saved to Library:", saveError.message);
+      }
+    }
     await loadChats();
   } catch (error) {
     console.error(
@@ -1668,8 +1683,50 @@ if (SpeechRecognition) {
         "Voice recognition error:",
         error
       );
+      if (voiceInputBtn) voiceInputBtn.setAttribute("aria-label", "Dictate a message");
     };
 }
+const voiceInputBtn = document.getElementById("voiceInputBtn");
+const voiceModeBtn = document.getElementById("voiceModeBtn");
+let voiceModeEnabled = false;
+
+function speakZedResponse(text) {
+  if (!voiceModeEnabled || !("speechSynthesis" in window) || !text) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 5000));
+  utterance.lang = "en-US";
+  utterance.rate = 1;
+  window.speechSynthesis.speak(utterance);
+}
+
+voiceInputBtn?.addEventListener("click", () => {
+  if (!recognition) {
+    alert("Voice dictation is not supported by this browser. You can still type your message.");
+    return;
+  }
+  try {
+    recognition.start();
+    voiceInputBtn.setAttribute("aria-label", "Listening");
+  } catch (error) {
+    console.warn("Voice input could not start:", error);
+  }
+});
+
+recognition && (recognition.onend = () => {
+  voiceInputBtn?.setAttribute("aria-label", "Dictate a message");
+});
+
+voiceModeBtn?.setAttribute("aria-pressed", "false");
+voiceModeBtn?.addEventListener("click", () => {
+  voiceModeEnabled = !voiceModeEnabled;
+  voiceModeBtn.setAttribute("aria-pressed", String(voiceModeEnabled));
+  voiceModeBtn.setAttribute("aria-label", voiceModeEnabled ? "Turn off spoken responses" : "Turn on spoken responses");
+  if (!voiceModeEnabled && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  if (voiceModeEnabled) {
+    const latest = [...state.messages].reverse().find(item => item.role === "assistant" && item.content);
+    if (latest) speakZedResponse(latest.content);
+  }
+});
 // ============================================================
 // AUTH STATE
 // ============================================================
@@ -1690,6 +1747,8 @@ function setupAuthListener() {
         showApp();
         renderMessages();
         await loadChats();
+        await loadProjects();
+        checkDueScheduledTasks();
         messageInput?.focus();
       } else {
         state.userId =
@@ -1703,6 +1762,7 @@ function setupAuthListener() {
         state.chats =
           [];
         closeSidebar();
+        closeFeaturePanel();
         closeSettings();
         if (accountPanel) {
           accountPanel.style.display =
@@ -1714,6 +1774,571 @@ function setupAuthListener() {
     }
   );
 }
+// ============================================================
+// SIDEBAR FEATURES: SEARCH, PROJECTS, LIBRARY, IMAGES, EXPLORE
+// ============================================================
+const chatSearchInput = document.getElementById("chatSearchInput");
+const sidebarSearchToggle = document.getElementById("sidebarSearchToggle");
+const sidebarSearchWrap = document.getElementById("sidebarSearchWrap");
+const projectList = document.getElementById("projectList");
+const addProjectBtn = document.getElementById("addProjectBtn");
+const seeAllChatsBtn = document.getElementById("seeAllChatsBtn");
+let showAllChats = false;
+let featurePanel = null;
+
+function ensureFeaturePanel() {
+  if (featurePanel) return featurePanel;
+  featurePanel = document.createElement("section");
+  featurePanel.className = "zed-feature-panel";
+  featurePanel.id = "zedFeaturePanel";
+  featurePanel.setAttribute("aria-live", "polite");
+  document.body.appendChild(featurePanel);
+  return featurePanel;
+}
+
+function closeFeaturePanel() {
+  featurePanel?.classList.remove("open");
+}
+
+function openFeaturePanel(title, content) {
+  const panel = ensureFeaturePanel();
+  panel.replaceChildren();
+  const head = document.createElement("div");
+  head.className = "zed-feature-head";
+  const heading = document.createElement("h2");
+  heading.textContent = title;
+  const close = document.createElement("button");
+  close.className = "zed-feature-close";
+  close.type = "button";
+  close.setAttribute("aria-label", "Close");
+  close.textContent = "×";
+  close.addEventListener("click", closeFeaturePanel);
+  head.append(heading, close);
+  panel.append(head, content);
+  panel.classList.add("open");
+}
+
+function featureCard(title, description, actionLabel, action) {
+  const card = document.createElement("article");
+  card.className = "zed-feature-card";
+  const heading = document.createElement("h3");
+  heading.textContent = title;
+  const copy = document.createElement("p");
+  copy.textContent = description;
+  card.append(heading, copy);
+  if (actionLabel && action) {
+    const button = document.createElement("button");
+    button.className = "zed-feature-action";
+    button.type = "button";
+    button.textContent = actionLabel;
+    button.addEventListener("click", action);
+    card.append(button);
+  }
+  return card;
+}
+
+async function openImagesView() {
+  const content = document.createElement("div");
+  const status = document.createElement("p");
+  status.className = "zed-library-status";
+  status.textContent = "Loading your saved images…";
+  const grid = document.createElement("div");
+  grid.className = "zed-image-grid";
+  const create = document.createElement("button");
+  create.type = "button";
+  create.className = "zed-feature-action";
+  create.textContent = "＋ Create an image";
+  create.addEventListener("click", () => {
+    closeFeaturePanel();
+    messageInput.value = "Create an image: ";
+    messageInput.focus();
+  });
+  content.append(create, status, grid);
+  openFeaturePanel("Images", content);
+  try {
+    const response = await apiFetch("/api/library");
+    const data = await parseResponse(response);
+    if (!response.ok || !data.ok) throw new Error(data.error || "Images could not be loaded.");
+    const images = (data.files || []).filter(file => String(file.contentType || "").startsWith("image/"));
+    status.textContent = images.length ? images.length + " saved image(s)" : "No saved images yet. Images you create with Zed will appear here.";
+    for (const file of images) {
+      const card = document.createElement("article");
+      card.className = "zed-feature-card";
+      const image = document.createElement("img");
+      image.alt = file.name || "Image created with Zed";
+      image.loading = "lazy";
+      image.style.cssText = "width:100%;aspect-ratio:1;object-fit:contain;border-radius:12px;background:#f5f5f5;";
+      const caption = document.createElement("p");
+      caption.textContent = file.name;
+      card.append(image, caption);
+      grid.append(card);
+      try {
+        const previewResponse = await apiFetch("/api/library/" + encodeURIComponent(file.id) + "/preview");
+        const preview = await parseResponse(previewResponse);
+        if (previewResponse.ok && preview.ok) image.src = preview.url;
+      } catch (error) {
+        caption.textContent += " · Preview unavailable";
+      }
+    }
+  } catch (error) {
+    status.textContent = error.message || "Your image library is temporarily unavailable.";
+  }
+}
+
+async function openLibraryView() {
+  const content = document.createElement("div");
+  const intro = document.createElement("p");
+  intro.textContent = "Save files privately to your Zed account and access them across devices.";
+  intro.style.color = "#707070";
+  content.append(intro);
+  const upload = document.createElement("button");
+  upload.className = "zed-feature-action";
+  upload.type = "button";
+  upload.textContent = "＋ Upload a file";
+  const picker = document.createElement("input");
+  picker.type = "file";
+  picker.accept = ".pdf,.txt,.csv,.json,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.gif";
+  picker.hidden = true;
+  const list = document.createElement("div");
+  list.className = "zed-library-list";
+  const status = document.createElement("p");
+  status.className = "zed-library-status";
+  status.textContent = "Loading saved files…";
+  content.append(upload, picker, status, list);
+  upload.addEventListener("click", () => picker.click());
+  picker.addEventListener("change", async () => {
+    const file = picker.files?.[0];
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      status.textContent = "Choose a file smaller than 15 MB.";
+      picker.value = "";
+      return;
+    }
+    status.textContent = "Uploading " + file.name + "…";
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("The file could not be read."));
+        reader.readAsDataURL(file);
+      });
+      const response = await apiFetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, dataUrl })
+      });
+      const data = await parseResponse(response);
+      if (!response.ok || !data.ok) throw new Error(data.error || "Upload failed.");
+      status.textContent = "Saved " + file.name + " to your Library.";
+      await refreshLibrary();
+    } catch (error) {
+      status.textContent = error.message || "Upload failed. Try again.";
+    } finally {
+      picker.value = "";
+    }
+  });
+  async function refreshLibrary() {
+    list.replaceChildren();
+    try {
+      const response = await apiFetch("/api/library");
+      const data = await parseResponse(response);
+      if (!response.ok || !data.ok) throw new Error(data.error || "Library unavailable.");
+      const files = Array.isArray(data.files) ? data.files : [];
+      status.textContent = files.length ? files.length + " saved file(s)" : "Your library is empty. Upload a file to get started.";
+      for (const file of files) {
+        const row = document.createElement("article");
+        row.className = "zed-feature-card zed-library-row";
+        const heading = document.createElement("h3");
+        heading.textContent = file.name;
+        const meta = document.createElement("p");
+        meta.textContent = (file.contentType || "File") + " · " + formatFileSize(file.size) + " · " + new Date(file.createdAt).toLocaleDateString();
+        const actions = document.createElement("div");
+        actions.className = "zed-library-actions";
+        const download = document.createElement("button");
+        download.type = "button";
+        download.className = "zed-feature-action";
+        download.textContent = "Download";
+        download.addEventListener("click", async () => {
+          try {
+            const result = await apiFetch("/api/library/" + encodeURIComponent(file.id) + "/download");
+            const payload = await parseResponse(result);
+            if (!result.ok || !payload.ok || !payload.url) throw new Error(payload.error || "Download unavailable.");
+            window.open(payload.url, "_blank", "noopener");
+          } catch (error) { status.textContent = error.message; }
+        });
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "zed-library-delete";
+        remove.textContent = "Delete";
+        remove.addEventListener("click", async () => {
+          if (!window.confirm("Delete " + file.name + " from your Library?")) return;
+          try {
+            const result = await apiFetch("/api/library/" + encodeURIComponent(file.id), { method: "DELETE" });
+            const payload = await parseResponse(result);
+            if (!result.ok || !payload.ok || !payload.deleted) throw new Error(payload.error || "Delete failed.");
+            await refreshLibrary();
+          } catch (error) { status.textContent = error.message; }
+        });
+        actions.append(download, remove);
+        row.append(heading, meta, actions);
+        list.append(row);
+      }
+    } catch (error) {
+      status.textContent = error.message || "Library could not be loaded.";
+    }
+  }
+  openFeaturePanel("Library", content);
+  await refreshLibrary();
+}
+
+function formatFileSize(bytes = 0) {
+  const size = Number(bytes) || 0;
+  if (size < 1024) return size + " B";
+  if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+  return (size / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+async function loadProjects() {
+  if (!projectList || !state.firebaseUser) return;
+  projectList.replaceChildren();
+  const loading = document.createElement("div");
+  loading.className = "sidebar-empty";
+  loading.textContent = "Loading projects…";
+  projectList.append(loading);
+  try {
+    const response = await apiFetch("/api/projects");
+    const data = await parseResponse(response);
+    if (!response.ok || !data.ok) throw new Error(data.error || "Projects could not be loaded.");
+    projectList.replaceChildren();
+    const projects = Array.isArray(data.projects) ? data.projects : [];
+    if (!projects.length) {
+      const empty = document.createElement("div");
+      empty.className = "sidebar-empty";
+      empty.textContent = "Your projects will appear here.";
+      projectList.append(empty);
+      return;
+    }
+    for (const project of projects) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "project-link";
+      const icon = document.createElement("span");
+      icon.textContent = "▱";
+      const label = document.createElement("span");
+      label.textContent = project.name || "Untitled project";
+      button.append(icon, label);
+      button.addEventListener("click", () => openProjectView(project));
+      projectList.append(button);
+    }
+  } catch (error) {
+    projectList.replaceChildren();
+    const failed = document.createElement("div");
+    failed.className = "sidebar-empty";
+    failed.textContent = "Projects are temporarily unavailable. Try again.";
+    projectList.append(failed);
+    console.error("Project list error:", error);
+  }
+}
+
+function openProjectView(project) {
+  const content = document.createElement("div");
+  content.append(featureCard(
+    project.name || "Project",
+    project.description || "Your project workspace.",
+    "Start a chat about this project",
+    () => {
+      closeFeaturePanel();
+      createNewChat().then(() => {
+        messageInput.value = "I want to work on the project: " + (project.name || "this project") + ". ";
+        messageInput.focus();
+      });
+    }
+  ));
+  openFeaturePanel(project.name || "Project", content);
+}
+
+async function createProjectFromPrompt() {
+  if (!state.firebaseUser) return;
+  const name = window.prompt("Name your new project");
+  if (!name || !name.trim()) return;
+  try {
+    const response = await apiFetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim(), description: "" })
+    });
+    const data = await parseResponse(response);
+    if (!response.ok || !data.ok) throw new Error(data.error || "Project could not be created.");
+    await loadProjects();
+  } catch (error) {
+    alert(error.message || "Project could not be created.");
+  }
+}
+
+function openExploreView() {
+  const content = document.createElement("div");
+  content.append(
+    featureCard("Writing and editing", "Draft, rewrite, proofread and improve messages or documents.", "Start writing", () => { closeFeaturePanel(); messageInput.value = "Help me write or edit: "; messageInput.focus(); }),
+    featureCard("Study assistant", "Get explanations, guided lessons, summaries and practice questions.", "Start studying", () => { closeFeaturePanel(); messageInput.value = "Help me study: "; messageInput.focus(); }),
+    featureCard("CV and cover letter maker", "Build a professional CV, tailor work experience and prepare job applications using details you provide.", "Create a CV", () => { closeFeaturePanel(); messageInput.value = "Help me create a professional CV. Ask me for the information you need: "; messageInput.focus(); }),
+    featureCard("Business assistant", "Work through business ideas, planning, marketing and practical documents.", "Explore business", () => { closeFeaturePanel(); messageInput.value = "Help me with a business task: "; messageInput.focus(); }),
+    featureCard("Research assistant", "Research a topic, compare evidence and organise findings. Ask for current sources when freshness matters.", "Start research", () => { closeFeaturePanel(); messageInput.value = "Research this topic and provide reliable sources: "; messageInput.focus(); }),
+    featureCard("File analysis", "Upload supported documents, spreadsheets, code or images for analysis.", "Upload a file", () => { closeFeaturePanel(); fileInput?.click(); }),
+    featureCard("Football analysis", "Ask about fixtures, results, team data and match analysis where reliable data is available.", "Analyse a match", () => { closeFeaturePanel(); messageInput.value = "Analyse this football match using available verified data: "; messageInput.focus(); })
+  );
+  openFeaturePanel("Explore Zed", content);
+}
+
+function toLocalDateTimeInput(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+async function openScheduledView() {
+  const content = document.createElement("div");
+  const intro = document.createElement("p");
+  intro.textContent = "Create reminders and manage upcoming tasks. In this version, alerts are checked while Zed is open; device push notifications when the app is closed are not yet configured.";
+  intro.style.color = "#707070";
+  const permissionButton = document.createElement("button");
+  permissionButton.type = "button";
+  permissionButton.className = "zed-library-delete";
+  permissionButton.textContent = ("Notification" in window && Notification.permission === "granted")
+    ? "Notifications enabled"
+    : "Enable browser notifications";
+  permissionButton.disabled = !("Notification" in window) || Notification.permission === "granted";
+  permissionButton.addEventListener("click", async () => {
+    if (!("Notification" in window)) {
+      status.textContent = "This browser does not support notifications. Zed can still show in-app reminder alerts while open.";
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    permissionButton.textContent = permission === "granted" ? "Notifications enabled" : "Notifications not enabled";
+    permissionButton.disabled = permission === "granted";
+    status.textContent = permission === "granted"
+      ? "Browser notifications are enabled for reminders while Zed is open."
+      : "Notification permission was not granted. In-app alerts will still appear while Zed is open.";
+  });
+  const form = document.createElement("form");
+  form.className = "zed-schedule-form";
+  const title = document.createElement("input");
+  title.type = "text";
+  title.maxLength = 160;
+  title.required = true;
+  title.placeholder = "What should Zed remind you about?";
+  const due = document.createElement("input");
+  due.type = "datetime-local";
+  due.required = true;
+  due.min = toLocalDateTimeInput(new Date(Date.now() + 60000));
+  due.value = toLocalDateTimeInput(new Date(Date.now() + 60 * 60000));
+  const notes = document.createElement("textarea");
+  notes.rows = 2;
+  notes.maxLength = 1000;
+  notes.placeholder = "Notes (optional)";
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.className = "zed-feature-action";
+  submit.textContent = "＋ Create reminder";
+  form.append(title, due, notes, submit);
+  const status = document.createElement("p");
+  status.className = "zed-library-status";
+  const list = document.createElement("div");
+  list.className = "zed-scheduled-list";
+  content.append(intro, permissionButton, form, status, list);
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    submit.disabled = true;
+    status.textContent = "Saving reminder…";
+    try {
+      const response = await apiFetch("/api/scheduled", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title.value.trim(), notes: notes.value.trim(), dueAt: new Date(due.value).toISOString() })
+      });
+      const data = await parseResponse(response);
+      if (!response.ok || !data.ok) throw new Error(data.error || "Reminder could not be saved.");
+      title.value = "";
+      notes.value = "";
+      status.textContent = "Reminder saved.";
+      await refreshScheduled();
+    } catch (error) {
+      status.textContent = error.message || "Reminder could not be saved.";
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  async function refreshScheduled() {
+    list.replaceChildren();
+    try {
+      const response = await apiFetch("/api/scheduled");
+      const data = await parseResponse(response);
+      if (!response.ok || !data.ok) throw new Error(data.error || "Scheduled tasks unavailable.");
+      const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+      const active = tasks.filter(task => task.status !== "completed");
+      status.textContent = active.length + " upcoming · " + (tasks.length - active.length) + " completed";
+      for (const task of tasks) {
+        const row = document.createElement("article");
+        row.className = "zed-feature-card zed-scheduled-row";
+        const heading = document.createElement("h3");
+        heading.textContent = task.title;
+        const meta = document.createElement("p");
+        meta.textContent = new Date(task.dueAt).toLocaleString() + " · " + (task.status === "completed" ? "Completed" : "Scheduled");
+        row.append(heading, meta);
+        if (task.notes) {
+          const detail = document.createElement("p");
+          detail.textContent = task.notes;
+          row.append(detail);
+        }
+        const actions = document.createElement("div");
+        actions.className = "zed-library-actions";
+        if (task.status !== "completed") {
+          const done = document.createElement("button");
+          done.type = "button";
+          done.className = "zed-feature-action";
+          done.textContent = "Mark complete";
+          done.addEventListener("click", async () => {
+            try {
+              const result = await apiFetch("/api/scheduled/" + encodeURIComponent(task.id), {
+                method: "PATCH", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "completed" })
+              });
+              const payload = await parseResponse(result);
+              if (!result.ok || !payload.ok) throw new Error(payload.error || "Could not update reminder.");
+              await refreshScheduled();
+            } catch (error) { status.textContent = error.message; }
+          });
+          actions.append(done);
+        }
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "zed-library-delete";
+        remove.textContent = "Delete";
+        remove.addEventListener("click", async () => {
+          if (!window.confirm("Delete this reminder?")) return;
+          try {
+            const result = await apiFetch("/api/scheduled/" + encodeURIComponent(task.id), { method: "DELETE" });
+            const payload = await parseResponse(result);
+            if (!result.ok || !payload.ok || !payload.deleted) throw new Error(payload.error || "Could not delete reminder.");
+            await refreshScheduled();
+          } catch (error) { status.textContent = error.message; }
+        });
+        actions.append(remove);
+        row.append(actions);
+        list.append(row);
+      }
+    } catch (error) {
+      status.textContent = error.message || "Scheduled tasks could not be loaded.";
+    }
+  }
+  openFeaturePanel("Scheduled", content);
+  await refreshScheduled();
+}
+
+let scheduledCheckInProgress = false;
+async function checkDueScheduledTasks() {
+  if (!state.firebaseUser || scheduledCheckInProgress) return;
+  scheduledCheckInProgress = true;
+  try {
+    const response = await apiFetch("/api/scheduled");
+    const data = await parseResponse(response);
+    if (!response.ok || !data.ok) return;
+    const dueTasks = (data.tasks || []).filter(task =>
+      task.status === "scheduled" && !task.notifiedAt && Number(task.dueAt) <= Date.now()
+    );
+    for (const task of dueTasks) {
+      const message = "Zed reminder: " + task.title;
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Zed reminder", { body: message });
+      } else {
+        const notice = document.createElement("div");
+        notice.className = "zed-reminder-toast";
+        notice.textContent = message;
+        document.body.append(notice);
+        window.setTimeout(() => notice.remove(), 12000);
+      }
+      await apiFetch("/api/scheduled/" + encodeURIComponent(task.id), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notified: true })
+      });
+    }
+  } catch (error) {
+    console.warn("Scheduled reminder check failed:", error.message);
+  } finally {
+    scheduledCheckInProgress = false;
+  }
+}
+
+
+document.querySelectorAll("[data-zed-view]").forEach(button => {
+  button.addEventListener("click", () => {
+    const view = button.dataset.zedView;
+    closeSidebar();
+    if (view === "images") openImagesView();
+    else if (view === "library") openLibraryView();
+    else if (view === "projects") {
+      const content = document.createElement("div");
+      content.append(featureCard("Your projects", "Create and organise workspaces using Zed's existing project service.", "Create project", createProjectFromPrompt));
+      openFeaturePanel("Projects", content);
+      loadProjects();
+    } else if (view === "scheduled") openScheduledView();
+    else if (view === "explore") openExploreView();
+  });
+});
+
+sidebarSearchToggle?.addEventListener("click", () => {
+  sidebarSearchWrap?.classList.toggle("open");
+  if (sidebarSearchWrap?.classList.contains("open")) chatSearchInput?.focus();
+});
+chatSearchInput?.addEventListener("input", () => {
+  const query = chatSearchInput.value.trim().toLowerCase();
+  recentChats?.querySelectorAll(".recent-chat").forEach(item => {
+    item.hidden = !item.textContent.toLowerCase().includes(query);
+  });
+});
+seeAllChatsBtn?.addEventListener("click", () => {
+  showAllChats = !showAllChats;
+  recentChats?.classList.toggle("show-all", showAllChats);
+  seeAllChatsBtn.textContent = showAllChats ? "Show less" : "See all";
+});
+addProjectBtn?.addEventListener("click", createProjectFromPrompt);
+
+document.getElementById("upgradeBtn")?.addEventListener("click", () => {
+  const content = document.createElement("div");
+  content.append(featureCard(
+    "Zed plans",
+    "The upgrade screen is ready as a navigation entry, but subscription plans, billing and payment processing are not connected in this project yet. No payment will be requested here.",
+    null,
+    null
+  ));
+  openFeaturePanel("Upgrade", content);
+});
+
+document.querySelectorAll("[data-zed-prompt]").forEach(button => {
+  button.addEventListener("click", () => {
+    messageInput.value = button.dataset.zedPrompt || "";
+    messageInput.focus();
+    messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length);
+  });
+});
+
+document.querySelector('[data-zed-action="image"]')?.addEventListener("click", () => {
+  const prompt = window.prompt("Describe the image you want Zed to create:");
+  if (!prompt || !prompt.trim()) return;
+  messageInput.value = prompt.trim();
+  createImage();
+});
+
+// Keep the menu state accessible to assistive technologies.
+menuBtn?.addEventListener("click", () => {
+  const expanded = sidebar?.classList.contains("open") || false;
+  menuBtn.setAttribute("aria-expanded", String(expanded));
+});
+
+if (!window.__zedScheduledReminderTimer) {
+  window.__zedScheduledReminderTimer = window.setInterval(checkDueScheduledTasks, 30000);
+}
+
 // ============================================================
 // START
 // ============================================================

@@ -10,7 +10,6 @@
   const fileInput = document.getElementById("fileInput");
   const fileChip = document.getElementById("selectedFileChip");
   const recentChats = document.getElementById("recentChats");
-  const sidebar = document.getElementById("sidebar");
 
   function applyTheme(theme, persist = true) {
     const safeTheme = theme === "light" ? "light" : "dark";
@@ -29,40 +28,6 @@
   applyTheme(root.dataset.theme || "dark", false);
   themeButton?.addEventListener("click", () => {
     applyTheme(root.dataset.theme === "dark" ? "light" : "dark");
-  });
-
-  // Add a quick filter without changing the existing chat-history API.
-  if (recentChats && !document.getElementById("chatSearch")) {
-    const search = document.createElement("input");
-    search.id = "chatSearch";
-    search.className = "chat-search";
-    search.type = "search";
-    search.placeholder = "Search conversations";
-    search.setAttribute("aria-label", "Search conversation titles");
-    recentChats.parentElement?.insertBefore(search, recentChats);
-    search.addEventListener("input", () => {
-      const query = search.value.trim().toLocaleLowerCase();
-      recentChats.querySelectorAll(".recent-chat").forEach(item => {
-        item.hidden = !item.textContent.toLocaleLowerCase().includes(query);
-      });
-    });
-    new MutationObserver(() => {
-      const query = search.value.trim().toLocaleLowerCase();
-      recentChats.querySelectorAll(".recent-chat").forEach(item => {
-        item.hidden = !item.textContent.toLocaleLowerCase().includes(query);
-      });
-    }).observe(recentChats, { childList: true });
-  }
-
-  // Suggested prompts reuse the normal message-send path.
-  document.querySelectorAll(".suggested-prompt, .suggestion-card").forEach(button => {
-    button.addEventListener("click", () => {
-      if (!messageInput || messageInput.disabled) return;
-      messageInput.value = button.dataset.prompt || "";
-      messageInput.dispatchEvent(new Event("input", { bubbles: true }));
-      messageInput.focus();
-      if (sendButton && !sendButton.disabled) sendButton.click();
-    });
   });
 
   // Show the selected file and allow removal before sending.
@@ -132,7 +97,7 @@
     }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
       event.preventDefault();
-      const search = document.getElementById("chatSearch");
+      const search = document.getElementById("chatSearchInput");
       if (search) search.focus();
       else messageInput?.focus();
     }

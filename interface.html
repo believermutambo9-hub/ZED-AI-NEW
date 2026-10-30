@@ -16,10 +16,13 @@
     (function () {
       try {
         const savedTheme = localStorage.getItem("zed-theme");
-        document.documentElement.dataset.theme =
-          savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
+        if (savedTheme === "light" || savedTheme === "dark") {
+          document.documentElement.dataset.theme = savedTheme;
+        } else {
+          document.documentElement.dataset.theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
       } catch {
-        document.documentElement.dataset.theme = "dark";
+        document.documentElement.dataset.theme = "light";
       }
     })();
   </script>
@@ -32,65 +35,41 @@
 
   <div class="app" id="app">
 
-    <!-- =========================
-         SIDEBAR
-    ========================== -->
-    <aside class="sidebar" id="sidebar">
-
-      <div class="sidebar-header">
-
-        <div class="sidebar-brand" aria-label="Zed home"><span class="sidebar-brand-mark">Z</span><span>Zed</span></div>
-
-        <button
-          class="new-chat-btn"
-          id="newChatBtn"
-          type="button"
-        >
-          <span class="new-chat-icon" aria-hidden="true">＋</span>
-          <span>New chat</span>
-        </button>
-
+    <!-- Navigation drawer: opens over the home screen on mobile. -->
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+      <div class="sidebar-brand-row">
+        <div class="sidebar-brand">Zed</div>
+        <button class="sidebar-search-toggle" id="sidebarSearchToggle" type="button" aria-label="Search conversations">⌕</button>
       </div>
-
-      <div class="recent-section">
-
-        <div class="section-title">
-          Recent
-        </div>
-
-        <div
-          class="recent-chats"
-          id="recentChats"
-        >
-          <!-- Added by app.js -->
-        </div>
-
+      <div class="sidebar-search-wrap" id="sidebarSearchWrap">
+        <input id="chatSearchInput" type="search" placeholder="Search conversations" aria-label="Search conversations">
       </div>
-
+      <nav class="primary-nav" aria-label="Zed tools">
+        <button class="nav-item" type="button" data-zed-view="images"><span class="nav-icon">▧</span><span>Images</span></button>
+        <button class="nav-item" type="button" data-zed-view="library"><span class="nav-icon">▤</span><span>Library</span></button>
+        <button class="nav-item" type="button" data-zed-view="projects"><span class="nav-icon">▱</span><span>Projects</span></button>
+        <button class="nav-item" type="button" data-zed-view="scheduled"><span class="nav-icon">◷</span><span>Scheduled</span></button>
+        <button class="nav-item" type="button" data-zed-view="explore"><span class="nav-icon">✣</span><span>Explore</span></button>
+      </nav>
+      <div class="sidebar-divider"></div>
+      <section class="sidebar-projects" aria-label="Projects">
+        <div class="sidebar-section-heading">
+          <span>Projects</span>
+          <button id="addProjectBtn" type="button" aria-label="Create project">＋</button>
+        </div>
+        <div id="projectList" class="project-list"><div class="sidebar-empty">Loading projects…</div></div>
+      </section>
+      <section class="recent-section">
+        <div class="sidebar-section-heading"><span>Recent</span></div>
+        <div class="recent-chats" id="recentChats"></div>
+        <button class="see-all-chats" id="seeAllChatsBtn" type="button">See all</button>
+      </section>
       <div class="sidebar-bottom">
-
-        <button
-          class="sidebar-item"
-          id="settingsBtn"
-          type="button"
-        >
-          <span class="sidebar-item-icon" aria-hidden="true">⚙</span>
-          <span>Settings</span>
-        </button>
-
-        <button
-          class="sidebar-item"
-          id="accountBtn"
-          type="button"
-        >
-          <span class="sidebar-item-icon account-icon" aria-hidden="true">◉</span>
-          <span>Account</span>
-        </button>
-
+        <button class="sidebar-item zed-new-chat-nav" id="newChatBtn" type="button"><span class="sidebar-item-icon">✎</span><span>Chat</span></button>
+        <button class="sidebar-item" id="settingsBtn" type="button"><span class="sidebar-item-icon">⚙</span><span>Settings</span></button>
+        <button class="sidebar-item" id="accountBtn" type="button"><span class="sidebar-item-icon">●</span><span>Account</span></button>
       </div>
-
     </aside>
-
     <!-- =========================
          MAIN CONTENT
     ========================== -->
@@ -108,25 +87,32 @@
             id="menuBtn"
             type="button"
             aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="sidebar"
           >
             ☰
           </button>
 
+          <button class="upgrade-btn" id="upgradeBtn" type="button">✦ Upgrade</button>
           <div class="brand">
 
-             
+            <img class="brand-logo" src="super-brain.svg?v=2" alt="" width="32" height="32" style="width:32px;height:32px;object-fit:cover;border-radius:50%;flex-shrink:0;">
 
             <div class="brand-name">Zed</div>
 
-            <span class="brand-chevron" aria-hidden="true">⌄</span>
+            <div class="brand-status">
+
+              <span class="status-dot"></span>
+
+              <span>Online</span>
+
+            </div>
 
           </div>
 
         </div>
 
-        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" title="Switch theme">
-          <span aria-hidden="true" id="themeToggleIcon">☼</span>
-        </button>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch theme" title="Switch theme"><span aria-hidden="true" id="themeToggleIcon">☼</span></button>
 
         <button
           class="profile-btn"
@@ -150,34 +136,22 @@
           id="welcome"
         >
 
-           
+          <div class="welcome-logo" aria-label="Zed Super Brain logo" role="img"></div>
+          <div class="welcome-actions" aria-label="Quick actions">
+            <button type="button" data-zed-action="image"><span>▧</span> Create an image or sticker</button>
+            <button type="button" data-zed-prompt="Help me write or edit the following: "><span>✎</span> Write or edit</button>
+            <button type="button" data-zed-prompt="Search the web for: "><span>◎</span> Search the web</button>
+          </div>
 
           <h1>
-            What can I help with?
+            How can I help you?
           </h1>
 
           <p>
-            Ask anything, or tell me what you’re working on.
+            Ask anything. Study, write, search,
+            analyze files, explore football, or work
+            on your ideas.
           </p>
-
-          <div class="suggestion-grid" aria-label="Try a prompt">
-            <button class="suggestion-card" type="button" data-prompt="Explain a difficult topic to me step by step, with simple examples.">
-              <span class="suggestion-icon" aria-hidden="true">✳</span>
-              <span class="suggestion-copy"><strong>Learn something</strong><small>Understand a topic step by step</small></span>
-            </button>
-            <button class="suggestion-card" type="button" data-prompt="Help me write a clear, professional message. Ask me what it is for if needed.">
-              <span class="suggestion-icon" aria-hidden="true">↗</span>
-              <span class="suggestion-copy"><strong>Write anything</strong><small>Messages, letters and ideas</small></span>
-            </button>
-            <button class="suggestion-card" type="button" data-prompt="Help me plan a realistic small business idea with a limited budget.">
-              <span class="suggestion-icon" aria-hidden="true">⌁</span>
-              <span class="suggestion-copy"><strong>Build an idea</strong><small>Turn a goal into a plan</small></span>
-            </button>
-            <button class="suggestion-card" type="button" data-prompt="Analyze this football match using current, verifiable data. Separate facts from estimates and show uncertainty.">
-              <span class="suggestion-icon" aria-hidden="true">◎</span>
-              <span class="suggestion-copy"><strong>Analyze football</strong><small>Evidence-led match analysis</small></span>
-            </button>
-          </div>
 
         </div>
 
@@ -224,6 +198,9 @@
             autocomplete="off"
             aria-label="Message"
           ></textarea>
+
+          <button class="composer-btn voice-input-btn" id="voiceInputBtn" type="button" aria-label="Dictate a message" title="Dictate a message">🎙</button>
+          <button class="composer-btn voice-mode-btn" id="voiceModeBtn" type="button" aria-label="Toggle spoken responses" title="Toggle spoken responses">▮))</button>
 
           <!-- Send -->
           <button

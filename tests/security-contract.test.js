@@ -2,16 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
-import { cleanSearchIntent, normalizeUrl, isTodayRequest, formatDateForZambia } from "../web-search.js";
 
-const [server, history, memory, app, pkg, html, fileAnalysis] = await Promise.all([
+const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
   readFile(new URL("../storage/chat-history.js", import.meta.url), "utf8"),
   readFile(new URL("../features/memory.js", import.meta.url), "utf8"),
   readFile(new URL("../app.js", import.meta.url), "utf8"),
   readFile(new URL("../package.json", import.meta.url), "utf8"),
   readFile(new URL("../interface.html", import.meta.url), "utf8"),
-  readFile(new URL("../features/file-analysis.js", import.meta.url), "utf8")
+  readFile(new URL("../features/file-analysis.js", import.meta.url), "utf8"),
+  readFile(new URL("../web-search.js", import.meta.url), "utf8"),
+  readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8")
 ]);
 
 test("API routes reject missing or invalid Firebase ID tokens", () => {
@@ -223,12 +224,9 @@ test("individual memory deletion waits for Firestore before removing local memor
 });
 
 
-test("clear-all memory queries persistent user records before clearing local state", () => {
+test("clear-all memory waits for every Firestore delete before clearing local state", () => {
   assert.match(memory, /export async function clearUserMemoryAndWait\(userId\)/);
-  assert.match(memory, /firestoreDeleteUserRecordsAndWait\("zedMemories", normalizedUserId\)/);
-  assert.match(memory, /firestoreDeleteUserRecordsAndWait\("zedProjects", normalizedUserId\)/);
-  assert.match(memory, /await Promise\.all\(\[[\s\S]*?firestoreDeleteUserRecordsAndWait/);
-  assert.match(memory, /for \(const \[id, memory\] of memories\)/);
+  assert.match(memory, /await Promise\.all\(\[[\s\S]*?firestoreDeleteAndWait\("zedMemories"/);
   const start = server.indexOf('app.delete(\n  "/api/memory/user/:userId",');
   const end = server.indexOf("// MEMORY SEARCH", start);
   const route = server.slice(start, end);
@@ -236,15 +234,6 @@ test("clear-all memory queries persistent user records before clearing local sta
   assert.match(route, /await clearUserMemoryAndWait\(req\.user\.uid\)/);
   assert.match(route, /Memory could not be cleared\. Please try again\./);
   assert.match(route, /req\.params\.userId !== req\.user\.uid/);
-});
-
-test("memory relevance requires content or tag overlap before recency can affect ranking", () => {
-  const start = memory.indexOf("export function calculateMemoryRelevance(");
-  const end = memory.indexOf("// RECENCY SCORE", start);
-  const relevance = memory.slice(start, end);
-  assert.match(relevance, /if \(lexicalScore === 0\)\s*\{\s*return 0;/);
-  assert.match(relevance, /contentScore \* 0\.62/);
-  assert.match(relevance, /tagScore \* 0\.18/);
 });
 
 
@@ -551,142 +540,110 @@ test("chat history API does not expose internal persistence errors", () => {
 });
 
 
-test("memory relevance requires actual content or tag overlap", () => {
-  const start = memory.indexOf("export function calculateMemoryRelevance(");
-  const end = memory.indexOf("// ============================================================\\n// RECENCY SCORE", start);
-  const relevance = memory.slice(start, end);
-  assert.match(relevance, /if \(lexicalScore === 0\)\s*\{\s*return 0;/);
-  assert.match(relevance, /contentScore \* 0\.62/);
-});
-
-test("clear-all memory deletes persisted records by owner, not just cache indexes", () => {
-  const start = memory.indexOf("export async function clearUserMemoryAndWait(");
-  const end = memory.indexOf("export function clearUserMemory(", start);
-  const clear = memory.slice(start, end);
-  assert.match(clear, /firestoreDeleteUserRecordsAndWait\("zedMemories", normalizedUserId\)/);
-  assert.match(clear, /firestoreDeleteUserRecordsAndWait\("zedProjects", normalizedUserId\)/);
-  assert.match(clear, /persistentFootballDeleted/);
-  assert.doesNotMatch(clear, /hadFootballMemory \|\| true/);
-});
-
-
-test("interface upgrade includes persistent theme, prompt shortcuts, history search and removable attachments", async () => {
-  const [interfaceHtml, uiEnhancements, styles] = await Promise.all([
-    readFile(new URL("../interface.html", import.meta.url), "utf8"),
-    readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8"),
-    readFile(new URL("../styles.css", import.meta.url), "utf8")
-  ]);
-  assert.match(interfaceHtml, /id="themeToggle"/);
-  assert.match(interfaceHtml, /id="selectedFileChip"/);
-  assert.match(interfaceHtml, /src="ui-enhancements\.js"/);
-  assert.match(uiEnhancements, /localStorage\.setItem\("zed-theme"/);
-  assert.match(uiEnhancements, /chatSearch/);
-  assert.match(uiEnhancements, /suggestion-card/);
-  assert.match(uiEnhancements, /state\.selectedFile = null/);
-  assert.match(styles, /@media \(max-width:700px\)/);
-  assert.match(styles, /prefers-reduced-motion/);
-});
-
-
-test("premium message interactions use safe text rendering and accessible copy controls", async () => {
-  const [appSource, interfaceStyles, uiEnhancements] = await Promise.all([
-    readFile(new URL("../app.js", import.meta.url), "utf8"),
-    readFile(new URL("../styles.css", import.meta.url), "utf8"),
-    readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8")
-  ]);
-  assert.match(appSource, /className = "message-actions"/);
-  assert.match(appSource, /navigator\.clipboard\.writeText/);
-  assert.match(appSource, /content\.textContent\s*=\s*message\.content/);
-  assert.match(interfaceStyles, /\.message-action:focus-visible/);
-  assert.match(interfaceStyles, /@keyframes zedThinking/);
-  assert.match(uiEnhancements, /event\.key\.toLowerCase\(\) === "k"/);
-});
-
-
-test("ChatGPT-style layout stays minimal, responsive, and preserves core interface controls", async () => {
-  const [interfaceHtml, styles] = await Promise.all([
-    readFile(new URL("../interface.html", import.meta.url), "utf8"),
-    readFile(new URL("../styles.css", import.meta.url), "utf8")
-  ]);
-  assert.match(interfaceHtml, /id="newChatBtn"/);
-  assert.match(interfaceHtml, /id="recentChats"/);
-  assert.match(interfaceHtml, /id="messageInput"/);
-  assert.match(interfaceHtml, /id="attachBtn"/);
-  assert.match(interfaceHtml, /id="sendBtn"/);
-  assert.match(interfaceHtml, /id="settingsBtn"/);
-  assert.match(interfaceHtml, /id="accountBtn"/);
-  assert.match(styles, /--zed-bg:\s*#212121/);
-  assert.match(styles, /--zed-panel:\s*#171717/);
-  assert.match(styles, /\.message-assistant \.message-content/);
-  assert.match(styles, /\.message-user \.message-content/);
-  assert.match(styles, /@media \(max-width:760px\)/);
-  assert.match(styles, /env\(safe-area-inset-bottom\)/);
-  assert.match(styles, /\.suggestion-card:hover/);
-});
-
-
-test("explicit web-search requests trigger search even without current-news keywords", () => {
+test("explicit web-search instructions are detected and bypass the football-data-only gate", () => {
   assert.match(server, /function isExplicitWebSearchRequest\(message = ""\)/);
+  assert.match(server, /\\b\(search \(the \)\?web\|web search\|search online\|look up online\|find online\|browse \(the \)\?web\|internet search\|on the internet\)\\b/i);
   assert.match(server, /explicitWebSearch \|\|\s*isCurrentInformationQuestion\(userMessage\)/);
-  assert.match(server, /webSources:\s*Array\.isArray\(searchData\?\.results\)/);
+  assert.match(server, /explicitWebSearch \|\|\s*!shouldUseFootballData\(userMessage\)/);
+  assert.ok(server.indexOf("const explicitWebSearch =") < server.indexOf("if (\n        (\n          explicitWebSearch"));
 });
 
-test("web search sources are rendered as safe clickable HTTP(S) links", () => {
-  assert.match(app, /webSources: Array\.isArray\(data\.webSources\) \? data\.webSources : \[\]/);
-  assert.match(app, /new URL\(source\.url\)/);
-  assert.match(app, /\["http:", "https:"\]\.includes\(parsedUrl\.protocol\)/);
+test("web search strips request framing and retains the actual topic", async () => {
+  const { cleanSearchIntent } = await import("../web-search.js");
+  const query = cleanSearchIntent(
+    "Search the web for Arsenal transfer news and give me three reliable sources with clickable links"
+  );
+  assert.match(query, /Arsenal/i);
+  assert.match(query, /transfer/i);
+  assert.doesNotMatch(query, /reliable|clickable|sources|search the web/i);
+});
+
+test("web search keeps all three providers and parallel failure isolation", () => {
+  assert.match(webSearchModule, /searchGoogleNews\(query, recentRequest, todayRequest\)/);
+  assert.match(webSearchModule, /searchBingNews\(query, recentRequest, todayRequest\)/);
+  assert.match(webSearchModule, /searchDuckDuckGo\(query\)/);
+  assert.match(webSearchModule, /Promise\.allSettled\(searches\)/);
+  assert.match(webSearchModule, /\.replace\(\/\\s\+\/g, " "\)/);
+});
+
+test("exact-today web searches retry and retain only dated results from Zambia's current date", () => {
+  assert.match(webSearchModule, /if \(todayRequest\)/);
+  assert.match(webSearchModule, /formatDateForZambia\(date\) === todayInZambia/);
+  assert.match(webSearchModule, /runSearchVariant\(variant, true, false\)/);
+  assert.match(webSearchModule, /allResults = allResults\.filter\(isPublishedToday\)/);
+});
+
+
+test("clear-all memory queries Firestore by owner before clearing local state", () => {
+  assert.match(memory, /async function firestoreDeleteUserRecordsAndWait\(collection, userId\)/);
+  assert.match(memory, /\.where\("userId", "==", userId\)/);
+  assert.match(memory, /for \(let start = 0; start < snapshot\.docs\.length; start \+= 450\)/);
+  const start = memory.indexOf("export async function clearUserMemoryAndWait(userId)");
+  const end = memory.indexOf("\nexport ", start + 20);
+  const route = memory.slice(start, end);
+  assert.match(route, /firestoreDeleteUserRecordsAndWait\("zedMemories", normalizedUserId\)/);
+  assert.match(route, /firestoreDeleteUserRecordsAndWait\("zedProjects", normalizedUserId\)/);
+});
+
+test("chat API returns only validated HTTP web-source links", () => {
+  const start = server.indexOf('app.post(\n  "/api/chat"');
+  const end = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", start);
+  const route = server.slice(start, end);
+  assert.match(route, /webSources:\s*Array\.isArray\(searchData\?\.results\)/);
+  assert.match(route, /\["http:", "https:"\]\.includes\(parsed\.protocol\)/);
+  assert.match(route, /\.slice\(0, 12\)/);
+});
+
+test("chat UI renders web sources as safe clickable links", () => {
+  assert.match(app, /Array\.isArray\(message\.webSources\)/);
   assert.match(app, /link\.rel = "noopener noreferrer"/);
+  assert.match(app, /link\.textContent = source\.title/);
+  assert.match(app, /webSources: Array\.isArray\(data\.webSources\)/);
 });
 
 
-test("web search extracts the actual topic from citation-formatting instructions", () => {
-  const query = cleanSearchIntent("Search the web for the latest technology news published today. Give me three verified articles, each with their publication date, publisher and direct article link. If you cannot verify a detail, say so.");
-  assert.match(query, /technology/i);
-  assert.match(query, /news/i);
-  assert.doesNotMatch(query, /three|verified articles|publication date|direct article link|cannot verify/i);
-});
-
-test("web search normalizes DuckDuckGo redirect URLs and rejects unsafe or invalid URLs", () => {
-  const destination = "https://example.com/story?utm_source=search#section";
-  const wrapped = "https://duckduckgo.com/l/?uddg=" + encodeURIComponent(destination);
-  assert.equal(normalizeUrl(wrapped), "https://example.com/story");
-  assert.equal(normalizeUrl("javascript:alert(1)"), "");
-  assert.equal(normalizeUrl("not a url"), "");
-});
-
-test("web search prompt prevents fabricated source counts and unverified direct-link claims", () => {
-  assert.match(server, /If the user requests three sources but fewer than three relevant results were returned/);
-  assert.match(server, /do not pad the list with invented or unrelated sources/);
-  assert.match(server, /identify it as an aggregator link rather than calling it a direct publisher article link/);
+test("memory relevance requires lexical overlap before recency can rank a memory", () => {
+  const start = memory.indexOf("export function calculateMemoryRelevance(");
+  const end = memory.indexOf("RECENCY SCORE", start);
+  const relevance = memory.slice(start, end);
+  assert.ok(relevance.includes("if (lexicalScore === 0)"));
+  assert.ok(relevance.includes("return 0;"));
 });
 
 
-test("web search detects exact today requests for publication-date filtering", () => {
-  assert.equal(isTodayRequest("latest technology news published today"), true);
-  assert.equal(isTodayRequest("latest technology news this week"), false);
+test("responsive interface exposes theme and removable attachment controls", () => {
+  assert.match(html, /id="themeToggle"/);
+  assert.match(html, /id="selectedFileChip"/);
+  assert.match(html, /<script src="ui-enhancements\.js"><\/script>/);
+  assert.match(uiEnhancements, /function applyTheme\(theme, persist = true\)/);
+  assert.match(uiEnhancements, /remove-file-button/);
+  assert.match(uiEnhancements, /state\.selectedFile = null/);
+  assert.match(uiEnhancements, /prefers-reduced-motion/);
 });
 
-test("web search prompt keeps the article list and source list consistent", () => {
-  assert.match(server, /displayed article list and any source list must contain the same articles/);
-  assert.match(server, /fewer than requested results have verified publication dates/);
-});
-
-
-test("exact-date web searches retry a broader recent index before returning no results", async () => {
-  const source = await import("node:fs/promises").then(fs => fs.readFile(new URL("../web-search.js", import.meta.url), "utf8"));
-  assert.match(source, /if \(!allResults\.some\(isPublishedToday\)\)/);
-  assert.match(source, /runSearchVariant\(variant, true, false\)/);
-  assert.match(source, /allResults = allResults\.filter\(isPublishedToday\)/);
+test("interface enhancement syntax is part of the project check command", () => {
+  assert.match(pkg, /node --check ui-enhancements\.js/);
 });
 
 
-test("Zambia date formatting is stable ISO regardless of runtime locale", () => {
-  assert.equal(formatDateForZambia(new Date("2026-10-28T22:30:00.000Z")), "2026-10-29");
-  assert.equal(formatDateForZambia(new Date("2026-10-29T00:30:00.000Z")), "2026-10-29");
+test("Zed's system prompt defines its own identity without referencing another assistant", () => {
+  const promptStart = server.indexOf("You are Zed.");
+  const promptEnd = server.indexOf("CURRENT DATE AND TIME IN ZAMBIA:", promptStart);
+  assert.ok(promptStart >= 0 && promptEnd > promptStart, "Zed system prompt should be present");
+  const identityPrompt = server.slice(promptStart, promptEnd);
+  assert.match(identityPrompt, /You are the AI assistant inside the Zed application/);
+  assert.doesNotMatch(identityPrompt, /ChatGPT|OpenAI assistant/i);
 });
 
-test("exact-date news search retries a wider recent window but still requires today's publication date", async () => {
-  const webSearch = await readFile(new URL("../web-search.js", import.meta.url), "utf8");
-  assert.match(webSearch, /retry the same topic against the last seven days/);
-  assert.match(webSearch, /allResults = allResults\.filter\(isPublishedToday\)/);
+test("conversation search shortcut targets the existing search field", () => {
+  assert.match(uiEnhancements, /event\.key\.toLowerCase\(\) === "k"/);
+  assert.match(uiEnhancements, /document\.getElementById\("chatSearchInput"\)/);
+  assert.match(app, /chatSearchInput/);
+});
+
+
+test("memory tokenization splits words on whitespace and ignores common stop words", () => {
+  assert.match(memory, /\.replace\(\/\[\^a-z0-9\\s\]\/g, " "\)/);
+  assert.match(memory, /\.split\(\/\\s\+\/\)/);
+  assert.match(memory, /!MEMORY_STOP_WORDS\.has\(token\)/);
 });

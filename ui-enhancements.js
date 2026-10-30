@@ -10,7 +10,6 @@
   const fileInput = document.getElementById("fileInput");
   const fileChip = document.getElementById("selectedFileChip");
   const recentChats = document.getElementById("recentChats");
-  const sidebar = document.getElementById("sidebar");
 
   function applyTheme(theme, persist = true) {
     const safeTheme = theme === "light" ? "light" : "dark";
@@ -98,7 +97,7 @@
     }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
       event.preventDefault();
-      const search = document.getElementById("chatSearch");
+      const search = document.getElementById("chatSearchInput");
       if (search) search.focus();
       else messageInput?.focus();
     }

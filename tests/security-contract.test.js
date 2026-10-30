@@ -640,3 +640,10 @@ test("conversation search shortcut targets the existing search field", () => {
   assert.match(uiEnhancements, /document\.getElementById\("chatSearchInput"\)/);
   assert.match(app, /chatSearchInput/);
 });
+
+
+test("memory tokenization splits words on whitespace and ignores common stop words", () => {
+  assert.match(memory, /\.replace\(\/\[\^a-z0-9\\s\]\/g, " "\)/);
+  assert.match(memory, /\.split\(\/\\s\+\/\)/);
+  assert.match(memory, /!MEMORY_STOP_WORDS\.has\(token\)/);
+});

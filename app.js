@@ -2024,6 +2024,25 @@ async function openScheduledView() {
   const intro = document.createElement("p");
   intro.textContent = "Create reminders and manage upcoming tasks. In this version, alerts are checked while Zed is open; device push notifications when the app is closed are not yet configured.";
   intro.style.color = "#707070";
+  const permissionButton = document.createElement("button");
+  permissionButton.type = "button";
+  permissionButton.className = "zed-library-delete";
+  permissionButton.textContent = ("Notification" in window && Notification.permission === "granted")
+    ? "Notifications enabled"
+    : "Enable browser notifications";
+  permissionButton.disabled = !("Notification" in window) || Notification.permission === "granted";
+  permissionButton.addEventListener("click", async () => {
+    if (!("Notification" in window)) {
+      status.textContent = "This browser does not support notifications. Zed can still show in-app reminder alerts while open.";
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    permissionButton.textContent = permission === "granted" ? "Notifications enabled" : "Notifications not enabled";
+    permissionButton.disabled = permission === "granted";
+    status.textContent = permission === "granted"
+      ? "Browser notifications are enabled for reminders while Zed is open."
+      : "Notification permission was not granted. In-app alerts will still appear while Zed is open.";
+  });
   const form = document.createElement("form");
   form.className = "zed-schedule-form";
   const title = document.createElement("input");
@@ -2049,7 +2068,7 @@ async function openScheduledView() {
   status.className = "zed-library-status";
   const list = document.createElement("div");
   list.className = "zed-scheduled-list";
-  content.append(intro, form, status, list);
+  content.append(intro, permissionButton, form, status, list);
   form.addEventListener("submit", async event => {
     event.preventDefault();
     submit.disabled = true;

@@ -2640,3 +2640,11 @@ body { background: var(--zed-surface); }
 .zed-schedule-form textarea { resize:vertical; }
 .zed-schedule-form button:disabled { opacity:.55; }
 .zed-reminder-toast { position:fixed; z-index:2000; left:16px; right:16px; bottom:calc(88px + env(safe-area-inset-bottom)); padding:15px 17px; border-radius:15px; background:#202124; color:#fff; box-shadow:0 8px 30px rgba(0,0,0,.2); font-size:14px; }
+
+
+/* Accessible message actions and visible assistant activity */
+.message-actions { display:flex; gap:8px; margin:7px 0 0; }
+.message-action { min-height:32px; padding:5px 11px; border:1px solid var(--border,#dedede); border-radius:9px; background:transparent; color:var(--text-secondary,#777); font:inherit; font-size:12px; cursor:pointer; }
+.message-action:hover { background:var(--hover,#f2f2f2); color:var(--text,#222); }
+.message-action:focus-visible { outline:2px solid var(--accent,#4167ed); outline-offset:3px; }
+@keyframes zedThinking { from { opacity:.45; } to { opacity:1; } }

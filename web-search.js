@@ -10,6 +10,7 @@ const MAX_RESULTS = 10;
 
 function cleanText(value = "") {
   return String(value)
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, "$1")
     .replace(/<[^>]*>/g, "")
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
@@ -20,6 +21,13 @@ function cleanText(value = "") {
     .replace(/&#(\d+);/g, (_, code) => {
       try {
         return String.fromCodePoint(Number(code));
+      } catch {
+        return "";
+      }
+    })
+    .replace(/&#x([\da-f]+);/gi, (_, code) => {
+      try {
+        return String.fromCodePoint(parseInt(code, 16));
       } catch {
         return "";
       }
@@ -1081,6 +1089,7 @@ export const buildWebSearchContext =
 
 export {
   cleanText,
+  isLikelyIrrelevant,
   cleanSearchIntent,
   formatDateForZambia,
   getZambiaDateTime,

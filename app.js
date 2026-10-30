@@ -2007,9 +2007,11 @@ function openExploreView() {
   content.append(
     featureCard("Writing and editing", "Draft, rewrite, proofread and improve messages or documents.", "Start writing", () => { closeFeaturePanel(); messageInput.value = "Help me write or edit: "; messageInput.focus(); }),
     featureCard("Study assistant", "Get explanations, guided lessons, summaries and practice questions.", "Start studying", () => { closeFeaturePanel(); messageInput.value = "Help me study: "; messageInput.focus(); }),
+    featureCard("CV and cover letter maker", "Build a professional CV, tailor work experience and prepare job applications using details you provide.", "Create a CV", () => { closeFeaturePanel(); messageInput.value = "Help me create a professional CV. Ask me for the information you need: "; messageInput.focus(); }),
     featureCard("Business assistant", "Work through business ideas, planning, marketing and practical documents.", "Explore business", () => { closeFeaturePanel(); messageInput.value = "Help me with a business task: "; messageInput.focus(); }),
+    featureCard("Research assistant", "Research a topic, compare evidence and organise findings. Ask for current sources when freshness matters.", "Start research", () => { closeFeaturePanel(); messageInput.value = "Research this topic and provide reliable sources: "; messageInput.focus(); }),
     featureCard("File analysis", "Upload supported documents, spreadsheets, code or images for analysis.", "Upload a file", () => { closeFeaturePanel(); fileInput?.click(); }),
-    featureCard("Football analysis", "Ask about fixtures, results, team data and match analysis where reliable data is available.", "Analyse a match", () => { closeFeaturePanel(); messageInput.value = "Analyse this football match: "; messageInput.focus(); })
+    featureCard("Football analysis", "Ask about fixtures, results, team data and match analysis where reliable data is available.", "Analyse a match", () => { closeFeaturePanel(); messageInput.value = "Analyse this football match using available verified data: "; messageInput.focus(); })
   );
   openFeaturePanel("Explore Zed", content);
 }

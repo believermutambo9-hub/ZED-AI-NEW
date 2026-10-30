@@ -1929,6 +1929,17 @@ seeAllChatsBtn?.addEventListener("click", () => {
 });
 addProjectBtn?.addEventListener("click", createProjectFromPrompt);
 
+document.getElementById("upgradeBtn")?.addEventListener("click", () => {
+  const content = document.createElement("div");
+  content.append(featureCard(
+    "Zed plans",
+    "The upgrade screen is ready as a navigation entry, but subscription plans, billing and payment processing are not connected in this project yet. No payment will be requested here.",
+    null,
+    null
+  ));
+  openFeaturePanel("Upgrade", content);
+});
+
 document.querySelectorAll("[data-zed-prompt]").forEach(button => {
   button.addEventListener("click", () => {
     messageInput.value = button.dataset.zedPrompt || "";

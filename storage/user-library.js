@@ -97,6 +97,20 @@ export async function getLibraryDownload(userId, fileId) {
   return { url, name: data.name, contentType: data.contentType };
 }
 
+export async function getLibraryPreview(userId, fileId) {
+  const uid = clean(userId, 128);
+  const id = clean(fileId, 64);
+  if (!uid || !id) return null;
+  const snapshot = await getFirebaseDb().collection(COLLECTION).doc(id).get();
+  if (!snapshot.exists || snapshot.data().userId !== uid) return null;
+  const data = snapshot.data();
+  const [url] = await getBucket().file(data.objectPath).getSignedUrl({
+    version: "v4", action: "read", expires: Date.now() + 5 * 60 * 1000,
+    responseDisposition: "inline"
+  });
+  return { url, name: data.name, contentType: data.contentType };
+}
+
 export async function deleteLibraryFile(userId, fileId) {
   const uid = clean(userId, 128);
   const id = clean(fileId, 64);

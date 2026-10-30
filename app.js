@@ -1341,7 +1341,9 @@ async function sendMessage() {
       content:
         data.answer ||
         data.reply ||
-        "Zed did not return an answer."
+        "Zed did not return an answer.",
+      webSearch: data.webSearch === true,
+      webSources: Array.isArray(data.webSources) ? data.webSources : []
     });
     speakZedResponse(data.answer || data.reply || "Zed did not return an answer.");
     if (data.chatPersistent === false) {

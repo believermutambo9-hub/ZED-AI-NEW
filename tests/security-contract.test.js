@@ -599,3 +599,12 @@ test("chat UI renders web sources as safe clickable links", () => {
   assert.match(app, /link\.textContent = source\.title/);
   assert.match(app, /webSources: Array\.isArray\(data\.webSources\)/);
 });
+
+
+test("memory relevance requires lexical overlap before recency can rank a memory", () => {
+  const start = memory.indexOf("export function calculateMemoryRelevance(");
+  const end = memory.indexOf("RECENCY SCORE", start);
+  const relevance = memory.slice(start, end);
+  assert.ok(relevance.includes("if (lexicalScore === 0)"));
+  assert.ok(relevance.includes("return 0;"));
+});

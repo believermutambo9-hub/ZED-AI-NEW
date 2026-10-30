@@ -965,6 +965,46 @@ function renderMessages() {
       if (sourcePanel.childElementCount > 1) wrapper.appendChild(sourcePanel);
     }
 
+    // Provide a safe copy action for each message without interpreting text as HTML.
+    const actions = document.createElement("div");
+    actions.className = "message-actions";
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.className = "message-action";
+    copyButton.textContent = "Copy";
+    copyButton.setAttribute(
+      "aria-label",
+      message.role === "user" ? "Copy your message" : "Copy Zed's response"
+    );
+    copyButton.addEventListener("click", async () => {
+      const originalLabel = copyButton.textContent;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(message.content || "");
+        } else {
+          const temporary = document.createElement("textarea");
+          temporary.value = message.content || "";
+          temporary.setAttribute("readonly", "");
+          temporary.style.position = "fixed";
+          temporary.style.opacity = "0";
+          document.body.appendChild(temporary);
+          temporary.select();
+          const copied = document.execCommand("copy");
+          temporary.remove();
+          if (!copied) throw new Error("Copy is not available in this browser.");
+        }
+        copyButton.textContent = "Copied";
+      } catch (error) {
+        console.warn("Unable to copy message:", error);
+        copyButton.textContent = "Copy failed";
+      }
+      window.setTimeout(() => {
+        if (copyButton.isConnected) copyButton.textContent = originalLabel;
+      }, 1600);
+    });
+    actions.appendChild(copyButton);
+    wrapper.appendChild(actions);
+
     messages.appendChild(
       wrapper
     );

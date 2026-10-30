@@ -2648,3 +2648,80 @@ body { background: var(--zed-surface); }
 .message-action:hover { background:var(--hover,#f2f2f2); color:var(--text,#222); }
 .message-action:focus-visible { outline:2px solid var(--accent,#4167ed); outline-offset:3px; }
 @keyframes zedThinking { from { opacity:.45; } to { opacity:1; } }
+
+
+/* Accessible controls shared by the responsive Zed interface. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-left: auto;
+  border: 1px solid var(--border-color, rgba(255,255,255,.14));
+  border-radius: 12px;
+  color: var(--text-primary, inherit);
+  background: var(--surface-color, transparent);
+  cursor: pointer;
+}
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent-color, #72a7ff);
+  outline-offset: 2px;
+}
+.selected-file-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 760px;
+  margin: 0 auto 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color, rgba(255,255,255,.14));
+  border-radius: 12px;
+  color: var(--text-primary, inherit);
+  background: var(--surface-color, rgba(255,255,255,.04));
+  font-size: 13px;
+}
+.selected-file-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.remove-file-button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 9px;
+  color: var(--text-secondary, inherit);
+  background: transparent;
+  cursor: pointer;
+}
+.remove-file-button:hover,
+.remove-file-button:focus-visible {
+  color: var(--text-primary, inherit);
+  outline: 2px solid var(--accent-color, #72a7ff);
+  outline-offset: 2px;
+}
+#chatSearchInput {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, rgba(255,255,255,.14));
+  border-radius: 10px;
+  color: var(--text-primary, inherit);
+  background: var(--surface-color, transparent);
+}
+#chatSearchInput:focus-visible {
+  outline: 2px solid var(--accent-color, #72a7ff);
+  outline-offset: 2px;
+}
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  scroll-behavior: auto !important;
+  animation-duration: .01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .01ms !important;
+}

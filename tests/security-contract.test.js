@@ -624,3 +624,19 @@ test("responsive interface exposes theme and removable attachment controls", () 
 test("interface enhancement syntax is part of the project check command", () => {
   assert.match(pkg, /node --check ui-enhancements\.js/);
 });
+
+
+test("Zed's system prompt defines its own identity without referencing another assistant", () => {
+  const promptStart = server.indexOf("You are Zed.");
+  const promptEnd = server.indexOf("CURRENT DATE AND TIME IN ZAMBIA:", promptStart);
+  assert.ok(promptStart >= 0 && promptEnd > promptStart, "Zed system prompt should be present");
+  const identityPrompt = server.slice(promptStart, promptEnd);
+  assert.match(identityPrompt, /You are the AI assistant inside the Zed application/);
+  assert.doesNotMatch(identityPrompt, /ChatGPT|OpenAI assistant/i);
+});
+
+test("conversation search shortcut targets the existing search field", () => {
+  assert.match(uiEnhancements, /event\.key\.toLowerCase\(\) === "k"/);
+  assert.match(uiEnhancements, /document\.getElementById\("chatSearchInput"\)/);
+  assert.match(app, /chatSearchInput/);
+});

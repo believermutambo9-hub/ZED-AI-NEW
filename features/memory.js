@@ -1420,26 +1420,25 @@ function memorySignature(
 
 
 // ============================================================
-// SIMILARITY TOKENIZATION
-// ============================================================
+const MEMORY_STOP_WORDS = new Set([
+  "a", "about", "am", "an", "and", "are", "as", "at", "be", "been",
+  "being", "but", "by", "can", "could", "did", "do", "does", "for",
+  "from", "had", "has", "have", "he", "her", "here", "hers", "him",
+  "his", "how", "i", "if", "in", "into", "is", "it", "its", "just",
+  "me", "my", "of", "on", "or", "our", "ours", "she", "so", "than",
+  "that", "the", "their", "them", "then", "there", "these", "they",
+  "this", "those", "to", "too", "us", "was", "we", "were", "what",
+  "when", "where", "which", "who", "why", "will", "with", "would",
+  "you", "your", "yours", "please", "tell", "remember"
+]);
 
-function tokenize(
-  text
-) {
+function tokenize(text) {
   return [
     ...new Set(
-      normalizeKey(
-        text
-      )
-        .replace(
-          /[^a-z0-9\s]/g,
-          " "
-        )
-        .split(/\s+/)
-        .filter(
-          token =>
-            token.length >= 2
-        )
+      normalizeKey(text)
+        .replace(/[^a-z0-9\\s]/g, " ")
+        .split(/\\s+/)
+        .filter(token => token.length >= 2 && !MEMORY_STOP_WORDS.has(token))
     )
   ];
 }
@@ -2341,91 +2340,39 @@ export function calculateMemoryRelevance(
   memory,
   query
 ) {
-  if (
-    !memory ||
-    !query
-  ) {
+  if (!memory || !query) {
     return 0;
   }
 
-  const contentScore =
-    tokenSimilarity(
-      memory.content,
-      query
-    );
+  const contentScore = tokenSimilarity(memory.content, query);
+  const tagScore = tokenSimilarity((memory.tags || []).join(" "), query);
+  const lexicalScore = Math.max(contentScore, tagScore);
 
-  const tagScore =
-    tokenSimilarity(
-      memory.tags.join(" "),
-      query
-    );
-
-  const categoryScore =
-    tokenSimilarity(
-      memory.category,
-      query
-    );
-
-  const typeScore =
-    tokenSimilarity(
-      memory.type,
-      query
-    );
-
-  // Recency and importance must never make an unrelated memory relevant.
-  const lexicalScore =
-    contentScore +
-    tagScore +
-    categoryScore +
-    typeScore;
-
+  // Importance and recency must never make an unrelated memory relevant.
+  // Require at least one meaningful content/tag overlap before ranking it.
   if (lexicalScore === 0) {
     return 0;
   }
 
-  const recencyScore =
-    calculateRecencyScore(
-      memory.updatedAt
-    );
+  const categoryScore = tokenSimilarity(memory.category, query);
+  const typeScore = tokenSimilarity(memory.type, query);
+  const recencyScore = calculateRecencyScore(memory.updatedAt);
+  const importanceScore = safeNumber(memory.importance, 0, 0, 100) / 100;
+  const confidenceScore = clamp01(memory.confidence);
 
-  const importanceScore =
-    memory.importance /
-    100;
-
-  const confidenceScore =
-    clamp01(
-      memory.confidence
-    );
-
-
-  let score =
-    contentScore * 0.50 +
-    tagScore * 0.15 +
-    categoryScore * 0.05 +
-    typeScore * 0.05 +
-    recencyScore * 0.10 +
-    importanceScore * 0.10 +
-    confidenceScore * 0.05;
-
-
-  if (
-    memory.lastUsedAt
-  ) {
-    const usageBoost =
-      Math.min(
-        (
-          memory.usageCount ||
-          0
-        ) * 0.005,
-        0.05
-      );
-
-    score +=
-      usageBoost;
-  }
+  const usageBoost = memory.lastUsedAt
+    ? Math.min((memory.usageCount || 0) * 0.005, 0.03)
+    : 0;
 
   return clamp01(
-    score
+    contentScore * 0.62 +
+    tagScore * 0.18 +
+    categoryScore * 0.04 +
+    typeScore * 0.03 +
+    recencyScore * 0.04 +
+    importanceScore * 0.05 +
+    confidenceScore * 0.04 +
+    usageBoost
   );
 }
 

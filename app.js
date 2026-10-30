@@ -1897,7 +1897,7 @@ document.querySelectorAll("[data-zed-prompt]").forEach(button => {
 // Keep the menu state accessible to assistive technologies.
 menuBtn?.addEventListener("click", () => {
   const expanded = sidebar?.classList.contains("open") || false;
-  menuBtn.setAttribute("aria-expanded", String(!expanded));
+  menuBtn.setAttribute("aria-expanded", String(expanded));
 });
 
 // ============================================================

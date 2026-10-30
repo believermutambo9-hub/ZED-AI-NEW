@@ -571,3 +571,31 @@ test("exact-today web searches retry and retain only dated results from Zambia's
   assert.match(webSearchModule, /runSearchVariant\(variant, true, false\)/);
   assert.match(webSearchModule, /allResults = allResults\.filter\(isPublishedToday\)/);
 });
+
+
+test("clear-all memory queries Firestore by owner before clearing local state", () => {
+  assert.match(memory, /async function firestoreDeleteUserRecordsAndWait\(collection, userId\)/);
+  assert.match(memory, /\.where\("userId", "==", userId\)/);
+  assert.match(memory, /for \(let start = 0; start < snapshot\.docs\.length; start \+= 450\)/);
+  const start = memory.indexOf("export async function clearUserMemoryAndWait(userId)");
+  const end = memory.indexOf("\\nexport ", start + 20);
+  const route = memory.slice(start, end);
+  assert.match(route, /firestoreDeleteUserRecordsAndWait\("zedMemories", normalizedUserId\)/);
+  assert.match(route, /firestoreDeleteUserRecordsAndWait\("zedProjects", normalizedUserId\)/);
+});
+
+test("chat API returns only validated HTTP web-source links", () => {
+  const start = server.indexOf('app.post(\\n  "/api/chat"');
+  const end = server.indexOf("// ============================================================\\n// FRONTEND FALLBACK", start);
+  const route = server.slice(start, end);
+  assert.match(route, /webSources:\\s*Array\\.isArray\\(searchData\\?\.results\\)/);
+  assert.match(route, /\\["http:", "https:"\\]\\.includes\\(parsed\\.protocol\\)/);
+  assert.match(route, /\\.slice\\(0, 12\\)/);
+});
+
+test("chat UI renders web sources as safe clickable links", () => {
+  assert.match(app, /Array\\.isArray\\(message\.webSources\\)/);
+  assert.match(app, /link\.rel = "noopener noreferrer"/);
+  assert.match(app, /link\.textContent = source\.title/);
+  assert.match(app, /webSources: Array\.isArray\(data\.webSources\)/);
+});

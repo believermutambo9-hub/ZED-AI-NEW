@@ -2623,3 +2623,6 @@ body { background: var(--zed-surface); }
 .sidebar-bottom .zed-new-chat-nav { min-width:116px; justify-content:center; gap:9px; background:#4167ed; color:#fff; font-weight:650; }
 .sidebar-bottom .zed-new-chat-nav .sidebar-item-icon { color:#fff; }
 @media (min-width:701px) { .sidebar-bottom .zed-new-chat-nav { background:#4167ed; } }
+
+.upgrade-btn { min-height:44px; padding:0 18px; display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:26px; background:#f5f7ff; color:#3268e8; font-size:15px; font-weight:650; white-space:nowrap; }
+@media (max-width:420px) { .upgrade-btn { padding:0 12px; font-size:13px; } .topbar-left { gap:8px; } }

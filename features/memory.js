@@ -2372,6 +2372,17 @@ export function calculateMemoryRelevance(
       query
     );
 
+  // Recency and importance must never make an unrelated memory relevant.
+  const lexicalScore =
+    contentScore +
+    tagScore +
+    categoryScore +
+    typeScore;
+
+  if (lexicalScore === 0) {
+    return 0;
+  }
+
   const recencyScore =
     calculateRecencyScore(
       memory.updatedAt

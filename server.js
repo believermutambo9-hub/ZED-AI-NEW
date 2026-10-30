@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
+import { ZED_CORE_INSTRUCTIONS } from "./features/ai-instructions.js";
 import { getAuth } from "firebase-admin/auth";
 import { getFirebaseAdminApp } from "./config/firebase-admin.js";
 import {
@@ -703,9 +704,15 @@ async function askGemini(
     await ai.models.generateContent({
       model:
         GEMINI_MODEL,
+      systemInstruction: ZED_CORE_INSTRUCTIONS,
       contents: inlineData
-        ? [{ role: 'user', parts: [{ text: prompt }, { inlineData }] }]
-        : prompt
+        ? [{ role: "user", parts: [{ text: prompt }, { inlineData }] }]
+        : [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        httpOptions: {
+          timeout: Number(process.env.GEMINI_TIMEOUT_MS) || 45000
+        }
+      }
     });
 
   const answer =
@@ -766,15 +773,16 @@ async function askGroq(
         body:
           JSON.stringify({
             model:
-              "llama-3.3-70b-versatile",
+              process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
 
             messages: [
               {
-                role:
-                  "user",
-
-                content:
-                  prompt
+                role: "system",
+                content: ZED_CORE_INSTRUCTIONS
+              },
+              {
+                role: "user",
+                content: prompt
               }
             ],
 
@@ -860,15 +868,16 @@ async function askOpenRouter(
         body:
           JSON.stringify({
             model:
-              "meta-llama/llama-3.3-70b-instruct:free",
+              process.env.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
 
             messages: [
               {
-                role:
-                  "user",
-
-                content:
-                  prompt
+                role: "system",
+                content: ZED_CORE_INSTRUCTIONS
+              },
+              {
+                role: "user",
+                content: prompt
               }
             ],
 

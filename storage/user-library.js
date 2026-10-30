@@ -39,11 +39,11 @@ function hasExpectedSignature(contentType, buffer) {
 
 function parseDataUrl(dataUrl) {
   if (typeof dataUrl !== "string") throw new Error("A file upload is required.");
-  const match = dataUrl.match(/^data:([a-z0-9.+-]+\\/[a-z0-9.+-]+);base64,([a-z0-9+/=\\r\\n]+)$/i);
+  const match = dataUrl.match(/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64,([a-z0-9+/=\r\n]+)$/i);
   if (!match) throw new Error("The uploaded file format is invalid.");
   const contentType = match[1].toLowerCase();
   if (!ALLOWED_TYPES.has(contentType)) throw new Error("This file type is not supported in Library.");
-  const encoded = match[2].replace(/\\s/g, "");
+  const encoded = match[2].replace(/\s/g, "");
   if (!encoded || encoded.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)) {
     throw new Error("The uploaded file data is invalid.");
   }

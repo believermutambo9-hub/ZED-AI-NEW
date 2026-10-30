@@ -859,29 +859,6 @@ export async function searchWeb(
       allResults
     );
 
-  /*
-   * Keep results that contain at least
-   * one meaningful query word.
-   */
-  const relevantResults =
-    allResults.filter(
-      result =>
-        !isLikelyIrrelevant(
-          result,
-          intentQuery
-        )
-    );
-
-  /*
-   * If relevance filtering removed
-   * everything, keep the raw results
-   * rather than returning nothing.
-   */
-  allResults =
-    relevantResults.length
-      ? relevantResults
-      : allResults;
-
   // Exact-date searches can occasionally miss items because Google News'
   // 24-hour filter is narrower than its indexed publication-date metadata.
   // If the first pass has no dated stories for the Zambia calendar date,
@@ -907,6 +884,12 @@ export async function searchWeb(
 
     allResults = allResults.filter(isPublishedToday);
   }
+
+  // Apply relevance filtering after all retries so fallback results
+  // cannot bypass the same quality checks as the initial search.
+  allResults = allResults.filter(
+    result => !isLikelyIrrelevant(result, intentQuery)
+  );
 
   allResults =
     allResults.map(

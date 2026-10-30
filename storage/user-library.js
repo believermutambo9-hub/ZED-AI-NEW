@@ -20,7 +20,7 @@ function clean(value, max = 180) {
 function getBucket() {
   const app = getFirebaseAdminApp();
   const bucketName = process.env.FIREBASE_STORAGE_BUCKET ||
-    (process.env.FIREBASE_PROJECT_ID ? \`${process.env.FIREBASE_PROJECT_ID}.firebasestorage.app\` : "");
+    (process.env.FIREBASE_PROJECT_ID ? process.env.FIREBASE_PROJECT_ID + ".firebasestorage.app" : "");
   if (!bucketName) throw new Error("Firebase Storage is not configured. Set FIREBASE_STORAGE_BUCKET.");
   return getStorage(app).bucket(bucketName);
 }
@@ -44,7 +44,7 @@ export async function saveLibraryFile({ userId, name, dataUrl }) {
   const db = getFirebaseDb();
   const bucket = getBucket();
   const id = randomUUID();
-  const objectPath = \`zed-library/\${uid}/\${id}\`;
+  const objectPath = "zed-library/" + uid + "/" + id;
   const file = bucket.file(objectPath);
   await file.save(buffer, {
     resumable: false,
@@ -92,7 +92,7 @@ export async function getLibraryDownload(userId, fileId) {
   const data = snapshot.data();
   const [url] = await getBucket().file(data.objectPath).getSignedUrl({
     version: "v4", action: "read", expires: Date.now() + 5 * 60 * 1000,
-    responseDisposition: \`attachment; filename="\${String(data.name).replace(/["\r\n]/g, "_")}"\`
+    responseDisposition: 'attachment; filename="' + String(data.name).replace(/["\r\n]/g, "_") + '"'
   });
   return { url, name: data.name, contentType: data.contentType };
 }

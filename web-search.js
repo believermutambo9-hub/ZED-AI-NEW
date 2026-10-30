@@ -29,12 +29,14 @@ function cleanText(value = "") {
 }
 
 function formatDateForZambia(date = new Date()) {
-  return new Intl.DateTimeFormat("en-CA", {
+  const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: TZ,
     year: "numeric",
     month: "2-digit",
     day: "2-digit"
-  }).format(date);
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function getZambiaDateTime(date = new Date()) {
@@ -47,8 +49,19 @@ function getZambiaDateTime(date = new Date()) {
 
 function normalizeUrl(url = "") {
   try {
-    const parsed = new URL(String(url).trim());
+    let raw = String(url).trim();
+    if (raw.startsWith("//")) raw = `https:${raw}`;
+    if (!/^https?:\/\//i.test(raw)) return "";
 
+    let parsed = new URL(raw);
+
+    // DuckDuckGo wraps destination links in a redirect URL.
+    if (/duckduckgo\.com$/i.test(parsed.hostname) && parsed.pathname.startsWith("/l/")) {
+      const destination = parsed.searchParams.get("uddg");
+      if (destination) parsed = new URL(destination);
+    }
+
+    if (!["http:", "https:"].includes(parsed.protocol)) return "";
     parsed.hash = "";
 
     const removeParams = [
@@ -69,7 +82,7 @@ function normalizeUrl(url = "") {
 
     return parsed.toString();
   } catch {
-    return String(url).trim();
+    return "";
   }
 }
 
@@ -120,6 +133,15 @@ function extractImportantQueryWords(query = "") {
     "latest",
     "news",
     "today",
+    "published",
+    "publication",
+    "article",
+    "articles",
+    "source",
+    "sources",
+    "verified",
+    "relevant",
+    "technology trends",
     "current",
     "recent",
     "update",
@@ -140,6 +162,23 @@ function extractImportantQueryWords(query = "") {
         !stopWords.has(word)
     )
     .slice(0, 15);
+}
+
+function cleanSearchIntent(query = "") {
+  return cleanText(query)
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/\b(search (the )?web for|search online for|look up online|find online|browse (the )?web for|web search for|on the internet)\b/gi, " ")
+    .replace(/\b(give me|show me|find me|provide|return|list|include|with)\b/gi, " ")
+    .replace(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(reliable\s+|verified\s+|credible\s+)?(sources?|articles?|results?|links?)\b/gi, " ")
+    .replace(/\b(clickable|direct|article|publication|publisher|published|publication date|date|source|sources|link|links|verified|reliable|credible)\b/gi, " ")
+    .replace(/\b(each|with|their|and|please|for me|if you cannot verify a detail|if you cannot verify|cannot verify|say so)\b/gi, " ")
+    .replace(/[,:;!?()[\]{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isTodayRequest(query = "") {
+  return /\b(today|published today|this day)\b/i.test(cleanText(query));
 }
 
 function isRecentRequest(query = "") {
@@ -194,7 +233,7 @@ function isBroadNewsRequest(query = "") {
 function extractMainTopic(query = "") {
   return cleanText(query)
     .replace(
-      /\b(latest|today|current|recent|breaking|news|updates?|headlines?|right now|this morning|this evening)\b/gi,
+      /\b(latest|today|current|recent|breaking|news|updates?|headlines?|published|publication|articles?|sources?|verified|relevant|right now|this morning|this evening)\b/gi,
       " "
     )
     .replace(/\s+/g, " ")
@@ -203,31 +242,19 @@ function extractMainTopic(query = "") {
 
 function buildNewsSearchVariants(userQuery = "") {
   const topic = extractMainTopic(userQuery);
+  if (!topic) return [cleanText(userQuery)];
 
-  if (!topic) {
-    return [cleanText(userQuery)];
-  }
-
-  const variants = [
-    userQuery
-  ];
-
-  if (isBroadNewsRequest(userQuery)) {
+  const variants = [userQuery, topic];
+  if (isNewsRequest(userQuery)) {
     variants.push(
-      `${topic} latest news`,
-      `${topic} team news`,
-      `${topic} injury news`,
-      `${topic} transfer news`
+      `${topic} technology news`,
+      `${topic} latest developments`,
+      `${topic} news today`,
+      `latest ${topic} news`
     );
   }
 
-  return [
-    ...new Set(
-      variants
-        .map(cleanText)
-        .filter(Boolean)
-    )
-  ];
+  return [...new Set(variants.map(cleanText).filter(Boolean))];
 }
 
 function parsePublishedDate(value = "") {
@@ -507,10 +534,12 @@ async function fetchText(
 
 async function searchGoogleNews(
   userQuery,
-  recentRequest = false
+  recentRequest = false,
+  todayRequest = false
 ) {
-  const query =
-    recentRequest
+  const query = todayRequest
+    ? `${userQuery} when:1d`
+    : recentRequest
       ? `${userQuery} when:7d`
       : userQuery;
 
@@ -573,6 +602,48 @@ async function searchGoogleNews(
       error.message
     );
 
+    return [];
+  }
+}
+
+async function searchBingNews(
+  userQuery,
+  recentRequest = false,
+  todayRequest = false
+) {
+  // Bing News RSS provides a second dated-news index. Do not send Google's
+  // when:1d operator to Bing; exact-date filtering is performed locally
+  // against the provider's published timestamp.
+  const query = cleanText(userQuery)
+    .replace(/\b(published today|today)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const searchUrl =
+    `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss`;
+
+  try {
+    const xml = await fetchText(searchUrl);
+    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
+
+    return items.map(match => {
+      const item = match[1];
+      const getTag = tag => {
+        const found = item.match(
+          new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i")
+        );
+        return found ? cleanText(found[1]) : "";
+      };
+      return {
+        title: getTag("title"),
+        url: getTag("link"),
+        published: getTag("pubDate"),
+        source: getTag("source") || "Bing News",
+        snippet: getTag("description"),
+        provider: "Bing News"
+      };
+    }).filter(result => result.title && result.url);
+  } catch (error) {
+    console.error("Bing News search error:", error.message);
     return [];
   }
 }
@@ -692,39 +763,23 @@ function deduplicateResults(
 
 async function runSearchVariant(
   query,
-  recentRequest
+  recentRequest,
+  todayRequest = false
 ) {
   const searches = [
-    searchGoogleNews(
-      query,
-      recentRequest
-    ),
-    searchDuckDuckGo(
-      query
-    )
+    searchGoogleNews(query, recentRequest, todayRequest),
+    searchBingNews(query, recentRequest, todayRequest),
+    searchDuckDuckGo(query)
   ];
 
-  const results =
-    await Promise.allSettled(
-      searches
-    );
+  const results = await Promise.allSettled(searches);
+  const values = results.map(result =>
+    result.status === "fulfilled" && Array.isArray(result.value)
+      ? result.value
+      : []
+  );
 
-  const google =
-    results[0].status ===
-    "fulfilled"
-      ? results[0].value
-      : [];
-
-  const duck =
-    results[1].status ===
-    "fulfilled"
-      ? results[1].value
-      : [];
-
-  return [
-    ...google,
-    ...duck
-  ];
+  return values.flat();
 }
 
 export async function searchWeb(
@@ -744,22 +799,25 @@ export async function searchWeb(
     };
   }
 
+  // Search for the user's actual topic, not request-framing words
+  // such as "give me three reliable sources with clickable links".
+  const intentQuery = cleanSearchIntent(query) || query;
+
+  const todayRequest = isTodayRequest(query);
   const recentRequest =
     options.recentRequest ??
-    isRecentRequest(query);
+    (isRecentRequest(intentQuery) || todayRequest);
 
   const newsRequest =
-    isNewsRequest(query);
+    isNewsRequest(intentQuery);
 
   const broadNews =
-    isBroadNewsRequest(query);
+    isBroadNewsRequest(intentQuery);
 
   const variants =
-    recentRequest && newsRequest
-      ? buildNewsSearchVariants(
-          query
-        )
-      : [query];
+    newsRequest && (recentRequest || todayRequest)
+      ? buildNewsSearchVariants(intentQuery)
+      : [intentQuery];
 
   let allResults = [];
 
@@ -774,7 +832,8 @@ export async function searchWeb(
       variants.map(variant =>
         runSearchVariant(
           variant,
-          recentRequest
+          recentRequest,
+          todayRequest
         )
       )
     );
@@ -809,7 +868,7 @@ export async function searchWeb(
       result =>
         !isLikelyIrrelevant(
           result,
-          query
+          intentQuery
         )
     );
 
@@ -823,6 +882,32 @@ export async function searchWeb(
       ? relevantResults
       : allResults;
 
+  // Exact-date searches can occasionally miss items because Google News'
+  // 24-hour filter is narrower than its indexed publication-date metadata.
+  // If the first pass has no dated stories for the Zambia calendar date,
+  // retry the same topic against the last seven days, then keep only results
+  // whose provider-supplied publication date matches today. Never use
+  // undated DuckDuckGo results to satisfy an exact-date request.
+  if (todayRequest) {
+    const todayInZambia = formatDateForZambia(new Date());
+    const isPublishedToday = result => {
+      const date = parsePublishedDate(result.published || result.pubDate || result.date || "");
+      return date && formatDateForZambia(date) === todayInZambia;
+    };
+
+    if (!allResults.some(isPublishedToday)) {
+      const fallbackResults = await Promise.all(
+        variants.map(variant => runSearchVariant(variant, true, false))
+      );
+      allResults = deduplicateResults([
+        ...allResults,
+        ...fallbackResults.flat()
+      ]);
+    }
+
+    allResults = allResults.filter(isPublishedToday);
+  }
+
   allResults =
     allResults.map(
       result => ({
@@ -830,7 +915,7 @@ export async function searchWeb(
         _score:
           scoreResult(
             result,
-            query,
+            intentQuery,
             recentRequest
           )
       })
@@ -1013,14 +1098,17 @@ export const buildWebSearchContext =
 
 export {
   cleanText,
+  cleanSearchIntent,
   formatDateForZambia,
   getZambiaDateTime,
   normalizeUrl,
   extractDomain,
   isRecentRequest,
+  isTodayRequest,
   isNewsRequest,
   isBroadNewsRequest,
   searchGoogleNews,
+  searchBingNews,
   searchDuckDuckGo,
   deduplicateResults,
   diversifyResults

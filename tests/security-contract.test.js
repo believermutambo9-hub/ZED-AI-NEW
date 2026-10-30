@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
 
-const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule] = await Promise.all([
+const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
   readFile(new URL("../storage/chat-history.js", import.meta.url), "utf8"),
   readFile(new URL("../features/memory.js", import.meta.url), "utf8"),
@@ -11,7 +11,8 @@ const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule] =
   readFile(new URL("../package.json", import.meta.url), "utf8"),
   readFile(new URL("../interface.html", import.meta.url), "utf8"),
   readFile(new URL("../features/file-analysis.js", import.meta.url), "utf8"),
-  readFile(new URL("../web-search.js", import.meta.url), "utf8")
+  readFile(new URL("../web-search.js", import.meta.url), "utf8"),
+  readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8")
 ]);
 
 test("API routes reject missing or invalid Firebase ID tokens", () => {
@@ -607,4 +608,19 @@ test("memory relevance requires lexical overlap before recency can rank a memory
   const relevance = memory.slice(start, end);
   assert.ok(relevance.includes("if (lexicalScore === 0)"));
   assert.ok(relevance.includes("return 0;"));
+});
+
+
+test("responsive interface exposes theme and removable attachment controls", () => {
+  assert.match(html, /id="themeToggle"/);
+  assert.match(html, /id="selectedFileChip"/);
+  assert.match(html, /<script src="ui-enhancements\.js"><\/script>/);
+  assert.match(uiEnhancements, /function applyTheme\(theme, persist = true\)/);
+  assert.match(uiEnhancements, /remove-file-button/);
+  assert.match(uiEnhancements, /state\.selectedFile = null/);
+  assert.match(uiEnhancements, /prefers-reduced-motion/);
+});
+
+test("interface enhancement syntax is part of the project check command", () => {
+  assert.match(pkg, /node --check ui-enhancements\.js/);
 });

@@ -509,7 +509,7 @@ function getCurrentDateForZambia() {
 // ============================================================
 
 function isExplicitWebSearchRequest(message = "") {
-  return /\\b(search (the )?web|web search|search online|look up online|find online|browse (the )?web|internet search|on the internet)\\b/i.test(
+  return /\b(search (the )?web|web search|search online|look up online|find online|browse (the )?web|internet search|on the internet)\b/i.test(
     String(message)
   );
 }

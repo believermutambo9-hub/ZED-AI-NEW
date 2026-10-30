@@ -1937,6 +1937,13 @@ document.querySelectorAll("[data-zed-prompt]").forEach(button => {
   });
 });
 
+document.querySelector('[data-zed-action="image"]')?.addEventListener("click", () => {
+  const prompt = window.prompt("Describe the image you want Zed to create:");
+  if (!prompt || !prompt.trim()) return;
+  messageInput.value = prompt.trim();
+  createImage();
+});
+
 // Keep the menu state accessible to assistive technologies.
 menuBtn?.addEventListener("click", () => {
   const expanded = sidebar?.classList.contains("open") || false;

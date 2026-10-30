@@ -61,9 +61,15 @@ test("chat deletion verifies ownership inside its transaction", () => {
   assert.match(history, /transaction\.delete\(chatRef\)/);
 });
 
-test("memory deletion accepts an owner and checks it before deleting", () => {
-  assert.match(memory, /export function forgetMemory\([\s\S]*?userId = null/);
-  assert.match(memory, /memory\.userId !== normalizeUserId\(userId\)/);
+test("public memory deletion requires a matching owner and internal cleanup is private", () => {
+  const start = memory.indexOf("export function forgetMemory(");
+  const end = memory.indexOf("//", start + 40);
+  const implementation = memory.slice(start, end);
+  assert.match(implementation, /if \(userId === undefined \|\| userId === null/);
+  assert.match(implementation, /memory\.userId !== normalizeUserId\(userId\)/);
+  assert.match(implementation, /return deleteMemoryFromCache\(id\)/);
+  assert.match(memory, /function deleteMemoryFromCache\(memoryId\)/);
+  assert.doesNotMatch(implementation, /userId = null/);
 });
 
 test("chat reads return data only after matching the requested owner", () => {

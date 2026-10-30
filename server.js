@@ -4,6 +4,12 @@ import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
 import { getAuth } from "firebase-admin/auth";
 import { getFirebaseAdminApp } from "./config/firebase-admin.js";
+import {
+  saveLibraryFile, listLibraryFiles, getLibraryDownload, deleteLibraryFile
+} from "./storage/user-library.js";
+import {
+  createScheduledTask, listScheduledTasks, updateScheduledTask, deleteScheduledTask
+} from "./storage/scheduled-tasks.js";
 
 import {
   footballFeature,
@@ -1776,6 +1782,105 @@ app.get(
     });
   }
 );
+
+// ============================================================
+// USER LIBRARY API
+// ============================================================
+
+app.get("/api/library", async (req, res) => {
+  try {
+    const files = await listLibraryFiles(req.user.uid);
+    return res.json({ ok: true, files });
+  } catch (error) {
+    console.error("Library listing failed:", error.message);
+    return res.status(503).json({ ok: false, error: "Library is temporarily unavailable." });
+  }
+});
+
+app.post("/api/library", async (req, res) => {
+  try {
+    const file = await saveLibraryFile({
+      userId: req.user.uid,
+      name: req.body?.name,
+      dataUrl: req.body?.dataUrl
+    });
+    return res.status(201).json({ ok: true, file });
+  } catch (error) {
+    console.error("Library upload failed:", error.message);
+    const status = /required|supported|invalid|smaller than|15 MB/i.test(error.message) ? 400 : 503;
+    return res.status(status).json({ ok: false, error: error.message || "File could not be saved." });
+  }
+});
+
+app.get("/api/library/:fileId/download", async (req, res) => {
+  try {
+    const file = await getLibraryDownload(req.user.uid, req.params.fileId);
+    if (!file) return res.status(404).json({ ok: false, error: "File not found." });
+    return res.json({ ok: true, ...file });
+  } catch (error) {
+    console.error("Library download link failed:", error.message);
+    return res.status(503).json({ ok: false, error: "Download is temporarily unavailable." });
+  }
+});
+
+app.delete("/api/library/:fileId", async (req, res) => {
+  try {
+    const deleted = await deleteLibraryFile(req.user.uid, req.params.fileId);
+    return res.json({ ok: true, deleted });
+  } catch (error) {
+    console.error("Library deletion failed:", error.message);
+    return res.status(503).json({ ok: false, error: "File could not be deleted." });
+  }
+});
+
+// ============================================================
+// SCHEDULED TASK API
+// ============================================================
+
+app.get("/api/scheduled", async (req, res) => {
+  try {
+    const tasks = await listScheduledTasks(req.user.uid);
+    return res.json({ ok: true, tasks });
+  } catch (error) {
+    console.error("Scheduled task listing failed:", error.message);
+    return res.status(503).json({ ok: false, error: "Scheduled tasks are temporarily unavailable." });
+  }
+});
+
+app.post("/api/scheduled", async (req, res) => {
+  try {
+    const task = await createScheduledTask({
+      userId: req.user.uid,
+      title: req.body?.title,
+      notes: req.body?.notes,
+      dueAt: req.body?.dueAt
+    });
+    return res.status(201).json({ ok: true, task });
+  } catch (error) {
+    console.error("Scheduled task creation failed:", error.message);
+    return res.status(400).json({ ok: false, error: error.message || "Reminder could not be created." });
+  }
+});
+
+app.patch("/api/scheduled/:taskId", async (req, res) => {
+  try {
+    const task = await updateScheduledTask(req.user.uid, req.params.taskId, req.body || {});
+    if (!task) return res.status(404).json({ ok: false, error: "Reminder not found." });
+    return res.json({ ok: true, task });
+  } catch (error) {
+    return res.status(400).json({ ok: false, error: error.message || "Reminder could not be updated." });
+  }
+});
+
+app.delete("/api/scheduled/:taskId", async (req, res) => {
+  try {
+    const deleted = await deleteScheduledTask(req.user.uid, req.params.taskId);
+    return res.json({ ok: true, deleted });
+  } catch (error) {
+    console.error("Scheduled task deletion failed:", error.message);
+    return res.status(503).json({ ok: false, error: "Reminder could not be deleted." });
+  }
+});
 
 // ============================================================
 // PROJECT API

@@ -1776,24 +1776,117 @@ function openImagesView() {
   openFeaturePanel("Images", content);
 }
 
-function openLibraryView() {
+async function openLibraryView() {
   const content = document.createElement("div");
-  content.append(featureCard(
-    "Files in this conversation",
-    state.selectedFile
-      ? state.selectedFile.name + " is selected and ready to be analyzed when you send your message."
-      : "No file is currently attached. Use the attachment button in a conversation to upload a document or photo.",
-    "Upload a file",
-    () => {
-      closeFeaturePanel();
-      fileInput?.click();
+  const intro = document.createElement("p");
+  intro.textContent = "Save files privately to your Zed account and access them across devices.";
+  intro.style.color = "#707070";
+  content.append(intro);
+  const upload = document.createElement("button");
+  upload.className = "zed-feature-action";
+  upload.type = "button";
+  upload.textContent = "＋ Upload a file";
+  const picker = document.createElement("input");
+  picker.type = "file";
+  picker.accept = ".pdf,.txt,.csv,.json,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.gif";
+  picker.hidden = true;
+  const list = document.createElement("div");
+  list.className = "zed-library-list";
+  const status = document.createElement("p");
+  status.className = "zed-library-status";
+  status.textContent = "Loading saved files…";
+  content.append(upload, picker, status, list);
+  upload.addEventListener("click", () => picker.click());
+  picker.addEventListener("change", async () => {
+    const file = picker.files?.[0];
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      status.textContent = "Choose a file smaller than 15 MB.";
+      picker.value = "";
+      return;
     }
-  ));
-  content.append(featureCard(
-    "Saved library",
-    "A permanent, cross-device file library has not been connected yet. Zed will not show temporary uploads as permanently saved files."
-  ));
+    status.textContent = "Uploading " + file.name + "…";
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("The file could not be read."));
+        reader.readAsDataURL(file);
+      });
+      const response = await apiFetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, dataUrl })
+      });
+      const data = await parseResponse(response);
+      if (!response.ok || !data.ok) throw new Error(data.error || "Upload failed.");
+      status.textContent = "Saved " + file.name + " to your Library.";
+      await refreshLibrary();
+    } catch (error) {
+      status.textContent = error.message || "Upload failed. Try again.";
+    } finally {
+      picker.value = "";
+    }
+  });
+  async function refreshLibrary() {
+    list.replaceChildren();
+    try {
+      const response = await apiFetch("/api/library");
+      const data = await parseResponse(response);
+      if (!response.ok || !data.ok) throw new Error(data.error || "Library unavailable.");
+      const files = Array.isArray(data.files) ? data.files : [];
+      status.textContent = files.length ? files.length + " saved file(s)" : "Your library is empty. Upload a file to get started.";
+      for (const file of files) {
+        const row = document.createElement("article");
+        row.className = "zed-feature-card zed-library-row";
+        const heading = document.createElement("h3");
+        heading.textContent = file.name;
+        const meta = document.createElement("p");
+        meta.textContent = (file.contentType || "File") + " · " + formatFileSize(file.size) + " · " + new Date(file.createdAt).toLocaleDateString();
+        const actions = document.createElement("div");
+        actions.className = "zed-library-actions";
+        const download = document.createElement("button");
+        download.type = "button";
+        download.className = "zed-feature-action";
+        download.textContent = "Download";
+        download.addEventListener("click", async () => {
+          try {
+            const result = await apiFetch("/api/library/" + encodeURIComponent(file.id) + "/download");
+            const payload = await parseResponse(result);
+            if (!result.ok || !payload.ok || !payload.url) throw new Error(payload.error || "Download unavailable.");
+            window.open(payload.url, "_blank", "noopener");
+          } catch (error) { status.textContent = error.message; }
+        });
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "zed-library-delete";
+        remove.textContent = "Delete";
+        remove.addEventListener("click", async () => {
+          if (!window.confirm("Delete " + file.name + " from your Library?")) return;
+          try {
+            const result = await apiFetch("/api/library/" + encodeURIComponent(file.id), { method: "DELETE" });
+            const payload = await parseResponse(result);
+            if (!result.ok || !payload.ok || !payload.deleted) throw new Error(payload.error || "Delete failed.");
+            await refreshLibrary();
+          } catch (error) { status.textContent = error.message; }
+        });
+        actions.append(download, remove);
+        row.append(heading, meta, actions);
+        list.append(row);
+      }
+    } catch (error) {
+      status.textContent = error.message || "Library could not be loaded.";
+    }
+  }
   openFeaturePanel("Library", content);
+  await refreshLibrary();
+}
+
+function formatFileSize(bytes = 0) {
+  const size = Number(bytes) || 0;
+  if (size < 1024) return size + " B";
+  if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+  return (size / (1024 * 1024)).toFixed(1) + " MB";
 }
 
 async function loadProjects() {

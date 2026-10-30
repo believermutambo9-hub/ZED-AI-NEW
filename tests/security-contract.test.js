@@ -3,14 +3,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
 
-const [server, history, memory, app, pkg, html, fileAnalysis] = await Promise.all([
+const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
   readFile(new URL("../storage/chat-history.js", import.meta.url), "utf8"),
   readFile(new URL("../features/memory.js", import.meta.url), "utf8"),
   readFile(new URL("../app.js", import.meta.url), "utf8"),
   readFile(new URL("../package.json", import.meta.url), "utf8"),
   readFile(new URL("../interface.html", import.meta.url), "utf8"),
-  readFile(new URL("../features/file-analysis.js", import.meta.url), "utf8")
+  readFile(new URL("../features/file-analysis.js", import.meta.url), "utf8"),
+  readFile(new URL("../web-search.js", import.meta.url), "utf8")
 ]);
 
 test("API routes reject missing or invalid Firebase ID tokens", () => {
@@ -535,4 +536,38 @@ test("chat history API does not expose internal persistence errors", () => {
 
   assert.match(route, /error: "Chat history is temporarily unavailable\. Please try again\."/);
   assert.doesNotMatch(route, /error:\s*error\.message/);
+});
+
+
+test("explicit web-search instructions are detected and bypass the football-data-only gate", () => {
+  assert.match(server, /function isExplicitWebSearchRequest\(message = ""\)/);
+  assert.match(server, /\\b\(search \(the \)\?web\|web search\|search online\|look up online\|find online\|browse \(the \)\?web\|internet search\|on the internet\)\\b/i);
+  assert.match(server, /explicitWebSearch \|\|\s*isCurrentInformationQuestion\(userMessage\)/);
+  assert.match(server, /explicitWebSearch \|\|\s*!shouldUseFootballData\(userMessage\)/);
+  assert.ok(server.indexOf("const explicitWebSearch =") < server.indexOf("if (\n        (\n          explicitWebSearch"));
+});
+
+test("web search strips request framing and retains the actual topic", async () => {
+  const { cleanSearchIntent } = await import("../web-search.js");
+  const query = cleanSearchIntent(
+    "Search the web for Arsenal transfer news and give me three reliable sources with clickable links"
+  );
+  assert.match(query, /Arsenal/i);
+  assert.match(query, /transfer/i);
+  assert.doesNotMatch(query, /reliable|clickable|sources|search the web/i);
+});
+
+test("web search keeps all three providers and parallel failure isolation", () => {
+  assert.match(webSearchModule, /searchGoogleNews\(query, recentRequest, todayRequest\)/);
+  assert.match(webSearchModule, /searchBingNews\(query, recentRequest, todayRequest\)/);
+  assert.match(webSearchModule, /searchDuckDuckGo\(query\)/);
+  assert.match(webSearchModule, /Promise\.allSettled\(searches\)/);
+  assert.match(webSearchModule, /\.replace\(\/\\s\+\/g, " "\)/);
+});
+
+test("exact-today web searches retry and retain only dated results from Zambia's current date", () => {
+  assert.match(webSearchModule, /if \(todayRequest\)/);
+  assert.match(webSearchModule, /formatDateForZambia\(date\) === todayInZambia/);
+  assert.match(webSearchModule, /runSearchVariant\(variant, true, false\)/);
+  assert.match(webSearchModule, /allResults = allResults\.filter\(isPublishedToday\)/);
 });

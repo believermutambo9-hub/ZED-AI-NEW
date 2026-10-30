@@ -1312,6 +1312,7 @@ async function sendMessage() {
         data.reply ||
         "Zed did not return an answer."
     });
+    speakZedResponse(data.answer || data.reply || "Zed did not return an answer.");
     if (data.chatPersistent === false) {
       state.messages.push({
         role:"assistant",
@@ -1593,8 +1594,50 @@ if (SpeechRecognition) {
         "Voice recognition error:",
         error
       );
+      if (voiceInputBtn) voiceInputBtn.setAttribute("aria-label", "Dictate a message");
     };
 }
+const voiceInputBtn = document.getElementById("voiceInputBtn");
+const voiceModeBtn = document.getElementById("voiceModeBtn");
+let voiceModeEnabled = false;
+
+function speakZedResponse(text) {
+  if (!voiceModeEnabled || !("speechSynthesis" in window) || !text) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 5000));
+  utterance.lang = "en-US";
+  utterance.rate = 1;
+  window.speechSynthesis.speak(utterance);
+}
+
+voiceInputBtn?.addEventListener("click", () => {
+  if (!recognition) {
+    alert("Voice dictation is not supported by this browser. You can still type your message.");
+    return;
+  }
+  try {
+    recognition.start();
+    voiceInputBtn.setAttribute("aria-label", "Listening");
+  } catch (error) {
+    console.warn("Voice input could not start:", error);
+  }
+});
+
+recognition && (recognition.onend = () => {
+  voiceInputBtn?.setAttribute("aria-label", "Dictate a message");
+});
+
+voiceModeBtn?.setAttribute("aria-pressed", "false");
+voiceModeBtn?.addEventListener("click", () => {
+  voiceModeEnabled = !voiceModeEnabled;
+  voiceModeBtn.setAttribute("aria-pressed", String(voiceModeEnabled));
+  voiceModeBtn.setAttribute("aria-label", voiceModeEnabled ? "Turn off spoken responses" : "Turn on spoken responses");
+  if (!voiceModeEnabled && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  if (voiceModeEnabled) {
+    const latest = [...state.messages].reverse().find(item => item.role === "assistant" && item.content);
+    if (latest) speakZedResponse(latest.content);
+  }
+});
 // ============================================================
 // AUTH STATE
 // ============================================================

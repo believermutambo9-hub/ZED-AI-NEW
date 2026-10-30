@@ -2619,3 +2619,7 @@ body { background: var(--zed-surface); }
 .voice-mode-btn { width:42px; min-width:42px; height:42px; background:var(--zed-blue); color:#fff; font-size:15px; }
 .voice-mode-btn[aria-pressed="true"] { box-shadow:0 0 0 4px rgba(65,103,237,.18); }
 @media (max-width:420px) { .voice-input-btn { width:32px; min-width:32px; } .voice-mode-btn { width:38px; min-width:38px; height:38px; } }
+
+.sidebar-bottom .zed-new-chat-nav { min-width:116px; justify-content:center; gap:9px; background:#4167ed; color:#fff; font-weight:650; }
+.sidebar-bottom .zed-new-chat-nav .sidebar-item-icon { color:#fff; }
+@media (min-width:701px) { .sidebar-bottom .zed-new-chat-nav { background:#4167ed; } }

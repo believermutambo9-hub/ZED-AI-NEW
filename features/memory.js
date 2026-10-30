@@ -1436,8 +1436,8 @@ function tokenize(text) {
   return [
     ...new Set(
       normalizeKey(text)
-        .replace(/[^a-z0-9\\s]/g, " ")
-        .split(/\\s+/)
+        .replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/)
         .filter(token => token.length >= 2 && !MEMORY_STOP_WORDS.has(token))
     )
   ];

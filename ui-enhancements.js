@@ -31,19 +31,6 @@
     applyTheme(root.dataset.theme === "dark" ? "light" : "dark");
   });
 
-  // Filter the existing mobile/desktop conversation search field.
-  const search = document.getElementById("chatSearchInput");
-  function filterChats() {
-    const query = (search?.value || "").trim().toLocaleLowerCase();
-    recentChats?.querySelectorAll(".recent-chat").forEach(item => {
-      item.hidden = !item.textContent.toLocaleLowerCase().includes(query);
-    });
-  }
-  search?.addEventListener("input", filterChats);
-  if (recentChats && search) {
-    new MutationObserver(filterChats).observe(recentChats, { childList: true });
-  }
-
   // Show the selected file and allow removal before sending.
   function renderFileChip(file) {
     if (!fileChip) return;

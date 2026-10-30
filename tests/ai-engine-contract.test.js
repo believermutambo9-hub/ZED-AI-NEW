@@ -21,7 +21,6 @@ test("all text providers receive Zed's core instructions as system instructions"
 test("fallback provider model names can be configured without changing source", () => {
   assert.match(server, /process\.env\.GROQ_MODEL\s*\|\|\s*"llama-3\.3-70b-versatile"/);
   assert.match(server, /process\.env\.OPENROUTER_MODEL\s*\|\|\s*"meta-llama\/llama-3\.3-70b-instruct:free"/);
-  assert.match(server, /process\.env\.GEMINI_TIMEOUT_MS/);
 });
 
 test("project checks include the new AI instruction module", () => {

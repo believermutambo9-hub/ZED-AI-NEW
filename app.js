@@ -1659,6 +1659,7 @@ function setupAuthListener() {
         renderMessages();
         await loadChats();
         await loadProjects();
+        checkDueScheduledTasks();
         messageInput?.focus();
       } else {
         state.userId =
@@ -1978,16 +1979,167 @@ function openExploreView() {
   openFeaturePanel("Explore Zed", content);
 }
 
-function openScheduledView() {
-  const content = document.createElement("div");
-  content.append(featureCard(
-    "Scheduled tasks are not connected yet",
-    "The current project does not have a persistent scheduling service or task-management API. This section is shown as unavailable rather than pretending reminders have been scheduled.",
-    null,
-    null
-  ));
-  openFeaturePanel("Scheduled", content);
+function toLocalDateTimeInput(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
 }
+
+async function openScheduledView() {
+  const content = document.createElement("div");
+  const intro = document.createElement("p");
+  intro.textContent = "Create reminders and manage upcoming tasks. In this version, alerts are checked while Zed is open; device push notifications when the app is closed are not yet configured.";
+  intro.style.color = "#707070";
+  const form = document.createElement("form");
+  form.className = "zed-schedule-form";
+  const title = document.createElement("input");
+  title.type = "text";
+  title.maxLength = 160;
+  title.required = true;
+  title.placeholder = "What should Zed remind you about?";
+  const due = document.createElement("input");
+  due.type = "datetime-local";
+  due.required = true;
+  due.min = toLocalDateTimeInput(new Date(Date.now() + 60000));
+  due.value = toLocalDateTimeInput(new Date(Date.now() + 60 * 60000));
+  const notes = document.createElement("textarea");
+  notes.rows = 2;
+  notes.maxLength = 1000;
+  notes.placeholder = "Notes (optional)";
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.className = "zed-feature-action";
+  submit.textContent = "＋ Create reminder";
+  form.append(title, due, notes, submit);
+  const status = document.createElement("p");
+  status.className = "zed-library-status";
+  const list = document.createElement("div");
+  list.className = "zed-scheduled-list";
+  content.append(intro, form, status, list);
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    submit.disabled = true;
+    status.textContent = "Saving reminder…";
+    try {
+      const response = await apiFetch("/api/scheduled", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title.value.trim(), notes: notes.value.trim(), dueAt: new Date(due.value).toISOString() })
+      });
+      const data = await parseResponse(response);
+      if (!response.ok || !data.ok) throw new Error(data.error || "Reminder could not be saved.");
+      title.value = "";
+      notes.value = "";
+      status.textContent = "Reminder saved.";
+      await refreshScheduled();
+    } catch (error) {
+      status.textContent = error.message || "Reminder could not be saved.";
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  async function refreshScheduled() {
+    list.replaceChildren();
+    try {
+      const response = await apiFetch("/api/scheduled");
+      const data = await parseResponse(response);
+      if (!response.ok || !data.ok) throw new Error(data.error || "Scheduled tasks unavailable.");
+      const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+      const active = tasks.filter(task => task.status !== "completed");
+      status.textContent = active.length + " upcoming · " + (tasks.length - active.length) + " completed";
+      for (const task of tasks) {
+        const row = document.createElement("article");
+        row.className = "zed-feature-card zed-scheduled-row";
+        const heading = document.createElement("h3");
+        heading.textContent = task.title;
+        const meta = document.createElement("p");
+        meta.textContent = new Date(task.dueAt).toLocaleString() + " · " + (task.status === "completed" ? "Completed" : "Scheduled");
+        row.append(heading, meta);
+        if (task.notes) {
+          const detail = document.createElement("p");
+          detail.textContent = task.notes;
+          row.append(detail);
+        }
+        const actions = document.createElement("div");
+        actions.className = "zed-library-actions";
+        if (task.status !== "completed") {
+          const done = document.createElement("button");
+          done.type = "button";
+          done.className = "zed-feature-action";
+          done.textContent = "Mark complete";
+          done.addEventListener("click", async () => {
+            try {
+              const result = await apiFetch("/api/scheduled/" + encodeURIComponent(task.id), {
+                method: "PATCH", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "completed" })
+              });
+              const payload = await parseResponse(result);
+              if (!result.ok || !payload.ok) throw new Error(payload.error || "Could not update reminder.");
+              await refreshScheduled();
+            } catch (error) { status.textContent = error.message; }
+          });
+          actions.append(done);
+        }
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "zed-library-delete";
+        remove.textContent = "Delete";
+        remove.addEventListener("click", async () => {
+          if (!window.confirm("Delete this reminder?")) return;
+          try {
+            const result = await apiFetch("/api/scheduled/" + encodeURIComponent(task.id), { method: "DELETE" });
+            const payload = await parseResponse(result);
+            if (!result.ok || !payload.ok || !payload.deleted) throw new Error(payload.error || "Could not delete reminder.");
+            await refreshScheduled();
+          } catch (error) { status.textContent = error.message; }
+        });
+        actions.append(remove);
+        row.append(actions);
+        list.append(row);
+      }
+    } catch (error) {
+      status.textContent = error.message || "Scheduled tasks could not be loaded.";
+    }
+  }
+  openFeaturePanel("Scheduled", content);
+  await refreshScheduled();
+}
+
+let scheduledCheckInProgress = false;
+async function checkDueScheduledTasks() {
+  if (!state.firebaseUser || scheduledCheckInProgress) return;
+  scheduledCheckInProgress = true;
+  try {
+    const response = await apiFetch("/api/scheduled");
+    const data = await parseResponse(response);
+    if (!response.ok || !data.ok) return;
+    const dueTasks = (data.tasks || []).filter(task =>
+      task.status === "scheduled" && !task.notifiedAt && Number(task.dueAt) <= Date.now()
+    );
+    for (const task of dueTasks) {
+      const message = "Zed reminder: " + task.title;
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Zed reminder", { body: message });
+      } else {
+        const notice = document.createElement("div");
+        notice.className = "zed-reminder-toast";
+        notice.textContent = message;
+        document.body.append(notice);
+        window.setTimeout(() => notice.remove(), 12000);
+      }
+      await apiFetch("/api/scheduled/" + encodeURIComponent(task.id), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notified: true })
+      });
+    }
+  } catch (error) {
+    console.warn("Scheduled reminder check failed:", error.message);
+  } finally {
+    scheduledCheckInProgress = false;
+  }
+}
+
 
 document.querySelectorAll("[data-zed-view]").forEach(button => {
   button.addEventListener("click", () => {
@@ -2053,6 +2205,10 @@ menuBtn?.addEventListener("click", () => {
   const expanded = sidebar?.classList.contains("open") || false;
   menuBtn.setAttribute("aria-expanded", String(expanded));
 });
+
+if (!window.__zedScheduledReminderTimer) {
+  window.__zedScheduledReminderTimer = window.setInterval(checkDueScheduledTasks, 30000);
+}
 
 // ============================================================
 // START

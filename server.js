@@ -704,14 +704,11 @@ async function askGemini(
     await ai.models.generateContent({
       model:
         GEMINI_MODEL,
-      systemInstruction: ZED_CORE_INSTRUCTIONS,
       contents: inlineData
         ? [{ role: "user", parts: [{ text: prompt }, { inlineData }] }]
         : [{ role: "user", parts: [{ text: prompt }] }],
       config: {
-        httpOptions: {
-          timeout: Number(process.env.GEMINI_TIMEOUT_MS) || 45000
-        }
+        systemInstruction: ZED_CORE_INSTRUCTIONS
       }
     });
 

@@ -3063,6 +3063,32 @@ ${fileContext}
           searchData?.resultCount ||
           0,
 
+        webSources:
+          Array.isArray(searchData?.results)
+            ? searchData.results
+                .map(source => {
+                  let url = "";
+                  try {
+                    const parsed = new URL(String(source.url || ""));
+                    if (["http:", "https:"].includes(parsed.protocol)) {
+                      url = parsed.href;
+                    }
+                  } catch {
+                    url = "";
+                  }
+                  return url
+                    ? {
+                        title: cleanText(source.title || source.source || "Web source").slice(0, 300),
+                        source: cleanText(source.source || source.domain || "").slice(0, 160),
+                        published: cleanText(source.published || source.pubDate || source.date || "").slice(0, 100),
+                        url
+                      }
+                    : null;
+                })
+                .filter(Boolean)
+                .slice(0, 12)
+            : [],
+
         forgetResult
       });
     } catch (error) {

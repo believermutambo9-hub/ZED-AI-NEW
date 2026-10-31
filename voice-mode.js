@@ -136,12 +136,15 @@ const VoiceMode = (() => {
       if (!samples.length) return;
       if (session) {
         try {
-          session.sendRealtimeInput({
-            audio: {
-              data: base64FromBytes(new Uint8Array(samples.buffer)),
-              mimeType: "audio/pcm;rate=16000"
+          if (session.readyState !== WebSocket.OPEN) return;
+          session.send(JSON.stringify({
+            realtimeInput: {
+              audio: {
+                data: base64FromBytes(new Uint8Array(samples.buffer)),
+                mimeType: "audio/pcm;rate=16000"
+              }
             }
-          });
+          }));
         } catch (error) {
           console.warn("Zed voice audio send failed:", error);
           setStatus("Connection interrupted", "error");
@@ -239,33 +242,70 @@ const VoiceMode = (() => {
       if (closeRequested) { await cleanup(); return; }
 
       setStatus("Connecting to Zed…", "connecting");
-      const { GoogleGenAI } = await import("https://esm.sh/@google/genai@2.3.0");
-      if (closeRequested) { await cleanup(); return; }
-      const ai = new GoogleGenAI({ apiKey: tokenData.token });
-      session = await ai.live.connect({
-        model: tokenData.model || "gemini-3.8-live",
-        config: {
-          responseModalities: ["AUDIO"],
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
-          sessionResumption: {}
-        },
-        callbacks: {
-          onopen: () => setStatus("Starting live audio…", "connecting"),
-          onmessage: handleMessage,
-          onerror: event => {
-            console.error("Zed voice connection error:", event?.message || event);
-            setStatus("Connection interrupted", "error");
-            void cleanup();
-          },
-          onclose: event => {
-            if (active && !closeRequested) {
-              setStatus("Connection closed. You can try again.", "error");
-              void cleanup();
-            }
-            console.info("Zed voice connection closed:", event?.reason || "");
+      const model = tokenData.model || "gemini-3.8-live";
+      const socketUrl = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
+      session = new WebSocket(socketUrl);
+      const liveSocket = session;
+      await new Promise((resolve, reject) => {
+        let settled = false;
+        const finish = (error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(setupTimeout);
+          if (error) reject(error);
+          else resolve();
+        };
+        const setupTimeout = setTimeout(() => {
+          finish(new Error("Gemini Live did not finish setting up in time."));
+          try { liveSocket.close(); } catch {}
+        }, 20000);
+        liveSocket.onopen = () => {
+          if (closeRequested) {
+            finish(new Error("Voice session was cancelled."));
+            liveSocket.close();
+            return;
           }
-        }
+          liveSocket.send(JSON.stringify({
+            setup: {
+              model: "models/" + model,
+              responseModalities: ["AUDIO"],
+              inputAudioTranscription: {},
+              outputAudioTranscription: {},
+              sessionResumption: {}
+            }
+          }));
+        };
+        liveSocket.onmessage = event => {
+          let message;
+          try {
+            message = JSON.parse(event.data);
+          } catch {
+            finish(new Error("Gemini Live returned an unreadable message."));
+            liveSocket.close();
+            return;
+          }
+          if (message.error) {
+            finish(new Error(message.error.message || "Gemini Live rejected the voice session."));
+            liveSocket.close();
+            return;
+          }
+          if (message.setupComplete) {
+            finish();
+            return;
+          }
+          handleMessage(message);
+        };
+        liveSocket.onerror = () => {
+          finish(new Error("Could not establish the Gemini Live WebSocket connection."));
+        };
+        liveSocket.onclose = event => {
+          if (!settled) finish(new Error(event.reason || "Gemini Live closed before setup completed."));
+          if (active && !closeRequested) {
+            setStatus("Connection closed. You can try again.", "error");
+            void cleanup();
+          }
+          console.info("Zed voice connection closed:", event?.reason || "");
+        };
       });
       if (closeRequested) { await cleanup(); return; }
       active = true;
@@ -292,7 +332,7 @@ const VoiceMode = (() => {
     if (stream) stream.getTracks().forEach(track => track.stop());
     stream = null;
     stopPlayback();
-    try { session?.close(); } catch {}
+    try { session?.close(1000, "Voice session ended"); } catch {}
     session = null;
     if (audioContext) {
       try { await audioContext.close(); } catch {}

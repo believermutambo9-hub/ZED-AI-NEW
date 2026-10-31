@@ -137,7 +137,7 @@ const publicAssetServer = express.static(__dirname, {
 });
 app.use((req, res, next) => {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
-  const assetPath = req.path.replace(/^\\/+/, "");
+  const assetPath = req.path.startsWith("/") ? req.path.slice(1) : req.path;
   if (!PUBLIC_ASSETS.has(assetPath)) return next();
   return publicAssetServer(req, res, next);
 });

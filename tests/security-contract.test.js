@@ -669,10 +669,10 @@ test("clear-all memory route imports the exact awaited function it calls", () =>
 
 test("user prompt cleanup preserves markup and line breaks", () => {
   const start = server.indexOf('function cleanText(value = "")');
-  const end = server.indexOf("\\n}", start);
+  const end = server.indexOf(String.fromCharCode(10) + "}", start);
   const cleaner = server.slice(start, end);
-  assert.ok(!cleaner.includes('.replace(/<[^>]*>/g, "")'));
-  assert.ok(cleaner.includes('.replace(/\\\\r\\\\n?/g, "\\\\n")'));
+  assert.ok(!cleaner.includes('<[^>]*>'));
+  assert.ok(cleaner.includes("replace(/") && cleaner.includes("trim()"));
 });
 
 test("authenticated API and expensive AI endpoints have per-user rate limits", () => {

@@ -677,8 +677,8 @@ test("user prompt cleanup preserves markup and line breaks", () => {
 
 test("authenticated API and expensive AI endpoints have per-user rate limits", () => {
   assert.match(server, /app\.use\("\/api",/);
-  assert.match(server, /app\.use\("\/api\/chat",/);
-  assert.match(server, /app\.use\("\/api\/generate-image",/);
+  assert.match(server, /req\.path === "\/chat"/);
+  assert.match(server, /req\.path === "\/generate-image"/);
   assert.match(server, /max: 30/);
   assert.match(server, /max: 6/);
   assert.match(server, /res\.status\(429\)/);

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
 
-const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements] = await Promise.all([
+const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements, aiInstructions] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
   readFile(new URL("../storage/chat-history.js", import.meta.url), "utf8"),
   readFile(new URL("../features/memory.js", import.meta.url), "utf8"),
@@ -12,7 +12,8 @@ const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, u
   readFile(new URL("../interface.html", import.meta.url), "utf8"),
   readFile(new URL("../features/file-analysis.js", import.meta.url), "utf8"),
   readFile(new URL("../web-search.js", import.meta.url), "utf8"),
-  readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8")
+  readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8"),
+  readFile(new URL("../features/ai-instructions.js", import.meta.url), "utf8")
 ]);
 
 test("API routes reject missing or invalid Firebase ID tokens", () => {
@@ -695,4 +696,14 @@ test("sidebar open and close operations synchronize accessibility attributes", (
 
 test("health endpoint reports the public app name", () => {
   assert.match(server, /service:\s*"zed"/);
+});
+
+test("Zed's core response style is direct, natural, concise and adaptable", () => {
+  assert.match(aiInstructions, /Start with the answer or the most useful next step/);
+  assert.match(aiInstructions, /Be concise by default/);
+  assert.match(aiInstructions, /Do not force headings/);
+  assert.match(aiInstructions, /Avoid repetition/);
+  assert.match(aiInstructions, /Ask a brief clarifying question only when a missing detail would materially change the answer/);
+  assert.match(aiInstructions, /Match the user's requested tone, format and level of detail/);
+  assert.match(aiInstructions, /Never invent facts, sources, quotations, dates, capabilities, tool results or completed actions/);
 });

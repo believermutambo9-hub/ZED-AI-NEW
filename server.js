@@ -1308,7 +1308,7 @@ app.get(
       ok: true,
 
       service:
-        "zed-ai",
+        "zed",
 
       provider:
         "gemini-with-groq-and-openrouter-fallback",

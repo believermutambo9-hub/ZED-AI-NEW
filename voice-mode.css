@@ -18,7 +18,7 @@ body.zed-voice-open{overflow:hidden}
 .zed-voice-caption p{margin:8px 0 0;color:#f2f2f4;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
 .zed-voice-actions{display:flex;justify-content:center;gap:12px;padding-bottom:5px}
 .zed-voice-actions button{min-height:46px;padding:0 20px;border-radius:25px;font-size:14px;font-weight:650}
-.zed-voice-mute{background:#292b31;color:white}.zed-voice-end{background:#d94b50;color:white}
+.zed-voice-mute{background:#292b31;color:white}.zed-voice-retry{background:#394d88;color:white}.zed-voice-end{background:#d94b50;color:white}
 @keyframes zedVoiceWave{from{transform:scaleY(.55);opacity:.65}to{transform:scaleY(1.25);opacity:1}}
 @media(max-width:600px){.zed-voice-captions{grid-template-columns:1fr}.zed-voice-caption{min-height:70px}.zed-voice-center{min-height:230px}.zed-voice-orb{width:132px;height:132px;margin-bottom:24px}.zed-voice-actions{padding-bottom:10px}}
 @media(prefers-reduced-motion:reduce){.zed-voice-orb span{animation:none}}

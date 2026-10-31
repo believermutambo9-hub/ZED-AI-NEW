@@ -125,12 +125,16 @@ const VoiceMode = (() => {
       if (!active || !session || !stream?.getAudioTracks()[0]?.enabled) return;
       const samples = resampleTo16k(event.inputBuffer.getChannelData(0), audioContext.sampleRate);
       if (!samples.length) return;
-      session.sendRealtimeInput({
-        audio: {
-          data: base64FromBytes(new Uint8Array(samples.buffer)),
-          mimeType: "audio/pcm;rate=16000"
-        }
-      });
+      if (session?.readyState === WebSocket.OPEN) {
+        session.send(JSON.stringify({
+          realtimeInput: {
+            audio: {
+              data: base64FromBytes(new Uint8Array(samples.buffer)),
+              mimeType: "audio/pcm;rate=16000"
+            }
+          }
+        }));
+      }
     };
     sourceNode.connect(processorNode);
     processorNode.connect(silentGain);
@@ -221,29 +225,57 @@ const VoiceMode = (() => {
       if (closeRequested) { await cleanup(); return; }
 
       setStatus("Connecting to Zed…", "connecting");
-      const { GoogleGenAI } = await import("https://esm.sh/@google/genai@2.3.0");
-      if (closeRequested) { await cleanup(); return; }
-      const ai = new GoogleGenAI({ apiKey: tokenData.token });
-      session = await ai.live.connect({
-        model: tokenData.model || "gemini-3.8-live",
-        config: {
-          responseModalities: ["AUDIO"],
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
-          sessionResumption: {}
-        },
-        callbacks: {
-          onopen: () => setStatus("Starting microphone…", "connecting"),
-          onmessage: handleMessage,
-          onerror: event => {
-            console.error("Zed voice connection error:", event?.message || event);
-            setStatus("Connection interrupted", "error");
-          },
-          onclose: event => {
-            if (active && !closeRequested) setStatus("Connection closed. End this session and try again.", "error");
-            console.info("Zed voice connection closed:", event?.reason || "");
+      const model = tokenData.model || "gemini-3.8-live";
+      const socketUrl = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
+      session = new WebSocket(socketUrl);
+      await new Promise((resolve, reject) => {
+        const timeout = window.setTimeout(() => reject(new Error("Zed's voice connection timed out. Please try again.")), 15000);
+        session.addEventListener("open", () => {
+          if (closeRequested) {
+            window.clearTimeout(timeout);
+            reject(new Error("Voice session was cancelled."));
+            return;
           }
-        }
+          setStatus("Setting up live audio…", "connecting");
+          session.send(JSON.stringify({
+            setup: {
+              model: model.startsWith("models/") ? model : "models/" + model,
+              generationConfig: { responseModalities: ["AUDIO"] },
+              inputAudioTranscription: {},
+              outputAudioTranscription: {},
+              realtimeInputConfig: {
+                automaticActivityDetection: {
+                  disabled: false,
+                  silenceDurationMs: 700,
+                  prefixPaddingMs: 250
+                }
+              }
+            }
+          }));
+        }, { once: true });
+        session.addEventListener("message", event => {
+          let message;
+          try { message = JSON.parse(event.data); } catch { return; }
+          if (message.setupComplete) {
+            window.clearTimeout(timeout);
+            resolve();
+            return;
+          }
+          if (message.error) {
+            window.clearTimeout(timeout);
+            reject(new Error(message.error.message || "Gemini rejected the voice session."));
+            return;
+          }
+          handleMessage(message);
+        });
+        session.addEventListener("error", () => {
+          window.clearTimeout(timeout);
+          reject(new Error("Could not connect to Gemini Live. Check the voice model and API configuration."));
+        }, { once: true });
+        session.addEventListener("close", event => {
+          if (active && !closeRequested) setStatus("Connection closed. End this session and try again.", "error");
+          console.info("Zed voice connection closed:", event.reason || "");
+        });
       });
       if (closeRequested) { await cleanup(); return; }
       active = true;
@@ -270,7 +302,7 @@ const VoiceMode = (() => {
     if (stream) stream.getTracks().forEach(track => track.stop());
     stream = null;
     stopPlayback();
-    try { session?.close(); } catch {}
+    try { if (session && session.readyState < WebSocket.CLOSING) session.close(1000, "User ended voice session"); } catch {}
     session = null;
     if (audioContext) {
       try { await audioContext.close(); } catch {}

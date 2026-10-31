@@ -166,6 +166,39 @@ app.use(async (req, res, next) => {
   }
 });
 
+// Per-user API limits protect paid AI/image providers from accidental or abusive
+// request bursts. Limits are process-local; use a shared store before horizontal scaling.
+function createUserRateLimiter({ windowMs, max, message }) {
+  const windows = new Map();
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = req.user?.uid || req.ip || "anonymous";
+    let entry = windows.get(key);
+    if (!entry || now >= entry.resetAt) {
+      entry = { count: 0, resetAt: now + windowMs };
+      windows.set(key, entry);
+    }
+    entry.count += 1;
+    if (windows.size > 5000) {
+      for (const [userKey, value] of windows) {
+        if (now >= value.resetAt) windows.delete(userKey);
+      }
+    }
+    res.setHeader("RateLimit-Limit", String(max));
+    res.setHeader("RateLimit-Remaining", String(Math.max(0, max - entry.count)));
+    res.setHeader("RateLimit-Reset", String(Math.ceil(entry.resetAt / 1000)));
+    if (entry.count > max) {
+      res.setHeader("Retry-After", String(Math.max(1, Math.ceil((entry.resetAt - now) / 1000))));
+      return res.status(429).json({ ok: false, error: message });
+    }
+    return next();
+  };
+}
+
+const apiRateLimit = createUserRateLimiter({ windowMs: 15 * 60 * 1000, max: 300, message: "Too many requests. Please wait a little and try again." });
+const chatRateLimit = createUserRateLimiter({ windowMs: 5 * 60 * 1000, max: 30, message: "You have sent too many messages in a short time. Please wait before trying again." });
+const imageRateLimit = createUserRateLimiter({ windowMs: 10 * 60 * 1000, max: 6, message: "Image generation is temporarily rate-limited. Please try again later." });
+
 // ============================================================
 // HELPERS
 // ============================================================

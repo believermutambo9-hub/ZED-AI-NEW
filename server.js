@@ -3223,7 +3223,7 @@ app.post("/api/voice/token", async (req, res) => {
 
   try {
     const now = Date.now();
-    const configuredLiveModel = String(process.env.GEMINI_LIVE_MODEL || "gemini-3.1-flash-live-preview");
+    const configuredLiveModel = String(process.env.GEMINI_LIVE_MODEL || "gemini-3.8-live");
     const liveModel = configuredLiveModel.startsWith("models/") ? configuredLiveModel.slice(7) : configuredLiveModel;
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
       method: "POST",
@@ -3236,7 +3236,17 @@ app.post("/api/voice/token", async (req, res) => {
         uses: 1,
         newSessionExpireTime: new Date(now + 2 * 60 * 1000).toISOString(),
         expireTime: new Date(now + 20 * 60 * 1000).toISOString(),
-
+        liveConnectConstraints: {
+          model: "models/" + liveModel,
+          config: {
+            responseModalities: ["AUDIO"],
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            systemInstruction: {
+              parts: [{ text: "You are Zed, a helpful, accurate, natural voice assistant. Respond clearly and conversationally. Do not claim to be another assistant or mention internal implementation details." }]
+            }
+          }
+        }
       })
     });
     if (!response.ok) {

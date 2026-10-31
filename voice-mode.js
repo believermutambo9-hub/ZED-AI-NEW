@@ -206,7 +206,11 @@ const VoiceMode = (() => {
       if (!window.isSecureContext) throw new Error("Voice conversations require a secure HTTPS connection.");
       const user = window.zedVoiceGetUser?.();
       if (!user) throw new Error("Please sign in before starting a voice conversation.");
+      setStatus("Requesting microphone access…", "connecting");
+      await setupMicrophone();
+      if (closeRequested) { await cleanup(); return; }
       const idToken = await user.getIdToken();
+      if (closeRequested) { await cleanup(); return; }
       const tokenResponse = await fetch("/api/voice/token", {
         method: "POST",
         headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
@@ -214,9 +218,11 @@ const VoiceMode = (() => {
       });
       const tokenData = await tokenResponse.json().catch(() => ({}));
       if (!tokenResponse.ok || !tokenData.token) throw new Error(tokenData.error || "Could not create a secure voice session.");
+      if (closeRequested) { await cleanup(); return; }
 
       setStatus("Connecting to Zed…", "connecting");
       const { GoogleGenAI } = await import("https://esm.sh/@google/genai@2.3.0");
+      if (closeRequested) { await cleanup(); return; }
       const ai = new GoogleGenAI({ apiKey: tokenData.token });
       session = await ai.live.connect({
         model: tokenData.model || "gemini-3.8-live",
@@ -239,8 +245,7 @@ const VoiceMode = (() => {
           }
         }
       });
-      await setupMicrophone();
-      if (closeRequested) return;
+      if (closeRequested) { await cleanup(); return; }
       active = true;
       setStatus("Listening", "listening");
       transcriptUser = "";

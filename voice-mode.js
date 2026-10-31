@@ -249,6 +249,7 @@ const VoiceMode = (() => {
           onerror: event => {
             console.error("Zed voice connection error:", event?.message || event);
             setStatus("Connection interrupted", "error");
+            void cleanup();
           },
           onclose: event => {
             if (active && !closeRequested) {

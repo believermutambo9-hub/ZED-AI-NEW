@@ -2346,12 +2346,6 @@ document.querySelector('[data-zed-action="image"]')?.addEventListener("click", (
   createImage();
 });
 
-// Keep the menu state accessible to assistive technologies.
-menuBtn?.addEventListener("click", () => {
-  const expanded = sidebar?.classList.contains("open") || false;
-  menuBtn.setAttribute("aria-expanded", String(expanded));
-});
-
 if (!window.__zedScheduledReminderTimer) {
   window.__zedScheduledReminderTimer = window.setInterval(checkDueScheduledTasks, 30000);
 }

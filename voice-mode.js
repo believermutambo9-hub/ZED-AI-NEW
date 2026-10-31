@@ -307,8 +307,4 @@ const VoiceMode = (() => {
   return { install, start, stop };
 })();
 
-window.zedVoiceGetUser = () => {
-  const auth = window.firebaseAuth;
-  return auth?.currentUser || null;
-};
 VoiceMode.install();

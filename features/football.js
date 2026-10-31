@@ -1962,6 +1962,28 @@ async function footballLeagueFeature(
       };
     }
 
+    /* ---------------- UPCOMING FIXTURES ---------------- */
+    if (requestType === "upcoming") {
+      const start = new Date();
+      const end = new Date(start);
+      end.setDate(end.getDate() + 90);
+      const data = await getJson(
+        `${ESPN}/${league.id}/scoreboard?dates=${dateKey(start)}-${dateKey(end)}`
+      );
+      const upcoming = events(data)
+        .filter(game => new Date(game.date).getTime() > Date.now())
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .slice(0, 20);
+
+      return {
+        answer: upcoming.length
+          ? "Upcoming " + league.name + " fixtures:\n" + upcoming.map(formatGame).join("\n")
+          : "I couldn't find upcoming " + league.name + " fixtures in the available data.",
+        league: league.name,
+        fixtures: upcoming
+      };
+    }
+
     /* ---------------- RECENT RESULTS ---------------- */
 
     const today =

@@ -653,3 +653,46 @@ test("memory tokenization splits words on whitespace and ignores common stop wor
   assert.match(memory, /\.split\(\/\\s\+\/\)/);
   assert.match(memory, /!MEMORY_STOP_WORDS\.has\(token\)/);
 });
+
+test("server exposes only an explicit frontend asset allowlist", () => {
+  assert.match(server, /const PUBLIC_ASSETS = new Set\(/);
+  assert.match(server, /"interface\.html"/);
+  assert.match(server, /"app\.js"/);
+  assert.doesNotMatch(server, /express\.static\(__dirname\s*\)/);
+});
+
+test("clear-all memory route imports the exact awaited function it calls", () => {
+  assert.match(server, /clearUserMemoryAndWait,/);
+  assert.match(server, /await clearUserMemoryAndWait\(req\.user\.uid\)/);
+  assert.match(memory, /export async function clearUserMemoryAndWait\(userId\)/);
+});
+
+test("user prompt cleanup preserves markup and line breaks", () => {
+  const start = server.indexOf('function cleanText(value = "")');
+  const end = server.indexOf(String.fromCharCode(10) + "}", start);
+  const cleaner = server.slice(start, end);
+  assert.ok(!cleaner.includes('<[^>]*>'));
+  assert.ok(cleaner.includes("replace(/") && cleaner.includes("trim()"));
+});
+
+test("authenticated API and expensive AI endpoints have per-user rate limits", () => {
+  assert.match(server, /app\.use\("\/api",/);
+  assert.match(server, /req\.path === "\/chat"/);
+  assert.match(server, /req\.path === "\/generate-image"/);
+  assert.match(server, /max: 30/);
+  assert.match(server, /max: 6/);
+  assert.match(server, /res\.status\(429\)/);
+});
+
+test("sidebar open and close operations synchronize accessibility attributes", () => {
+  const start = app.indexOf("function syncSidebarAccessibility()");
+  const end = app.indexOf("// ============================================================\n// ACCOUNT", start);
+  const sidebar = app.slice(start, end);
+  assert.match(sidebar, /aria-expanded/);
+  assert.match(sidebar, /syncSidebarAccessibility\(\);/);
+  assert.match(sidebar, /function closeSidebar\([\s\S]*?syncSidebarAccessibility\(\)/);
+});
+
+test("health endpoint reports the public app name", () => {
+  assert.match(server, /service:\s*"zed"/);
+});

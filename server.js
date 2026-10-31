@@ -48,7 +48,7 @@ import {
   rememberFootballConversation,
   getFootballMemory,
   getSystemMemoryStats,
-  clearUserMemory,
+  clearUserMemoryAndWait,
   initializeMemory,
   forgetMemory,
   forgetMemoryAndWait,
@@ -119,9 +119,28 @@ app.use(
   })
 );
 
-app.use(
-  express.static(__dirname)
-);
+// Only explicitly approved browser assets are public. Server modules, tests,
+// configuration, storage code and package metadata must never be web-accessible.
+const PUBLIC_ASSETS = new Set([
+  "index.html",
+  "interface.html",
+  "styles.css",
+  "app.js",
+  "ui-enhancements.js",
+  "super-brain.svg"
+]);
+const publicAssetServer = express.static(__dirname, {
+  dotfiles: "deny",
+  index: false,
+  fallthrough: true,
+  redirect: false
+});
+app.use((req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  const assetPath = req.path.startsWith("/") ? req.path.slice(1) : req.path;
+  if (!PUBLIC_ASSETS.has(assetPath)) return next();
+  return publicAssetServer(req, res, next);
+});
 
 // Firebase ID-token verification for user APIs.
 app.use(async (req, res, next) => {
@@ -147,6 +166,52 @@ app.use(async (req, res, next) => {
   }
 });
 
+// Per-user API limits protect paid AI/image providers from accidental or abusive
+// request bursts. Limits are process-local; use a shared store before horizontal scaling.
+function createUserRateLimiter({ windowMs, max, message }) {
+  const windows = new Map();
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = req.user?.uid || req.ip || "anonymous";
+    let entry = windows.get(key);
+    if (!entry || now >= entry.resetAt) {
+      entry = { count: 0, resetAt: now + windowMs };
+      windows.set(key, entry);
+    }
+    entry.count += 1;
+    if (windows.size > 5000) {
+      for (const [userKey, value] of windows) {
+        if (now >= value.resetAt) windows.delete(userKey);
+      }
+    }
+    res.setHeader("RateLimit-Limit", String(max));
+    res.setHeader("RateLimit-Remaining", String(Math.max(0, max - entry.count)));
+    res.setHeader("RateLimit-Reset", String(Math.ceil(entry.resetAt / 1000)));
+    if (entry.count > max) {
+      res.setHeader("Retry-After", String(Math.max(1, Math.ceil((entry.resetAt - now) / 1000))));
+      return res.status(429).json({ ok: false, error: message });
+    }
+    return next();
+  };
+}
+
+const apiRateLimit = createUserRateLimiter({ windowMs: 15 * 60 * 1000, max: 300, message: "Too many requests. Please wait a little and try again." });
+const chatRateLimit = createUserRateLimiter({ windowMs: 5 * 60 * 1000, max: 30, message: "You have sent too many messages in a short time. Please wait before trying again." });
+const imageRateLimit = createUserRateLimiter({ windowMs: 10 * 60 * 1000, max: 6, message: "Image generation is temporarily rate-limited. Please try again later." });
+
+// Authentication runs first so limits are keyed to the verified Firebase UID.
+app.use("/api", (req, res, next) => {
+  apiRateLimit(req, res, () => {
+    if (req.path === "/chat" || req.path.startsWith("/chat/")) {
+      return chatRateLimit(req, res, next);
+    }
+    if (req.path === "/generate-image") {
+      return imageRateLimit(req, res, next);
+    }
+    return next();
+  });
+});
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -154,8 +219,8 @@ app.use(async (req, res, next) => {
 function cleanText(value = "") {
   return String(value)
     .replace(/\u0000/g, "")
-    .replace(/<[^>]*>/g, "")
-    .replace(/\s+/g, " ")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
     .trim();
 }
 
@@ -1289,7 +1354,7 @@ app.get(
       ok: true,
 
       service:
-        "zed-ai",
+        "zed",
 
       provider:
         "gemini-with-groq-and-openrouter-fallback",

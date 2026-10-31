@@ -595,40 +595,27 @@ function createMenuBackdrop() {
 // ============================================================
 // SIDEBAR
 // ============================================================
+function syncSidebarAccessibility() {
+  const expanded = Boolean(sidebar?.classList.contains("open"));
+  menuBtn?.setAttribute("aria-expanded", String(expanded));
+  menuBtn?.setAttribute("aria-label", expanded ? "Close menu" : "Open menu");
+}
 function openSidebar() {
-  if (!sidebar) {
-    return;
-  }
+  if (!sidebar) return;
   sidebar.classList.add("open");
-  if (
-    menuBackdrop &&
-    window.innerWidth <= 700
-  ) {
-    menuBackdrop.style.display =
-      "block";
-  }
+  if (menuBackdrop && window.innerWidth <= 700) menuBackdrop.style.display = "block";
+  syncSidebarAccessibility();
 }
 function closeSidebar() {
-  if (!sidebar) {
-    return;
-  }
+  if (!sidebar) return;
   sidebar.classList.remove("open");
-  if (menuBackdrop) {
-    menuBackdrop.style.display =
-      "none";
-  }
+  if (menuBackdrop) menuBackdrop.style.display = "none";
+  syncSidebarAccessibility();
 }
 function toggleSidebar() {
-  if (!sidebar) {
-    return;
-  }
-  if (
-    sidebar.classList.contains("open")
-  ) {
-    closeSidebar();
-  } else {
-    openSidebar();
-  }
+  if (!sidebar) return;
+  if (sidebar.classList.contains("open")) closeSidebar();
+  else openSidebar();
 }
 menuBtn?.addEventListener(
   "click",
@@ -2357,12 +2344,6 @@ document.querySelector('[data-zed-action="image"]')?.addEventListener("click", (
   if (!prompt || !prompt.trim()) return;
   messageInput.value = prompt.trim();
   createImage();
-});
-
-// Keep the menu state accessible to assistive technologies.
-menuBtn?.addEventListener("click", () => {
-  const expanded = sidebar?.classList.contains("open") || false;
-  menuBtn.setAttribute("aria-expanded", String(expanded));
 });
 
 if (!window.__zedScheduledReminderTimer) {

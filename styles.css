@@ -2842,3 +2842,40 @@ html[data-theme="dark"] .sidebar-search-wrap input { background: #252525; border
 @media (min-width: 1400px) {
   .sidebar { width: 312px; min-width: 312px; }
 }
+
+
+/* Google account avatar in the top bar and sidebar */
+.profile-btn .profile-avatar-image,
+.sidebar-account-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.profile-avatar-fallback {
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent, #4167ed);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+.sidebar-bottom #accountBtn {
+  min-width: 0;
+  overflow: hidden;
+}
+.sidebar-bottom #accountBtn .sidebar-account-avatar {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  flex: 0 0 24px;
+  border: 1px solid var(--zed-border);
+}

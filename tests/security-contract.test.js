@@ -696,3 +696,29 @@ test("sidebar open and close operations synchronize accessibility attributes", (
 test("health endpoint reports the public app name", () => {
   assert.match(server, /service:\s*"zed"/);
 });
+
+
+test("real-time voice token provisioning is authenticated, single-use, and short-lived", () => {
+  assert.match(server, /app\.use\(async \(req, res, next\) => \{[\s\S]*?verifyIdToken\(match\[1\]\)/);
+  assert.match(server, /const voiceTokenRateLimit = createUserRateLimiter\([\s\S]*?max: 8/);
+  const start = server.indexOf('app.post("/api/voice/token"');
+  const end = server.indexOf("// FRONTEND FALLBACK", start);
+  const route = server.slice(start, end);
+  assert.notEqual(start, -1);
+  assert.match(route, /uses:\s*1/);
+  assert.match(route, /newSessionExpireTime:/);
+  assert.match(route, /expireTime:/);
+  assert.match(route, /liveConnectConstraints:/);
+  assert.match(route, /model:\s*"models\/" \+ liveModel/);
+  assert.match(route, /token:\s*token\.name/);
+  assert.doesNotMatch(route, /GEMINI_API_KEY\s*[,}]/);
+});
+
+test("real-time voice streams 16 kHz PCM, plays 24 kHz audio, and clears interrupted playback", async () => {
+  const voice = await readFile(new URL("../voice-mode.js", import.meta.url), "utf8");
+  assert.match(voice, /audio\/pcm;rate=16000/);
+  assert.match(voice, /createBuffer\(1, samples\.length, 24000\)/);
+  assert.match(voice, /if \(content\.interrupted\)\s*\{\s*stopPlayback\(\)/);
+  assert.match(voice, /window\.zedVoiceGetUser\?\.\(\)/);
+  assert.match(voice, /fetch\("\/api\/voice\/token"/);
+});

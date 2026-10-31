@@ -5,6 +5,7 @@ on:
     branches:
       - zed-core-engine-upgrade
       - zed-universal-file-analysis
+      - zed-v2-ai-engine
   pull_request:
     branches:
       - main

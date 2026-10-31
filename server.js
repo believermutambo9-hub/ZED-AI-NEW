@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
+import { ZED_CORE_INSTRUCTIONS } from "./features/ai-instructions.js";
 import { getAuth } from "firebase-admin/auth";
 import { getFirebaseAdminApp } from "./config/firebase-admin.js";
 import {
@@ -704,8 +705,11 @@ async function askGemini(
       model:
         GEMINI_MODEL,
       contents: inlineData
-        ? [{ role: 'user', parts: [{ text: prompt }, { inlineData }] }]
-        : prompt
+        ? [{ role: "user", parts: [{ text: prompt }, { inlineData }] }]
+        : [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        systemInstruction: ZED_CORE_INSTRUCTIONS
+      }
     });
 
   const answer =
@@ -766,15 +770,16 @@ async function askGroq(
         body:
           JSON.stringify({
             model:
-              "llama-3.3-70b-versatile",
+              process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
 
             messages: [
               {
-                role:
-                  "user",
-
-                content:
-                  prompt
+                role: "system",
+                content: ZED_CORE_INSTRUCTIONS
+              },
+              {
+                role: "user",
+                content: prompt
               }
             ],
 
@@ -860,15 +865,16 @@ async function askOpenRouter(
         body:
           JSON.stringify({
             model:
-              "meta-llama/llama-3.3-70b-instruct:free",
+              process.env.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
 
             messages: [
               {
-                role:
-                  "user",
-
-                content:
-                  prompt
+                role: "system",
+                content: ZED_CORE_INSTRUCTIONS
+              },
+              {
+                role: "user",
+                content: prompt
               }
             ],
 

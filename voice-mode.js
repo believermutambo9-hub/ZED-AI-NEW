@@ -20,6 +20,8 @@ const VoiceMode = (() => {
     if (!statusNode) return;
     statusNode.textContent = label;
     statusNode.dataset.state = state;
+    const retry = overlay?.querySelector(".zed-voice-retry");
+    if (retry) retry.hidden = state !== "error";
   };
 
   const appendCaption = (node, text) => {
@@ -49,6 +51,7 @@ const VoiceMode = (() => {
         <div class="zed-voice-caption"><span>Zed</span><p id="zedVoiceZedCaption">Zed's replies will appear here.</p></div>
       </div>
       <div class="zed-voice-actions">
+        <button class="zed-voice-retry" type="button" hidden>Try again</button>
         <button class="zed-voice-mute" type="button" aria-pressed="false">Mute microphone</button>
         <button class="zed-voice-end" type="button">End conversation</button>
       </div>
@@ -59,6 +62,7 @@ const VoiceMode = (() => {
     zedCaption = overlay.querySelector("#zedVoiceZedCaption");
     overlay.querySelector(".zed-voice-close").addEventListener("click", stop);
     overlay.querySelector(".zed-voice-end").addEventListener("click", stop);
+    overlay.querySelector(".zed-voice-retry").addEventListener("click", () => { cleanup().then(start); });
     overlay.querySelector(".zed-voice-mute").addEventListener("click", toggleMute);
     return overlay;
   }
@@ -126,12 +130,17 @@ const VoiceMode = (() => {
       const samples = resampleTo16k(event.inputBuffer.getChannelData(0), audioContext.sampleRate);
       if (!samples.length) return;
       if (session) {
-        session.sendRealtimeInput({
-          audio: {
-            data: base64FromBytes(new Uint8Array(samples.buffer)),
-            mimeType: "audio/pcm;rate=16000"
-          }
-        });
+        try {
+          session.sendRealtimeInput({
+            audio: {
+              data: base64FromBytes(new Uint8Array(samples.buffer)),
+              mimeType: "audio/pcm;rate=16000"
+            }
+          });
+        } catch (error) {
+          console.warn("Zed voice audio send failed:", error);
+          setStatus("Connection interrupted", "error");
+        }
       }
     };
     sourceNode.connect(processorNode);
@@ -242,7 +251,10 @@ const VoiceMode = (() => {
             setStatus("Connection interrupted", "error");
           },
           onclose: event => {
-            if (active && !closeRequested) setStatus("Connection closed. End this session and try again.", "error");
+            if (active && !closeRequested) {
+              setStatus("Connection closed. You can try again.", "error");
+              void cleanup();
+            }
             console.info("Zed voice connection closed:", event?.reason || "");
           }
         }

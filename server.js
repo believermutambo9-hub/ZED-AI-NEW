@@ -3244,7 +3244,7 @@ app.post("/api/voice/token", async (req, res) => {
             outputAudioTranscription: {},
             sessionResumption: {},
             systemInstruction: {
-              parts: [{ text: ZED_CORE_INSTRUCTIONS.join("\n") }]
+              parts: [{ text: ZED_CORE_INSTRUCTIONS }]
             }
           }
         }

@@ -48,7 +48,7 @@ import {
   rememberFootballConversation,
   getFootballMemory,
   getSystemMemoryStats,
-  clearUserMemory,
+  clearUserMemoryAndWait,
   initializeMemory,
   forgetMemory,
   forgetMemoryAndWait,

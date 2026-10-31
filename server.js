@@ -3223,6 +3223,7 @@ app.post("/api/voice/token", async (req, res) => {
 
   try {
     const now = Date.now();
+    const liveModel = String(process.env.GEMINI_LIVE_MODEL || "gemini-3.8-live").replace(/^models\\//, "");
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
       method: "POST",
       headers: {
@@ -3235,7 +3236,7 @@ app.post("/api/voice/token", async (req, res) => {
         newSessionExpireTime: new Date(now + 2 * 60 * 1000).toISOString(),
         expireTime: new Date(now + 20 * 60 * 1000).toISOString(),
         liveConnectConstraints: {
-          model: "models/" + (process.env.GEMINI_LIVE_MODEL || "gemini-3.8-live"),
+          model: "models/" + liveModel,
           config: {
             responseModalities: ["AUDIO"],
             inputAudioTranscription: {},
@@ -3258,7 +3259,7 @@ app.post("/api/voice/token", async (req, res) => {
     return res.json({
       ok: true,
       token: token.name,
-      model: process.env.GEMINI_LIVE_MODEL || "gemini-3.8-live",
+      model: liveModel,
       expiresAt: new Date(now + 20 * 60 * 1000).toISOString()
     });
   } catch (error) {

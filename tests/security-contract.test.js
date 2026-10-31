@@ -723,4 +723,8 @@ test("real-time voice streams 16 kHz PCM, plays 24 kHz audio, and clears interru
   assert.match(voice, /if \(content\.interrupted\)\s*\{\s*stopPlayback\(\)/);
   assert.match(voice, /window\.zedVoiceGetUser\?\.\(\)/);
   assert.match(voice, /fetch\("\/api\/voice\/token"/);
+  assert.match(voice, /BidiGenerateContentConstrained\?access_token=/);
+  assert.match(voice, /setupComplete/);
+  assert.match(voice, /realtimeInput:\s*\{/);
+  assert.doesNotMatch(voice, /@google\/genai|GoogleGenAI/);
 });

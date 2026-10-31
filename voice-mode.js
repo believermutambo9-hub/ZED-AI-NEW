@@ -268,7 +268,9 @@ const VoiceMode = (() => {
           liveSocket.send(JSON.stringify({
             setup: {
               model: "models/" + model,
-              responseModalities: ["AUDIO"],
+              generationConfig: {
+                responseModalities: ["AUDIO"]
+              },
               inputAudioTranscription: {},
               outputAudioTranscription: {},
               sessionResumption: {}

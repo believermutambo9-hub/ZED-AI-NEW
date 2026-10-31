@@ -127,6 +127,7 @@ const PUBLIC_ASSETS = new Set([
   "styles.css",
   "app.js",
   "voice-mode.js",
+  "voice-mode.css",
   "ui-enhancements.js",
   "super-brain.svg"
 ]);

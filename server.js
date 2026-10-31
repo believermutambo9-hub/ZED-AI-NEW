@@ -3221,18 +3221,20 @@ app.post("/api/voice/token", async (req, res) => {
   }
 
   try {
-    const ai = new GoogleGenAI({
-      apiKey: GEMINI_API_KEY,
-      httpOptions: { apiVersion: "v1alpha" }
-    });
     const now = Date.now();
-    const token = await ai.authTokens.create({
-      config: {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": GEMINI_API_KEY,
+        "Content-Type": "application/json"
+      },
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({
         uses: 1,
         newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
         expireTime: new Date(now + 20 * 60 * 1000).toISOString(),
         liveConnectConstraints: {
-          model: process.env.GEMINI_LIVE_MODEL || "gemini-3.8-live",
+          model: "models/" + (process.env.GEMINI_LIVE_MODEL || "gemini-3.8-live"),
           config: {
             responseModalities: ["AUDIO"],
             inputAudioTranscription: {},
@@ -3243,13 +3245,14 @@ app.post("/api/voice/token", async (req, res) => {
             }
           }
         }
-      }
+      })
     });
-
-    if (!token?.name) {
-      throw new Error("Gemini did not return a temporary voice token.");
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error("Gemini token service returned " + response.status + ": " + detail.slice(0, 400));
     }
-
+    const token = await response.json();
+    if (!token?.name) throw new Error("Gemini did not return a temporary voice token.");
     res.setHeader("Cache-Control", "no-store");
     return res.json({
       ok: true,

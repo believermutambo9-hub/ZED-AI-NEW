@@ -356,24 +356,53 @@ function createAccountPanel() {
       }
     );
 }
+function updateGoogleProfileAvatar() {
+  const user = state.firebaseUser;
+  const photoURL = user?.photoURL || "";
+  const initials = (user?.displayName || user?.email || "U")
+    .trim().split(/\\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase();
+
+  const renderAvatar = (button, className) => {
+    if (!button) return;
+    button.replaceChildren();
+    if (photoURL) {
+      const image = document.createElement("img");
+      image.className = className;
+      image.src = photoURL;
+      image.alt = "Google account profile";
+      image.referrerPolicy = "no-referrer";
+      image.addEventListener("error", () => {
+        const fallback = document.createElement("span");
+        fallback.className = "profile-avatar-fallback";
+        fallback.textContent = initials || "U";
+        button.replaceChildren(fallback);
+      }, { once: true });
+      button.appendChild(image);
+    } else {
+      const fallback = document.createElement("span");
+      fallback.className = "profile-avatar-fallback";
+      fallback.textContent = initials || "U";
+      button.appendChild(fallback);
+    }
+  };
+
+  renderAvatar(profileBtn, "profile-avatar-image");
+  renderAvatar(accountBtn, "sidebar-account-avatar");
+  if (profileBtn) {
+    profileBtn.setAttribute("aria-label", user
+      ? `Account: ${user.displayName || user.email || "signed in"}`
+      : "Account");
+    profileBtn.title = user?.displayName || user?.email || "Account";
+  }
+}
+
 function updateAccountPanel() {
-  if (!accountPanel) {
-    return;
-  }
-  const name =
-    document.getElementById("zedAccountName");
-  const email =
-    document.getElementById("zedAccountEmail");
-  if (name) {
-    name.textContent =
-      state.firebaseUser?.displayName ||
-      "Zed User";
-  }
-  if (email) {
-    email.textContent =
-      state.firebaseUser?.email ||
-      "";
-  }
+  updateGoogleProfileAvatar();
+  if (!accountPanel) return;
+  const name = document.getElementById("zedAccountName");
+  const email = document.getElementById("zedAccountEmail");
+  if (name) name.textContent = state.firebaseUser?.displayName || "Zed User";
+  if (email) email.textContent = state.firebaseUser?.email || "";
 }
 // ============================================================
 // SETTINGS PANEL
@@ -1736,6 +1765,7 @@ function setupAuthListener() {
     async user => {
       state.firebaseUser =
         user || null;
+      updateGoogleProfileAvatar();
       state.userId =
         user?.uid || null;
       if (user) {

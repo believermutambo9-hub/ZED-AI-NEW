@@ -2725,3 +2725,157 @@ body { background: var(--zed-surface); }
   animation-iteration-count: 1 !important;
   transition-duration: .01ms !important;
 }
+
+
+/* =========================================================
+   SIDEBAR CLARITY PASS — clear hierarchy and readable labels
+   ========================================================= */
+.sidebar {
+  width: 304px;
+  min-width: 304px;
+  padding: 18px 14px max(14px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+.sidebar-brand-row { min-height: 44px; margin-bottom: 14px; }
+.sidebar-brand { font-size: 27px; letter-spacing: -.035em; }
+.sidebar-search-wrap { margin: 0 0 15px; }
+.sidebar-search-wrap input {
+  min-height: 42px;
+  border: 1px solid var(--zed-border);
+  background: var(--zed-bg);
+  color: var(--zed-text);
+}
+.sidebar-group-label {
+  margin: 4px 10px 8px;
+  color: var(--zed-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .12em;
+}
+.primary-nav { gap: 5px; margin: 0 0 13px; }
+.nav-item {
+  min-height: 58px;
+  gap: 12px;
+  padding: 8px 11px;
+  border: 1px solid transparent;
+  color: var(--zed-text);
+  border-radius: 12px;
+}
+.nav-item:hover, .nav-item:focus-visible {
+  background: var(--zed-hover);
+  outline: none;
+}
+.nav-icon {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--zed-hover);
+  color: var(--zed-text);
+  font-size: 19px;
+}
+.nav-copy { display: grid; gap: 3px; min-width: 0; }
+.nav-copy strong { font-size: 13px; font-weight: 650; line-height: 1.2; }
+.nav-copy small { color: var(--zed-muted); font-size: 11px; line-height: 1.25; }
+.sidebar-divider { margin: 5px 0 12px; background: var(--zed-border); }
+.sidebar-projects { max-height: 25%; margin-bottom: 12px; }
+.sidebar-section-heading {
+  padding: 5px 7px 8px;
+  color: var(--zed-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .1em;
+}
+.sidebar-section-heading button {
+  background: var(--zed-hover);
+  color: var(--zed-text);
+}
+.project-link, .recent-chat { color: var(--zed-text); }
+.project-link:hover, .recent-chat:hover { background: var(--zed-hover); }
+.recent-section { min-height: 90px; }
+.recent-chats { min-height: 0; padding: 2px 0; }
+.recent-chat { font-size: 13px; }
+.recent-chat.active { background: var(--zed-hover); }
+.see-all-chats { color: var(--zed-muted); }
+.sidebar-bottom {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--zed-border);
+}
+.sidebar-bottom .sidebar-item,
+.sidebar-bottom .sidebar-item:last-child {
+  display: inline-flex !important;
+  width: 100%;
+  min-height: 42px;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--zed-border);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--zed-text);
+  font-size: 12px;
+}
+.sidebar-bottom .zed-new-chat-nav {
+  grid-column: 1 / -1;
+  justify-content: center;
+  min-height: 44px;
+  border-color: #4167ed;
+  background: #4167ed;
+  color: #fff;
+}
+.sidebar-bottom .zed-new-chat-nav .sidebar-item-icon { color: #fff; }
+.sidebar-bottom .sidebar-item:hover { background: var(--zed-hover); }
+.sidebar-bottom .zed-new-chat-nav:hover { background: #3459d8; }
+html[data-theme="dark"] .sidebar-search-wrap input { background: #252525; border-color: #414141; }
+@media (max-width: 700px) {
+  .sidebar { width: min(330px, 88vw); min-width: min(330px, 88vw); }
+}
+@media (min-width: 1400px) {
+  .sidebar { width: 312px; min-width: 312px; }
+}
+
+
+/* Google account avatar in the top bar and sidebar */
+.profile-btn .profile-avatar-image,
+.sidebar-account-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.profile-avatar-fallback {
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent, #4167ed);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+.sidebar-bottom #accountBtn {
+  min-width: 0;
+  overflow: hidden;
+}
+.sidebar-bottom #accountBtn .sidebar-account-avatar {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  flex: 0 0 24px;
+  border: 1px solid var(--zed-border);
+}

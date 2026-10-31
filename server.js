@@ -119,9 +119,28 @@ app.use(
   })
 );
 
-app.use(
-  express.static(__dirname)
-);
+// Only explicitly approved browser assets are public. Server modules, tests,
+// configuration, storage code and package metadata must never be web-accessible.
+const PUBLIC_ASSETS = new Set([
+  "index.html",
+  "interface.html",
+  "styles.css",
+  "app.js",
+  "ui-enhancements.js",
+  "super-brain.svg"
+]);
+const publicAssetServer = express.static(__dirname, {
+  dotfiles: "deny",
+  index: false,
+  fallthrough: true,
+  redirect: false
+});
+app.use((req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  const assetPath = req.path.replace(/^\\/+/, "");
+  if (!PUBLIC_ASSETS.has(assetPath)) return next();
+  return publicAssetServer(req, res, next);
+});
 
 // Firebase ID-token verification for user APIs.
 app.use(async (req, res, next) => {

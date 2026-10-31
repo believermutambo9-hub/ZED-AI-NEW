@@ -126,6 +126,8 @@ const PUBLIC_ASSETS = new Set([
   "interface.html",
   "styles.css",
   "app.js",
+  "voice-mode.js",
+  "voice-mode.css",
   "ui-enhancements.js",
   "super-brain.svg"
 ]);
@@ -198,6 +200,7 @@ function createUserRateLimiter({ windowMs, max, message }) {
 const apiRateLimit = createUserRateLimiter({ windowMs: 15 * 60 * 1000, max: 300, message: "Too many requests. Please wait a little and try again." });
 const chatRateLimit = createUserRateLimiter({ windowMs: 5 * 60 * 1000, max: 30, message: "You have sent too many messages in a short time. Please wait before trying again." });
 const imageRateLimit = createUserRateLimiter({ windowMs: 10 * 60 * 1000, max: 6, message: "Image generation is temporarily rate-limited. Please try again later." });
+const voiceTokenRateLimit = createUserRateLimiter({ windowMs: 5 * 60 * 1000, max: 8, message: "Voice sessions are temporarily rate-limited. Please wait before starting another session." });
 
 // Authentication runs first so limits are keyed to the verified Firebase UID.
 app.use("/api", (req, res, next) => {
@@ -207,6 +210,9 @@ app.use("/api", (req, res, next) => {
     }
     if (req.path === "/generate-image") {
       return imageRateLimit(req, res, next);
+    }
+    if (req.path === "/voice/token") {
+      return voiceTokenRateLimit(req, res, next);
     }
     return next();
   });
@@ -3205,6 +3211,66 @@ ${fileContext}
     }
   }
 );
+
+// ============================================================
+// REAL-TIME VOICE TOKEN API
+// ============================================================
+
+app.post("/api/voice/token", async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(503).json({ ok: false, error: "Real-time voice is not configured on the server." });
+  }
+
+  try {
+    const now = Date.now();
+    const configuredLiveModel = String(process.env.GEMINI_LIVE_MODEL || "gemini-3.8-live");
+    const liveModel = configuredLiveModel.startsWith("models/") ? configuredLiveModel.slice(7) : configuredLiveModel;
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": GEMINI_API_KEY,
+        "Content-Type": "application/json"
+      },
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({
+        uses: 1,
+        newSessionExpireTime: new Date(now + 2 * 60 * 1000).toISOString(),
+        expireTime: new Date(now + 20 * 60 * 1000).toISOString(),
+        liveConnectConstraints: {
+          model: "models/" + liveModel,
+          config: {
+            responseModalities: ["AUDIO"],
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            sessionResumption: {},
+            systemInstruction: {
+              parts: [{ text: ZED_CORE_INSTRUCTIONS }]
+            }
+          }
+        }
+      })
+    });
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error("Gemini token service returned " + response.status + ": " + detail.slice(0, 400));
+    }
+    const token = await response.json();
+    if (!token?.name) throw new Error("Gemini did not return a temporary voice token.");
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({
+      ok: true,
+      token: token.name,
+      model: liveModel,
+      expiresAt: new Date(now + 20 * 60 * 1000).toISOString()
+    });
+  } catch (error) {
+    console.error("Real-time voice token creation failed:", error.message);
+    return res.status(503).json({
+      ok: false,
+      error: "Zed could not start a secure voice session. Please try again shortly."
+    });
+  }
+});
 
 // ============================================================
 // FRONTEND FALLBACK

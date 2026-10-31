@@ -119,10 +119,15 @@ const VoiceMode = (() => {
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       video: false
     });
+    const muteButton = overlay?.querySelector(".zed-voice-mute");
+    if (muteButton) {
+      muteButton.textContent = "Mute microphone";
+      muteButton.setAttribute("aria-pressed", "false");
+    }
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     await audioContext.resume();
     sourceNode = audioContext.createMediaStreamSource(stream);
-    processorNode = audioContext.createScriptProcessor(4096, 1, 1);
+    processorNode = audioContext.createScriptProcessor(2048, 1, 1);
     const silentGain = audioContext.createGain();
     silentGain.gain.value = 0;
     processorNode.onaudioprocess = event => {
@@ -213,6 +218,8 @@ const VoiceMode = (() => {
     ensureOverlay().classList.add("open");
     document.body.classList.add("zed-voice-open");
     setStatus("Preparing secure connection…", "connecting");
+    appendCaption(userCaption, "Your words will appear here.");
+    appendCaption(zedCaption, "Connecting to Zed…");
     try {
       if (!window.isSecureContext) throw new Error("Voice conversations require a secure HTTPS connection.");
       const user = window.zedVoiceGetUser?.();

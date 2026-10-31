@@ -200,9 +200,17 @@ const chatRateLimit = createUserRateLimiter({ windowMs: 5 * 60 * 1000, max: 30, 
 const imageRateLimit = createUserRateLimiter({ windowMs: 10 * 60 * 1000, max: 6, message: "Image generation is temporarily rate-limited. Please try again later." });
 
 // Authentication runs first so limits are keyed to the verified Firebase UID.
-app.use("/api", (req, res, next) => apiRateLimit(req, res, next));
-app.use("/api/chat", (req, res, next) => chatRateLimit(req, res, next));
-app.use("/api/generate-image", (req, res, next) => imageRateLimit(req, res, next));
+app.use("/api", (req, res, next) => {
+  apiRateLimit(req, res, () => {
+    if (req.path === "/chat" || req.path.startsWith("/chat/")) {
+      return chatRateLimit(req, res, next);
+    }
+    if (req.path === "/generate-image") {
+      return imageRateLimit(req, res, next);
+    }
+    return next();
+  });
+});
 
 // ============================================================
 // HELPERS

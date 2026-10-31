@@ -3236,18 +3236,7 @@ app.post("/api/voice/token", async (req, res) => {
         uses: 1,
         newSessionExpireTime: new Date(now + 2 * 60 * 1000).toISOString(),
         expireTime: new Date(now + 20 * 60 * 1000).toISOString(),
-        liveConnectConstraints: {
-          model: "models/" + liveModel,
-          config: {
-            responseModalities: ["AUDIO"],
-            inputAudioTranscription: {},
-            outputAudioTranscription: {},
-            sessionResumption: {},
-            systemInstruction: {
-              parts: [{ text: ZED_CORE_INSTRUCTIONS }]
-            }
-          }
-        }
+
       })
     });
     if (!response.ok) {

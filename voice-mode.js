@@ -273,7 +273,10 @@ const VoiceMode = (() => {
               },
               inputAudioTranscription: {},
               outputAudioTranscription: {},
-              sessionResumption: {}
+              sessionResumption: {},
+              systemInstruction: {
+                parts: [{ text: "You are Zed, a helpful, accurate, natural voice assistant. Respond clearly and conversationally. Do not claim to be another assistant or mention internal implementation details." }]
+              }
             }
           }));
         };

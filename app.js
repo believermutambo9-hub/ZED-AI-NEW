@@ -986,14 +986,14 @@ function renderMessages() {
     actions.className = "message-actions";
     const copyButton = document.createElement("button");
     copyButton.type = "button";
-    copyButton.className = "message-action";
-    copyButton.textContent = "Copy";
+    copyButton.className = "message-action message-copy-button";
+    copyButton.textContent = "⧉";
+    copyButton.title = message.role === "user" ? "Copy message" : "Copy response";
     copyButton.setAttribute(
       "aria-label",
       message.role === "user" ? "Copy your message" : "Copy Zed's response"
     );
     copyButton.addEventListener("click", async () => {
-      const originalLabel = copyButton.textContent;
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(message.content || "");
@@ -1009,14 +1009,24 @@ function renderMessages() {
           temporary.remove();
           if (!copied) throw new Error("Copy is not available in this browser.");
         }
-        copyButton.textContent = "Copied";
+        copyButton.textContent = "✓";
+        copyButton.title = "Copied";
+        copyButton.setAttribute("aria-label", "Copied");
       } catch (error) {
         console.warn("Unable to copy message:", error);
-        copyButton.textContent = "Copy failed";
+        copyButton.textContent = "!";
+        copyButton.title = "Copy failed";
+        copyButton.setAttribute("aria-label", "Copy failed");
       }
       window.setTimeout(() => {
-        if (copyButton.isConnected) copyButton.textContent = originalLabel;
-      }, 1600);
+        if (!copyButton.isConnected) return;
+        copyButton.textContent = "⧉";
+        copyButton.title = message.role === "user" ? "Copy message" : "Copy response";
+        copyButton.setAttribute(
+          "aria-label",
+          message.role === "user" ? "Copy your message" : "Copy Zed's response"
+        );
+      }, 1400);
     });
     actions.appendChild(copyButton);
     wrapper.appendChild(actions);
@@ -1042,24 +1052,22 @@ function renderMessages() {
 // THINKING
 // ============================================================
 function showThinking() {
-  const wrapper =
-    document.createElement("div");
-  wrapper.className =
-    "message message-assistant";
-  wrapper.id =
-    "thinkingMessage";
-  const content =
-    document.createElement("div");
-  content.className =
-    "message-content";
-  content.textContent =
-    "Zed is thinking...";
-  wrapper.appendChild(
-    content
-  );
-  messages?.appendChild(
-    wrapper
-  );
+  const wrapper = document.createElement("div");
+  wrapper.className = "message message-assistant thinking-indicator";
+  wrapper.id = "thinkingMessage";
+  wrapper.setAttribute("role", "status");
+  wrapper.setAttribute("aria-label", "Zed is responding");
+  const content = document.createElement("div");
+  content.className = "message-content thinking-content";
+  const label = document.createElement("span");
+  label.textContent = "Zed is responding";
+  const dots = document.createElement("span");
+  dots.className = "thinking-dots";
+  dots.setAttribute("aria-hidden", "true");
+  dots.textContent = "•••";
+  content.append(label, dots);
+  wrapper.appendChild(content);
+  messages?.appendChild(wrapper);
 }
 function removeThinking() {
   document

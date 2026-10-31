@@ -3223,7 +3223,7 @@ app.post("/api/voice/token", async (req, res) => {
 
   try {
     const now = Date.now();
-    const configuredLiveModel = String(process.env.GEMINI_LIVE_MODEL || "gemini-3.8-live");
+    const configuredLiveModel = String(process.env.GEMINI_LIVE_MODEL || "gemini-3.1-flash-live-preview");
     const liveModel = configuredLiveModel.startsWith("models/") ? configuredLiveModel.slice(7) : configuredLiveModel;
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
       method: "POST",

@@ -1972,46 +1972,30 @@ export function updateMemory(
 // FORGET MEMORY
 // ============================================================
 
-export function forgetMemory(
-  memoryId,
-  userId = null
-) {
-  const id =
-    normalizeText(
-      memoryId
-    );
-
-  const memory =
-    memories.get(id);
-
-  if (!memory) {
-    return false;
-  }
-
-  if (
-    userId !== null &&
-    memory.userId !== normalizeUserId(userId)
-  ) {
-    return false;
-  }
+function deleteMemoryFromCache(memoryId) {
+  const id = normalizeText(memoryId);
+  const memory = memories.get(id);
+  if (!memory) return false;
 
   memories.delete(id);
-
-  const index =
-    userMemoryIndex.get(
-      memory.userId
-    );
-
-  if (index) {
-    index.delete(id);
-  }
-
-  firestoreDelete(
-    "zedMemories",
-    id
-  );
-
+  const index = userMemoryIndex.get(memory.userId);
+  if (index) index.delete(id);
+  firestoreDelete("zedMemories", id);
   return true;
+}
+
+// Public deletion is always owner-scoped. Internal retention cleanup uses
+// the private helper because it operates on already-selected records.
+export function forgetMemory(memoryId, userId) {
+  if (userId === undefined || userId === null || !normalizeText(userId)) {
+    return false;
+  }
+  const id = normalizeText(memoryId);
+  const memory = memories.get(id);
+  if (!memory || memory.userId !== normalizeUserId(userId)) {
+    return false;
+  }
+  return deleteMemoryFromCache(id);
 }
 
 export async function forgetMemoryAndWait(
@@ -4246,9 +4230,7 @@ function enforceUserMemoryLimit(
     i++
   ) {
 
-    forgetMemory(
-      userMemories[i].id
-    );
+    deleteMemoryFromCache(userMemories[i].id);
   }
 }
 
@@ -4290,9 +4272,7 @@ function enforceGlobalMemoryLimit() {
     i++
   ) {
 
-    forgetMemory(
-      allMemories[i].id
-    );
+    deleteMemoryFromCache(allMemories[i].id);
   }
 }
 
@@ -4387,9 +4367,7 @@ export function runMemoryMaintenance() {
       memory.usageCount === 0
     ) {
 
-      forgetMemory(
-        memory.id
-      );
+      deleteMemoryFromCache(memory.id);
 
       removed++;
     }

@@ -1977,8 +1977,8 @@ async function footballLeagueFeature(
 
       return {
         answer: upcoming.length
-          ? `Upcoming ${league.name} fixtures:\\n${upcoming.map(formatGame).join(\"\\n\") }`.trim()
-          : `I couldn't find upcoming ${league.name} fixtures in the available data.`,
+          ? "Upcoming " + league.name + " fixtures:\n" + upcoming.map(formatGame).join("\n")
+          : "I couldn't find upcoming " + league.name + " fixtures in the available data.",
         league: league.name,
         fixtures: upcoming
       };

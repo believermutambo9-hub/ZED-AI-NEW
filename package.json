@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check web-search.js && node --check features/file-analysis.js && node --check app.js && node --check ui-enhancements.js && node --check storage/chat-history.js && node --check storage/user-library.js && node --check storage/scheduled-tasks.js && node --check features/memory.js && node --check features/ai-instructions.js && node --check features/current-information.js && node --check features/news-intelligence.js && node --check features/football.js && node --check config/firebase-admin.js",
+    "check": "node --check server.js && node --check web-search.js && node --check features/file-analysis.js && node --check app.js && node --check voice-mode.js && node --check ui-enhancements.js && node --check storage/chat-history.js && node --check storage/user-library.js && node --check storage/scheduled-tasks.js && node --check features/memory.js && node --check features/ai-instructions.js && node --check features/current-information.js && node --check features/news-intelligence.js && node --check features/football.js && node --check config/firebase-admin.js",
     "test": "npm run check && node --test"
   },
   "dependencies": {

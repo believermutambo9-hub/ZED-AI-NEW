@@ -44,15 +44,16 @@
       <div class="sidebar-search-wrap" id="sidebarSearchWrap">
         <input id="chatSearchInput" type="search" placeholder="Search conversations" aria-label="Search conversations">
       </div>
+      <div class="sidebar-group-label">WORKSPACE</div>
       <nav class="primary-nav" aria-label="Zed tools">
-        <button class="nav-item" type="button" data-zed-view="images"><span class="nav-icon">▧</span><span>Images</span></button>
-        <button class="nav-item" type="button" data-zed-view="library"><span class="nav-icon">▤</span><span>Library</span></button>
-        <button class="nav-item" type="button" data-zed-view="projects"><span class="nav-icon">▱</span><span>Projects</span></button>
-        <button class="nav-item" type="button" data-zed-view="scheduled"><span class="nav-icon">◷</span><span>Scheduled</span></button>
-        <button class="nav-item" type="button" data-zed-view="explore"><span class="nav-icon">✣</span><span>Explore</span></button>
+        <button class="nav-item" type="button" data-zed-view="images"><span class="nav-icon">▧</span><span class="nav-copy"><strong>Create images</strong><small>Generate visuals and stickers</small></span></button>
+        <button class="nav-item" type="button" data-zed-view="library"><span class="nav-icon">▤</span><span class="nav-copy"><strong>My library</strong><small>Saved files and creations</small></span></button>
+        <button class="nav-item" type="button" data-zed-view="projects"><span class="nav-icon">▱</span><span class="nav-copy"><strong>Projects</strong><small>Organise your work</small></span></button>
+        <button class="nav-item" type="button" data-zed-view="scheduled"><span class="nav-icon">◷</span><span class="nav-copy"><strong>Scheduled tasks</strong><small>Reminders and planned work</small></span></button>
+        <button class="nav-item" type="button" data-zed-view="explore"><span class="nav-icon">✣</span><span class="nav-copy"><strong>Explore tools</strong><small>Discover what Zed can do</small></span></button>
       </nav>
       <div class="sidebar-divider"></div>
-      <section class="sidebar-projects" aria-label="Projects">
+      <section class="sidebar-projects" aria-label="Your projects">
         <div class="sidebar-section-heading">
           <span>Projects</span>
           <button id="addProjectBtn" type="button" aria-label="Create project">＋</button>
@@ -60,12 +61,12 @@
         <div id="projectList" class="project-list"><div class="sidebar-empty">Loading projects…</div></div>
       </section>
       <section class="recent-section">
-        <div class="sidebar-section-heading"><span>Recent</span></div>
+        <div class="sidebar-section-heading"><span>RECENT CHATS</span></div>
         <div class="recent-chats" id="recentChats"></div>
         <button class="see-all-chats" id="seeAllChatsBtn" type="button">See all</button>
       </section>
       <div class="sidebar-bottom">
-        <button class="sidebar-item zed-new-chat-nav" id="newChatBtn" type="button"><span class="sidebar-item-icon">✎</span><span>Chat</span></button>
+        <button class="sidebar-item zed-new-chat-nav" id="newChatBtn" type="button"><span class="sidebar-item-icon">＋</span><span>New chat</span></button>
         <button class="sidebar-item" id="settingsBtn" type="button"><span class="sidebar-item-icon">⚙</span><span>Settings</span></button>
         <button class="sidebar-item" id="accountBtn" type="button"><span class="sidebar-item-icon">●</span><span>Account</span></button>
       </div>

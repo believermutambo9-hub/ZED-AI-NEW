@@ -711,7 +711,8 @@ test("real-time voice token provisioning is authenticated, single-use, and short
   assert.match(route, /liveConnectConstraints:/);
   assert.match(route, /model:\s*"models\/" \+ liveModel/);
   assert.match(route, /token:\s*token\.name/);
-  assert.match(route, /"x-goog-api-key": GEMINI_API_KEY/);
+  assert.match(route, /new GoogleGenAI\(\{ apiKey: GEMINI_API_KEY \}\)/);
+  assert.match(route, /genAI\.authTokens\.create\(\{/);
   const clientResponse = route.slice(route.indexOf("return res.json({"));
   assert.doesNotMatch(clientResponse, /GEMINI_API_KEY/);
 });

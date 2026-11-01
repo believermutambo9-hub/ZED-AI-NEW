@@ -3223,7 +3223,7 @@ app.post("/api/voice/token", async (req, res) => {
 
   try {
     const now = Date.now();
-    const configuredLiveModel = String(process.env.GEMINI_LIVE_MODEL || "gemini-3.1-flash-live-preview");
+    const configuredLiveModel = String(process.env.GEMINI_LIVE_MODEL || "gemini-3.8-live");
     const liveModel = configuredLiveModel.startsWith("models/") ? configuredLiveModel.slice(7) : configuredLiveModel;
     const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     const token = await genAI.authTokens.create({
@@ -3237,6 +3237,7 @@ app.post("/api/voice/token", async (req, res) => {
             responseModalities: ["AUDIO"],
             inputAudioTranscription: {},
             outputAudioTranscription: {},
+            sessionResumption: {},
             systemInstruction: {
               parts: [{ text: "You are Zed, a helpful, accurate, natural voice assistant. Respond clearly and conversationally. Do not claim to be another assistant or mention internal implementation details." }]
             }

@@ -59,6 +59,9 @@ const state = {
   sending: false,
   settingsOpen: false
 };
+
+// Expose only the signed-in Firebase user accessor needed by live voice.
+window.zedVoiceGetUser = () => state.firebaseUser;
 // ============================================================
 // AUTHENTICATED API REQUESTS
 // ============================================================

@@ -70,3 +70,12 @@ test("signature detection identifies supported media containers", () => {
   wav.write("WAVE", 8, "ascii");
   assert.equal(detectUploadedSignature(wav), "audio/wav");
 });
+
+test("audio and video inline uploads enforce the smaller provider-safe request limit", async () => {
+  const tooLarge = Buffer.alloc(14 * 1024 * 1024 + 1);
+  tooLarge.write("ID3", 0, "ascii");
+  await assert.rejects(
+    upload("long-recording.mp3", "audio/mpeg", tooLarge),
+    /14 MB or smaller/i
+  );
+});

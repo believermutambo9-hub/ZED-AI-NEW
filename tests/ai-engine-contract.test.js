@@ -43,6 +43,8 @@ test("Gemini image failures fall back to a real Groq vision model, never a text-
   assert.match(server, /data:\$\{inlineData\.mimeType\};base64,/);
   assert.match(server, /askGroq\(prompt, inlineData\)/);
   assert.match(server, /provider: "groq-vision"/);
+  assert.match(server, /startsWith\("image\/"\)/);
+  assert.match(server, /Groq documents a 20 MB request limit/);
   assert.match(server, /AI_MULTIMODAL_UNAVAILABLE/);
   assert.match(server, /res\.status\(unavailable \? 503 : 500\)/);
   assert.match(server, /Image or scanned-document analysis is temporarily unavailable/);

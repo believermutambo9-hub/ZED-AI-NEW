@@ -87,16 +87,33 @@ test("memory lookup rejects a user ID that differs from the authenticated UID", 
   assert.match(server, /req\.params\.userId !== req\.user\.uid/);
 });
 
-test("chat endpoint fails closed on legacy conversations without an owner", () => {
-  const ownerGuard = server.indexOf("!conversation.metadata?.userId");
-  const restoreCall = server.indexOf("await restoreConversation(", ownerGuard);
-  const assignOwner = server.indexOf("conversation.metadata.userId =\n          userId", restoreCall);
-  assert.notEqual(ownerGuard, -1);
-  assert.notEqual(restoreCall, -1);
+test("legacy chat recovery requires a matching owner-scoped Firestore history record", () => {
+  const guard = server.indexOf("!conversation.metadata?.userId");
+  const verify = server.indexOf("history.getChat(userId, conversationId)", guard);
+  const reject = server.indexOf('answer: "Conversation not found."', verify);
+  const assignOwner = server.indexOf("userId\n        };", verify);
+  const restoreCall = server.indexOf("await restoreConversation(", verify);
+  assert.notEqual(guard, -1);
+  assert.notEqual(verify, -1);
+  assert.notEqual(reject, -1);
   assert.notEqual(assignOwner, -1);
-  assert.ok(ownerGuard < restoreCall, "owner guard must run before restoring stored history");
-  assert.ok(restoreCall < assignOwner, "owner assignment must happen only after restore");
-  assert.match(server.slice(ownerGuard - 200, restoreCall), /conversation\.messages\.length > 0/);
+  assert.notEqual(restoreCall, -1);
+  assert.ok(guard < verify && verify < assignOwner && assignOwner < restoreCall);
+  assert.match(server.slice(guard, verify), /conversation\.messages\.length > 0/);
+});
+
+test("account changes invalidate pending chat and prevent stale data from rendering", () => {
+  assert.match(app, /authGeneration: 0/);
+  assert.match(app, /const requestGeneration = state\.authGeneration/);
+  assert.match(app, /state\.authGeneration !== requestGeneration/);
+  assert.match(app, /Discarded a chat response after the signed-in account changed/);
+  assert.match(app, /Your Zed account changed during this request/);
+});
+
+test("chat, conversation, and project loads are discarded after account changes", () => {
+  assert.match(app, /async function loadChats\(\)[\s\S]*?state\.authGeneration !== requestGeneration/);
+  assert.match(app, /async function loadConversation\(conversationId\)[\s\S]*?state\.authGeneration !== requestGeneration/);
+  assert.match(app, /async function loadProjects\(\)[\s\S]*?state\.authGeneration !== requestGeneration/);
 });
 
 test("memory list and search use only the authenticated Firebase UID", () => {

@@ -817,88 +817,59 @@ async function askGemini(
 // ============================================================
 
 async function askGroq(
-  prompt
+  prompt,
+  inlineData = null
 ) {
   if (!GROQ_API_KEY) {
-    throw new Error(
-      "GROQ_API_KEY is missing."
-    );
+    throw new Error("GROQ_API_KEY is missing.");
   }
 
-  const response =
-    await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method:
-          "POST",
+  const userContent = inlineData
+    ? [
+        { type: "text", text: prompt },
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:${inlineData.mimeType};base64,${inlineData.data}`
+          }
+        }
+      ]
+    : prompt;
 
-        signal:
-          AbortSignal.timeout(45_000),
-
-        headers: {
-          "Authorization":
-            `Bearer ${GROQ_API_KEY}`,
-
-          "Content-Type":
-            "application/json"
-        },
-
-        body:
-          JSON.stringify({
-            model:
-              process.env.GROQ_MODEL || "openai/gpt-oss-120b",
-
-            messages: [
-              {
-                role: "system",
-                content: ZED_CORE_INSTRUCTIONS
-              },
-              {
-                role: "user",
-                content: prompt
-              }
-            ],
-
-            temperature:
-              0.7,
-
-            max_tokens:
-              2048
-          })
-      }
-    );
+  const response = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
+      signal: AbortSignal.timeout(60_000),
+      headers: {
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: inlineData
+          ? (process.env.GROQ_VISION_MODEL || "qwen/qwen3.8-27b")
+          : (process.env.GROQ_MODEL || "openai/gpt-oss-120b"),
+        messages: [
+          { role: "system", content: ZED_CORE_INSTRUCTIONS },
+          { role: "user", content: userContent }
+        ],
+        temperature: 0.7,
+        max_completion_tokens: 2048
+      })
+    }
+  );
 
   if (!response.ok) {
-    const errorText =
-      await response.text();
-
-    throw new Error(
-      `Groq ${response.status}: ${errorText.slice(
-        0,
-        500
-      )}`
-    );
+    const errorText = await response.text();
+    throw new Error(`Groq ${response.status}: ${errorText.slice(0, 500)}`);
   }
 
-  const data =
-    await response.json();
-
-  const answer =
-    data?.choices?.[0]
-      ?.message?.content ||
-    "";
-
-  if (
-    !cleanAIAnswer(answer)
-  ) {
-    throw new Error(
-      "Groq returned an empty response."
-    );
+  const data = await response.json();
+  const answer = data?.choices?.[0]?.message?.content || "";
+  if (!cleanAIAnswer(answer)) {
+    throw new Error("Groq returned an empty response.");
   }
-
-  return cleanAIAnswer(
-    answer
-  );
+  return cleanAIAnswer(answer);
 }
 
 // ============================================================
@@ -1019,12 +990,17 @@ async function askAI(
         "gemini"
     };
   } catch (error) {
-    errors.push(
-      `Gemini: ${error.message}`
-    );
+    errors.push(`Gemini: ${error.message}`);
+  }
 
-    // Never pretend a text-only provider has inspected an image or scanned PDF.
-    if (inlineData) {
+  // Images and scanned PDFs use a real vision model on Groq when Gemini is busy.
+  // Never route image content to a text-only model.
+  if (inlineData) {
+    try {
+      const answer = await askGroq(prompt, inlineData);
+      return { answer, provider: "groq-vision" };
+    } catch (error) {
+      errors.push(`Groq vision: ${error.message}`);
       const unavailable = new Error(
         "Image or scanned-document analysis is temporarily unavailable. Please try again shortly."
       );

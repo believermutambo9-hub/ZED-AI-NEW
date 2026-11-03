@@ -4,6 +4,17 @@ function cleanAIAnswer(value = "") {
   return String(value).replace(/\u0000/g, "").trim();
 }
 
+function isValidBase64(value) {
+  if (!value || value.length % 4 !== 0) return false;
+  const chunkSize = 64 * 1024;
+  const pattern = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+  for (let offset = 0; offset < value.length; offset += chunkSize) {
+    const chunk = value.slice(offset, Math.min(offset + chunkSize, value.length));
+    if (chunk.length % 4 !== 0 || !pattern.test(chunk)) return false;
+  }
+  return true;
+}
+
 // ============================================================
 function detectUploadedSignature(buffer) {
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
@@ -167,7 +178,13 @@ async function prepareUploadedFile(file) {
   const mimeType = dataUrlType || declaredType || "application/octet-stream";
   const base64 = match[2];
 
-  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(base64)) {
+  // Reject oversized encoded data before validation/decoding. Validate in bounded
+  // chunks so a legitimate near-limit upload cannot overflow the regex engine stack.
+  const maxEncodedLength = Math.ceil((18 * 1024 * 1024) / 3) * 4;
+  if (base64.length > maxEncodedLength) {
+    throw new Error("This file is too large to analyse. Please upload a file smaller than 18 MB.");
+  }
+  if (!isValidBase64(base64)) {
     throw new Error("The uploaded file data is invalid. Please upload it again.");
   }
 

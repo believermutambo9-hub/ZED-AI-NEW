@@ -136,11 +136,38 @@
     setStatus("Listening… go ahead", "listening");
   }
 
+  // iOS Safari may block speech started only after an awaited network request.
+  // Prime its speech engine synchronously from the user's tap that opens Voice Mode.
+  function primeSpeechSynthesis() {
+    const synth = window.speechSynthesis;
+    if (!synth || typeof window.SpeechSynthesisUtterance !== "function") return false;
+    try {
+      synth.cancel();
+      const primer = new window.SpeechSynthesisUtterance(".");
+      primer.lang = "en-US";
+      primer.volume = 0;
+      primer.rate = 10;
+      primer.onend = () => {
+        try { synth.resume(); } catch {}
+      };
+      synth.resume();
+      synth.speak(primer);
+      return true;
+    } catch (error) {
+      console.warn("Zed voice playback could not be unlocked:", error);
+      return false;
+    }
+  }
+
   function speak(text) {
     const answer = String(text || "").trim();
-    if (!answer || muted || !("speechSynthesis" in window)) return;
+    if (!answer || muted || !("speechSynthesis" in window) || typeof window.SpeechSynthesisUtterance !== "function") {
+      if (!muted) setStatus("Spoken replies are not supported by this browser.", "error");
+      return;
+    }
     const generation = ++speechGeneration;
     window.speechSynthesis.cancel();
+    window.speechSynthesis.resume();
     activeSpokenText = answer;
     const utterance = new SpeechSynthesisUtterance(answer.slice(0, 12000));
     utterance.lang = "en-US";
@@ -286,6 +313,8 @@
     }
     if (active) return;
     if (!recognition && !configureRecognition()) return;
+    // Must run directly inside the Start Voice button gesture for iOS Safari.
+    primeSpeechSynthesis();
     active = true;
     processing = false;
     speaking = false;

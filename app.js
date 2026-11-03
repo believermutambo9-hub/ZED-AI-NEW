@@ -363,7 +363,7 @@ function updateGoogleProfileAvatar() {
   const user = state.firebaseUser;
   const photoURL = user?.photoURL || "";
   const initials = (user?.displayName || user?.email || "U")
-    .trim().split(/\\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase();
+    .trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase();
 
   const renderAvatar = (button, className) => {
     if (!button) return;

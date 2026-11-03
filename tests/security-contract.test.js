@@ -745,6 +745,7 @@ test("real-time voice streams native audio and delegates Zed tasks through authe
   assert.match(voice, /name: "zed_chat"/);
   assert.match(voice, /zed-voice-screen/);
   assert.match(app, /window\.zedVoiceSubmitTranscript = async transcript/);
+  assert.match(app, /messageInput\.value = spokenText/);
   assert.match(app, /const answer = await sendMessage\(\)/);
   assert.match(app, /return assistantAnswer;/);
   assert.match(app, /return null;/);

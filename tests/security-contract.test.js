@@ -17,6 +17,15 @@ const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, u
   readFile(new URL("../styles.css", import.meta.url), "utf8")
 ]);
 
+test("Gemini Live setup omits unsupported toolConfig and retains the Zed chat function", async () => {
+  const serverSource = await readFile(new URL("../server.js", import.meta.url), "utf8");
+  const voiceSource = await readFile(new URL("../voice-mode.js", import.meta.url), "utf8");
+  assert.doesNotMatch(serverSource, /toolConfig:\s*\{/);
+  assert.doesNotMatch(voiceSource, /toolConfig:\s*\{/);
+  assert.match(serverSource, /functionDeclarations:\s*\[\{[\s\S]{0,120}name:\s*"zed_chat"/);
+  assert.match(voiceSource, /functionDeclarations:\s*\[\{[\s\S]{0,120}name:\s*"zed_chat"/);
+});
+
 test("API routes reject missing or invalid Firebase ID tokens", () => {
   assert.match(server, /req\.path\.startsWith\("\/api\/"\)/);
   assert.match(server, /Bearer\\s\+\(\.\+\)/);

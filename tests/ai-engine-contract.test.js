@@ -5,6 +5,9 @@ import { ZED_CORE_INSTRUCTIONS } from "../features/ai-instructions.js";
 
 const server = await readFile(new URL("../server.js", import.meta.url), "utf8");
 const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
+const voiceSource = await readFile(new URL("../voice-mode.js", import.meta.url), "utf8");
+const voiceCss = await readFile(new URL("../voice-mode.css", import.meta.url), "utf8");
 
 test("Zed has a stable provider-level identity and accuracy contract", () => {
   assert.match(ZED_CORE_INSTRUCTIONS, /independent AI assistant/i);
@@ -98,16 +101,16 @@ test("current-information detection matches whole words and does not treat know 
 
 
 test("voice transcripts use the same authenticated Zed chat pipeline as typed messages", () => {
-  assert.match(a, /window\.zedVoiceSubmitTranscript = async transcript/);
-  assert.match(a, /await sendMessage\(\)/);
-  assert.match(a, /window\.zedVoiceSetEnabled = enabled/);
-  assert.match(v, /window\.zedVoiceSubmitTranscript\(spokenText\)/);
-  assert.doesNotMatch(v, /generativelanguage\.googleapis\.com|/api/voice/token|new WebSocket/);
+  assert.match(appSource, /window\.zedVoiceSubmitTranscript = async transcript/);
+  assert.match(appSource, /await sendMessage\(\)/);
+  assert.match(appSource, /window\.zedVoiceSetEnabled = enabled/);
+  assert.match(voiceSource, /window\.zedVoiceSubmitTranscript\(spokenText\)/);
+  assert.doesNotMatch(voiceSource, /generativelanguage\.googleapis\.com|\\/api\\/voice\\/token|new WebSocket/);
 });
 
 test("voice interface stays inside the normal chat workspace", () => {
-  assert.match(v, /querySelector\("\.composer-container"\)/);
-  assert.match(v, /zed-voice-dock/);
-  assert.match(c, /\.zed-voice-dock\.is-active/);
-  assert.match(v, /zed:voice-speaking/);
+  assert.match(voiceSource, /querySelector\("\.composer-container"\)/);
+  assert.match(voiceSource, /zed-voice-dock/);
+  assert.match(voiceCss, /\.zed-voice-dock\.is-active/);
+  assert.match(appSource, /zed:voice-speaking/);
 });

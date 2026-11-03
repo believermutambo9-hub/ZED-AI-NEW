@@ -297,10 +297,23 @@
     const idToken = await user.getIdToken();
     if (!active || generation !== connectGeneration) return;
 
-    const tokenResponse = await fetch("/api/voice/token", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + idToken }
-    });
+    const tokenController = new AbortController();
+    const tokenTimeout = window.setTimeout(() => tokenController.abort(), 15000);
+    let tokenResponse;
+    try {
+      tokenResponse = await fetch("/api/voice/token", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + idToken },
+        signal: tokenController.signal
+      });
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        throw new Error("Zed's secure voice session request timed out. Please try again.");
+      }
+      throw new Error("Zed could not reach the voice session service. Check your connection and try again.");
+    } finally {
+      window.clearTimeout(tokenTimeout);
+    }
     const tokenData = await tokenResponse.json().catch(() => ({}));
     if (!tokenResponse.ok || !tokenData.ok || !tokenData.token) {
       throw new Error(tokenData.error || "Zed could not create a secure voice session.");
@@ -449,6 +462,15 @@
       console.error("Zed real-time voice startup failed:", error);
       if (active && generation === connectGeneration) {
         setStatus(error?.message || "Voice could not start. Please try again.", "error");
+        active = false;
+        setupReady = false;
+        if (socket) {
+          const failedSocket = socket;
+          socket = null;
+          try { failedSocket.close(); } catch {}
+        }
+        window.zedVoiceSetEnabled?.(false);
+        updateButtons();
       }
       await releaseAudioResources();
     } finally {

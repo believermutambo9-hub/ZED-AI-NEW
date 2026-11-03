@@ -1901,6 +1901,8 @@ window.zedVoiceSetEnabled = enabled => {
 };
 
 function speakZedResponse(text) {
+  // Dedicated voice mode speaks the reply itself after the shared chat request resolves.
+  if (window.ZedVoiceMode?.isActive) return;
   if (!voiceModeEnabled || !("speechSynthesis" in window) || !text) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 5000));

@@ -247,6 +247,7 @@ export function formatLiveDataEvidence(liveData = {}) {
       return [
         "LIVE EXCHANGE-RATE DATA",
         `Provider: ${item.provider}`,
+        "Source: https://frankfurter.dev/",
         `Rate date: ${item.date}`,
         `Pair: ${item.base}/${item.quote}`,
         `Rate: 1 ${item.base} = ${item.rate} ${item.quote}`,
@@ -258,6 +259,7 @@ export function formatLiveDataEvidence(liveData = {}) {
       return [
         "LIVE WEATHER DATA",
         `Provider: ${item.provider}`,
+        "Source: https://open-meteo.com/",
         `Location: ${item.location}`,
         `Local time zone: ${item.timezone}`,
         `Observation/model time: ${item.observedAt || "not supplied"}`,

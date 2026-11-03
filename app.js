@@ -1082,23 +1082,23 @@ function renderMessages() {
     wrapper.appendChild(
       content
     );
-    if (message.image) {
-      const image =
-        document.createElement("img");
-      image.src =
-        message.image;
-      image.alt =
-        "Image created by Zed";
-      image.style.cssText = `
-        display:block;
-        max-width:100%;
-        margin-top:12px;
-        border-radius:16px;
-        border:1px solid rgba(255,255,255,.10);
-      `;
-      content.appendChild(
-        image
-      );
+    if (message.image || message.imageAttachment) {
+      const image = document.createElement("img");
+      image.className = "message-uploaded-image";
+      image.alt = message.imageAttachment?.name || message.imageName || "Uploaded image";
+      image.loading = "lazy";
+      if (message.image) {
+        image.src = message.image;
+      } else if (message.imageAttachment?.id) {
+        image.dataset.attachmentId = message.imageAttachment.id;
+        apiFetch("/api/library/" + encodeURIComponent(message.imageAttachment.id) + "/preview")
+          .then(parseResponse)
+          .then(preview => {
+            if (preview?.ok && preview.url && image.isConnected) image.src = preview.url;
+          })
+          .catch(error => console.warn("Uploaded image preview could not be loaded:", error.message));
+      }
+      content.appendChild(image);
     }
     // Display validated web sources as ordinary safe links.
     if (message.role === "assistant" && Array.isArray(message.webSources) && message.webSources.length) {
@@ -1484,11 +1484,16 @@ async function sendMessage() {
   setSending(true);
   const previousMessages =
     state.messages.slice();
+  const selectedImage = state.selectedFile && state.selectedFile.type?.startsWith("image/")
+    ? state.selectedFile
+    : null;
+  const localImagePreview = selectedImage ? URL.createObjectURL(selectedImage) : null;
   state.messages.push({
     role:"user",
     content:
       text ||
-      "Please analyze this uploaded file."
+      "Please analyze this uploaded file.",
+    ...(localImagePreview ? { image: localImagePreview, imageName: selectedImage.name } : {})
   });
   renderMessages();
   messageInput.value =
@@ -1550,6 +1555,13 @@ async function sendMessage() {
     state.conversationId =
       data.conversationId ||
       state.conversationId;
+    const currentUserMessage = [...state.messages].reverse().find(message => message.role === "user");
+    if (currentUserMessage && data.imageAttachment) {
+      currentUserMessage.imageAttachment = data.imageAttachment;
+    }
+    if (currentUserMessage && selectedImage && !data.imageAttachment) {
+      currentUserMessage.imageSaveWarning = true;
+    }
     state.messages.push({
       role:"assistant",
       content:

@@ -95,3 +95,18 @@ test("M4A and QuickTime MOV files normalize to Gemini-supported media MIME types
   assert.equal(mov.mimeType, "video/mov");
   assert.equal(mov.mediaKind, "video");
 });
+
+test("all advertised audio and video formats have dedicated container-signature coverage", async () => {
+  const samples = [
+    ["voice.aac", "audio/aac", Buffer.from([0xff, 0xf1, 0x50, 0x80])],
+    ["voice.ogg", "audio/ogg", Buffer.from("OggS\x00\x02", "binary")],
+    ["voice.flac", "audio/flac", Buffer.from("fLaC\x00\x00\x00\x22", "binary")],
+    ["clip.m4v", "video/mp4", (() => { const b = Buffer.alloc(16); b.write("ftyp", 4, "ascii"); b.write("isom", 8, "ascii"); return b; })()],
+    ["clip.avi", "video/x-msvideo", (() => { const b = Buffer.alloc(16); b.write("RIFF", 0, "ascii"); b.write("AVI ", 8, "ascii"); return b; })()],
+    ["clip.3gp", "video/3gpp", (() => { const b = Buffer.alloc(16); b.write("ftyp", 4, "ascii"); b.write("3gp4", 8, "ascii"); return b; })()]
+  ];
+  for (const [name, mime, bytes] of samples) {
+    const result = await upload(name, mime, bytes);
+    assert.equal(result.mediaKind, mime.startsWith("audio/") ? "audio" : "video", name);
+  }
+});

@@ -24,7 +24,6 @@ const CURRENCY_ALIASES = {
   AED: ["aed", "dirham", "dirhams"],
   CHF: ["chf", "swiss franc", "swiss francs"],
   BRL: ["brl", "brazilian real"],
-  BTC: ["btc", "bitcoin"]
 };
 
 const WEATHER_CODES = {
@@ -59,7 +58,7 @@ const WEATHER_CODES = {
 };
 
 function cleanText(value = "") {
-  return String(value).replace(/[\\u0000-\\u001f\\u007f]/g, " ").replace(/\\s+/g, " ").trim();
+  return String(value).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 async function fetchJson(url, fetchImpl = globalThis.fetch) {
@@ -86,9 +85,9 @@ async function fetchJson(url, fetchImpl = globalThis.fetch) {
 function findCurrencyCode(value = "") {
   const normalized = cleanText(value).toLowerCase();
   for (const [code, aliases] of Object.entries(CURRENCY_ALIASES)) {
-    if (new RegExp(`\\\\b${code.toLowerCase()}\\\\b`, "i").test(normalized)) return code;
+    if (normalized.split(/[^a-z0-9]+/).includes(code.toLowerCase())) return code;
     for (const alias of aliases) {
-      if (normalized.includes(alias)) return code;
+      if (normalized === alias || normalized.includes(alias)) return code;
     }
   }
   return null;
@@ -96,7 +95,7 @@ function findCurrencyCode(value = "") {
 
 function parseCurrencyRequest(message = "") {
   const text = cleanText(message);
-  const amountMatch = text.match(/(?:convert|exchange|how much is|what is)?\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)\\s*([a-z]{3}|[a-z]+(?:\\s+[a-z]+){0,2})\\s+(?:to|in)\\s+([a-z]{3}|[a-z]+(?:\\s+[a-z]+){0,2})/i);
+  const amountMatch = text.match(/(?:convert|exchange|how much is|what is)?\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s*([a-z]{3}|[a-z]+(?:\s+[a-z]+){0,2})\s+(?:to|in)\s+([a-z]{3}|[a-z]+(?:\s+[a-z]+){0,2})/i);
   let base = null;
   let quote = null;
   let amount = 1;
@@ -105,14 +104,13 @@ function parseCurrencyRequest(message = "") {
     base = findCurrencyCode(amountMatch[2]);
     quote = findCurrencyCode(amountMatch[3]);
   } else {
-    const pairMatch = text.match(/\\b([A-Z]{3})\\s*(?:to|\\/)\\s*([A-Z]{3})\\b/i);
+    const pairMatch = text.match(/\b([A-Z]{3})\s*(?:to|\/)\s*([A-Z]{3})\b/i);
     if (pairMatch) {
       base = findCurrencyCode(pairMatch[1]);
       quote = findCurrencyCode(pairMatch[2]);
     } else {
-      const codes = Object.keys(CURRENCY_ALIASES).filter(code =>
-        new RegExp(`\\\\b${code}\\\\b`, "i").test(text)
-      );
+      const words = text.toUpperCase().split(/[^A-Z0-9]+/);
+      const codes = Object.keys(CURRENCY_ALIASES).filter(code => words.includes(code));
       if (codes.length >= 2) [base, quote] = codes.slice(0, 2);
     }
   }
@@ -122,24 +120,24 @@ function parseCurrencyRequest(message = "") {
 
 function parseWeatherLocation(message = "") {
   const text = cleanText(message);
-  const match = text.match(/\\b(?:weather|forecast|temperature|rain|raining)\\b(?:\\s+(?:like|today|tomorrow|now|currently))?\\s+(?:in|for|at)\\s+(.+?)(?:[?.!,;]|$)/i)
-    || text.match(/\\b(?:in|for)\\s+([a-z][a-z .'-]{1,80})\\s+(?:weather|forecast)\\b/i);
+  const match = text.match(/\b(?:weather|forecast|temperature|rain|raining)\b(?:\s+(?:like|today|tomorrow|now|currently))?\s+(?:in|for|at)\s+(.+?)(?:[?.!,;]|$)/i)
+    || text.match(/\b(?:in|for)\s+([a-z][a-z .'-]{1,80})\s+(?:weather|forecast)\b/i);
   if (!match) return "";
-  return cleanText(match[1]).replace(/\\b(today|tomorrow|this week|this weekend|right now|currently)\\b/gi, "").trim().slice(0, 100);
+  return cleanText(match[1]).replace(/\b(today|tomorrow|this week|this weekend|right now|currently)\b/gi, "").trim().slice(0, 100);
 }
 
 export function detectLiveDataIntent(message = "") {
   const text = cleanText(message).toLowerCase();
-  const currency = /\\b(convert|conversion|exchange rate|currency|how much is|\\d[\\d,.]*\\s*[a-z]{3}\\s+(?:to|in)\\s+[a-z]{3})\\b/i.test(text)
+  const currency = /\b(convert|conversion|exchange rate|currency|how much is|\d[\d,.]*\s*[a-z]{3}\s+(?:to|in)\s+[a-z]{3})\b/i.test(text)
     ? parseCurrencyRequest(message)
     : null;
-  const weatherLocation = /\\b(weather|forecast|temperature|raining|rainfall)\\b/i.test(text)
+  const weatherLocation = /\b(weather|forecast|temperature|raining|rainfall)\b/i.test(text)
     ? parseWeatherLocation(message)
     : "";
   return {
     currency,
     weatherLocation,
-    needsLocation: /\\b(weather|forecast|temperature|raining|rainfall)\\b/i.test(text) && !weatherLocation
+    needsLocation: /\b(weather|forecast|temperature|raining|rainfall)\b/i.test(text) && !weatherLocation
   };
 }
 
@@ -151,7 +149,7 @@ export async function getCurrencyRate({ base, quote, amount = 1, fetchImpl = glo
   }
   if (!Number.isFinite(amount) || amount < 0 || amount > 1e15) throw new Error("The amount is outside the supported range.");
   const data = await fetchJson(`${FRANKFURTER_RATE}/${normalizedBase}/${normalizedQuote}`, fetchImpl);
-  if (data.base !== normalizedBase || data.quote !== normalizedQuote || !Number.isFinite(data.rate) || data.rate <= 0 || !/^\\d{4}-\\d{2}-\\d{2}$/.test(data.date || "")) {
+  if (data.base !== normalizedBase || data.quote !== normalizedQuote || !Number.isFinite(data.rate) || data.rate <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(data.date || "")) {
     throw new Error("The exchange-rate provider returned incomplete or invalid data.");
   }
   return {
@@ -254,7 +252,7 @@ export function formatLiveDataEvidence(liveData = {}) {
         `Rate: 1 ${item.base} = ${item.rate} ${item.quote}`,
         `Conversion: ${item.amount} ${item.base} = ${item.converted.toFixed(4)} ${item.quote}`,
         item.note
-      ].join("\\n");
+      ].join("\n");
     }
     if (item.type === "weather") {
       return [
@@ -272,10 +270,10 @@ export function formatLiveDataEvidence(liveData = {}) {
         `Cloud cover: ${item.cloudCoverPercent ?? "not supplied"}%`,
         "Three-day forecast:",
         ...item.daily.map(day => `${day.date}: ${day.condition}, high ${day.highC ?? "n/a"} °C, low ${day.lowC ?? "n/a"} °C, rain probability ${day.precipitationProbabilityPercent ?? "n/a"}%, precipitation ${day.precipitationMm ?? "n/a"} mm`)
-      ].join("\\n");
+      ].join("\n");
     }
     return "";
   }).filter(Boolean);
-  if (errors.length) sections.push("LIVE DATA LIMITATIONS\\n" + errors.join("\\n"));
-  return sections.join("\\n\\n");
+  if (errors.length) sections.push("LIVE DATA LIMITATIONS\n" + errors.join("\n"));
+  return sections.join("\n\n");
 }

@@ -378,6 +378,16 @@ test("vision-only uploads are not sent to text-only fallback providers", () => {
 });
 
 
+test("uploaded images render as the original image and remain linked in chat history", () => {
+  assert.match(app, /message\.image \|\| message\.imageAttachment/);
+  assert.match(app, /message-uploaded-image/);
+  assert.match(app, /URL\.createObjectURL\(selectedImage\)/);
+  assert.match(app, /\/api\/library\/.*\/preview/);
+  assert.match(server, /saveLibraryFile\(\{[\s\S]*?dataUrl: req\.body\.file\.data/);
+  assert.match(server, /imageAttachment/);
+  assert.match(css, /\.message-uploaded-image[\s\S]*?object-fit: contain/);
+});
+
 test("browser rejects uploads over the server's 18 MB limit before reading them", () => {
   assert.match(app, /const maxUploadBytes =\s*18 \* 1024 \* 1024/);
   assert.match(app, /if \(file\.size > maxUploadBytes\)/);

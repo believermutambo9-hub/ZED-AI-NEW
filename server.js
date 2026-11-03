@@ -841,7 +841,7 @@ async function askGroq(
         body:
           JSON.stringify({
             model:
-              process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+              process.env.GROQ_MODEL || "openai/gpt-oss-120b",
 
             messages: [
               {
@@ -936,7 +936,7 @@ async function askOpenRouter(
         body:
           JSON.stringify({
             model:
-              process.env.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
+              process.env.OPENROUTER_MODEL || "openrouter/free",
 
             messages: [
               {

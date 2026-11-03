@@ -1910,10 +1910,13 @@ function setupAuthListener() {
         state.sending = false;
         setSending(false);
         state.selectedFile = null;
+        state.chats = [];
         state.chatHistoryUnavailable = false;
         if (fileInput) fileInput.value = "";
         removeThinking();
         window.ZedVoiceMode?.stop?.();
+        renderRecentChats();
+        document.getElementById("projectList")?.replaceChildren();
       }
       state.firebaseUser =
         user || null;

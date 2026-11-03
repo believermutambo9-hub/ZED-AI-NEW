@@ -26,3 +26,18 @@ test("fallback provider model names can be configured without changing source", 
 test("project checks include the new AI instruction module", () => {
   assert.match(packageJson.scripts.check, /features\/ai-instructions\.js/);
 });
+
+
+test("Gemini retries transient capacity and rate-limit failures before failing", () => {
+  assert.match(server, /function isRetryableGeminiError\(error\)/);
+  assert.match(server, /\[408, 429, 500, 502, 503, 504\]\.includes\(status\)/);
+  assert.match(server, /const maxAttempts = 3/);
+  assert.match(server, /600 \* \(2 \*\* attempt\)/);
+  assert.match(server, /retrying in \$\{delayMs\}ms/);
+});
+
+test("multimodal provider failures are not sent to text-only fallbacks and return HTTP 503", () => {
+  assert.match(server, /if \(inlineData\) \{[\s\S]*?AI_MULTIMODAL_UNAVAILABLE/);
+  assert.match(server, /res\.status\(unavailable \? 503 : 500\)/);
+  assert.match(server, /Image or scanned-document analysis is temporarily unavailable/);
+});

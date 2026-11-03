@@ -1135,6 +1135,27 @@ html[data-theme="dark"] .welcome-logo {
   word-break: break-word;
 }
 /* User bubble */
+.message-uploaded-image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(100%, 420px);
+  max-height: 420px;
+  object-fit: contain;
+  margin: 12px 0 2px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border, rgba(255,255,255,.12));
+  background: rgba(0,0,0,.04);
+}
+.message-user .message-content:has(.message-uploaded-image) {
+  max-width: min(88vw, 520px);
+}
+@media (max-width: 600px) {
+  .message-uploaded-image {
+    max-width: min(100%, 300px);
+    max-height: 360px;
+  }
+}
 .message-user .message-content {
   padding:
     12px 18px;

@@ -2682,7 +2682,8 @@ app.post(
           (
             !shouldUseFootballData(userMessage) &&
             !liveDataIntent.weatherLocation &&
-            !liveDataIntent.currency
+            !liveDataIntent.currency &&
+            !liveDataIntent.needsLocation
           )
         )
       ) {

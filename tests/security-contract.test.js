@@ -720,6 +720,8 @@ test("real-time voice token provisioning is authenticated, single-use, and short
 test("real-time voice streams 16 kHz PCM, plays 24 kHz audio, and clears interrupted playback", async () => {
   const voice = await readFile(new URL("../voice-mode.js", import.meta.url), "utf8");
   assert.match(voice, /audio\/pcm;rate=16000/);
+  assert.match(voice, /const output = new Int16Array\(outputLength\)/);
+  assert.doesNotMatch(voice, /if \(inputRate === 16000\) return floatSamples/);
   assert.match(voice, /createBuffer\(1, samples\.length, 24000\)/);
   assert.match(voice, /if \(content\.interrupted\)\s*\{\s*stopPlayback\(\)/);
   assert.match(voice, /window\.zedVoiceGetUser\?\.\(\)/);

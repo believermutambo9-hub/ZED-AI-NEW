@@ -295,6 +295,6 @@
     });
   }
 
-  window.ZedVoiceMode = { start, stop, toggle };
+  window.ZedVoiceMode = { start, stop, toggle, get isActive() { return active; } };
   install();
 })();

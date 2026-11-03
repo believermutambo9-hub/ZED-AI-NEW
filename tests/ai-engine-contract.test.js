@@ -13,6 +13,12 @@ test("Zed has a stable provider-level identity and accuracy contract", () => {
   assert.match(ZED_CORE_INSTRUCTIONS, /Do not claim to have performed an action unless the action actually succeeded/i);
 });
 
+test("Zed's response style avoids decorative asterisks and emphasis markup", () => {
+  assert.match(ZED_CORE_INSTRUCTIONS, /do not use asterisks as formatting markers, bullets, emphasis or decoration/i);
+  assert.match(ZED_CORE_INSTRUCTIONS, /Do not use bold or italic Markdown/i);
+  assert.match(ZED_CORE_INSTRUCTIONS, /hyphen bullets/i);
+});
+
 test("all text providers receive Zed's core instructions as system instructions", () => {
   assert.match(server, /systemInstruction:\s*inlineData\s*\?\s*IMAGE_ANALYSIS_INSTRUCTIONS\s*:\s*ZED_CORE_INSTRUCTIONS/);
   assert.equal((server.match(/role: "system"[\s\S]{0,100}ZED_CORE_INSTRUCTIONS/g) || []).length, 2);
@@ -53,7 +59,7 @@ test("Gemini image failures fall back to a real Groq vision model, never a text-
   assert.match(server, /type: "image_url"/);
   assert.match(server, /askOpenRouter\(providerPrompt, inlineData\)/);
   assert.match(server, /provider: "openrouter-vision"/);
-  assert.match(server, /startsWith\("image\/"\)/);
+  assert.match(server, /startsWith\("image\/"/);
   assert.match(server, /Groq documents a 20 MB request limit/);
   assert.match(server, /AI_MULTIMODAL_UNAVAILABLE/);
   assert.match(server, /res\.status\(unavailable \? 503 : 500\)/);

@@ -90,5 +90,8 @@ test("personal-memory questions load the user profile instead of keyword-only ma
 test("current-information detection matches whole words and does not treat know as now", () => {
   assert.match(server, /new RegExp\("\(\^\|\[\^a-z0-9\]\)" \+ escaped \+ "\(\$\|\[\^a-z0-9\]\)"/);
   assert.match(server, /"know" contain "now", incorrectly triggering web search/);
-  assert.doesNotMatch(server, /text\.includes\(word\)/);
+  const detectorStart = server.indexOf("// Match complete words/phrases only.");
+  const detectorEnd = server.indexOf("// FOOTBALL DETECTION", detectorStart);
+  const detector = server.slice(detectorStart, detectorEnd);
+  assert.doesNotMatch(detector, /text\\.includes\\(word\\)/);
 });

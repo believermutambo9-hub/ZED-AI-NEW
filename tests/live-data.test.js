@@ -93,3 +93,16 @@ test("live data evidence identifies providers, observation dates and limitations
   assert.match(text, /2026-11-03/);
   assert.match(text, /Provider unavailable/);
 });
+
+test("detects a direct currency pair without extra wording", () => {
+  const intent = detectLiveDataIntent("USD to ZMW");
+  assert.deepEqual(intent.currency, { base: "USD", quote: "ZMW", amount: 1 });
+});
+
+test("preserves country qualifiers in weather locations", () => {
+  assert.equal(detectLiveDataIntent("Give me the forecast for Kitwe, Zambia").weatherLocation, "Kitwe, Zambia");
+});
+
+test("detects rain as a weather request", () => {
+  assert.equal(detectLiveDataIntent("Is it likely to rain in Lusaka tomorrow").weatherLocation, "Lusaka");
+});

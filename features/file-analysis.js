@@ -206,7 +206,7 @@ async function prepareUploadedFile(file) {
     ".epub": "application/epub+zip",
     ".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4",
     ".aac": "audio/aac", ".ogg": "audio/ogg", ".flac": "audio/flac",
-    ".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime",
+    ".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/mov",
     ".webm": "video/webm", ".avi": "video/x-msvideo", ".3gp": "video/3gpp"
   };
   const expectedType = knownExtensionTypes[extension];
@@ -245,12 +245,15 @@ async function prepareUploadedFile(file) {
   }
 
   if (mediaExtensions.has(extension)) {
+    if (buffer.length > 14 * 1024 * 1024) {
+      throw new Error("Audio and video uploads must be 14 MB or smaller for direct analysis. Longer media support will use secure resumable uploads.");
+    }
     if (!expectedType || (signature !== expectedType && !([".mov", ".m4a"].includes(extension) && signature === "video/mp4"))) {
       throw new Error("The audio or video contents do not match the selected file type. Please upload a valid media file.");
     }
     if (!mimeLooksGeneric && mimeType !== expectedType &&
         !(extension === ".m4a" && mimeType === "audio/x-m4a") &&
-        !(extension === ".mov" && mimeType === "video/mp4")) {
+        !(extension === ".mov" && ["video/quicktime", "video/mp4"].includes(mimeType))) {
       throw new Error("The media format declared by your device does not match the file extension.");
     }
     return { fileName, mimeType: expectedType, inlineData: { mimeType: expectedType, data: base64 }, extractedText: "", mediaKind: expectedType.startsWith("audio/") ? "audio" : "video" };

@@ -1,22 +1,25 @@
-// Zed voice: continuous listening, barge-in and spoken replies through the shared chat engine.
+// Zed real-time voice: Gemini Live native audio, continuous microphone streaming and barge-in.
 (() => {
-  let recognition = null;
   let active = false;
-  let processing = false;
-  let speaking = false;
-  let recognitionRunning = false;
-  let restartPending = false;
-  let finalTranscript = "";
+  let connecting = false;
+  let muted = false;
+  let socket = null;
+  let mediaStream = null;
+  let audioContext = null;
+  let micSource = null;
+  let micProcessor = null;
+  let silentGain = null;
   let voiceScreen = null;
   let statusNode = null;
   let transcriptNode = null;
-  let muted = false;
-  let speechGeneration = 0;
-  let activeSpokenText = "";
-  let transcriptHistory = [];
-  let lastSubmittedAt = 0;
+  let setupReady = false;
+  let scheduledUntil = 0;
+  let activeSources = new Set();
+  let inputText = "";
+  let outputText = "";
+  let connectGeneration = 0;
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const LIVE_ENDPOINT = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained";
 
   function setStatus(message, state = "idle") {
     if (!statusNode) return;
@@ -28,14 +31,17 @@
   }
 
   function setTranscript(message) {
-    if (transcriptNode) transcriptNode.textContent = message;
+    if (!transcriptNode) return;
+    transcriptNode.textContent = message || "Your conversation will appear here.";
+    transcriptNode.scrollTop = transcriptNode.scrollHeight;
   }
 
-  function addTranscript(speaker, message) {
-    transcriptHistory.push({ speaker, message: String(message || "").trim() });
-    transcriptHistory = transcriptHistory.slice(-30);
-    setTranscript(transcriptHistory.map(item => item.speaker + "\n" + item.message).join("\n\n"));
-    if (transcriptNode) transcriptNode.scrollTop = transcriptNode.scrollHeight;
+  function appendTranscript(speaker, message) {
+    const line = String(message || "").trim();
+    if (!line) return;
+    const current = transcriptNode?.textContent || "";
+    const prefix = current === "Your conversation will appear here." ? "" : current + "\n\n";
+    setTranscript(prefix + speaker + "\n" + line);
   }
 
   function updateButtons() {
@@ -55,7 +61,7 @@
     voiceScreen.className = "zed-voice-screen";
     voiceScreen.setAttribute("role", "dialog");
     voiceScreen.setAttribute("aria-modal", "true");
-    voiceScreen.setAttribute("aria-label", "Zed voice conversation");
+    voiceScreen.setAttribute("aria-label", "Zed real-time voice conversation");
     voiceScreen.innerHTML = `
       <header class="zed-voice-header">
         <div class="zed-voice-brand"><span class="zed-voice-brand-mark">Z</span><span>Zed voice</span></div>
@@ -67,15 +73,15 @@
       <main class="zed-voice-stage">
         <div class="zed-voice-orb" aria-hidden="true"><span></span><span></span><span></span></div>
         <h2 class="zed-voice-heading">Talk with Zed</h2>
-        <p class="zed-voice-status" data-state="idle" aria-live="polite">Starting voice conversation…</p>
+        <p class="zed-voice-status" data-state="idle" aria-live="polite">Starting real-time voice…</p>
         <div class="zed-voice-transcript" aria-live="polite">Your conversation will appear here.</div>
       </main>
       <footer class="zed-voice-footer">
         <button class="zed-voice-action zed-voice-mute" type="button" aria-pressed="false"><span>◖</span><small>Mute reply</small></button>
-        <button class="zed-voice-action zed-voice-mic" type="button" aria-label="Interrupt or resume listening"><span>🎙</span><small>Interrupt</small></button>
+        <button class="zed-voice-action zed-voice-mic" type="button" aria-label="Stop current reply"><span>🎙</span><small>Interrupt</small></button>
         <button class="zed-voice-action zed-voice-end" type="button"><span>×</span><small>End</small></button>
       </footer>
-      <p class="zed-voice-hint">You can speak while Zed is talking to interrupt.</p>`;
+      <p class="zed-voice-hint">Speak naturally. You can interrupt Zed at any time.</p>`;
     document.body.append(voiceScreen);
     statusNode = voiceScreen.querySelector(".zed-voice-status");
     transcriptNode = voiceScreen.querySelector(".zed-voice-transcript");
@@ -83,131 +89,296 @@
     voiceScreen.querySelector(".zed-voice-end").addEventListener("click", stop);
     voiceScreen.querySelector(".zed-voice-mute").addEventListener("click", toggleMute);
     voiceScreen.querySelector(".zed-voice-mic").addEventListener("click", () => {
-      if (!active) return;
-      interruptSpeech();
-      startRecognition();
+      stopPlayback();
+      if (active && setupReady) setStatus("Listening… go ahead", "listening");
     });
     return voiceScreen;
   }
 
-  function startRecognition() {
-    if (!active || processing || !recognition || recognitionRunning || restartPending || document.hidden) return;
-    restartPending = true;
-    try {
-      recognition.start();
-    } catch (error) {
-      restartPending = false;
-      if (error?.name !== "InvalidStateError") {
-        console.warn("Zed voice recognition could not start:", error);
-        setStatus("Microphone could not start. Tap the microphone to retry.", "error");
-      }
+  function bytesToBase64(bytes) {
+    let binary = "";
+    const step = 0x8000;
+    for (let i = 0; i < bytes.length; i += step) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + step));
     }
+    return btoa(binary);
   }
 
-  function stopRecognition() {
-    if (!recognition) return;
-    restartPending = false;
-    try { recognition.stop(); } catch {}
+  function downsampleToPcm16(input, inputRate) {
+    const ratio = inputRate / 16000;
+    const outputLength = Math.max(1, Math.floor(input.length / ratio));
+    const pcm = new Int16Array(outputLength);
+    for (let i = 0; i < outputLength; i++) {
+      const position = i * ratio;
+      const left = Math.floor(position);
+      const right = Math.min(left + 1, input.length - 1);
+      const fraction = position - left;
+      const sample = input[left] * (1 - fraction) + input[right] * fraction;
+      const clipped = Math.max(-1, Math.min(1, sample));
+      pcm[i] = clipped < 0 ? clipped * 0x8000 : clipped * 0x7fff;
+    }
+    return new Uint8Array(pcm.buffer);
   }
 
-  function normalizeWords(value) {
-    return String(value || "").toLowerCase().replace(/[^a-z0-9\s']/g, " ").split(/\s+/).filter(Boolean);
+  function startMicrophoneStreaming() {
+    if (!audioContext || !mediaStream || !socket || socket.readyState !== WebSocket.OPEN) return;
+    micSource = audioContext.createMediaStreamSource(mediaStream);
+    micProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+    silentGain = audioContext.createGain();
+    silentGain.gain.value = 0;
+    micProcessor.onaudioprocess = event => {
+      if (!active || !setupReady || !socket || socket.readyState !== WebSocket.OPEN) return;
+      const input = event.inputBuffer.getChannelData(0);
+      const pcm = downsampleToPcm16(input, audioContext.sampleRate);
+      socket.send(JSON.stringify({
+        realtimeInput: {
+          audio: {
+            mimeType: "audio/pcm;rate=16000",
+            data: bytesToBase64(pcm)
+          }
+        }
+      }));
+    };
+    micSource.connect(micProcessor);
+    micProcessor.connect(silentGain);
+    silentGain.connect(audioContext.destination);
   }
 
-  // Ignore text the microphone recognises from Zed's own speaker output.
-  function isLikelySpeechEcho(candidate) {
-    const words = normalizeWords(candidate);
-    const spoken = normalizeWords(activeSpokenText);
-    if (words.length < 2 || spoken.length < 2) return false;
-    const spokenSet = new Set(spoken);
-    const overlap = words.filter(word => spokenSet.has(word)).length / words.length;
-    const phrase = words.join(" ");
-    return activeSpokenText.toLowerCase().includes(phrase) || overlap >= 0.78;
-  }
-
-  function interruptSpeech() {
-    if (!speaking) return;
-    speechGeneration++;
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-    speaking = false;
-    activeSpokenText = "";
+  function stopPlayback() {
+    for (const source of activeSources) {
+      try { source.stop(); } catch {}
+      try { source.disconnect(); } catch {}
+    }
+    activeSources.clear();
+    scheduledUntil = audioContext?.currentTime || 0;
     voiceScreen?.classList.remove("is-speaking");
-    window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: false } }));
-    setStatus("Listening… go ahead", "listening");
+    if (active && setupReady) setStatus("Listening… go ahead", "listening");
   }
 
-  // iOS Safari may block speech started only after an awaited network request.
-  // Prime its speech engine synchronously from the user's tap that opens Voice Mode.
-  function primeSpeechSynthesis() {
-    const synth = window.speechSynthesis;
-    if (!synth || typeof window.SpeechSynthesisUtterance !== "function") return false;
-    try {
-      synth.cancel();
-      const primer = new window.SpeechSynthesisUtterance(".");
-      primer.lang = "en-US";
-      primer.volume = 0;
-      primer.rate = 10;
-      primer.onend = () => {
-        try { synth.resume(); } catch {}
-      };
-      synth.resume();
-      synth.speak(primer);
-      return true;
-    } catch (error) {
-      console.warn("Zed voice playback could not be unlocked:", error);
-      return false;
+  function playPcm24k(base64) {
+    if (!audioContext || muted || !base64) return;
+    const binary = atob(base64);
+    if (binary.length < 8) return;
+    const sampleCount = Math.floor(binary.length / 2);
+    const view = new DataView(new ArrayBuffer(sampleCount * 2));
+    for (let i = 0; i < sampleCount; i++) {
+      view.setInt16(i * 2, (binary.charCodeAt(i * 2) & 255) | ((binary.charCodeAt(i * 2 + 1) & 255) << 8), true);
     }
+    const buffer = audioContext.createBuffer(1, sampleCount, 24000);
+    const channel = buffer.getChannelData(0);
+    for (let i = 0; i < sampleCount; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+    const startAt = Math.max(audioContext.currentTime + 0.025, scheduledUntil);
+    scheduledUntil = startAt + buffer.duration;
+    activeSources.add(source);
+    source.onended = () => {
+      activeSources.delete(source);
+      try { source.disconnect(); } catch {}
+      if (active && activeSources.size === 0 && audioContext.currentTime >= scheduledUntil - 0.04) {
+        voiceScreen?.classList.remove("is-speaking");
+        setStatus("Listening… your turn", "listening");
+      }
+    };
+    source.start(startAt);
+    voiceScreen?.classList.add("is-speaking");
+    setStatus("Zed is speaking — you can interrupt", "speaking");
   }
 
-  function speak(text) {
-    const answer = String(text || "").trim();
-    if (!answer || muted || !("speechSynthesis" in window) || typeof window.SpeechSynthesisUtterance !== "function") {
-      if (!muted) setStatus("Spoken replies are not supported by this browser.", "error");
+  function handleLiveMessage(event) {
+    let message;
+    try {
+      message = JSON.parse(event.data);
+    } catch {
+      console.warn("Zed received an unreadable Live API event.");
       return;
     }
-    const generation = ++speechGeneration;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.resume();
-    activeSpokenText = answer;
-    const utterance = new SpeechSynthesisUtterance(answer.slice(0, 12000));
-    utterance.lang = "en-US";
-    utterance.rate = 1.02;
-    utterance.pitch = 1;
-    const voices = window.speechSynthesis.getVoices?.() || [];
-    const preferredVoice = voices.find(voice => /^en-US$/i.test(voice.lang) && /natural|enhanced|premium/i.test(voice.name))
-      || voices.find(voice => /^en-US$/i.test(voice.lang))
-      || voices.find(voice => /^en/i.test(voice.lang));
-    if (preferredVoice) utterance.voice = preferredVoice;
 
-    utterance.onstart = () => {
-      if (generation !== speechGeneration || !active) return;
-      speaking = true;
-      setStatus("Zed is speaking — you can interrupt", "speaking");
-      voiceScreen?.classList.add("is-speaking");
-      window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: true } }));
-      // Keep recognition alive during speech so the user can barge in naturally.
-      startRecognition();
-    };
-    const finish = () => {
-      if (generation !== speechGeneration) return;
-      speaking = false;
-      activeSpokenText = "";
-      voiceScreen?.classList.remove("is-speaking");
-      window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: false } }));
-      if (active && !processing) {
-        setStatus("Listening… your turn", "listening");
-        window.setTimeout(startRecognition, 250);
+    if (message.setupComplete) {
+      setupReady = true;
+      setStatus("Listening… speak naturally", "listening");
+      startMicrophoneStreaming();
+      return;
+    }
+
+    if (message.error) {
+      console.error("Zed Live API error:", message.error);
+      setStatus(message.error.message || "The real-time voice service returned an error.", "error");
+      return;
+    }
+
+    const serverContent = message.serverContent;
+    if (!serverContent) return;
+
+    if (serverContent.interrupted) stopPlayback();
+
+    if (serverContent.inputTranscription?.text) {
+      inputText += serverContent.inputTranscription.text;
+      setTranscript("You\n" + inputText.trim() + (outputText ? "\n\nZed\n" + outputText.trim() : ""));
+    }
+
+    if (serverContent.outputTranscription?.text) {
+      outputText += serverContent.outputTranscription.text;
+      setTranscript((inputText ? "You\n" + inputText.trim() + "\n\n" : "") + "Zed\n" + outputText.trim());
+    }
+
+    for (const part of serverContent.modelTurn?.parts || []) {
+      const inline = part.inlineData || part.inline_data;
+      if (inline?.data && String(inline.mimeType || inline.mime_type || "").startsWith("audio/")) {
+        playPcm24k(inline.data);
       }
+    }
+
+    if (serverContent.turnComplete) {
+      inputText = "";
+      outputText = "";
+      if (!activeSources.size) setStatus("Listening… your turn", "listening");
+    }
+  }
+
+  async function openLiveSession(generation) {
+    const user = window.zedVoiceGetUser?.();
+    if (!user) throw new Error("Please sign in before starting voice chat.");
+    const idToken = await user.getIdToken();
+    if (!active || generation !== connectGeneration) return;
+
+    const tokenResponse = await fetch("/api/voice/token", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + idToken }
+    });
+    const tokenData = await tokenResponse.json().catch(() => ({}));
+    if (!tokenResponse.ok || !tokenData.ok || !tokenData.token) {
+      throw new Error(tokenData.error || "Zed could not create a secure voice session.");
+    }
+    if (!active || generation !== connectGeneration) return;
+
+    const url = LIVE_ENDPOINT + "?access_token=" + encodeURIComponent(tokenData.token);
+    socket = new WebSocket(url);
+    await new Promise((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error("The real-time voice connection timed out. Please try again.")), 15000);
+      socket.addEventListener("open", () => {
+        window.clearTimeout(timeout);
+        socket.send(JSON.stringify({ setup: { model: "models/" + tokenData.model } }));
+      }, { once: true });
+      socket.addEventListener("error", () => {
+        window.clearTimeout(timeout);
+        reject(new Error("Could not connect to Gemini's real-time voice service."));
+      }, { once: true });
+      socket.addEventListener("message", event => {
+        let packet;
+        try { packet = JSON.parse(event.data); } catch { return; }
+        if (packet.setupComplete) {
+          window.clearTimeout(timeout);
+          resolve();
+        } else if (packet.error) {
+          window.clearTimeout(timeout);
+          reject(new Error(packet.error.message || "The real-time voice session was rejected."));
+        }
+      });
+    });
+    if (!active || generation !== connectGeneration) return;
+    socket.onmessage = handleLiveMessage;
+    socket.onclose = event => {
+      setupReady = false;
+      if (active) setStatus(event.reason || "Voice connection ended. Close and restart voice chat.", "error");
     };
-    utterance.onend = finish;
-    utterance.onerror = event => {
-      if (event.error !== "canceled" && event.error !== "interrupted") {
-        setStatus("Zed's reply is visible, but audio playback failed. Tap the microphone to continue.", "error");
+    socket.onerror = () => {
+      if (active) setStatus("The real-time voice connection was interrupted.", "error");
+    };
+  }
+
+  async function start() {
+    ensureScreen();
+    if (active || connecting) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof window.AudioContext !== "function" && typeof window.webkitAudioContext !== "function") {
+      voiceScreen.classList.add("is-active");
+      document.body.classList.add("zed-voice-open");
+      setStatus("This browser does not support real-time microphone audio. Please use Safari or Chrome.", "error");
+      return;
+    }
+
+    active = true;
+    connecting = true;
+    muted = false;
+    setupReady = false;
+    inputText = "";
+    outputText = "";
+    connectGeneration++;
+    const generation = connectGeneration;
+    document.body.classList.add("zed-voice-open");
+    voiceScreen.classList.add("is-active");
+    voiceScreen.querySelector(".zed-voice-mute").setAttribute("aria-pressed", "false");
+    voiceScreen.querySelector(".zed-voice-mute small").textContent = "Mute reply";
+    setTranscript("Connecting to Zed…");
+    setStatus("Starting secure voice connection…", "connecting");
+    window.zedVoiceSetEnabled?.(true);
+    updateButtons();
+
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      audioContext = new AudioContextClass();
+      await audioContext.resume();
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false
+      });
+      if (!active || generation !== connectGeneration) return;
+      setStatus("Connecting to Zed Live…", "connecting");
+      await openLiveSession(generation);
+    } catch (error) {
+      console.error("Zed real-time voice startup failed:", error);
+      if (active && generation === connectGeneration) {
+        setStatus(error?.message || "Voice could not start. Please try again.", "error");
       }
-      finish();
-    };
-    window.speechSynthesis.speak(utterance);
-    setStatus("Preparing Zed's voice…", "speaking");
+      await releaseAudioResources();
+    } finally {
+      connecting = false;
+    }
+  }
+
+  async function releaseAudioResources() {
+    if (micProcessor) {
+      micProcessor.onaudioprocess = null;
+      try { micProcessor.disconnect(); } catch {}
+      micProcessor = null;
+    }
+    try { micSource?.disconnect(); } catch {}
+    micSource = null;
+    try { silentGain?.disconnect(); } catch {}
+    silentGain = null;
+    for (const source of activeSources) {
+      try { source.stop(); } catch {}
+      try { source.disconnect(); } catch {}
+    }
+    activeSources.clear();
+    if (mediaStream) {
+      for (const track of mediaStream.getTracks()) track.stop();
+      mediaStream = null;
+    }
+    if (audioContext) {
+      const context = audioContext;
+      audioContext = null;
+      try { await context.close(); } catch {}
+    }
+  }
+
+  async function stop() {
+    active = false;
+    connecting = false;
+    setupReady = false;
+    connectGeneration++;
+    if (socket) {
+      const current = socket;
+      socket = null;
+      try { current.close(1000, "Voice session ended"); } catch {}
+    }
+    await releaseAudioResources();
+    window.zedVoiceSetEnabled?.(false);
+    voiceScreen?.classList.remove("is-active", "is-speaking", "is-listening", "is-thinking");
+    document.body.classList.remove("zed-voice-open");
+    setStatus("Voice conversation ended", "idle");
+    updateButtons();
   }
 
   function toggleMute() {
@@ -217,140 +388,7 @@
       button.setAttribute("aria-pressed", String(muted));
       button.querySelector("small").textContent = muted ? "Unmute reply" : "Mute reply";
     }
-    if (muted) interruptSpeech();
-  }
-
-  async function submitSpeech(text) {
-    const spokenText = String(text || "").trim();
-    if (!spokenText || processing || !active) return;
-    const now = Date.now();
-    if (now - lastSubmittedAt < 700) return;
-    lastSubmittedAt = now;
-    processing = true;
-    stopRecognition();
-    interruptSpeech();
-    finalTranscript = "";
-    addTranscript("You", spokenText);
-    setStatus("Zed is thinking…", "thinking");
-    try {
-      if (typeof window.zedVoiceSubmitTranscript !== "function") {
-        throw new Error("Zed's chat engine is not ready. Please reload and try again.");
-      }
-      const answer = await window.zedVoiceSubmitTranscript(spokenText);
-      if (!answer) throw new Error("Zed did not return a response. Please try again.");
-      addTranscript("Zed", answer);
-      if (!muted && "speechSynthesis" in window) speak(answer);
-      else setStatus("Zed replied. Listening…", "listening");
-    } catch (error) {
-      console.error("Zed voice conversation failed:", error);
-      const message = error?.message || "Voice request failed. Please try again.";
-      addTranscript("Zed", message);
-      if (!muted) speak(message);
-      else setStatus(message, "error");
-    } finally {
-      processing = false;
-      if (active) window.setTimeout(startRecognition, 300);
-    }
-  }
-
-  function configureRecognition() {
-    if (!SpeechRecognition) return false;
-    recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-    recognition.onstart = () => {
-      restartPending = false;
-      recognitionRunning = true;
-      finalTranscript = "";
-      if (active && !processing && !speaking) setStatus("Listening… speak naturally", "listening");
-    };
-    recognition.onresult = event => {
-      let interim = "";
-      let finalText = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        const phrase = String(result[0]?.transcript || "").trim();
-        if (!phrase) continue;
-        if (speaking && isLikelySpeechEcho(phrase)) continue;
-        if (speaking && phrase.split(/\s+/).length >= 2) interruptSpeech();
-        if (result.isFinal) finalText += phrase + " ";
-        else interim += phrase;
-      }
-      const visible = (finalText + interim).trim();
-      if (visible && !speaking) setTranscript("You\n" + visible);
-      if (finalText.trim() && !processing) void submitSpeech(finalText.trim());
-    };
-    recognition.onerror = event => {
-      restartPending = false;
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        setStatus("Microphone permission was denied. Allow microphone access and start voice again.", "error");
-        active = false;
-        document.body.classList.remove("zed-voice-open");
-        voiceScreen?.classList.remove("is-active");
-        window.zedVoiceSetEnabled?.(false);
-        updateButtons();
-      } else if (event.error !== "no-speech" && event.error !== "aborted") {
-        setStatus("Microphone connection interrupted. Reconnecting…", "error");
-      }
-    };
-    recognition.onend = () => {
-      recognitionRunning = false;
-      restartPending = false;
-      if (active && !processing && !document.hidden) window.setTimeout(startRecognition, 250);
-    };
-    return true;
-  }
-
-  function start() {
-    ensureScreen();
-    if (!SpeechRecognition) {
-      voiceScreen.classList.add("is-active");
-      document.body.classList.add("zed-voice-open");
-      setStatus("This browser does not support voice input. Open Zed in Safari or Chrome with microphone access enabled.", "error");
-      return;
-    }
-    if (active) return;
-    if (!recognition && !configureRecognition()) return;
-    // Must run directly inside the Start Voice button gesture for iOS Safari.
-    primeSpeechSynthesis();
-    active = true;
-    processing = false;
-    speaking = false;
-    muted = false;
-    transcriptHistory = [];
-    document.body.classList.add("zed-voice-open");
-    voiceScreen.classList.add("is-active");
-    voiceScreen.querySelector(".zed-voice-mute").setAttribute("aria-pressed", "false");
-    voiceScreen.querySelector(".zed-voice-mute small").textContent = "Mute reply";
-    setTranscript("I'm listening. What would you like to talk about?");
-    setStatus("Connecting microphone…", "connecting");
-    window.zedVoiceSetEnabled?.(true);
-    updateButtons();
-    startRecognition();
-  }
-
-  function stop() {
-    active = false;
-    processing = false;
-    speaking = false;
-    recognitionRunning = false;
-    restartPending = false;
-    speechGeneration++;
-    stopRecognition();
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-    activeSpokenText = "";
-    window.zedVoiceSetEnabled?.(false);
-    voiceScreen?.classList.remove("is-active", "is-speaking", "is-listening", "is-thinking");
-    document.body.classList.remove("zed-voice-open");
-    setStatus("Voice conversation ended", "idle");
-    updateButtons();
-  }
-
-  function toggle() {
-    if (active) stop();
-    else start();
+    if (muted) stopPlayback();
   }
 
   function install() {
@@ -362,16 +400,20 @@
       button.addEventListener("click", event => {
         event.preventDefault();
         event.stopImmediatePropagation();
-        toggle();
+        void toggle();
       }, true);
     }
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden && active) stopRecognition();
-      else if (!document.hidden && active && !processing) startRecognition();
-    });
     document.addEventListener("keydown", event => {
-      if (event.key === "Escape" && active) stop();
+      if (event.key === "Escape" && active) void stop();
     });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && active) setStatus("Voice is paused while this page is in the background.", "error");
+    });
+  }
+
+  function toggle() {
+    if (active) void stop();
+    else void start();
   }
 
   window.ZedVoiceMode = { start, stop, toggle, get isActive() { return active; } };

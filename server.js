@@ -3311,11 +3311,18 @@ app.post("/api/voice/token", async (req, res) => {
           model: "models/" + liveModel,
           config: {
             responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: "Aoede" }
+              }
+            },
             inputAudioTranscription: {},
             outputAudioTranscription: {},
             sessionResumption: {},
             systemInstruction: {
-              parts: [{ text: "You are Zed, a helpful, accurate, natural voice assistant. Respond clearly and conversationally. Do not claim to be another assistant or mention internal implementation details." }]
+              parts: [{
+                text: "You are Zed, a warm, natural and attentive voice assistant. Speak like a helpful person in a relaxed conversation. Keep spoken replies concise and direct unless the user asks for detail. Use contractions naturally. Avoid robotic introductions, repetitive summaries, reading out formatting, or saying you are an AI. Answer accurately and admit uncertainty. Do not claim to be another assistant."
+              }]
             }
           }
         }

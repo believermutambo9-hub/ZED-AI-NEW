@@ -259,7 +259,27 @@
       const timeout = window.setTimeout(() => reject(new Error("The real-time voice connection timed out. Please try again.")), 15000);
       socket.addEventListener("open", () => {
         window.clearTimeout(timeout);
-        socket.send(JSON.stringify({ setup: { model: "models/" + tokenData.model } }));
+        socket.send(JSON.stringify({
+          setup: {
+            model: "models/" + tokenData.model,
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: { voiceName: "Aoede" }
+                }
+              }
+            },
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            sessionResumption: {},
+            systemInstruction: {
+              parts: [{
+                text: "You are Zed, a warm, natural and attentive voice assistant. Speak like a helpful person in a relaxed conversation. Keep spoken replies concise and direct unless the user asks for detail. Use contractions naturally. Avoid robotic introductions, repetitive summaries, reading out formatting, or saying you are an AI. Answer accurately and admit uncertainty. Do not claim to be another assistant."
+              }]
+            }
+          }
+        }));
       }, { once: true });
       socket.addEventListener("error", () => {
         window.clearTimeout(timeout);
@@ -270,6 +290,9 @@
         try { packet = JSON.parse(event.data); } catch { return; }
         if (packet.setupComplete) {
           window.clearTimeout(timeout);
+          setupReady = true;
+          setStatus("Listening… speak naturally", "listening");
+          startMicrophoneStreaming();
           resolve();
         } else if (packet.error) {
           window.clearTimeout(timeout);

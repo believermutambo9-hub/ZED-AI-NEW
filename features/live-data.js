@@ -128,16 +128,16 @@ function parseWeatherLocation(message = "") {
 
 export function detectLiveDataIntent(message = "") {
   const text = cleanText(message).toLowerCase();
-  const currency = /\b(convert|conversion|exchange rate|currency|how much is|\d[\d,.]*\s*[a-z]{3}\s+(?:to|in)\s+[a-z]{3})\b/i.test(text)
+  const currency = /\b(convert|conversion|exchange rate|currency|how much is|\d[\d,.]*\s*[a-z]{3}\s+(?:to|in)\s+[a-z]{3}|[a-z]{3}\s*(?:to|\/)\s*[a-z]{3})\b/i.test(text)
     ? parseCurrencyRequest(message)
     : null;
-  const weatherLocation = /\b(weather|forecast|temperature|raining|rainfall)\b/i.test(text)
+  const weatherLocation = /\b(weather|forecast|temperature|rain|raining|rainfall)\b/i.test(text)
     ? parseWeatherLocation(message)
     : "";
   return {
     currency,
     weatherLocation,
-    needsLocation: /\b(weather|forecast|temperature|raining|rainfall)\b/i.test(text) && !weatherLocation
+    needsLocation: /\b(weather|forecast|temperature|rain|raining|rainfall)\b/i.test(text) && !weatherLocation
   };
 }
 

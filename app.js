@@ -895,6 +895,150 @@ function setSending(
   }
 }
 // ============================================================
+// SAFE MARKDOWN RENDERING
+// ============================================================
+// Build DOM nodes instead of injecting model output as HTML.
+function appendInlineMarkdown(parent, source) {
+  const text = String(source || "");
+  const tokenPattern = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*]+)\*\*|__([^_]+)__|\x60([^\x60]+)\x60|\*([^*\n]+)\*|_([^_\n]+)_)/g;
+  let cursor = 0;
+  let match;
+  while ((match = tokenPattern.exec(text))) {
+    if (match.index > cursor) parent.appendChild(document.createTextNode(text.slice(cursor, match.index)));
+    let node;
+    if (match[2] && match[3]) {
+      try {
+        const url = new URL(match[3]);
+        if (url.protocol === "http:" || url.protocol === "https:") {
+          node = document.createElement("a");
+          node.href = url.href;
+          node.target = "_blank";
+          node.rel = "noopener noreferrer";
+          node.textContent = match[2];
+        }
+      } catch {}
+    } else if (match[4] || match[5]) {
+      node = document.createElement("strong");
+      node.textContent = match[4] || match[5];
+    } else if (match[6]) {
+      node = document.createElement("code");
+      node.textContent = match[6];
+    } else if (match[7] || match[8]) {
+      node = document.createElement("em");
+      node.textContent = match[7] || match[8];
+    }
+    parent.appendChild(node || document.createTextNode(match[0]));
+    cursor = tokenPattern.lastIndex;
+  }
+  if (cursor < text.length) parent.appendChild(document.createTextNode(text.slice(cursor)));
+}
+
+function renderMarkdownInto(container, markdown) {
+  const lines = String(markdown || "").replace(/\r\n?/g, "\n").split("\n");
+  let index = 0;
+  const isTableDivider = line => /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+  const splitTableRow = line => line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(cell => cell.trim());
+
+  while (index < lines.length) {
+    const line = lines[index];
+    if (!line.trim()) { index++; continue; }
+
+    if (/^\s{0,3}\x60\x60\x60/.test(line)) {
+      index++;
+      const codeLines = [];
+      while (index < lines.length && !/^\s{0,3}\x60\x60\x60/.test(lines[index])) codeLines.push(lines[index++]);
+      if (index < lines.length) index++;
+      const pre = document.createElement("pre");
+      const code = document.createElement("code");
+      code.textContent = codeLines.join("\n");
+      pre.appendChild(code);
+      container.appendChild(pre);
+      continue;
+    }
+
+    const heading = line.match(/^\s{0,3}(#{1,4})\s+(.+?)\s*#*\s*$/);
+    if (heading) {
+      const h = document.createElement("h" + Math.min(4, heading[1].length + 1));
+      appendInlineMarkdown(h, heading[2]);
+      container.appendChild(h);
+      index++;
+      continue;
+    }
+
+    if (index + 1 < lines.length && line.includes("|") && isTableDivider(lines[index + 1])) {
+      const headers = splitTableRow(line);
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      headers.forEach(value => {
+        const th = document.createElement("th");
+        appendInlineMarkdown(th, value);
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      index += 2;
+      const tbody = document.createElement("tbody");
+      while (index < lines.length && lines[index].trim() && lines[index].includes("|")) {
+        const values = splitTableRow(lines[index++]);
+        const row = document.createElement("tr");
+        headers.forEach((_, cellIndex) => {
+          const td = document.createElement("td");
+          appendInlineMarkdown(td, values[cellIndex] || "");
+          row.appendChild(td);
+        });
+        tbody.appendChild(row);
+      }
+      table.appendChild(tbody);
+      container.appendChild(table);
+      continue;
+    }
+
+    const listMatch = line.match(/^\s{0,3}([-*+]|\d+[.)])\s+(.+)$/);
+    if (listMatch) {
+      const ordered = /^\d/.test(listMatch[1]);
+      const list = document.createElement(ordered ? "ol" : "ul");
+      while (index < lines.length) {
+        const itemMatch = lines[index].match(/^\s{0,3}([-*+]|\d+[.)])\s+(.+)$/);
+        if (!itemMatch || /^\d/.test(itemMatch[1]) !== ordered) break;
+        const item = document.createElement("li");
+        appendInlineMarkdown(item, itemMatch[2]);
+        list.appendChild(item);
+        index++;
+      }
+      container.appendChild(list);
+      continue;
+    }
+
+    if (/^\s{0,3}>\s?/.test(line)) {
+      const quote = document.createElement("blockquote");
+      while (index < lines.length && /^\s{0,3}>\s?/.test(lines[index])) {
+        const paragraph = document.createElement("p");
+        appendInlineMarkdown(paragraph, lines[index++].replace(/^\s{0,3}>\s?/, ""));
+        quote.appendChild(paragraph);
+      }
+      container.appendChild(quote);
+      continue;
+    }
+
+    const paragraphLines = [];
+    while (index < lines.length && lines[index].trim()) {
+      if (/^\s{0,3}(#{1,4}\s|\x60\x60\x60|>\s?|([-*+]|\d+[.)])\s+)/.test(lines[index])) break;
+      if (index + 1 < lines.length && lines[index].includes("|") && isTableDivider(lines[index + 1])) break;
+      paragraphLines.push(lines[index++].trim());
+    }
+    if (paragraphLines.length) {
+      const paragraph = document.createElement("p");
+      appendInlineMarkdown(paragraph, paragraphLines.join(" "));
+      container.appendChild(paragraph);
+    } else {
+      container.appendChild(document.createTextNode(line));
+      index++;
+    }
+  }
+}
+
+// ============================================================
 // MESSAGE RENDERING
 // ============================================================
 function renderMessages() {
@@ -930,8 +1074,11 @@ function renderMessages() {
       document.createElement("div");
     content.className =
       "message-content";
-    content.textContent =
-      message.content || "";
+    if (message.role === "assistant") {
+      renderMarkdownInto(content, message.content || "");
+    } else {
+      content.textContent = message.content || "";
+    }
     wrapper.appendChild(
       content
     );

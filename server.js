@@ -755,56 +755,61 @@ import { prepareUploadedFile } from "./features/file-analysis.js";
 // GEMINI
 // ============================================================
 
+function isRetryableGeminiError(error) {
+  const status = Number(error?.status || error?.statusCode || error?.response?.status);
+  const code = String(error?.code || error?.status || "").toUpperCase();
+  const message = String(error?.message || "");
+  return [408, 429, 500, 502, 503, 504].includes(status) ||
+    /RESOURCE_EXHAUSTED|UNAVAILABLE|DEADLINE_EXCEEDED|INTERNAL|high demand|temporarily unavailable|timed? ?out/i.test(code + " " + message);
+}
+
 async function askGemini(
   prompt,
   inlineData = null
 ) {
   if (!GEMINI_API_KEY) {
-    throw new Error(
-      "GEMINI_API_KEY is missing."
-    );
+    throw new Error("GEMINI_API_KEY is missing.");
   }
 
-  const ai =
-    new GoogleGenAI({
-      apiKey:
-        GEMINI_API_KEY
-    });
+  const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+  const maxAttempts = 3;
+  let response;
 
-  const response =
-    await ai.models.generateContent({
-      model:
-        GEMINI_MODEL,
-      contents: inlineData
-        ? [{ role: "user", parts: [{ text: prompt }, { inlineData }] }]
-        : [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        systemInstruction: ZED_CORE_INSTRUCTIONS
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      response = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: inlineData
+          ? [{ role: "user", parts: [{ text: prompt }, { inlineData }] }]
+          : [{ role: "user", parts: [{ text: prompt }] }],
+        config: {
+          systemInstruction: ZED_CORE_INSTRUCTIONS
+        }
+      });
+      break;
+    } catch (error) {
+      if (attempt === maxAttempts - 1 || !isRetryableGeminiError(error)) {
+        throw error;
       }
-    });
+      const delayMs = 600 * (2 ** attempt);
+      const status = error?.status || error?.statusCode || error?.code || "transient";
+      console.warn(`Gemini temporary provider failure (${status}); retrying in ${delayMs}ms (attempt ${attempt + 2}/${maxAttempts}).`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
 
   const answer =
     response?.text ||
-    response?.candidates?.[0]
-      ?.content?.parts
-      ?.map(
-        part =>
-          part.text || ""
-      )
+    response?.candidates?.[0]?.content?.parts
+      ?.map(part => part.text || "")
       .join("") ||
     "";
 
-  if (
-    !cleanAIAnswer(answer)
-  ) {
-    throw new Error(
-      "Gemini returned an empty response."
-    );
+  if (!cleanAIAnswer(answer)) {
+    throw new Error("Gemini returned an empty response.");
   }
 
-  return cleanAIAnswer(
-    answer
-  );
+  return cleanAIAnswer(answer);
 }
 
 // ============================================================
@@ -1020,9 +1025,12 @@ async function askAI(
 
     // Never pretend a text-only provider has inspected an image or scanned PDF.
     if (inlineData) {
-      throw new Error(
-        `Gemini could not analyse the attached image/PDF. Please try again later. ${error.message}`
+      const unavailable = new Error(
+        "Image or scanned-document analysis is temporarily unavailable. Please try again shortly."
       );
+      unavailable.code = "AI_MULTIMODAL_UNAVAILABLE";
+      unavailable.cause = error;
+      throw unavailable;
     }
   }
 
@@ -3199,14 +3207,20 @@ ${fileContext}
         error
       );
 
-      res.status(500).json({
+      const multimodalUnavailable = error?.code === "AI_MULTIMODAL_UNAVAILABLE";
+      const providersUnavailable = error?.code === "AI_PROVIDERS_UNAVAILABLE";
+      const unavailable = multimodalUnavailable || providersUnavailable;
+
+      res.status(unavailable ? 503 : 500).json({
         ok: false,
-
-        answer:
-          "I’m sorry, I couldn’t complete that request right now. Please try again.",
-
-        error:
-          "The request could not be completed. Please try again."
+        answer: unavailable
+          ? "Zed's AI service is temporarily busy. Please try again shortly."
+          : "I’m sorry, I couldn’t complete that request right now. Please try again.",
+        error: multimodalUnavailable
+          ? "Image or scanned-document analysis is temporarily unavailable. Please try again shortly."
+          : unavailable
+            ? "Zed's AI services are temporarily unavailable. Please try again shortly."
+            : "The request could not be completed. Please try again."
       });
     }
   }

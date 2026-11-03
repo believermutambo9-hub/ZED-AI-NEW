@@ -854,7 +854,8 @@ async function askGroq(
           { role: "user", content: userContent }
         ],
         temperature: 0.7,
-        max_completion_tokens: 2048
+        // Keep vision output below Groq on-demand OTPM limits; text chat keeps its existing budget.
+        max_completion_tokens: inlineData ? 700 : 2048
       })
     }
   );

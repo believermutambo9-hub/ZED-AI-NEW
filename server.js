@@ -3411,7 +3411,8 @@ app.post("/api/voice/token", async (req, res) => {
             }
           }
         }
-      });
+      }
+    });
     if (!token?.name) throw new Error("Gemini did not return a temporary voice token.");
     res.setHeader("Cache-Control", "no-store");
     return res.json({

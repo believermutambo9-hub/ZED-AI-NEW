@@ -550,7 +550,7 @@ test("chat history API does not expose internal persistence errors", () => {
 test("explicit web-search instructions are detected and bypass the football-data-only gate", () => {
   assert.match(server, /function isExplicitWebSearchRequest\(message = ""\)/);
   assert.match(server, /\\b\(search \(the \)\?web\|web search\|search online\|look up online\|find online\|browse \(the \)\?web\|internet search\|on the internet\)\\b/i);
-  assert.match(server, /explicitWebSearch \|\|\s*isCurrentInformationQuestion\(userMessage\)/);
+  assert.match(server, /explicitWebSearch \|\|\s*\([\s\S]{0,100}!isPersonalMemoryQuestion\(userMessage\)[\s\S]{0,100}isCurrentInformationQuestion\(userMessage\)/);
   assert.match(server, /explicitWebSearch \|\|\s*!shouldUseFootballData\(userMessage\)/);
   assert.ok(server.indexOf("const explicitWebSearch =") < server.indexOf("if (\n        (\n          explicitWebSearch"));
 });

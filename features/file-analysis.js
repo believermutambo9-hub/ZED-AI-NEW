@@ -228,7 +228,7 @@ async function prepareUploadedFile(file) {
   }
 
   if (mediaExtensions.has(extension)) {
-    if (!expectedType || (signature !== expectedType && !(extension === ".mov" && signature === "video/mp4"))) {
+    if (!expectedType || (signature !== expectedType && !([".mov", ".m4a"].includes(extension) && signature === "video/mp4"))) {
       throw new Error("The audio or video contents do not match the selected file type. Please upload a valid media file.");
     }
     if (!mimeLooksGeneric && mimeType !== expectedType &&

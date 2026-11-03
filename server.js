@@ -883,94 +883,68 @@ async function askGroq(
 // ============================================================
 
 async function askOpenRouter(
-  prompt
+  prompt,
+  inlineData = null
 ) {
   if (!OPENROUTER_API_KEY) {
-    throw new Error(
-      "OPENROUTER_API_KEY is missing."
-    );
+    throw new Error("OPENROUTER_API_KEY is missing.");
   }
 
-  const response =
-    await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method:
-          "POST",
+  const isVisionRequest = Boolean(inlineData);
+  const userContent = inlineData
+    ? [
+        { type: "text", text: prompt },
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:${inlineData.mimeType};base64,${inlineData.data}`,
+            detail: "low"
+          }
+        }
+      ]
+    : prompt;
 
-        signal:
-          AbortSignal.timeout(45_000),
-
-        headers: {
-          "Authorization":
-            `Bearer ${OPENROUTER_API_KEY}`,
-
-          "Content-Type":
-            "application/json",
-
-          "HTTP-Referer":
-            "https://zed-ai-h7h4.onrender.com",
-
-          "X-Title":
-            "Zed"
-        },
-
-        body:
-          JSON.stringify({
-            model:
-              process.env.OPENROUTER_MODEL || "openrouter/free",
-
-            messages: [
-              {
-                role: "system",
-                content: ZED_CORE_INSTRUCTIONS
-              },
-              {
-                role: "user",
-                content: prompt
-              }
-            ],
-
-            temperature:
-              0.7,
-
-            max_tokens:
-              2048
-          })
-      }
-    );
+  const response = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      signal: AbortSignal.timeout(60_000),
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://zed-ai-h7h4.onrender.com",
+        "X-Title": "Zed"
+      },
+      body: JSON.stringify({
+        model: isVisionRequest
+          ? (process.env.OPENROUTER_VISION_MODEL || "deepseek/deepseek-v4.1-flash")
+          : (process.env.OPENROUTER_MODEL || "openrouter/free"),
+        messages: [
+          {
+            role: "system",
+            content: isVisionRequest
+              ? "You are Zed. Analyse the supplied image accurately. Do not invent details; state when text or objects are unclear."
+              : ZED_CORE_INSTRUCTIONS
+          },
+          { role: "user", content: userContent }
+        ],
+        temperature: 0.7,
+        max_tokens: isVisionRequest ? 900 : 2048
+      })
+    }
+  );
 
   if (!response.ok) {
-    const errorText =
-      await response.text();
-
-    throw new Error(
-      `OpenRouter ${response.status}: ${errorText.slice(
-        0,
-        500
-      )}`
-    );
+    const errorText = await response.text();
+    throw new Error(`OpenRouter ${response.status}: ${errorText.slice(0, 500)}`);
   }
 
-  const data =
-    await response.json();
-
-  const answer =
-    data?.choices?.[0]
-      ?.message?.content ||
-    "";
-
-  if (
-    !cleanAIAnswer(answer)
-  ) {
-    throw new Error(
-      "OpenRouter returned an empty response."
-    );
+  const data = await response.json();
+  const answer = data?.choices?.[0]?.message?.content || "";
+  if (!cleanAIAnswer(answer)) {
+    throw new Error("OpenRouter returned an empty response.");
   }
-
-  return cleanAIAnswer(
-    answer
-  );
+  return cleanAIAnswer(answer);
 }
 
 // ============================================================
@@ -992,7 +966,7 @@ async function askAI(
         "Inspect the attached image carefully and answer the user's request.",
         "Describe only details that are actually visible. If text is unclear, say so.",
         `User's request: ${cleanText(userRequest).slice(0, 1500) || "Describe and analyse this image."}`
-      ].join("\\n\\n")
+      ].join("\n\n")
     : prompt;
 
   try {
@@ -1038,11 +1012,18 @@ async function askAI(
       return { answer, provider: "groq-vision" };
     } catch (error) {
       errors.push(`Groq vision: ${error.message}`);
+    }
+
+    try {
+      const answer = await askOpenRouter(providerPrompt, inlineData);
+      return { answer, provider: "openrouter-vision" };
+    } catch (error) {
+      errors.push(`OpenRouter vision: ${error.message}`);
       const unavailable = new Error(
         "Image analysis is temporarily unavailable. Please try again shortly."
       );
       unavailable.code = "AI_MULTIMODAL_UNAVAILABLE";
-      unavailable.cause = error;
+      unavailable.cause = errors.join("; ");
       throw unavailable;
     }
   }

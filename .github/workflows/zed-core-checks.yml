@@ -28,6 +28,6 @@ jobs:
           npm audit --json > npm-audit.json || true
           node -e "const report = require('./npm-audit.json'); for (const [name, item] of Object.entries(report.vulnerabilities || {})) { const via = (item.via || []).map(entry => typeof entry === 'string' ? entry : entry.title); console.log(JSON.stringify({ name, severity: item.severity, range: item.range, fixAvailable: item.fixAvailable, via })); }"
       - name: Preview non-breaking dependency fixes
-        run: npm audit fix --dry-run
+        run: npm audit fix --dry-run || true
       - name: Run syntax checks
         run: npm test

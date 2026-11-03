@@ -1592,6 +1592,18 @@ async function sendMessage() {
     messageInput?.focus();
   }
 }
+// Voice submits recognised speech through this same authenticated chat pipeline.
+window.zedVoiceSubmitTranscript = async transcript => {
+  const spokenText = String(transcript || "").trim();
+  if (!spokenText) return "";
+  if (state.sending) throw new Error("Zed is still completing the previous request.");
+  if (!state.userId || !state.firebaseUser) throw new Error("Please sign in to use voice chat.");
+  messageInput.value = spokenText;
+  await sendMessage();
+  const latestAssistant = [...state.messages].reverse().find(item => item.role === "assistant");
+  return latestAssistant?.content || "";
+};
+
 sendBtn?.addEventListener(
   "click",
   sendMessage
@@ -1864,12 +1876,21 @@ const voiceInputBtn = document.getElementById("voiceInputBtn");
 const voiceModeBtn = document.getElementById("voiceModeBtn");
 let voiceModeEnabled = false;
 
+window.zedVoiceSetEnabled = enabled => {
+  voiceModeEnabled = Boolean(enabled);
+  if (!voiceModeEnabled && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  voiceModeBtn?.setAttribute("aria-pressed", String(voiceModeEnabled));
+};
+
 function speakZedResponse(text) {
   if (!voiceModeEnabled || !("speechSynthesis" in window) || !text) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 5000));
   utterance.lang = "en-US";
   utterance.rate = 1;
+  utterance.onstart = () => window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: true } }));
+  utterance.onend = () => window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: false } }));
+  utterance.onerror = () => window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: false } }));
   window.speechSynthesis.speak(utterance);
 }
 

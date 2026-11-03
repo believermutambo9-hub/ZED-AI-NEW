@@ -563,7 +563,7 @@ test("explicit web-search instructions are detected and bypass the football-data
   assert.match(server, /function isExplicitWebSearchRequest\(message = ""\)/);
   assert.match(server, /\\b\(search \(the \)\?web\|web search\|search online\|look up online\|find online\|browse \(the \)\?web\|internet search\|on the internet\)\\b/i);
   assert.match(server, /explicitWebSearch \|\|\s*\([\s\S]{0,100}!isPersonalMemoryQuestion\(userMessage\)[\s\S]{0,100}isCurrentInformationQuestion\(userMessage\)/);
-  assert.match(server, /explicitWebSearch \\|\\|\\s*\\([\\s\\S]{0,250}!shouldUseFootballData\\(userMessage\\)[\\s\\S]{0,250}!liveDataIntent\\.weatherLocation[\\s\\S]{0,120}!liveDataIntent\\.currency/);
+  assert.match(server, /explicitWebSearch \|\|\s*\([\s\S]{0,250}!shouldUseFootballData\(userMessage\)[\s\S]{0,250}!liveDataIntent\.weatherLocation[\s\S]{0,120}!liveDataIntent\.currency/);
   assert.ok(server.indexOf("const explicitWebSearch =") < server.indexOf("if (\n        (\n          explicitWebSearch"));
 });
 

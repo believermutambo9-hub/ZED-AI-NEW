@@ -77,3 +77,17 @@ test("image analysis uses structured transcription rules and a sufficient output
   assert.match(server, /detail: "high"/);
   assert.match(server, /include all readable rows rather than giving only a general description/);
 });
+
+test("personal-memory questions load the user profile instead of keyword-only matches", () => {
+  assert.match(server, /function isPersonalMemoryQuestion\(message = ""\)/);
+  assert.match(server, /if \(isPersonalMemoryQuestion\(userMessage\)\)/);
+  assert.match(server, /getUserMemories\(userId, \{ limit: 30 \}\)/);
+  assert.match(server, /do not claim this is the[\s\S]{0,100}first conversation/i);
+  assert.match(server, /Do not trigger web search for personal-memory questions/i);
+});
+
+test("current-information detection matches whole words and does not treat know as now", () => {
+  assert.match(server, /new RegExp\("\(\^\|\[\^a-z0-9\]\)" \+ escaped \+ "\(\$\|\[\^a-z0-9\]\)"/);
+  assert.match(server, /"know" contain "now", incorrectly triggering web search/);
+  assert.doesNotMatch(server, /text\.includes\(word\)/);
+});

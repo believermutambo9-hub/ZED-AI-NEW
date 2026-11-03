@@ -1568,16 +1568,14 @@ async function sendMessage() {
     if (currentUserMessage && selectedImage && !data.imageAttachment) {
       currentUserMessage.imageSaveWarning = true;
     }
+    const assistantAnswer = data.answer || data.reply || "Zed did not return an answer.";
     state.messages.push({
       role:"assistant",
-      content:
-        data.answer ||
-        data.reply ||
-        "Zed did not return an answer.",
+      content: assistantAnswer,
       webSearch: data.webSearch === true,
       webSources: Array.isArray(data.webSources) ? data.webSources : []
     });
-    speakZedResponse(data.answer || data.reply || "Zed did not return an answer.");
+    speakZedResponse(assistantAnswer);
     if (data.chatPersistent === false) {
       state.messages.push({
         role:"assistant",
@@ -1586,6 +1584,7 @@ async function sendMessage() {
     }
     renderMessages();
     await loadChats();
+    return assistantAnswer;
   } catch (error) {
     console.error(
       "Chat error:",
@@ -1599,6 +1598,7 @@ async function sendMessage() {
         error.message
     });
     renderMessages();
+    return null;
   } finally {
     state.selectedFile =
       null;
@@ -1616,10 +1616,15 @@ window.zedVoiceSubmitTranscript = async transcript => {
   if (!spokenText) return "";
   if (state.sending) throw new Error("Zed is still completing the previous request.");
   if (!state.userId || !state.firebaseUser) throw new Error("Please sign in to use voice chat.");
-  messageInput.value = spokenText;
-  await sendMessage();
-  const latestAssistant = [...state.messages].reverse().find(item => item.role === "assistant");
-  return latestAssistant?.content || "";
+  const requestUid = state.userId;
+  const answer = await sendMessage();
+  if (state.userId !== requestUid) {
+    throw new Error("Your Zed account changed during the voice request. Please restart voice chat.");
+  }
+  if (typeof answer !== "string" || !answer.trim()) {
+    throw new Error("Zed could not complete that voice request. Please try again.");
+  }
+  return answer.trim();
 };
 
 sendBtn?.addEventListener(

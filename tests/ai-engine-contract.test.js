@@ -108,9 +108,12 @@ test("voice transcripts use the same authenticated Zed chat pipeline as typed me
   assert.doesNotMatch(voiceSource, /generativelanguage\.googleapis\.com|\/api\/voice\/token|new WebSocket/);
 });
 
-test("voice interface stays inside the normal chat workspace", () => {
-  assert.match(voiceSource, /querySelector\("\.composer-container"\)/);
-  assert.match(voiceSource, /zed-voice-dock/);
-  assert.match(voiceCss, /\.zed-voice-dock\.is-active/);
+test("voice has a dedicated screen while using the shared Zed chat engine", () => {
+  assert.match(voiceSource, /zed-voice-screen/);
+  assert.match(voiceSource, /window\.zedVoiceSubmitTranscript\(spokenText\)/);
+  assert.match(voiceSource, /function speak\(text\)/);
+  assert.match(voiceSource, /function startRecognition\(\)/);
+  assert.match(voiceCss, /\.zed-voice-screen\.is-active/);
+  assert.match(voiceCss, /\.zed-voice-screen\.is-speaking/);
   assert.match(appSource, /zed:voice-speaking/);
 });

@@ -19,7 +19,7 @@ test("all text providers receive Zed's core instructions as system instructions"
 });
 
 test("fallback provider model names can be configured without changing source", () => {
-  assert.match(server, /process\.env\.GROQ_MODEL\s*\|\|\s*"openai\\/gpt-oss-120b"/);
+  assert.match(server, /process\.env\.GROQ_MODEL\s*\|\|\s*"openai\/gpt-oss-120b"/);
   assert.match(server, /process\.env\.OPENROUTER_MODEL\s*\|\|\s*"openrouter/free"/);
 });
 

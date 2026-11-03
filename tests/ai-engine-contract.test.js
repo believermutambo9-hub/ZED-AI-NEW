@@ -48,6 +48,11 @@ test("Gemini image failures fall back to a real Groq vision model, never a text-
   assert.match(server, /Analyse the supplied image accurately/);
   assert.match(server, /slice\(0, 1500\)/);
   assert.match(server, /provider: "groq-vision"/);
+  assert.match(server, /async function askOpenRouter\([\s\S]*?prompt,\s*inlineData = null/);
+  assert.match(server, /OPENROUTER_VISION_MODEL \|\| "deepseek\/deepseek-v4\.1-flash"/);
+  assert.match(server, /type: "image_url"/);
+  assert.match(server, /askOpenRouter\(providerPrompt, inlineData\)/);
+  assert.match(server, /provider: "openrouter-vision"/);
   assert.match(server, /startsWith\("image\/"\)/);
   assert.match(server, /Groq documents a 20 MB request limit/);
   assert.match(server, /AI_MULTIMODAL_UNAVAILABLE/);

@@ -2436,6 +2436,29 @@ app.post(
       }
 
       // ------------------------------------------------------
+      // SAVE ORIGINAL IMAGE TO THE USER'S PRIVATE LIBRARY
+      // ------------------------------------------------------
+
+      let imageAttachment = null;
+      if (uploadedFile?.contentType?.startsWith("image/") && req.body?.file?.data) {
+        try {
+          const savedImage = await saveLibraryFile({
+            userId,
+            name: req.body.file.name,
+            dataUrl: req.body.file.data
+          });
+          imageAttachment = {
+            id: savedImage.id,
+            name: savedImage.name,
+            contentType: savedImage.contentType,
+            size: savedImage.size
+          };
+        } catch (imageSaveError) {
+          console.warn("Original uploaded image could not be saved for chat history:", imageSaveError.message);
+        }
+      }
+
+      // ------------------------------------------------------
       // SAVE USER MESSAGE
       // ------------------------------------------------------
 
@@ -2444,6 +2467,9 @@ app.post(
         "user",
         userMessage
       );
+      if (imageAttachment && conversation.messages.length) {
+        conversation.messages[conversation.messages.length - 1].imageAttachment = imageAttachment;
+      }
 
       const initialChatPersistence =
         await persistConversation(
@@ -2453,6 +2479,9 @@ app.post(
 
       if (!initialChatPersistence?.persistent) {
         conversation.messages.pop();
+        if (imageAttachment?.id) {
+          await deleteLibraryFile(userId, imageAttachment.id).catch(() => {});
+        }
         return res.status(503).json({
           ok: false,
           answer: "Your message could not be saved. Please try again."
@@ -3176,6 +3205,8 @@ ${fileContext}
 
         conversationId:
           conversation.id,
+
+        imageAttachment,
 
         memorySaved:
           memoryResult.saved,

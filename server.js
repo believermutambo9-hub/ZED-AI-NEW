@@ -993,16 +993,35 @@ async function askAI(
     errors.push(`Gemini: ${error.message}`);
   }
 
-  // Images and scanned PDFs use a real vision model on Groq when Gemini is busy.
-  // Never route image content to a text-only model.
+  // Only image MIME types are supported by Groq's vision endpoint.
+  // PDFs remain on Gemini until a PDF-capable fallback is configured.
   if (inlineData) {
+    if (!String(inlineData.mimeType || "").startsWith("image/")) {
+      const unavailable = new Error(
+        "Scanned-document analysis is temporarily unavailable. Please try again shortly."
+      );
+      unavailable.code = "AI_MULTIMODAL_UNAVAILABLE";
+      unavailable.cause = errors.join("; ");
+      throw unavailable;
+    }
+
+    // Groq documents a 20 MB request limit for image_url inputs.
+    // Keep the encoded image below 18 MiB to leave room for JSON overhead.
+    if (String(inlineData.data || "").length > 18 * 1024 * 1024) {
+      const unavailable = new Error(
+        "This image is too large for the backup image service. Please upload a smaller image."
+      );
+      unavailable.code = "AI_MULTIMODAL_UNAVAILABLE";
+      throw unavailable;
+    }
+
     try {
       const answer = await askGroq(prompt, inlineData);
       return { answer, provider: "groq-vision" };
     } catch (error) {
       errors.push(`Groq vision: ${error.message}`);
       const unavailable = new Error(
-        "Image or scanned-document analysis is temporarily unavailable. Please try again shortly."
+        "Image analysis is temporarily unavailable. Please try again shortly."
       );
       unavailable.code = "AI_MULTIMODAL_UNAVAILABLE";
       unavailable.cause = error;

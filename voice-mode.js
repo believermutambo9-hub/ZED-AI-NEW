@@ -95,7 +95,6 @@ const VoiceMode = (() => {
   }
 
   function resampleTo16k(floatSamples, inputRate) {
-    if (inputRate === 16000) return floatSamples;
     const ratio = inputRate / 16000;
     const outputLength = Math.floor(floatSamples.length / ratio);
     const output = new Int16Array(outputLength);

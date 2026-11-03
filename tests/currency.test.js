@@ -24,8 +24,9 @@ test("currency parser supports comma-separated amounts and rate-only pairs", () 
   );
 });
 
-test("currency parser ignores ordinary messages", () => {
+test("currency parser ignores ordinary messages and unsupported currency-like words", () => {
   assert.equal(parseCurrencyRequest("How are you today?"), null);
+  assert.equal(parseCurrencyRequest("Convert 100 ABC to DEF"), null);
 });
 
 test("currency lookup supplies a calculated amount and provider update time", async () => {

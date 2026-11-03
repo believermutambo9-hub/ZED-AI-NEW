@@ -36,7 +36,7 @@ test("currency rate validates provider response and calculates amount", async ()
   const result = await getCurrencyRate({ base: "USD", quote: "ZMW", amount: 10, fetchImpl });
   assert.equal(result.converted, 255);
   assert.equal(result.rate, 25.5);
-  assert.match(calls[0], /\\/v2\\/rate\\/USD\\/ZMW$/);
+  assert.equal(new URL(calls[0]).pathname, "/v2/rate/USD/ZMW");
   assert.match(result.note, /not a live bank/i);
 });
 

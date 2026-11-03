@@ -523,7 +523,7 @@ test("chat UI rejects oversized files before base64 encoding", () => {
   const sendStart = app.indexOf("async function sendMessage()");
   const sendEnd = app.indexOf("sendBtn?.addEventListener", sendStart);
   const sendHandler = app.slice(sendStart, sendEnd);
-  assert.ok(sendHandler.indexOf("state.selectedFile.size > 18 * 1024 * 1024") < sendHandler.indexOf("readFileAsDataURL("));
+  assert.ok(sendHandler.indexOf("requestFile && requestFile.size > 18 * 1024 * 1024") < sendHandler.indexOf("readFileAsDataURL("));
 });
 
  

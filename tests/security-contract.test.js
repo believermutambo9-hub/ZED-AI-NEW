@@ -108,6 +108,7 @@ test("account changes invalidate pending chat and prevent stale data from render
   assert.match(app, /state\.authGeneration !== requestGeneration/);
   assert.match(app, /Discarded a chat response after the signed-in account changed/);
   assert.match(app, /Your Zed account changed during this request/);
+  assert.match(app, /removeThinking\(\);[\s\S]{0,100}window\.ZedVoiceMode\?\.stop/);
 });
 
 test("chat, conversation, and project loads are discarded after account changes", () => {

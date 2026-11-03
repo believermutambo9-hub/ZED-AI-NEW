@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
 import * as XLSX from "xlsx";
 
-const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements] = await Promise.all([
+const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements, css] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
   readFile(new URL("../storage/chat-history.js", import.meta.url), "utf8"),
   readFile(new URL("../features/memory.js", import.meta.url), "utf8"),
@@ -13,7 +13,8 @@ const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, u
   readFile(new URL("../interface.html", import.meta.url), "utf8"),
   readFile(new URL("../features/file-analysis.js", import.meta.url), "utf8"),
   readFile(new URL("../web-search.js", import.meta.url), "utf8"),
-  readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8")
+  readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8"),
+  readFile(new URL("../styles.css", import.meta.url), "utf8")
 ]);
 
 test("API routes reject missing or invalid Firebase ID tokens", () => {

@@ -718,20 +718,14 @@ test("real-time voice token provisioning is authenticated, single-use, and short
   assert.doesNotMatch(clientResponse, /GEMINI_API_KEY/);
 });
 
-test("real-time voice streams 16 kHz PCM, plays 24 kHz audio, and clears interrupted playback", async () => {
+test("voice uses the shared authenticated chat engine and browser speech controls", async () => {
   const voice = await readFile(new URL("../voice-mode.js", import.meta.url), "utf8");
-  assert.match(voice, /audio\/pcm;rate=16000/);
-  assert.match(voice, /const output = new Int16Array\(outputLength\)/);
-  assert.doesNotMatch(voice, /if \(inputRate === 16000\) return floatSamples/);
-  assert.match(voice, /createBuffer\(1, samples\.length, 24000\)/);
-  assert.match(voice, /if \(content\.interrupted\)\s*\{\s*stopPlayback\(\)/);
-  assert.match(voice, /window\.zedVoiceGetUser\?\.\(\)/);
-  assert.match(voice, /fetch\("\/api\/voice\/token"/);
-  assert.match(voice, /BidiGenerateContentConstrained\?access_token=/);
-  assert.match(voice, /setupComplete/);
-  assert.match(voice, /generationConfig:\s*\{\s*responseModalities:\s*\["AUDIO"\]/);
-  assert.match(voice, /realtimeInput:\s*\{/);
-  assert.doesNotMatch(voice, /@google\/genai|GoogleGenAI/);
+  assert.match(voice, /window\.SpeechRecognition \|\| window\.webkitSpeechRecognition/);
+  assert.match(voice, /window\.zedVoiceSubmitTranscript\(spokenText\)/);
+  assert.match(app, /window\.zedVoiceSubmitTranscript = async transcript/);
+  assert.match(app, /await sendMessage\(\)/);
+  assert.match(app, /speechSynthesis\.speak\(utterance\)/);
+  assert.doesNotMatch(voice, /generativelanguage\.googleapis\.com|BidiGenerateContent|new WebSocket/);
 });
 
 test("Google profile avatar fallback derives initials from whitespace-separated names", () => {

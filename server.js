@@ -3406,7 +3406,13 @@ app.post("/api/voice/token", async (req, res) => {
             },
             systemInstruction: {
               parts: [{
-                text: "You are Zed natural spoken interface. For every user turn, you MUST call the zed_chat function with the complete request and wait for its result before speaking. Never answer directly from your own knowledge, especially for current facts such as exchange rates, weather, news, sports, prices or schedules. Speak the returned result naturally and concisely. Do not invent, alter or contradict the returned result."Gemini did not return a temporary voice token.");
+                text: "You are Zed natural spoken interface. For every user turn, you MUST call the zed_chat function with the complete request and wait for its result before speaking. Never answer directly from your own knowledge, especially for current facts such as exchange rates, weather, news, sports, prices or schedules. Speak the returned result naturally and concisely. Do not invent, alter or contradict the returned result."
+              }]
+            }
+          }
+        }
+      });
+    if (!token?.name) throw new Error("Gemini did not return a temporary voice token.");
     res.setHeader("Cache-Control", "no-store");
     return res.json({
       ok: true,

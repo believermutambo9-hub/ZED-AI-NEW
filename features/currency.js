@@ -1,6 +1,19 @@
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const rateCache = new Map();
 
+function isSupportedCurrency(code) {
+  if (!/^[A-Z]{3}$/.test(code)) return false;
+  try {
+    new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: code
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function parseCurrencyRequest(message = "") {
   const text = String(message);
 
@@ -10,12 +23,11 @@ export function parseCurrencyRequest(message = "") {
 
   if (amountMatch) {
     const amount = Number(amountMatch[1].replace(/,/g, ""));
-    if (Number.isFinite(amount) && amount >= 0) {
-      return {
-        amount,
-        from: amountMatch[2].toUpperCase(),
-        to: amountMatch[3].toUpperCase()
-      };
+    const from = amountMatch[2].toUpperCase();
+    const to = amountMatch[3].toUpperCase();
+    if (Number.isFinite(amount) && amount >= 0 &&
+        isSupportedCurrency(from) && isSupportedCurrency(to)) {
+      return { amount, from, to };
     }
   }
 
@@ -25,11 +37,11 @@ export function parseCurrencyRequest(message = "") {
 
   if (!pairMatch) return null;
 
-  return {
-    amount: null,
-    from: pairMatch[1].toUpperCase(),
-    to: pairMatch[2].toUpperCase()
-  };
+  const from = pairMatch[1].toUpperCase();
+  const to = pairMatch[2].toUpperCase();
+  if (!isSupportedCurrency(from) || !isSupportedCurrency(to)) return null;
+
+  return { amount: null, from, to };
 }
 
 async function fetchJson(url) {

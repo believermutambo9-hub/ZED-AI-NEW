@@ -100,20 +100,25 @@ test("current-information detection matches whole words and does not treat know 
 });
 
 
-test("voice transcripts use the same authenticated Zed chat pipeline as typed messages", () => {
+test("real-time voice routes substantive requests through the authenticated Zed chat engine", () => {
   assert.match(appSource, /window\.zedVoiceSubmitTranscript = async transcript/);
   assert.match(appSource, /await sendMessage\(\)/);
   assert.match(appSource, /window\.zedVoiceSetEnabled = enabled/);
-  assert.match(voiceSource, /window\.zedVoiceSubmitTranscript\(spokenText\)/);
-  assert.doesNotMatch(voiceSource, /generativelanguage\.googleapis\.com|\/api\/voice\/token|new WebSocket/);
+  assert.match(voiceSource, /async function submitToZedChat\(spokenText\)/);
+  assert.match(voiceSource, /window\.zedVoiceSubmitTranscript\(String\(spokenText/);
+  assert.match(voiceSource, /name: "zed_chat"/);
+  assert.match(voiceSource, /handleToolCalls\(message\.toolCall\.functionCalls\)/);
+  assert.match(voiceSource, /new WebSocket\(url\)/);
+  assert.match(voiceSource, /realtimeInput/);
 });
 
-test("voice has a dedicated screen while using the shared Zed chat engine", () => {
+test("voice uses native streamed audio, interruption and a dedicated screen", () => {
   assert.match(voiceSource, /zed-voice-screen/);
-  assert.match(voiceSource, /window\.zedVoiceSubmitTranscript\(spokenText\)/);
-  assert.match(voiceSource, /function speak\(text\)/);
-  assert.match(voiceSource, /function startRecognition\(\)/);
+  assert.match(voiceSource, /BidiGenerateContentConstrained/);
+  assert.match(voiceSource, /function playPcm24k\(base64\)/);
+  assert.match(voiceSource, /serverContent\.interrupted/);
+  assert.match(voiceSource, /startMicrophoneStreaming\(\)/);
   assert.match(voiceCss, /\.zed-voice-screen\.is-active/);
   assert.match(voiceCss, /\.zed-voice-screen\.is-speaking/);
-  assert.match(appSource, /zed:voice-speaking/);
+  assert.match(appSource, /window\.zedVoiceSubmitTranscript = async transcript/);
 });

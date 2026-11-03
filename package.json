@@ -11,10 +11,13 @@
   "dependencies": {
     "express": "^5.1.0",
     "@google/genai": "^2.3.0",
-    "firebase-admin": "^13.6.0",
+    "firebase-admin": "^14.5.0",
     "pdf-parse": "^1.1.1",
     "mammoth": "^1.9.1",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "fflate": "^0.8.2"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

@@ -646,10 +646,15 @@ function isCurrentInformationQuestion(
     "2026"
   ];
 
-  return words.some(
+  // Match complete words/phrases only. Substring matching made
+  // "know" contain "now", incorrectly triggering web search.
+  return words.some(word => {
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\  return words.some(
     word =>
       text.includes(word)
-  );
+  );");
+    return new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`, "i").test(text);
+  });
 }
 
 // ============================================================
@@ -1307,28 +1312,42 @@ function processForgetRequest(
 // MEMORY CONTEXT
 // ============================================================
 
+function isPersonalMemoryQuestion(message = "") {
+  return /\\b(?:do you know me|what do you know about me|what do you remember about me|who am i|tell me about myself|do you remember me|what have i told you about myself)\\b/i.test(
+    String(message).trim()
+  );
+}
+
 function getRelevantMemoryContext(
   userId,
   userMessage
 ) {
   try {
-    const context =
-      buildMemoryContext(
-        userId,
-        userMessage,
-        {
-          limit: 12,
-          threshold: 0.12
-        }
-      );
+    // Broad identity questions need a profile overview, not keyword-only
+    // matching against the words "know me".
+    if (isPersonalMemoryQuestion(userMessage)) {
+      const profileMemories = getUserMemories(userId, {
+        limit: 30
+      });
+      if (profileMemories.length) {
+        return profileMemories
+          .map(memory => `- ${memory.content}`)
+          .join("\\n");
+      }
+    }
+
+    const context = buildMemoryContext(
+      userId,
+      userMessage,
+      {
+        limit: 12,
+        threshold: 0.12
+      }
+    );
 
     return context || "";
   } catch (error) {
-    console.error(
-      "Memory retrieval error:",
-      error
-    );
-
+    console.error("Memory retrieval error:", error);
     return "";
   }
 }
@@ -2816,6 +2835,16 @@ Never invent memories.
 
 Never claim that something is remembered unless it appears in the
 supplied memory.
+
+If no relevant long-term memory is supplied, do not claim this is the
+first conversation or that the user has never spoken to Zed. Say only
+that no relevant saved details are currently available to you. Use the
+current conversation when it contains useful personal context.
+
+For questions such as "Do you know me?" or "What do you remember about
+me?", use the supplied long-term memory as a concise profile overview.
+Do not trigger web search for personal-memory questions unless the user
+explicitly asks to search the web.
 
 Do not treat memory as a source for live football scores, fixtures,
 standings or current results.

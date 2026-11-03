@@ -3319,6 +3319,19 @@ app.post("/api/voice/token", async (req, res) => {
             inputAudioTranscription: {},
             outputAudioTranscription: {},
             sessionResumption: {},
+            tools: [{
+              functionDeclarations: [{
+                name: "zed_chat",
+                description: "Send the user's spoken request through Zed's authenticated chat engine so it can use saved conversation context, web search, football data and enabled features. Use this for every substantive question or task. Only answer greetings and simple conversational small talk directly.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    message: { type: "STRING", description: "The user's complete spoken request, transcribed accurately." }
+                  },
+                  required: ["message"]
+                }
+              }]
+            }],
             systemInstruction: {
               parts: [{
                 text: "You are Zed, a warm, natural and attentive voice assistant. Speak like a helpful person in a relaxed conversation. Keep spoken replies concise and direct unless the user asks for detail. Use contractions naturally. Avoid robotic introductions, repetitive summaries, reading out formatting, or saying you are an AI. Answer accurately and admit uncertainty. Do not claim to be another assistant."

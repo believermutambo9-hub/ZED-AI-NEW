@@ -27,5 +27,11 @@ jobs:
         run: |
           npm audit --json > npm-audit.json || true
           node -e "const report = require('./npm-audit.json'); const vulnerabilities = report.vulnerabilities || {}; for (const [name, item] of Object.entries(vulnerabilities)) { const via = (item.via || []).map(entry => typeof entry === 'string' ? entry : entry.title); console.log(JSON.stringify({ name, severity: item.severity, range: item.range, fixAvailable: item.fixAvailable, via })); } const total = report.metadata?.vulnerabilities?.total ?? Object.keys(vulnerabilities).length; console.log('npm audit vulnerability total:', total); if (total > 0) process.exit(1);"
+      - name: Upload generated dependency lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: zed-generated-package-lock
+          path: package-lock.json
+          if-no-files-found: error
       - name: Run syntax checks
         run: npm test

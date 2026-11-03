@@ -40,6 +40,7 @@ test("Gemini image failures fall back to a real Groq vision model, never a text-
   assert.match(server, /async function askGroq\([\s\S]*?prompt,\s*inlineData = null/);
   assert.match(server, /process\.env\.GROQ_VISION_MODEL \|\| "qwen\/qwen3\.8-27b"/);
   assert.match(server, /type: "image_url"/);
+  assert.match(server, /max_completion_tokens: inlineData \? 700 : 2048/);
   assert.match(server, /data:\$\{inlineData\.mimeType\};base64,/);
   assert.match(server, /askGroq\(prompt, inlineData\)/);
   assert.match(server, /provider: "groq-vision"/);

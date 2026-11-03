@@ -330,7 +330,7 @@
             tools: [{
               functionDeclarations: [{
                 name: "zed_chat",
-                description: "Send the user's spoken request through Zed's authenticated chat engine so it can use Zed's knowledge, saved conversation context, web search, football data, file tools and other enabled features. Use this for every substantive question or task. Only answer greetings and simple conversational small talk directly.",
+                description: "Send the user's spoken request through Zed's authenticated chat engine so it can use saved conversation context, web search, football data and enabled features. Use this for every substantive question or task. Only answer greetings and simple conversational small talk directly.",
                 parameters: {
                   type: "OBJECT",
                   properties: {

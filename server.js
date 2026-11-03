@@ -22,6 +22,7 @@ import {
 } from "./features/football.js";
 
 import { webSearch } from "./web-search.js";
+import { detectLiveDataIntent, getLiveDataForMessage, formatLiveDataEvidence } from "./features/live-data.js";
 
 import {
   buildCurrentInformationPrompt
@@ -2666,6 +2667,7 @@ app.post(
 
       const explicitWebSearch =
         isExplicitWebSearchRequest(userMessage);
+      const liveDataIntent = detectLiveDataIntent(userMessage);
 
       if (
         (
@@ -2677,7 +2679,11 @@ app.post(
         ) &&
         (
           explicitWebSearch ||
-          !shouldUseFootballData(userMessage)
+          (
+            !shouldUseFootballData(userMessage) &&
+            !liveDataIntent.weatherLocation &&
+            !liveDataIntent.currency
+          )
         )
       ) {
         try {
@@ -2706,6 +2712,25 @@ app.post(
             null;
         }
       }
+
+      // ------------------------------------------------------
+      // LIVE WEATHER AND CURRENCY DATA
+      // ------------------------------------------------------
+
+      let liveData = { results: [], errors: [] };
+      if (liveDataIntent.weatherLocation || liveDataIntent.currency || liveDataIntent.needsLocation) {
+        try {
+          liveData = await getLiveDataForMessage(userMessage);
+        } catch (error) {
+          console.error("Live data provider error:", error.message);
+          liveData = {
+            results: [],
+            errors: ["Live data is temporarily unavailable. Please try again shortly."]
+          };
+        }
+      }
+
+      const liveDataEvidence = formatLiveDataEvidence(liveData);
 
       // ------------------------------------------------------
       // CURRENT DATE
@@ -2929,6 +2954,18 @@ ${
   footballData ||
   "No football data was requested."
 }
+
+============================================================
+LIVE WEATHER AND EXCHANGE-RATE DATA
+============================================================
+
+${
+  liveDataEvidence ||
+  "No dedicated live weather or exchange-rate data was requested."
+}
+
+When live weather or exchange-rate evidence is supplied, use its provider, timestamp/date and values accurately. Do not replace missing provider data with guesses. Currency rates are daily reference rates, not guaranteed bank, cash-market or remittance prices. If a provider error or missing location is supplied, explain the limitation and ask for the required location or retry later.
+
 
 ============================================================
 WEB SEARCH EVIDENCE
@@ -3216,6 +3253,12 @@ ${fileContext}
 
         webSearch:
           searchUsed,
+
+        liveData:
+          liveData.results.length > 0,
+
+        liveDataTypes:
+          liveData.results.map(item => item.type),
 
         football:
           footballUsed,

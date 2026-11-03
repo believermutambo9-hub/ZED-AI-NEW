@@ -1530,6 +1530,7 @@ async function sendMessage() {
     }
     renderMessages();
     await loadChats();
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return null;
     return assistantAnswer;
   } catch (error) {
     if (state.authGeneration !== requestGeneration || state.userId !== requestUid) {
@@ -1909,7 +1910,10 @@ function setupAuthListener() {
         state.sending = false;
         setSending(false);
         state.selectedFile = null;
+        state.chatHistoryUnavailable = false;
         if (fileInput) fileInput.value = "";
+        removeThinking();
+        window.ZedVoiceMode?.stop?.();
       }
       state.firebaseUser =
         user || null;

@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
+import * as XLSX from "xlsx";
+import { prepareUploadedFile } from "../features/file-analysis.js";
 
 const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
@@ -735,4 +737,20 @@ test("real-time voice streams 16 kHz PCM, plays 24 kHz audio, and clears interru
 
 test("Google profile avatar fallback derives initials from whitespace-separated names", () => {
   assert.ok(app.includes('.trim().split(/\\s+/)'));
+});
+
+
+test("XLSX parser extracts spreadsheet rows using the supported SheetJS release", async () => {
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.aoa_to_sheet([["Name", "Score"], ["Ada", 95]]);
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Results");
+  const bytes = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  const data = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + bytes.toString("base64");
+  const parsed = await prepareUploadedFile({
+    name: "results.xlsx",
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    data
+  });
+  assert.match(parsed.extractedText, /Ada/);
+  assert.match(parsed.extractedText, /95/);
 });

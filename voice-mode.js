@@ -379,12 +379,30 @@
           finish(new Error("Zed could not send the voice setup request: " + (error?.message || "unknown error")));
         }
       };
-      const onMessage = (event) => {
+      const onMessage = async (event) => {
+        let raw = "";
         let packet;
         try {
-          packet = JSON.parse(event.data);
-        } catch {
-          finish(new Error("Zed received an unreadable voice setup response."));
+          // Browsers can expose WebSocket frames as strings, Blob, or ArrayBuffer.
+          if (typeof event.data === "string") {
+            raw = event.data;
+          } else if (typeof Blob !== "undefined" && event.data instanceof Blob) {
+            raw = await event.data.text();
+          } else if (event.data instanceof ArrayBuffer) {
+            raw = new TextDecoder().decode(event.data);
+          } else if (ArrayBuffer.isView(event.data)) {
+            raw = new TextDecoder().decode(event.data);
+          } else {
+            throw new Error("Unsupported WebSocket frame type: " + Object.prototype.toString.call(event.data));
+          }
+          packet = JSON.parse(raw);
+        } catch (error) {
+          const preview = String(raw || "").replace(/[\\r\\n\\t]+/g, " ").slice(0, 180);
+          finish(new Error(
+            "Zed could not read Gemini's voice setup frame" +
+            (preview ? ": " + preview : ". The service returned a non-JSON frame.") +
+            (error?.message ? " (" + error.message + ")" : "")
+          ));
           return;
         }
         if (packet.setupComplete) {
@@ -393,7 +411,10 @@
           startMicrophoneStreaming();
           finish();
         } else if (packet.error) {
-          finish(new Error(packet.error.message || "Gemini rejected the real-time voice session."));
+          const detail = packet.error.message || packet.error.status || JSON.stringify(packet.error);
+          finish(new Error("Gemini rejected the real-time voice session: " + detail));
+        } else if (packet.goAway) {
+          finish(new Error("Gemini is closing the voice session before setup completed."));
         }
       };
       const onClose = (event) => {

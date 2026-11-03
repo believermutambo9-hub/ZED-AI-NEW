@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
 import * as XLSX from "xlsx";
-import { prepareUploadedFile } from "../features/file-analysis.js";
 
 const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),

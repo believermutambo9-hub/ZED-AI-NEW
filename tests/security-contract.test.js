@@ -373,7 +373,7 @@ test("vision-only uploads are not sent to text-only fallback providers", () => {
   const end = server.indexOf("// ============================================================\n//", start + 30);
   const ai = server.slice(start, end);
   assert.ok(ai.includes("if (inlineData)"));
-  assert.ok(ai.includes("Gemini could not analyse the attached image/PDF"));
+  assert.ok(ai.includes("AI_MULTIMODAL_UNAVAILABLE"));
   assert.ok(ai.indexOf("if (inlineData)") < ai.indexOf("await askGroq"));
 });
 

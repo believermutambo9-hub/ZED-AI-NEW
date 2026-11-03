@@ -280,12 +280,35 @@ const VoiceMode = (() => {
             }
           }));
         };
-        liveSocket.onmessage = event => {
+        liveSocket.onmessage = async event => {
+          let rawMessage;
           let message;
           try {
-            message = JSON.parse(event.data);
-          } catch {
-            finish(new Error("Gemini Live returned an unreadable message."));
+            const data = event.data;
+            if (typeof data === "string") {
+              rawMessage = data;
+            } else if (typeof Blob !== "undefined" && data instanceof Blob) {
+              rawMessage = await data.text();
+            } else if (data instanceof ArrayBuffer) {
+              rawMessage = new TextDecoder("utf-8").decode(data);
+            } else if (ArrayBuffer.isView(data)) {
+              rawMessage = new TextDecoder("utf-8").decode(data);
+            } else {
+              const dataType = data == null ? String(data) : (data.constructor?.name || typeof data);
+              console.warn("Zed voice received an unsupported Gemini Live message type:", dataType);
+              throw new Error("Gemini Live sent an unsupported voice message format.");
+            }
+            message = JSON.parse(rawMessage);
+            if (!message || typeof message !== "object" || Array.isArray(message)) {
+              throw new Error("Gemini Live sent an invalid voice message.");
+            }
+          } catch (error) {
+            console.error("Could not decode Gemini Live message:", {
+              error: error?.message || String(error),
+              dataType: event.data == null ? String(event.data) : (event.data.constructor?.name || typeof event.data),
+              dataLength: typeof rawMessage === "string" ? rawMessage.length : undefined
+            });
+            finish(error instanceof Error ? error : new Error("Gemini Live sent an unreadable voice message."));
             liveSocket.close();
             return;
           }

@@ -59,3 +59,15 @@ test("Gemini image failures fall back to a real Groq vision model, never a text-
   assert.match(server, /res\.status\(unavailable \? 503 : 500\)/);
   assert.match(server, /Image or scanned-document analysis is temporarily unavailable/);
 });
+
+
+test("image analysis uses structured transcription rules and a sufficient output budget", () => {
+  assert.match(server, /const IMAGE_ANALYSIS_INSTRUCTIONS = \[/);
+  assert.match(server, /transcribe every fully readable visible row/);
+  assert.match(server, /\\[unclear\\]/);
+  assert.match(server, /maxOutputTokens: 2500/);
+  assert.match(server, /max_completion_tokens: inlineData \? 2500 : 2048/);
+  assert.match(server, /max_tokens: isVisionRequest \? 2500 : 2048/);
+  assert.match(server, /detail: "high"/);
+  assert.match(server, /include all readable rows rather than giving only a general description/);
+});

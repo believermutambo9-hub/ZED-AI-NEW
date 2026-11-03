@@ -105,7 +105,7 @@ test("voice transcripts use the same authenticated Zed chat pipeline as typed me
   assert.match(appSource, /await sendMessage\(\)/);
   assert.match(appSource, /window\.zedVoiceSetEnabled = enabled/);
   assert.match(voiceSource, /window\.zedVoiceSubmitTranscript\(spokenText\)/);
-  assert.doesNotMatch(voiceSource, /generativelanguage\.googleapis\.com|\\/api\\/voice\\/token|new WebSocket/);
+  assert.doesNotMatch(voiceSource, /generativelanguage\.googleapis\.com|\/api\/voice\/token|new WebSocket/);
 });
 
 test("voice interface stays inside the normal chat workspace", () => {

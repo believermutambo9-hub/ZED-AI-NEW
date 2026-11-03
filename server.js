@@ -783,7 +783,9 @@ async function askGemini(
           ? [{ role: "user", parts: [{ text: prompt }, { inlineData }] }]
           : [{ role: "user", parts: [{ text: prompt }] }],
         config: {
-          systemInstruction: ZED_CORE_INSTRUCTIONS
+          systemInstruction: inlineData
+            ? "You are Zed. Analyse the supplied image accurately. Do not invent details; state when text or objects are unclear."
+            : ZED_CORE_INSTRUCTIONS
         }
       });
       break;
@@ -851,7 +853,9 @@ async function askGroq(
           ? (process.env.GROQ_VISION_MODEL || "qwen/qwen3.8-27b")
           : (process.env.GROQ_MODEL || "openai/gpt-oss-120b"),
         messages: [
-          { role: "system", content: ZED_CORE_INSTRUCTIONS },
+          { role: "system", content: inlineData
+            ? "You are Zed. Analyse the supplied image accurately. Do not invent details; state when text or objects are unclear."
+            : ZED_CORE_INSTRUCTIONS },
           { role: "user", content: userContent }
         ],
         temperature: 0.7,

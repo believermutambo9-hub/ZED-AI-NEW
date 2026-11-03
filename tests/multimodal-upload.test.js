@@ -79,3 +79,19 @@ test("audio and video inline uploads enforce the smaller provider-safe request l
     /14 MB or smaller/i
   );
 });
+
+test("M4A and QuickTime MOV files normalize to Gemini-supported media MIME types", async () => {
+  const m4aBytes = Buffer.alloc(16);
+  m4aBytes.write("ftyp", 4, "ascii");
+  m4aBytes.write("M4A ", 8, "ascii");
+  const m4a = await upload("voice.m4a", "audio/mp4", m4aBytes);
+  assert.equal(m4a.mimeType, "audio/mp4");
+  assert.equal(m4a.mediaKind, "audio");
+
+  const movBytes = Buffer.alloc(16);
+  movBytes.write("ftyp", 4, "ascii");
+  movBytes.write("qt  ", 8, "ascii");
+  const mov = await upload("clip.mov", "video/quicktime", movBytes);
+  assert.equal(mov.mimeType, "video/mov");
+  assert.equal(mov.mediaKind, "video");
+});

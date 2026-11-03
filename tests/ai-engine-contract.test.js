@@ -14,7 +14,7 @@ test("Zed has a stable provider-level identity and accuracy contract", () => {
 });
 
 test("all text providers receive Zed's core instructions as system instructions", () => {
-  assert.match(server, /systemInstruction:\s*ZED_CORE_INSTRUCTIONS/);
+  assert.match(server, /systemInstruction:\s*inlineData\s*\?\s*IMAGE_ANALYSIS_INSTRUCTIONS\s*:\s*ZED_CORE_INSTRUCTIONS/);
   assert.equal((server.match(/role: "system"[\s\S]{0,100}ZED_CORE_INSTRUCTIONS/g) || []).length, 2);
 });
 
@@ -44,8 +44,8 @@ test("Gemini image failures fall back to a real Groq vision model, never a text-
   assert.match(server, /data:\$\{inlineData\.mimeType\};base64,/);
   assert.match(server, /askGroq\(providerPrompt, inlineData\)/);
   assert.match(server, /const providerPrompt = inlineData/);
-  assert.match(server, /detail: "low"/);
-  assert.match(server, /Analyse the supplied image accurately/);
+  assert.match(server, /detail: "high"/);
+  assert.match(server, /Inspect the entire supplied image before answering/);
   assert.match(server, /slice\(0, 1500\)/);
   assert.match(server, /provider: "groq-vision"/);
   assert.match(server, /async function askOpenRouter\([\s\S]*?prompt,\s*inlineData = null/);

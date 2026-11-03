@@ -120,10 +120,10 @@ function parseCurrencyRequest(message = "") {
 
 function parseWeatherLocation(message = "") {
   const text = cleanText(message);
-  const match = text.match(/\b(?:weather|forecast|temperature|rain|raining)\b(?:\s+(?:like|today|tomorrow|now|currently))?\s+(?:in|for|at)\s+(.+?)(?:[?.!,;]|$)/i)
+  const match = text.match(/\b(?:weather|forecast|temperature|rain|raining)\b(?:\s+(?:like|today|tomorrow|now|currently))?\s+(?:in|for|at)\s+(.+?)(?:[?.!;]|$)/i)
     || text.match(/\b(?:in|for)\s+([a-z][a-z .'-]{1,80})\s+(?:weather|forecast)\b/i);
   if (!match) return "";
-  return cleanText(match[1]).replace(/\b(today|tomorrow|this week|this weekend|right now|currently)\b/gi, "").trim().slice(0, 100);
+  return cleanText(match[1]).replace(/\b(today|tomorrow|this week|this weekend|right now|currently|please)\b/gi, "").replace(/,\s*$/, "").trim().slice(0, 100);
 }
 
 export function detectLiveDataIntent(message = "") {

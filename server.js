@@ -830,7 +830,8 @@ async function askGroq(
         {
           type: "image_url",
           image_url: {
-            url: `data:${inlineData.mimeType};base64,${inlineData.data}`
+            url: `data:${inlineData.mimeType};base64,${inlineData.data}`,
+            detail: "low"
           }
         }
       ]
@@ -974,14 +975,26 @@ async function askOpenRouter(
 
 async function askAI(
   prompt,
-  inlineData = null
+  inlineData = null,
+  userRequest = ""
 ) {
   const errors = [];
+  // Image requests do not need the full chat history, memory, news, and web
+  // evidence prompt. Sending that entire context with the image can exceed
+  // vision-provider input-token quotas. Keep the actual user instruction.
+  const providerPrompt = inlineData
+    ? [
+        "You are Zed, an accurate visual and document assistant.",
+        "Inspect the attached image carefully and answer the user's request.",
+        "Describe only details that are actually visible. If text is unclear, say so.",
+        `User's request: ${cleanText(userRequest).slice(0, 1500) || "Describe and analyse this image."}`
+      ].join("\\n\\n")
+    : prompt;
 
   try {
     const answer =
       await askGemini(
-        prompt,
+        providerPrompt,
         inlineData
       );
 
@@ -1017,7 +1030,7 @@ async function askAI(
     }
 
     try {
-      const answer = await askGroq(prompt, inlineData);
+      const answer = await askGroq(providerPrompt, inlineData);
       return { answer, provider: "groq-vision" };
     } catch (error) {
       errors.push(`Groq vision: ${error.message}`);
@@ -3099,7 +3112,8 @@ ${fileContext}
           finalPrompt,
           uploadedFile?.inlineData && !uploadedFile.extractedText?.trim()
             ? uploadedFile.inlineData
-            : null
+            : null,
+          userMessage
         );
 
       // ------------------------------------------------------

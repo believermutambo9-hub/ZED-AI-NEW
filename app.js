@@ -1616,6 +1616,7 @@ window.zedVoiceSubmitTranscript = async transcript => {
   if (!spokenText) return "";
   if (state.sending) throw new Error("Zed is still completing the previous request.");
   if (!state.userId || !state.firebaseUser) throw new Error("Please sign in to use voice chat.");
+  messageInput.value = spokenText;
   const requestUid = state.userId;
   const answer = await sendMessage();
   if (state.userId !== requestUid) {

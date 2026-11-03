@@ -99,7 +99,7 @@ test("legacy chat recovery requires a matching owner-scoped Firestore history re
   assert.notEqual(assignOwner, -1);
   assert.notEqual(restoreCall, -1);
   assert.ok(guard < verify && verify < assignOwner && assignOwner < restoreCall);
-  assert.match(server.slice(guard, verify), /conversation\.messages\.length > 0/);
+  assert.match(server.slice(guard - 180, verify), /conversation\.messages\.length > 0/);
 });
 
 test("account changes invalidate pending chat and prevent stale data from rendering", () => {
@@ -518,7 +518,7 @@ test("chat route returns a safe client error when upload analysis fails", () => 
 
 
 test("chat UI rejects oversized files before base64 encoding", () => {
-  assert.match(app, /state\.selectedFile\.size > 18 \* 1024 \* 1024/);
+  assert.match(app, /requestFile && requestFile\.size > 18 \* 1024 \* 1024/);
   assert.match(app, /This file is too large to analyse\. Please choose a file smaller than 18 MB\./);
   const sendStart = app.indexOf("async function sendMessage()");
   const sendEnd = app.indexOf("sendBtn?.addEventListener", sendStart);

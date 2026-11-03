@@ -384,6 +384,7 @@ test("uploaded images render as the original image and remain linked in chat his
   assert.match(app, /URL\.createObjectURL\(selectedImage\)/);
   assert.match(app, /\/api\/library\/.*\/preview/);
   assert.match(server, /saveLibraryFile\(\{[\s\S]*?dataUrl: req\.body\.file\.data/);
+  assert.match(server, /uploadedFile\?\.mimeType\?\.startsWith\("image\/"\)/);
   assert.match(server, /imageAttachment/);
   assert.match(css, /\.message-uploaded-image[\s\S]*?object-fit: contain/);
 });

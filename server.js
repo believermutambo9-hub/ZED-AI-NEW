@@ -2440,7 +2440,7 @@ app.post(
       // ------------------------------------------------------
 
       let imageAttachment = null;
-      if (uploadedFile?.contentType?.startsWith("image/") && req.body?.file?.data) {
+      if (uploadedFile?.mimeType?.startsWith("image/") && req.body?.file?.data) {
         try {
           const savedImage = await saveLibraryFile({
             userId,

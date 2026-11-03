@@ -1,18 +1,15 @@
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const rateCache = new Map();
 
+const SUPPORTED_CURRENCIES = new Set(
+  typeof Intl.supportedValuesOf === "function"
+    ? Intl.supportedValuesOf("currency")
+    : ["USD", "ZMW", "GBP", "EUR", "ZAR", "MWK", "KES", "TZS", "BWP", "NGN", "GHS", "JPY", "CNY", "INR", "CAD", "AUD", "CHF", "AED", "SAR", "BRL"]
+);
+
 function isSupportedCurrency(code) {
-  if (!/^[A-Z]{3}$/.test(code)) return false;
-  try {
-    new Intl.NumberFormat("en", {
-      style: "currency",
-      currency: code
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
+  return /^[A-Z]{3}$/.test(code) && SUPPORTED_CURRENCIES.has(code);
+
 
 export function parseCurrencyRequest(message = "") {
   const text = String(message);

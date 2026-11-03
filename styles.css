@@ -3069,3 +3069,63 @@ html[data-theme="dark"] .sidebar-search-wrap input { background: #252525; border
   .thinking-dots { animation: none; }
   .message-action.message-copy-button { transition: none; }
 }
+
+/* =========================================================
+   ASSISTANT RESPONSE TYPOGRAPHY — CONSISTENT CHAT FORMATTING
+   Keep generated Markdown inside the same Zed type system.
+   ========================================================= */
+.message-assistant .message-content {
+  font-family: inherit !important;
+  font-size: 15px !important;
+  font-weight: 400;
+  line-height: 1.65 !important;
+  letter-spacing: normal;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.message-assistant .message-content p {
+  margin: 0 0 12px !important;
+  font: inherit;
+  line-height: inherit;
+}
+.message-assistant .message-content h2,
+.message-assistant .message-content h3,
+.message-assistant .message-content h4,
+.message-assistant .message-content h5 {
+  font-family: inherit;
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: normal;
+}
+.message-assistant .message-content h2 { font-size: 1.18em; }
+.message-assistant .message-content h3 { font-size: 1.08em; }
+.message-assistant .message-content h4,
+.message-assistant .message-content h5 { font-size: 1em; }
+.message-assistant .message-content ul,
+.message-assistant .message-content ol {
+  margin: 8px 0 14px;
+  padding-left: 24px;
+  font-size: inherit;
+  line-height: inherit;
+}
+.message-assistant .message-content li {
+  margin: 5px 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+.message-assistant .message-content blockquote {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.message-assistant .message-content table {
+  font-family: inherit;
+  font-size: .94em;
+  line-height: 1.5;
+}
+.message-assistant .message-content strong,
+.message-assistant .message-content b {
+  font-weight: 700;
+}

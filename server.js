@@ -2622,7 +2622,10 @@ app.post(
       if (
         (
           explicitWebSearch ||
-          isCurrentInformationQuestion(userMessage)
+          (
+            !isPersonalMemoryQuestion(userMessage) &&
+            isCurrentInformationQuestion(userMessage)
+          )
         ) &&
         (
           explicitWebSearch ||

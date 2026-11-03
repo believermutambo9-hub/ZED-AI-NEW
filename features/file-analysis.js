@@ -193,6 +193,7 @@ async function prepareUploadedFile(file) {
     ".webm": "video/webm", ".avi": "video/x-msvideo", ".3gp": "video/3gpp"
   };
   const expectedType = knownExtensionTypes[extension];
+  const mediaExtensions = new Set([".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".mp4", ".m4v", ".mov", ".webm", ".avi", ".3gp"]);
   const isZipDocument = [".docx", ".xlsx", ".pptx", ".odt", ".odp", ".epub"].includes(extension);
   const isLegacyOffice = [".doc", ".ppt"].includes(extension);
   const mimeLooksGeneric = ["", "application/octet-stream", "binary/octet-stream"].includes(mimeType);
@@ -226,7 +227,6 @@ async function prepareUploadedFile(file) {
     throw new Error("This compressed file format is not supported for direct analysis. Please upload a supported document format.");
   }
 
-  const mediaExtensions = new Set([".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".mp4", ".m4v", ".mov", ".webm", ".avi", ".3gp"]);
   if (mediaExtensions.has(extension)) {
     if (!expectedType || (signature !== expectedType && !(extension === ".mov" && signature === "video/mp4"))) {
       throw new Error("The audio or video contents do not match the selected file type. Please upload a valid media file.");

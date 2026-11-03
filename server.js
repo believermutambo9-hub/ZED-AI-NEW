@@ -649,11 +649,8 @@ function isCurrentInformationQuestion(
   // Match complete words/phrases only. Substring matching made
   // "know" contain "now", incorrectly triggering web search.
   return words.some(word => {
-    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\  return words.some(
-    word =>
-      text.includes(word)
-  );");
-    return new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`, "i").test(text);
+    const escaped = word.replace(/ /g, "\\s+");
+    return new RegExp("(^|[^a-z0-9])" + escaped + "($|[^a-z0-9])", "i").test(text);
   });
 }
 
@@ -1313,7 +1310,7 @@ function processForgetRequest(
 // ============================================================
 
 function isPersonalMemoryQuestion(message = "") {
-  return /\\b(?:do you know me|what do you know about me|what do you remember about me|who am i|tell me about myself|do you remember me|what have i told you about myself)\\b/i.test(
+  return /\b(?:do you know me|what do you know about me|what do you remember about me|who am i|tell me about myself|do you remember me|what have i told you about myself)\b/i.test(
     String(message).trim()
   );
 }
@@ -1326,25 +1323,18 @@ function getRelevantMemoryContext(
     // Broad identity questions need a profile overview, not keyword-only
     // matching against the words "know me".
     if (isPersonalMemoryQuestion(userMessage)) {
-      const profileMemories = getUserMemories(userId, {
-        limit: 30
-      });
+      const profileMemories = getUserMemories(userId, { limit: 30 });
       if (profileMemories.length) {
         return profileMemories
           .map(memory => `- ${memory.content}`)
-          .join("\\n");
+          .join("\n");
       }
     }
 
-    const context = buildMemoryContext(
-      userId,
-      userMessage,
-      {
-        limit: 12,
-        threshold: 0.12
-      }
-    );
-
+    const context = buildMemoryContext(userId, userMessage, {
+      limit: 12,
+      threshold: 0.12
+    });
     return context || "";
   } catch (error) {
     console.error("Memory retrieval error:", error);

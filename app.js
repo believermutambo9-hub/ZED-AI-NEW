@@ -1088,6 +1088,12 @@ function renderMessages() {
       image.alt = message.imageAttachment?.name || message.imageName || "Uploaded image";
       image.loading = "lazy";
       if (message.image) {
+        image.addEventListener("load", () => {
+          if (message.image.startsWith("blob:")) URL.revokeObjectURL(message.image);
+        }, { once: true });
+        image.addEventListener("error", () => {
+          if (message.image.startsWith("blob:")) URL.revokeObjectURL(message.image);
+        }, { once: true });
         image.src = message.image;
       } else if (message.imageAttachment?.id) {
         image.dataset.attachmentId = message.imageAttachment.id;

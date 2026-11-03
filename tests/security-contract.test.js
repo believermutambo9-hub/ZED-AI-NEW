@@ -504,8 +504,8 @@ test("Groq and OpenRouter requests have bounded provider timeouts", () => {
   const fallbackStart = server.indexOf("async function askAI(");
   const groq = server.slice(groqStart, openRouterStart);
   const openRouter = server.slice(openRouterStart, fallbackStart);
-  assert.match(groq, /signal:\s*AbortSignal\.timeout\(45_000\)/);
-  assert.match(openRouter, /signal:\s*AbortSignal\.timeout\(45_000\)/);
+  assert.match(groq, /signal:\s*AbortSignal\.timeout\(60_000\)/);
+  assert.match(openRouter, /signal:\s*AbortSignal\.timeout\(60_000\)/);
 });
 
 

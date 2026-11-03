@@ -1,17 +1,20 @@
-// Zed dedicated voice experience — all requests use the authenticated shared chat engine.
+// Zed voice: continuous listening, barge-in and spoken replies through the shared chat engine.
 (() => {
   let recognition = null;
   let active = false;
   let processing = false;
   let speaking = false;
+  let recognitionRunning = false;
   let restartPending = false;
   let finalTranscript = "";
   let voiceScreen = null;
   let statusNode = null;
   let transcriptNode = null;
-  let lastUserText = "";
   let muted = false;
   let speechGeneration = 0;
+  let activeSpokenText = "";
+  let transcriptHistory = [];
+  let lastSubmittedAt = 0;
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -19,10 +22,20 @@
     if (!statusNode) return;
     statusNode.textContent = message;
     statusNode.dataset.state = state;
+    voiceScreen?.classList.toggle("is-listening", state === "listening");
+    voiceScreen?.classList.toggle("is-thinking", state === "thinking");
+    voiceScreen?.classList.toggle("is-speaking", state === "speaking");
   }
 
   function setTranscript(message) {
     if (transcriptNode) transcriptNode.textContent = message;
+  }
+
+  function addTranscript(speaker, message) {
+    transcriptHistory.push({ speaker, message: String(message || "").trim() });
+    transcriptHistory = transcriptHistory.slice(-30);
+    setTranscript(transcriptHistory.map(item => item.speaker + "\n" + item.message).join("\n\n"));
+    if (transcriptNode) transcriptNode.scrollTop = transcriptNode.scrollHeight;
   }
 
   function updateButtons() {
@@ -46,7 +59,10 @@
     voiceScreen.innerHTML = `
       <header class="zed-voice-header">
         <div class="zed-voice-brand"><span class="zed-voice-brand-mark">Z</span><span>Zed voice</span></div>
-        <button class="zed-voice-close" type="button" aria-label="Close voice chat">×</button>
+        <div class="zed-voice-header-actions">
+          <span class="zed-voice-live-indicator"><i></i> LIVE</span>
+          <button class="zed-voice-close" type="button" aria-label="Close voice chat">×</button>
+        </div>
       </header>
       <main class="zed-voice-stage">
         <div class="zed-voice-orb" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -56,9 +72,10 @@
       </main>
       <footer class="zed-voice-footer">
         <button class="zed-voice-action zed-voice-mute" type="button" aria-pressed="false"><span>◖</span><small>Mute reply</small></button>
-        <button class="zed-voice-action zed-voice-mic" type="button" aria-label="Resume listening"><span>🎙</span><small>Listening</small></button>
+        <button class="zed-voice-action zed-voice-mic" type="button" aria-label="Interrupt or resume listening"><span>🎙</span><small>Interrupt</small></button>
         <button class="zed-voice-action zed-voice-end" type="button"><span>×</span><small>End</small></button>
-      </footer>`;
+      </footer>
+      <p class="zed-voice-hint">You can speak while Zed is talking to interrupt.</p>`;
     document.body.append(voiceScreen);
     statusNode = voiceScreen.querySelector(".zed-voice-status");
     transcriptNode = voiceScreen.querySelector(".zed-voice-transcript");
@@ -67,15 +84,14 @@
     voiceScreen.querySelector(".zed-voice-mute").addEventListener("click", toggleMute);
     voiceScreen.querySelector(".zed-voice-mic").addEventListener("click", () => {
       if (!active) return;
-      if (speaking && "speechSynthesis" in window) window.speechSynthesis.cancel();
-      speaking = false;
+      interruptSpeech();
       startRecognition();
     });
     return voiceScreen;
   }
 
   function startRecognition() {
-    if (!active || processing || speaking || muted && !recognition || !recognition || restartPending || document.hidden) return;
+    if (!active || processing || !recognition || recognitionRunning || restartPending || document.hidden) return;
     restartPending = true;
     try {
       recognition.start();
@@ -90,7 +106,34 @@
 
   function stopRecognition() {
     if (!recognition) return;
+    restartPending = false;
     try { recognition.stop(); } catch {}
+  }
+
+  function normalizeWords(value) {
+    return String(value || "").toLowerCase().replace(/[^a-z0-9\s']/g, " ").split(/\s+/).filter(Boolean);
+  }
+
+  // Ignore text the microphone recognises from Zed's own speaker output.
+  function isLikelySpeechEcho(candidate) {
+    const words = normalizeWords(candidate);
+    const spoken = normalizeWords(activeSpokenText);
+    if (words.length < 2 || spoken.length < 2) return false;
+    const spokenSet = new Set(spoken);
+    const overlap = words.filter(word => spokenSet.has(word)).length / words.length;
+    const phrase = words.join(" ");
+    return activeSpokenText.toLowerCase().includes(phrase) || overlap >= 0.78;
+  }
+
+  function interruptSpeech() {
+    if (!speaking) return;
+    speechGeneration++;
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    speaking = false;
+    activeSpokenText = "";
+    voiceScreen?.classList.remove("is-speaking");
+    window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: false } }));
+    setStatus("Listening… go ahead", "listening");
   }
 
   function speak(text) {
@@ -98,26 +141,35 @@
     if (!answer || muted || !("speechSynthesis" in window)) return;
     const generation = ++speechGeneration;
     window.speechSynthesis.cancel();
+    activeSpokenText = answer;
     const utterance = new SpeechSynthesisUtterance(answer.slice(0, 12000));
     utterance.lang = "en-US";
-    utterance.rate = 1;
+    utterance.rate = 1.02;
     utterance.pitch = 1;
+    const voices = window.speechSynthesis.getVoices?.() || [];
+    const preferredVoice = voices.find(voice => /^en-US$/i.test(voice.lang) && /natural|enhanced|premium/i.test(voice.name))
+      || voices.find(voice => /^en-US$/i.test(voice.lang))
+      || voices.find(voice => /^en/i.test(voice.lang));
+    if (preferredVoice) utterance.voice = preferredVoice;
+
     utterance.onstart = () => {
       if (generation !== speechGeneration || !active) return;
       speaking = true;
-      stopRecognition();
-      setStatus("Zed is speaking…", "speaking");
+      setStatus("Zed is speaking — you can interrupt", "speaking");
       voiceScreen?.classList.add("is-speaking");
       window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: true } }));
+      // Keep recognition alive during speech so the user can barge in naturally.
+      startRecognition();
     };
     const finish = () => {
       if (generation !== speechGeneration) return;
       speaking = false;
+      activeSpokenText = "";
       voiceScreen?.classList.remove("is-speaking");
       window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: false } }));
       if (active && !processing) {
         setStatus("Listening… your turn", "listening");
-        window.setTimeout(startRecognition, 450);
+        window.setTimeout(startRecognition, 250);
       }
     };
     utterance.onend = finish;
@@ -128,7 +180,6 @@
       finish();
     };
     window.speechSynthesis.speak(utterance);
-    // Some mobile browsers queue speech without firing onstart promptly.
     setStatus("Preparing Zed's voice…", "speaking");
   }
 
@@ -139,22 +190,20 @@
       button.setAttribute("aria-pressed", String(muted));
       button.querySelector("small").textContent = muted ? "Unmute reply" : "Mute reply";
     }
-    if (muted && "speechSynthesis" in window) {
-      speechGeneration++;
-      window.speechSynthesis.cancel();
-      speaking = false;
-      voiceScreen?.classList.remove("is-speaking");
-      if (active && !processing) startRecognition();
-    }
+    if (muted) interruptSpeech();
   }
 
   async function submitSpeech(text) {
     const spokenText = String(text || "").trim();
     if (!spokenText || processing || !active) return;
+    const now = Date.now();
+    if (now - lastSubmittedAt < 700) return;
+    lastSubmittedAt = now;
     processing = true;
     stopRecognition();
-    lastUserText = spokenText;
-    setTranscript("You\n" + spokenText);
+    interruptSpeech();
+    finalTranscript = "";
+    addTranscript("You", spokenText);
     setStatus("Zed is thinking…", "thinking");
     try {
       if (typeof window.zedVoiceSubmitTranscript !== "function") {
@@ -162,23 +211,18 @@
       }
       const answer = await window.zedVoiceSubmitTranscript(spokenText);
       if (!answer) throw new Error("Zed did not return a response. Please try again.");
-      setTranscript("You\n" + spokenText + "\n\nZed\n" + answer);
+      addTranscript("Zed", answer);
       if (!muted && "speechSynthesis" in window) speak(answer);
-      else {
-        setStatus("Zed replied. Listening…", "listening");
-        window.setTimeout(startRecognition, 350);
-      }
+      else setStatus("Zed replied. Listening…", "listening");
     } catch (error) {
       console.error("Zed voice conversation failed:", error);
       const message = error?.message || "Voice request failed. Please try again.";
-      setTranscript("You\n" + spokenText + "\n\nZed\n" + message);
-      setStatus(message, "error");
+      addTranscript("Zed", message);
       if (!muted) speak(message);
+      else setStatus(message, "error");
     } finally {
       processing = false;
-      if (active && !speaking && (!("speechSynthesis" in window) || muted)) {
-        window.setTimeout(startRecognition, 400);
-      }
+      if (active) window.setTimeout(startRecognition, 300);
     }
   }
 
@@ -191,23 +235,25 @@
     recognition.maxAlternatives = 1;
     recognition.onstart = () => {
       restartPending = false;
+      recognitionRunning = true;
       finalTranscript = "";
       if (active && !processing && !speaking) setStatus("Listening… speak naturally", "listening");
     };
     recognition.onresult = event => {
       let interim = "";
+      let finalText = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
-        if (result.isFinal) finalTranscript += result[0].transcript + " ";
-        else interim += result[0].transcript;
+        const phrase = String(result[0]?.transcript || "").trim();
+        if (!phrase) continue;
+        if (speaking && isLikelySpeechEcho(phrase)) continue;
+        if (speaking && phrase.split(/\s+/).length >= 2) interruptSpeech();
+        if (result.isFinal) finalText += phrase + " ";
+        else interim += phrase;
       }
-      const visible = (finalTranscript + interim).trim();
-      if (visible) setTranscript("You\n" + visible);
-      if (finalTranscript.trim() && !processing) {
-        const completed = finalTranscript.trim();
-        finalTranscript = "";
-        void submitSpeech(completed);
-      }
+      const visible = (finalText + interim).trim();
+      if (visible && !speaking) setTranscript("You\n" + visible);
+      if (finalText.trim() && !processing) void submitSpeech(finalText.trim());
     };
     recognition.onerror = event => {
       restartPending = false;
@@ -223,8 +269,9 @@
       }
     };
     recognition.onend = () => {
+      recognitionRunning = false;
       restartPending = false;
-      if (active && !processing && !speaking && !document.hidden) window.setTimeout(startRecognition, 350);
+      if (active && !processing && !document.hidden) window.setTimeout(startRecognition, 250);
     };
     return true;
   }
@@ -243,6 +290,7 @@
     processing = false;
     speaking = false;
     muted = false;
+    transcriptHistory = [];
     document.body.classList.add("zed-voice-open");
     voiceScreen.classList.add("is-active");
     voiceScreen.querySelector(".zed-voice-mute").setAttribute("aria-pressed", "false");
@@ -258,12 +306,14 @@
     active = false;
     processing = false;
     speaking = false;
+    recognitionRunning = false;
     restartPending = false;
     speechGeneration++;
     stopRecognition();
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    activeSpokenText = "";
     window.zedVoiceSetEnabled?.(false);
-    voiceScreen?.classList.remove("is-active", "is-speaking");
+    voiceScreen?.classList.remove("is-active", "is-speaking", "is-listening", "is-thinking");
     document.body.classList.remove("zed-voice-open");
     setStatus("Voice conversation ended", "idle");
     updateButtons();
@@ -288,7 +338,7 @@
     }
     document.addEventListener("visibilitychange", () => {
       if (document.hidden && active) stopRecognition();
-      else if (!document.hidden && active && !processing && !speaking) startRecognition();
+      else if (!document.hidden && active && !processing) startRecognition();
     });
     document.addEventListener("keydown", event => {
       if (event.key === "Escape" && active) stop();

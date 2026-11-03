@@ -216,7 +216,8 @@ async function prepareUploadedFile(file) {
   const mimeLooksGeneric = ["", "application/octet-stream", "binary/octet-stream"].includes(mimeType);
   const signatureMatches = expectedType && (
     (isZipDocument && signature === "application/zip") ||
-    signature === expectedType
+    signature === expectedType ||
+    ([".m4a", ".mov"].includes(extension) && signature === "video/mp4")
   );
   if (expectedType && !signatureMatches) {
     throw new Error("The file contents do not match the file type. Please upload a valid, unmodified file.");

@@ -745,7 +745,12 @@ test("real-time voice streams native audio and delegates Zed tasks through authe
   assert.match(voice, /name: "zed_chat"/);
   assert.match(voice, /zed-voice-screen/);
   assert.match(app, /window\.zedVoiceSubmitTranscript = async transcript/);
-  assert.match(app, /await sendMessage\(\)/);
+  assert.match(app, /const answer = await sendMessage\(\)/);
+  assert.match(app, /return assistantAnswer;/);
+  assert.match(app, /return null;/);
+  assert.match(app, /Your Zed account changed during the voice request/);
+  assert.match(voice, /getIdToken\(true\)/);
+  assert.match(voice, /zedVoiceGetUser\?\.\(\)\?\.uid !== user\.uid/);
   assert.doesNotMatch(voice, /SpeechRecognition|speechSynthesis/);
 });
 

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - zed-core-engine-upgrade
+      - zed-core-engine-upgrade-safe
       - zed-universal-file-analysis
       - zed-v2-ai-engine
       - zed-comprehensive-repair-20261031

@@ -1246,38 +1246,20 @@ function removeThinking() {
 // LOAD CHATS
 // ============================================================
 async function loadChats() {
-  if (!state.userId) {
-    return;
-  }
+  const requestUid = state.userId;
+  const requestGeneration = state.authGeneration;
+  if (!requestUid || !state.firebaseUser || state.firebaseUser.uid !== requestUid) return;
   try {
-    const response =
-      await apiFetch(
-        `/api/chats?userId=${encodeURIComponent(
-          state.userId
-        )}`
-      );
-    const data =
-      await parseResponse(
-        response
-      );
-    if (!response.ok || !data.ok) {
-      throw new Error(
-        data.error ||
-        "Unable to load chats."
-      );
-    }
-    state.chats =
-      Array.isArray(data.chats)
-        ? data.chats
-        : [];
-    state.chatHistoryUnavailable =
-      data.persistent === false;
+    const response = await apiFetch(`/api/chats?userId=${encodeURIComponent(requestUid)}`);
+    const data = await parseResponse(response);
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load chats.");
+    state.chats = Array.isArray(data.chats) ? data.chats : [];
+    state.chatHistoryUnavailable = data.persistent === false;
     renderRecentChats();
   } catch (error) {
-    console.error(
-      "Load chats error:",
-      error
-    );
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    console.error("Load chats error:", error);
     state.chatHistoryUnavailable = true;
     renderRecentChats();
   }
@@ -1340,101 +1322,50 @@ function renderRecentChats() {
 // ============================================================
 // LOAD CONVERSATION
 // ============================================================
-async function loadConversation(
-  conversationId
-) {
-  if (
-    !state.userId ||
-    !conversationId
-  ) {
-    return;
-  }
+async function loadConversation(conversationId) {
+  const requestUid = state.userId;
+  const requestGeneration = state.authGeneration;
+  if (!requestUid || !conversationId || !state.firebaseUser || state.firebaseUser.uid !== requestUid) return;
   try {
-    const response =
-      await apiFetch(
-        `/api/chat/${encodeURIComponent(
-          conversationId
-        )}?userId=${encodeURIComponent(
-          state.userId
-        )}`
-      );
-    const data =
-      await parseResponse(
-        response
-      );
-    if (!response.ok || !data.ok) {
-      throw new Error(
-        data.error ||
-        "Unable to load conversation."
-      );
-    }
-    state.conversationId =
-      data.conversation.id;
-    state.messages =
-      Array.isArray(
-        data.conversation.messages
-      )
-        ? data.conversation.messages
-        : [];
+    const response = await apiFetch(`/api/chat/${encodeURIComponent(conversationId)}?userId=${encodeURIComponent(requestUid)}`);
+    const data = await parseResponse(response);
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load conversation.");
+    state.conversationId = data.conversation.id;
+    state.messages = Array.isArray(data.conversation.messages) ? data.conversation.messages : [];
     renderMessages();
   } catch (error) {
-    console.error(
-      "Conversation error:",
-      error
-    );
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    console.error("Conversation error:", error);
   }
 }
 // ============================================================
 // NEW CHAT
 // ============================================================
 async function createNewChat() {
-  if (
-    state.sending ||
-    !state.userId
-  ) {
-    return;
-  }
+  if (state.sending || !state.userId || !state.firebaseUser || state.firebaseUser.uid !== state.userId) return;
+  const requestUid = state.userId;
+  const requestGeneration = state.authGeneration;
   try {
-    const response =
-      await apiFetch(
-        "/api/new-chat",
-        {
-          method:"POST",
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
-          body:JSON.stringify({
-            userId:
-              state.userId
-          })
-        }
-      );
-    const data =
-      await parseResponse(
-        response
-      );
-    if (!response.ok || !data.ok) {
-      throw new Error(
-        data.error ||
-        "Unable to create a new chat."
-      );
-    }
-    state.conversationId =
-      data.conversationId ||
-      data.conversation?.id ||
-      null;
+    const response = await apiFetch("/api/new-chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: requestUid })
+    });
+    const data = await parseResponse(response);
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to create a new chat.");
+    state.conversationId = data.conversationId || data.conversation?.id || null;
     state.messages = [];
     state.selectedFile = null;
     renderMessages();
     await loadChats();
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
     closeSidebar();
     messageInput?.focus();
   } catch (error) {
-    console.error(
-      "New chat error:",
-      error
-    );
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    console.error("New chat error:", error);
   }
 }
 newChatBtn?.addEventListener(
@@ -2246,7 +2177,9 @@ function formatFileSize(bytes = 0) {
 }
 
 async function loadProjects() {
-  if (!projectList || !state.firebaseUser) return;
+  const requestUid = state.userId;
+  const requestGeneration = state.authGeneration;
+  if (!projectList || !requestUid || !state.firebaseUser || state.firebaseUser.uid !== requestUid) return;
   projectList.replaceChildren();
   const loading = document.createElement("div");
   loading.className = "sidebar-empty";
@@ -2255,6 +2188,7 @@ async function loadProjects() {
   try {
     const response = await apiFetch("/api/projects");
     const data = await parseResponse(response);
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
     if (!response.ok || !data.ok) throw new Error(data.error || "Projects could not be loaded.");
     projectList.replaceChildren();
     const projects = Array.isArray(data.projects) ? data.projects : [];
@@ -2278,6 +2212,7 @@ async function loadProjects() {
       projectList.append(button);
     }
   } catch (error) {
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
     projectList.replaceChildren();
     const failed = document.createElement("div");
     failed.className = "sidebar-empty";
@@ -2286,7 +2221,6 @@ async function loadProjects() {
     console.error("Project list error:", error);
   }
 }
-
 function openProjectView(project) {
   const content = document.createElement("div");
   content.append(featureCard(

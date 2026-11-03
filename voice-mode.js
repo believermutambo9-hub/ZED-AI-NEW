@@ -129,15 +129,27 @@
     micProcessor.onaudioprocess = event => {
       if (!active || !setupReady || !socket || socket.readyState !== WebSocket.OPEN) return;
       const input = event.inputBuffer.getChannelData(0);
+      // Give visible feedback when the microphone is actually capturing speech.
+      let sumSquares = 0;
+      for (let i = 0; i < input.length; i++) sumSquares += input[i] * input[i];
+      const rms = Math.sqrt(sumSquares / input.length);
+      if (rms > 0.012 && statusNode?.textContent?.startsWith("Listening")) {
+        setStatus("I can hear you…", "listening");
+      }
       const pcm = downsampleToPcm16(input, audioContext.sampleRate);
-      socket.send(JSON.stringify({
-        realtimeInput: {
-          audio: {
-            mimeType: "audio/pcm;rate=16000",
-            data: bytesToBase64(pcm)
+      try {
+        socket.send(JSON.stringify({
+          realtimeInput: {
+            audio: {
+              mimeType: "audio/pcm;rate=16000",
+              data: bytesToBase64(pcm)
+            }
           }
-        }
-      }));
+        }));
+      } catch (error) {
+        console.error("Zed could not send microphone audio:", error);
+        setStatus("Microphone audio could not be sent. Please restart voice chat.", "error");
+      }
     };
     micSource.connect(micProcessor);
     micProcessor.connect(silentGain);
@@ -236,12 +248,24 @@
     }
   }
 
-  function handleLiveMessage(event) {
+  async function handleLiveMessage(event) {
     let message;
+    let raw = "";
     try {
-      message = JSON.parse(event.data);
-    } catch {
-      console.warn("Zed received an unreadable Live API event.");
+      // Safari and other browsers may expose WebSocket text frames as Blob.
+      if (typeof event.data === "string") {
+        raw = event.data;
+      } else if (typeof Blob !== "undefined" && event.data instanceof Blob) {
+        raw = await event.data.text();
+      } else if (event.data instanceof ArrayBuffer || ArrayBuffer.isView(event.data)) {
+        raw = new TextDecoder().decode(event.data);
+      } else {
+        throw new Error("Unsupported WebSocket frame type");
+      }
+      message = JSON.parse(raw);
+    } catch (error) {
+      console.warn("Zed could not read a Gemini Live message:", error);
+      if (active) setStatus("Zed received an unreadable voice message. Please restart voice chat.", "error");
       return;
     }
 

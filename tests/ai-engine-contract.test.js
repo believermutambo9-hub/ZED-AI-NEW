@@ -95,3 +95,19 @@ test("current-information detection matches whole words and does not treat know 
   const detector = server.slice(detectorStart, detectorEnd);
   assert.doesNotMatch(detector, /text\\.includes\\(word\\)/);
 });
+
+
+test("voice transcripts use the same authenticated Zed chat pipeline as typed messages", () => {
+  assert.match(a, /window\.zedVoiceSubmitTranscript = async transcript/);
+  assert.match(a, /await sendMessage\(\)/);
+  assert.match(a, /window\.zedVoiceSetEnabled = enabled/);
+  assert.match(v, /window\.zedVoiceSubmitTranscript\(spokenText\)/);
+  assert.doesNotMatch(v, /generativelanguage\.googleapis\.com|/api/voice/token|new WebSocket/);
+});
+
+test("voice interface stays inside the normal chat workspace", () => {
+  assert.match(v, /querySelector\("\.composer-container"\)/);
+  assert.match(v, /zed-voice-dock/);
+  assert.match(c, /\.zed-voice-dock\.is-active/);
+  assert.match(v, /zed:voice-speaking/);
+});

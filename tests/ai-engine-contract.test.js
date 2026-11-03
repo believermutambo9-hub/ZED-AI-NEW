@@ -122,3 +122,41 @@ test("voice uses native streamed audio, interruption and a dedicated screen", ()
   assert.match(voiceCss, /\.zed-voice-screen\.is-speaking/);
   assert.match(appSource, /window\.zedVoiceSubmitTranscript = async transcript/);
 });
+
+
+test("text chat falls back in strict Gemini to Groq to OpenRouter order", () => {
+  const start = server.indexOf("async function askAI(");
+  const end = server.indexOf("// MEMORY SAFETY", start);
+  const fallback = server.slice(start, end);
+  const gemini = fallback.indexOf("await askGemini(");
+  const groq = fallback.indexOf("await askGroq(");
+  const openrouter = fallback.indexOf("await askOpenRouter(");
+  assert.ok(gemini >= 0 && groq > gemini && openrouter > groq,
+    "provider order must be Gemini, Groq, then OpenRouter");
+  assert.match(fallback, /errors\.push\(\s*`Gemini:/);
+  assert.match(fallback, /errors\.push\(\s*`Groq:/);
+  assert.match(fallback, /errors\.push\(\s*`OpenRouter:/);
+  assert.match(fallback, /All configured AI providers failed/);
+  assert.match(fallback, /AI_PROVIDERS_UNAVAILABLE/);
+});
+
+test("image chat uses Gemini, Groq vision, and OpenRouter vision in order", () => {
+  const start = server.indexOf("async function askAI(");
+  const end = server.indexOf("// MEMORY SAFETY", start);
+  const fallback = server.slice(start, end);
+  const gemini = fallback.indexOf("await askGemini(");
+  const groqVision = fallback.indexOf("await askGroq(providerPrompt, inlineData)");
+  const routerVision = fallback.indexOf("await askOpenRouter(providerPrompt, inlineData)");
+  assert.ok(gemini >= 0 && groqVision > gemini && routerVision > groqVision);
+  assert.match(fallback, /provider: "groq-vision"/);
+  assert.match(fallback, /provider: "openrouter-vision"/);
+});
+
+test("voice startup has bounded token and Live setup waits and releases failed sessions for retry", () => {
+  assert.match(voiceSource, /AbortController\(\)/);
+  assert.match(voiceSource, /tokenController\.abort\(\)/);
+  assert.match(voiceSource, /const onClose = \(event\) =>/);
+  assert.match(voiceSource, /real-time voice setup timed out/i);
+  assert.match(voiceSource, /active = false;[\s\S]{0,250}setupReady = false/);
+  assert.match(voiceSource, /window\.zedVoiceSetEnabled\?\.\(false\)/);
+});

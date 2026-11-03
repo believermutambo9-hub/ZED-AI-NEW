@@ -186,6 +186,56 @@
     setStatus("Zed is speaking — you can interrupt", "speaking");
   }
 
+  async function submitToZedChat(spokenText) {
+    if (typeof window.zedVoiceSubmitTranscript !== "function") {
+      throw new Error("Zed's chat engine is not ready. Please reload and try again.");
+    }
+    return await window.zedVoiceSubmitTranscript(String(spokenText || "").trim());
+  }
+
+  async function handleToolCalls(calls) {
+    for (const call of calls || []) {
+      if (call.name !== "zed_chat") {
+        socket?.send(JSON.stringify({
+          toolResponse: {
+            functionResponses: [{
+              id: call.id,
+              name: call.name,
+              response: { error: "This tool is not available in voice mode." }
+            }]
+          }
+        }));
+        continue;
+      }
+      const message = String(call.args?.message || "").trim();
+      if (!message) continue;
+      setStatus("Checking that with Zed…", "thinking");
+      appendTranscript("You", message);
+      try {
+        const answer = await submitToZedChat(message);
+        socket?.send(JSON.stringify({
+          toolResponse: {
+            functionResponses: [{
+              id: call.id,
+              name: call.name,
+              response: { result: String(answer || "Zed could not find an answer.") }
+            }]
+          }
+        }));
+      } catch (error) {
+        socket?.send(JSON.stringify({
+          toolResponse: {
+            functionResponses: [{
+              id: call.id,
+              name: call.name,
+              response: { error: error?.message || "Zed chat request failed." }
+            }]
+          }
+        }));
+      }
+    }
+  }
+
   function handleLiveMessage(event) {
     let message;
     try {
@@ -206,6 +256,10 @@
       console.error("Zed Live API error:", message.error);
       setStatus(message.error.message || "The real-time voice service returned an error.", "error");
       return;
+    }
+
+    if (message.toolCall?.functionCalls?.length) {
+      void handleToolCalls(message.toolCall.functionCalls);
     }
 
     const serverContent = message.serverContent;
@@ -273,6 +327,19 @@
             inputAudioTranscription: {},
             outputAudioTranscription: {},
             sessionResumption: {},
+            tools: [{
+              functionDeclarations: [{
+                name: "zed_chat",
+                description: "Send the user's spoken request through Zed's authenticated chat engine so it can use Zed's knowledge, saved conversation context, web search, football data, file tools and other enabled features. Use this for every substantive question or task. Only answer greetings and simple conversational small talk directly.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    message: { type: "STRING", description: "The user's complete spoken request, transcribed accurately." }
+                  },
+                  required: ["message"]
+                }
+              }]
+            }],
             systemInstruction: {
               parts: [{
                 text: "You are Zed, a warm, natural and attentive voice assistant. Speak like a helpful person in a relaxed conversation. Keep spoken replies concise and direct unless the user asks for detail. Use contractions naturally. Avoid robotic introductions, repetitive summaries, reading out formatting, or saying you are an AI. Answer accurately and admit uncertainty. Do not claim to be another assistant."

@@ -310,62 +310,91 @@
     const url = LIVE_ENDPOINT + "?access_token=" + encodeURIComponent(tokenData.token);
     socket = new WebSocket(url);
     await new Promise((resolve, reject) => {
-      const timeout = window.setTimeout(() => reject(new Error("The real-time voice connection timed out. Please try again.")), 15000);
-      socket.addEventListener("open", () => {
+      let settled = false;
+      const finish = (error) => {
+        if (settled) return;
+        settled = true;
         window.clearTimeout(timeout);
-        socket.send(JSON.stringify({
-          setup: {
-            model: "models/" + tokenData.model,
-            generationConfig: {
-              responseModalities: ["AUDIO"],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: "Aoede" }
+        socket.removeEventListener("open", onOpen);
+        socket.removeEventListener("message", onMessage);
+        socket.removeEventListener("close", onClose);
+        socket.removeEventListener("error", onError);
+        if (error) reject(error);
+        else resolve();
+      };
+      const timeout = window.setTimeout(() => {
+        finish(new Error("Zed's real-time voice setup timed out. Please close voice chat and try again."));
+        try { socket.close(); } catch {}
+      }, 20000);
+      const onOpen = () => {
+        try {
+          socket.send(JSON.stringify({
+            setup: {
+              model: "models/" + tokenData.model,
+              generationConfig: {
+                responseModalities: ["AUDIO"],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: { voiceName: "Aoede" }
+                  }
                 }
+              },
+              inputAudioTranscription: {},
+              outputAudioTranscription: {},
+              sessionResumption: {},
+              tools: [{
+                functionDeclarations: [{
+                  name: "zed_chat",
+                  description: "Send the user's spoken request through Zed's authenticated chat engine so it can use saved conversation context, web search, football data and enabled features. Use this for every substantive question or task. Only answer greetings and simple conversational small talk directly.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      message: { type: "STRING", description: "The user's complete spoken request, transcribed accurately." }
+                    },
+                    required: ["message"]
+                  }
+                }]
+              }],
+              systemInstruction: {
+                parts: [{
+                  text: "You are Zed, a warm, natural and attentive voice assistant. Speak like a helpful person in a relaxed conversation. Keep spoken replies concise and direct unless the user asks for detail. Use contractions naturally. Avoid robotic introductions, repetitive summaries, reading out formatting, or saying you are an AI. Answer accurately and admit uncertainty. Do not claim to be another assistant."
+                }]
               }
-            },
-            inputAudioTranscription: {},
-            outputAudioTranscription: {},
-            sessionResumption: {},
-            tools: [{
-              functionDeclarations: [{
-                name: "zed_chat",
-                description: "Send the user's spoken request through Zed's authenticated chat engine so it can use saved conversation context, web search, football data and enabled features. Use this for every substantive question or task. Only answer greetings and simple conversational small talk directly.",
-                parameters: {
-                  type: "OBJECT",
-                  properties: {
-                    message: { type: "STRING", description: "The user's complete spoken request, transcribed accurately." }
-                  },
-                  required: ["message"]
-                }
-              }]
-            }],
-            systemInstruction: {
-              parts: [{
-                text: "You are Zed, a warm, natural and attentive voice assistant. Speak like a helpful person in a relaxed conversation. Keep spoken replies concise and direct unless the user asks for detail. Use contractions naturally. Avoid robotic introductions, repetitive summaries, reading out formatting, or saying you are an AI. Answer accurately and admit uncertainty. Do not claim to be another assistant."
-              }]
             }
-          }
-        }));
-      }, { once: true });
-      socket.addEventListener("error", () => {
-        window.clearTimeout(timeout);
-        reject(new Error("Could not connect to Gemini's real-time voice service."));
-      }, { once: true });
-      socket.addEventListener("message", event => {
+          }));
+        } catch (error) {
+          finish(new Error("Zed could not send the voice setup request: " + (error?.message || "unknown error")));
+        }
+      };
+      const onMessage = (event) => {
         let packet;
-        try { packet = JSON.parse(event.data); } catch { return; }
+        try {
+          packet = JSON.parse(event.data);
+        } catch {
+          finish(new Error("Zed received an unreadable voice setup response."));
+          return;
+        }
         if (packet.setupComplete) {
-          window.clearTimeout(timeout);
           setupReady = true;
           setStatus("Listening… speak naturally", "listening");
           startMicrophoneStreaming();
-          resolve();
+          finish();
         } else if (packet.error) {
-          window.clearTimeout(timeout);
-          reject(new Error(packet.error.message || "The real-time voice session was rejected."));
+          finish(new Error(packet.error.message || "Gemini rejected the real-time voice session."));
         }
-      });
+      };
+      const onClose = (event) => {
+        finish(new Error("The voice service closed before setup completed" +
+          (event.code ? " (code " + event.code + ")" : "") +
+          (event.reason ? ": " + event.reason : ". Please try again.")));
+      };
+      const onError = () => {
+        finish(new Error("Could not connect to Gemini's real-time voice service. Check the connection and try again."));
+      };
+      socket.addEventListener("open", onOpen, { once: true });
+      socket.addEventListener("message", onMessage);
+      socket.addEventListener("close", onClose, { once: true });
+      socket.addEventListener("error", onError, { once: true });
     });
     if (!active || generation !== connectGeneration) return;
     socket.onmessage = handleLiveMessage;

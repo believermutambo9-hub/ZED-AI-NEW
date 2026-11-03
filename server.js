@@ -2411,20 +2411,6 @@ app.post(
           conversationId
         );
 
-      // Fail closed for conversations with messages but no recorded owner.
-      // Older Firestore records may predate ownership metadata; never silently
-      // claim them for the currently authenticated user.
-      if (
-        Array.isArray(conversation.messages) &&
-        conversation.messages.length > 0 &&
-        !conversation.metadata?.userId
-      ) {
-        return res.status(404).json({
-          ok: false,
-          answer: "Conversation not found."
-        });
-      }
-
       // Refuse to append to a conversation already associated with another user.
       if (
         conversation.metadata?.userId &&
@@ -2434,6 +2420,35 @@ app.post(
           ok: false,
           answer: "Conversation not found."
         });
+      }
+
+      // Safely recover legacy conversations only when the separate,
+      // owner-scoped chat-history record proves this Firebase UID owns it.
+      // Never assign ownership based only on a client-supplied conversation ID.
+      if (
+        Array.isArray(conversation.messages) &&
+        conversation.messages.length > 0 &&
+        !conversation.metadata?.userId
+      ) {
+        const history = await getChatHistoryModule();
+        const ownedLegacyChat = history
+          ? await history.getChat(userId, conversationId)
+          : null;
+        if (!ownedLegacyChat) {
+          return res.status(404).json({
+            ok: false,
+            answer: "Conversation not found."
+          });
+        }
+        conversation.messages = Array.isArray(ownedLegacyChat.messages)
+          ? ownedLegacyChat.messages
+          : [];
+        conversation.createdAt = ownedLegacyChat.createdAt || conversation.createdAt;
+        conversation.updatedAt = ownedLegacyChat.updatedAt || conversation.updatedAt;
+        conversation.metadata = {
+          ...(conversation.metadata || {}),
+          userId
+        };
       }
 
       await restoreConversation(

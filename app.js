@@ -57,6 +57,7 @@ const state = {
   chatHistoryUnavailable: false,
   selectedFile: null,
   sending: false,
+  authGeneration: 0,
   settingsOpen: false
 };
 
@@ -67,18 +68,27 @@ window.zedVoiceGetUser = () => state.firebaseUser;
 // ============================================================
 async function apiFetch(url, options = {}) {
   const user = state.firebaseUser;
-  if (!user) {
+  if (!user || !state.userId || user.uid !== state.userId) {
     throw new Error("Please sign in to continue.");
   }
 
+  const requestUid = user.uid;
   const token = await user.getIdToken();
+  if (state.firebaseUser?.uid !== requestUid || state.userId !== requestUid) {
+    throw new Error("Your Zed account changed during this request. Please try again.");
+  }
+
   const headers = new Headers(options.headers || {});
   headers.set("Authorization", `Bearer ${token}`);
-
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers
   });
+
+  if (state.firebaseUser?.uid !== requestUid || state.userId !== requestUid) {
+    throw new Error("Your Zed account changed during this request. Please try again.");
+  }
+  return response;
 }
 
 // ============================================================
@@ -1466,10 +1476,16 @@ function readFileAsDataURL(
 async function sendMessage() {
   if (
     state.sending ||
-    !state.userId
+    !state.userId ||
+    !state.firebaseUser ||
+    state.firebaseUser.uid !== state.userId
   ) {
     return;
   }
+  const requestUid = state.userId;
+  const requestGeneration = state.authGeneration;
+  const requestFile = state.selectedFile;
+  const requestConversationId = state.conversationId;
   const text =
     messageInput?.value.trim() ||
     "";
@@ -1479,7 +1495,7 @@ async function sendMessage() {
   ) {
     return;
   }
-  if (state.selectedFile && state.selectedFile.size > 18 * 1024 * 1024) {
+  if (requestFile && requestFile.size > 18 * 1024 * 1024) {
     state.messages.push({
       role: "assistant",
       content: "This file is too large to analyse. Please choose a file smaller than 18 MB."
@@ -1490,8 +1506,8 @@ async function sendMessage() {
   setSending(true);
   const previousMessages =
     state.messages.slice();
-  const selectedImage = state.selectedFile && state.selectedFile.type?.startsWith("image/")
-    ? state.selectedFile
+  const selectedImage = requestFile && requestFile.type?.startsWith("image/")
+    ? requestFile
     : null;
   const localImagePreview = selectedImage ? URL.createObjectURL(selectedImage) : null;
   state.messages.push({
@@ -1509,12 +1525,10 @@ async function sendMessage() {
   let filePayload =
     null;
   try {
-    if (state.selectedFile) {
-      filePayload =
-        await readFileAsDataURL(
-          state.selectedFile
-        );
+    if (requestFile) {
+      filePayload = await readFileAsDataURL(requestFile);
     }
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return null;
     showThinking();
     const response =
       await apiFetch(
@@ -1529,9 +1543,9 @@ async function sendMessage() {
             message:
               text,
             userId:
-              state.userId,
+              requestUid,
             conversationId:
-              state.conversationId,
+              requestConversationId,
             conversation:
               previousMessages.map(
                 message => ({
@@ -1550,6 +1564,7 @@ async function sendMessage() {
       await parseResponse(
         response
       );
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return null;
     removeThinking();
     if (!response.ok || !data.ok) {
       throw new Error(
@@ -1586,6 +1601,10 @@ async function sendMessage() {
     await loadChats();
     return assistantAnswer;
   } catch (error) {
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) {
+      console.info("Discarded a chat response after the signed-in account changed.");
+      return null;
+    }
     console.error(
       "Chat error:",
       error
@@ -1600,14 +1619,12 @@ async function sendMessage() {
     renderMessages();
     return null;
   } finally {
-    state.selectedFile =
-      null;
-    if (fileInput) {
-      fileInput.value =
-        "";
+    if (state.authGeneration === requestGeneration && state.userId === requestUid) {
+      state.selectedFile = null;
+      if (fileInput) fileInput.value = "";
+      setSending(false);
+      messageInput?.focus();
     }
-    setSending(false);
-    messageInput?.focus();
   }
 }
 // Voice submits recognised speech through this same authenticated chat pipeline.
@@ -1955,6 +1972,14 @@ function setupAuthListener() {
   onAuthStateChanged(
     firebaseAuth,
     async user => {
+      const nextUid = user?.uid || null;
+      if (state.userId !== nextUid) {
+        state.authGeneration += 1;
+        state.sending = false;
+        setSending(false);
+        state.selectedFile = null;
+        if (fileInput) fileInput.value = "";
+      }
       state.firebaseUser =
         user || null;
       updateGoogleProfileAvatar();

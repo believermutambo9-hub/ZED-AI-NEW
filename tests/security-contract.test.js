@@ -730,3 +730,7 @@ test("real-time voice streams 16 kHz PCM, plays 24 kHz audio, and clears interru
   assert.match(voice, /realtimeInput:\s*\{/);
   assert.doesNotMatch(voice, /@google\/genai|GoogleGenAI/);
 });
+
+test("Google profile avatar fallback derives initials from whitespace-separated names", () => {
+  assert.ok(app.includes('.trim().split(/\\s+/)'));
+});

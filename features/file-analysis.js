@@ -8,6 +8,7 @@ function cleanAIAnswer(value = "") {
 function detectUploadedSignature(buffer) {
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
   if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return "image/jpeg";
+  if (buffer.length >= 2 && buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0) return "audio/mpeg";
   if (buffer.length >= 6 && ["GIF87a", "GIF89a"].includes(buffer.toString("ascii", 0, 6))) return "image/gif";
   if (buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP") return "image/webp";
   if (buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WAVE") return "audio/wav";
@@ -15,7 +16,10 @@ function detectUploadedSignature(buffer) {
   if (buffer.length >= 4 && buffer.toString("ascii", 0, 4) === "OggS") return "audio/ogg";
   if (buffer.length >= 3 && buffer.toString("ascii", 0, 3) === "ID3") return "audio/mpeg";
   if (buffer.length >= 2 && buffer[0] === 0xff && (buffer[1] & 0xf6) === 0xf0) return "audio/aac";
-  if (buffer.length >= 12 && buffer.toString("ascii", 4, 8) === "ftyp") return "video/mp4";
+  if (buffer.length >= 12 && buffer.toString("ascii", 4, 8) === "ftyp") {
+    const brand = buffer.toString("ascii", 8, 12);
+    return /^(3gp|3g2)/.test(brand) ? "video/3gpp" : "video/mp4";
+  }
   if (buffer.length >= 4 && buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) return "video/webm";
   if (buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "AVI ") return "video/x-msvideo";
   if (buffer.length >= 12 && buffer.toString("ascii", 4, 8) === "ftyp" && /^(3gp|3g2)/.test(buffer.toString("ascii", 8, 11))) return "video/3gpp";
@@ -202,7 +206,7 @@ async function prepareUploadedFile(file) {
   if (isZipDocument && signature === "application/zip") {
     validateZipArchive(buffer);
   }
-  if (!mimeLooksGeneric && expectedType && !isZipDocument && mimeType !== expectedType) {
+  if (!mimeLooksGeneric && expectedType && !isZipDocument && !mediaExtensions.has(extension) && mimeType !== expectedType) {
     throw new Error("The file's declared format does not match its filename. Please check the file and upload it again.");
   }
   if (mimeType.startsWith("image/") && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mimeType)) {
@@ -224,7 +228,7 @@ async function prepareUploadedFile(file) {
 
   const mediaExtensions = new Set([".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".mp4", ".m4v", ".mov", ".webm", ".avi", ".3gp"]);
   if (mediaExtensions.has(extension)) {
-    if (!expectedType || signature !== expectedType) {
+    if (!expectedType || (signature !== expectedType && !(extension === ".mov" && signature === "video/mp4"))) {
       throw new Error("The audio or video contents do not match the selected file type. Please upload a valid media file.");
     }
     if (!mimeLooksGeneric && mimeType !== expectedType &&
@@ -232,7 +236,7 @@ async function prepareUploadedFile(file) {
         !(extension === ".mov" && mimeType === "video/mp4")) {
       throw new Error("The media format declared by your device does not match the file extension.");
     }
-    return { fileName, mimeType: expectedType, inlineData: { mimeType: expectedType, data: base64 }, extractedText: "" };
+    return { fileName, mimeType: expectedType, inlineData: { mimeType: expectedType, data: base64 }, extractedText: "", mediaKind: expectedType.startsWith("audio/") ? "audio" : "video" };
   }
 
   if (signature.startsWith("image/")) {

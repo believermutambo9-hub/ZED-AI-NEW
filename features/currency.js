@@ -9,7 +9,7 @@ const SUPPORTED_CURRENCIES = new Set(
 
 function isSupportedCurrency(code) {
   return /^[A-Z]{3}$/.test(code) && SUPPORTED_CURRENCIES.has(code);
-
+}
 
 export function parseCurrencyRequest(message = "") {
   const text = String(message);

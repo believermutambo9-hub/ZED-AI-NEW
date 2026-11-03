@@ -36,8 +36,14 @@ test("Gemini retries transient capacity and rate-limit failures before failing",
   assert.match(server, /retrying in \$\{delayMs\}ms/);
 });
 
-test("multimodal provider failures are not sent to text-only fallbacks and return HTTP 503", () => {
-  assert.match(server, /if \(inlineData\) \{[\s\S]*?AI_MULTIMODAL_UNAVAILABLE/);
+test("Gemini image failures fall back to a real Groq vision model, never a text-only model", () => {
+  assert.match(server, /async function askGroq\([\s\S]*?prompt,\s*inlineData = null/);
+  assert.match(server, /process\.env\.GROQ_VISION_MODEL \|\| "qwen\/qwen3\.8-27b"/);
+  assert.match(server, /type: "image_url"/);
+  assert.match(server, /data:\$\{inlineData\.mimeType\};base64,/);
+  assert.match(server, /askGroq\(prompt, inlineData\)/);
+  assert.match(server, /provider: "groq-vision"/);
+  assert.match(server, /AI_MULTIMODAL_UNAVAILABLE/);
   assert.match(server, /res\.status\(unavailable \? 503 : 500\)/);
   assert.match(server, /Image or scanned-document analysis is temporarily unavailable/);
 });

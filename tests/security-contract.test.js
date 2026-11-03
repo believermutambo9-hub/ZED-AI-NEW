@@ -732,16 +732,16 @@ test("real-time voice token provisioning is authenticated, single-use, and short
 
 test("dedicated voice screen uses shared chat and keeps listening after spoken replies", async () => {
   const voice = await readFile(new URL("../voice-mode.js", import.meta.url), "utf8");
-  assert.match(voice, /window\\.SpeechRecognition \\|\\| window\\.webkitSpeechRecognition/);
-  assert.match(voice, /window\\.zedVoiceSubmitTranscript\\(spokenText\\)/);
-  assert.match(voice, /function speak\\(text\\)/);
-  assert.match(voice, /utterance\\.onend = finish/);
-  assert.match(voice, /if \\(active && !processing && !speaking/);
+  assert.match(voice, /window\.SpeechRecognition \|\| window\.webkitSpeechRecognition/);
+  assert.match(voice, /window\.zedVoiceSubmitTranscript\(spokenText\)/);
+  assert.match(voice, /function speak\(text\)/);
+  assert.match(voice, /utterance\.onend = finish/);
+  assert.match(voice, /if \(active && !processing && !speaking/);
   assert.match(voice, /zed-voice-screen/);
-  assert.match(app, /window\\.zedVoiceSubmitTranscript = async transcript/);
-  assert.match(app, /await sendMessage\\(\\)/);
-  assert.match(app, /speechSynthesis\\.speak\\(utterance\\)/);
-  assert.doesNotMatch(voice, /generativelanguage\\.googleapis\\.com|BidiGenerateContent|new WebSocket/);
+  assert.match(app, /window\.zedVoiceSubmitTranscript = async transcript/);
+  assert.match(app, /await sendMessage\(\)/);
+  assert.match(app, /speechSynthesis\.speak\(utterance\)/);
+  assert.doesNotMatch(voice, /generativelanguage\.googleapis\.com|BidiGenerateContent|new WebSocket/);
 });
 
 test("Google profile avatar fallback derives initials from whitespace-separated names", () => {

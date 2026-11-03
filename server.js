@@ -22,6 +22,7 @@ import {
 } from "./features/football.js";
 
 import { webSearch } from "./web-search.js";
+import { getCurrencyContext } from "./features/currency.js";
 
 import {
   buildCurrentInformationPrompt
@@ -2625,6 +2626,8 @@ app.post(
         }
       }
 
+      const currencyContext = await getCurrencyContext(userMessage);
+
       // ------------------------------------------------------
       // CURRENT DATE
       // ------------------------------------------------------
@@ -2845,6 +2848,15 @@ WEB SEARCH EVIDENCE
 ${
   webEvidence ||
   "No web search data was requested."
+}
+
+============================================================
+VERIFIED CURRENCY CONVERSION DATA
+============================================================
+
+${
+  currencyContext ||
+  "No currency conversion data was requested."
 }
 
 ============================================================

@@ -755,6 +755,19 @@ import { prepareUploadedFile } from "./features/file-analysis.js";
 // GEMINI
 // ============================================================
 
+const IMAGE_ANALYSIS_INSTRUCTIONS = [
+  "You are Zed, a precise visual and document-analysis assistant.",
+  "Inspect the entire supplied image before answering. Prioritise faithful extraction over guesses.",
+  "If the image contains a spreadsheet, table, form, chart, or other structured content, reproduce the readable information in a Markdown table.",
+  "For spreadsheet screenshots, preserve the visible column headers and transcribe every fully readable visible row in the same order. Keep each value in its original column.",
+  "Do not invent missing headers, row numbers, values, totals, units, or counts. Do not silently correct spelling, currency, or arithmetic.",
+  "If a cell is blurred, cropped, covered, or uncertain, write [unclear] in that cell and briefly explain why. If the last row is only partly visible, label it as partial instead of completing it.",
+  "Only state the number of rows or columns when the full relevant range is visible and can be counted reliably.",
+  "Start with a one-sentence description, then show the extracted table, then add only useful observations. Avoid repeating the same information in prose.",
+  "Use enough detail to finish the visible content. Never stop mid-row or mid-sentence. If the image contains too much information for one response, state exactly what portion was transcribed and what remains.",
+  "Do not claim that the transcription is complete if any part is cut off or unreadable."
+].join("\\n");
+
 function isRetryableGeminiError(error) {
   const status = Number(error?.status || error?.statusCode || error?.response?.status);
   const code = String(error?.code || error?.status || "").toUpperCase();
@@ -784,8 +797,9 @@ async function askGemini(
           : [{ role: "user", parts: [{ text: prompt }] }],
         config: {
           systemInstruction: inlineData
-            ? "You are Zed. Analyse the supplied image accurately. Do not invent details; state when text or objects are unclear."
-            : ZED_CORE_INSTRUCTIONS
+            ? IMAGE_ANALYSIS_INSTRUCTIONS
+            : ZED_CORE_INSTRUCTIONS,
+          ...(inlineData ? { maxOutputTokens: 2500 } : {})
         }
       });
       break;
@@ -833,7 +847,7 @@ async function askGroq(
           type: "image_url",
           image_url: {
             url: `data:${inlineData.mimeType};base64,${inlineData.data}`,
-            detail: "low"
+            detail: "high"
           }
         }
       ]
@@ -854,13 +868,13 @@ async function askGroq(
           : (process.env.GROQ_MODEL || "openai/gpt-oss-120b"),
         messages: [
           { role: "system", content: inlineData
-            ? "You are Zed. Analyse the supplied image accurately. Do not invent details; state when text or objects are unclear."
+            ? IMAGE_ANALYSIS_INSTRUCTIONS
             : ZED_CORE_INSTRUCTIONS },
           { role: "user", content: userContent }
         ],
         temperature: 0.7,
         // Keep vision output below Groq on-demand OTPM limits; text chat keeps its existing budget.
-        max_completion_tokens: inlineData ? 700 : 2048
+        max_completion_tokens: inlineData ? 2500 : 2048
       })
     }
   );
@@ -923,13 +937,13 @@ async function askOpenRouter(
           {
             role: "system",
             content: isVisionRequest
-              ? "You are Zed. Analyse the supplied image accurately. Do not invent details; state when text or objects are unclear."
+              ? IMAGE_ANALYSIS_INSTRUCTIONS
               : ZED_CORE_INSTRUCTIONS
           },
           { role: "user", content: userContent }
         ],
         temperature: 0.7,
-        max_tokens: isVisionRequest ? 900 : 2048
+        max_tokens: isVisionRequest ? 2500 : 2048
       })
     }
   );
@@ -962,10 +976,9 @@ async function askAI(
   // vision-provider input-token quotas. Keep the actual user instruction.
   const providerPrompt = inlineData
     ? [
-        "You are Zed, an accurate visual and document assistant.",
-        "Inspect the attached image carefully and answer the user's request.",
-        "Describe only details that are actually visible. If text is unclear, say so.",
-        `User's request: ${cleanText(userRequest).slice(0, 1500) || "Describe and analyse this image."}`
+        IMAGE_ANALYSIS_INSTRUCTIONS,
+        `User's request: ${cleanText(userRequest).slice(0, 1500) || "Describe and analyse this image."}`,
+        "Answer in a complete, well-structured response. For visible tables, include all readable rows rather than giving only a general description."
       ].join("\n\n")
     : prompt;
 

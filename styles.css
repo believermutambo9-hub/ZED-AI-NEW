@@ -3155,7 +3155,7 @@ html[data-theme="dark"] .sidebar-search-wrap input { background: #252525; border
 /* =========================================================
    CHAT SCROLL FIX
    Keep the app viewport locked while the conversation pane
-   owns vertical scrolling. This is important on iOS Safari.
+   owns vertical scrolling across mobile browsers and devices.
    ========================================================= */
 html,
 body {
@@ -3206,5 +3206,45 @@ body {
   .chat-area {
     min-height: 0;
     -webkit-overflow-scrolling: touch;
+  }
+}
+
+
+/* Cross-device scroll sizing: keep the header and composer fixed in
+   the app's flex column and give the conversation the remaining height. */
+.app {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
+.main {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.topbar,
+.composer-container {
+  flex: 0 0 auto;
+}
+.chat-area {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+.messages {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+@supports not (height: 100dvh) {
+  .app,
+  #app {
+    height: 100vh;
   }
 }

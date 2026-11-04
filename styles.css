@@ -2801,6 +2801,24 @@ body { background: var(--zed-surface); }
   overflow-wrap: anywhere;
   font-weight: 600;
 }
+.selected-file-image-preview {
+  display: block;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  object-fit: cover;
+  border-radius: 7px;
+  background: var(--glass-2);
+}
+.selected-file-document-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  font-size: 15px;
+}
 .message-file-chip {
   display: inline-flex;
   align-items: center;

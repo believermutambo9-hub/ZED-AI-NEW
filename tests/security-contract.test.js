@@ -79,7 +79,8 @@ test("chat UI warns when the assistant reply was not saved", () => {
 
 test("chat deletion verifies ownership inside its transaction", () => {
   assert.match(history, /runTransaction\(async transaction/);
-  assert.match(history, /doc\.data\(\)\?\.userId !== safeUserId/);
+  assert.match(history, /currentDoc\.data\(\)\?\.userId === safeUserId/);
+  assert.match(history, /legacyDoc\.data\(\)\?\.userId === safeUserId/);
   assert.match(history, /transaction\.delete\(chatRef\)/);
 });
 
@@ -96,7 +97,7 @@ test("public memory deletion requires a matching owner and internal cleanup is p
 
 test("chat reads return data only after matching the requested owner", () => {
   assert.match(history, /export async function getChat\(userId, conversationId\)/);
-  assert.match(history, /if \(data\.userId !== safeUserId\) \{\s*return null;/);
+  assert.match(history, /if \(data\.userId !== safeUserId\) return null;/);
 });
 
 test("memory API uses the authenticated user when deleting a memory", () => {
@@ -300,9 +301,8 @@ test("clear-all memory waits for every Firestore delete before clearing local st
 
 
 test("delete-all chat history chunks Firestore writes below the 500-write limit", () => {
-  assert.match(history, /const batchSize = 450/);
-  assert.match(history, /for \(let start = 0; start < snapshot\.docs\.length; start \+= batchSize\)/);
-  assert.match(history, /snapshot\.docs\.slice\(start, start \+ batchSize\)/);
+  assert.match(history, /for \(let start = 0; start < docs\.length; start \+= 450\)/);
+  assert.match(history, /docs\.slice\(start, start \+ 450\)/);
   assert.match(history, /await batch\.commit\(\)/);
 });
 
@@ -437,9 +437,10 @@ test("uploaded images render as the original image and remain linked in chat his
   assert.match(app, /message\.imageAttachment\?\.id \|\| message\.image/);
   assert.match(app, /message-uploaded-image/);
   assert.match(app, /URL\.createObjectURL\(selectedImage\)/);
-  assert.match(app, /\/api\/library\/.*\/preview/);
+  assert.match(app, /\/api\/library\/.*\/content/);
   assert.ok(app.indexOf("if (message.imageAttachment?.id)") < app.indexOf("else if (message.image)"), "persistent image attachments must take priority over expired blob previews");
-  assert.match(app, /previewRetried/);
+  assert.match(app, /response\.blob\(\)/);
+  assert.match(server, /app\.get\("\/api\/library\/:fileId\/content"/);
   assert.match(server, /This image could not be saved to your conversation/);
   assert.match(server, /saveLibraryFile\(\{[\s\S]*?dataUrl: req\.body\.file\.data/);
   assert.match(server, /uploadedFile\?\.mimeType\?\.startsWith\("image\/"\)/);

@@ -80,8 +80,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 body.zed-voice-open{overflow:hidden}
 .voice-input-btn.voice-active,.voice-mode-btn.voice-active{background:rgba(86,117,231,.20);border-color:rgba(112,143,255,.5);color:#91aaff}
 @keyframes zedWaveIdle{0%,100%{transform:scaleY(.5);opacity:.48}50%{transform:scaleY(1);opacity:.85}}
-@keyframes zedWaveSpeak{0%,100%{transform:scaleY(.28)}50%{transform:scaleY(1.45)}}
-@keyframes zedWaveListen{0%,100%{transform:scaleY(.38)}50%{transform:scaleY(.9)}}
+@keyframes zedWaveSpeak{0%,100%{transform:scaleY(calc(.22 + var(--voice-level,.2)*.4))}50%{transform:scaleY(calc(.4 + var(--voice-level,.2)*1.6))}}
+@keyframes zedWaveListen{0%,100%{transform:scaleY(calc(.22 + var(--voice-level,.2)*.25))}50%{transform:scaleY(calc(.35 + var(--voice-level,.2)*.9))}}
 @keyframes zedWaveThink{0%,100%{transform:scaleY(.35);opacity:.5}50%{transform:scaleY(.8);opacity:.9}}
 @media(max-width:640px){
  .sidebar{width:min(300px,86vw);min-width:min(300px,86vw);padding:14px 12px}

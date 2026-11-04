@@ -1135,6 +1135,27 @@ html[data-theme="dark"] .welcome-logo {
   word-break: break-word;
 }
 /* User bubble */
+.message-uploaded-image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(100%, 420px);
+  max-height: 420px;
+  object-fit: contain;
+  margin: 12px 0 2px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border, rgba(255,255,255,.12));
+  background: rgba(0,0,0,.04);
+}
+.message-user .message-content:has(.message-uploaded-image) {
+  max-width: min(88vw, 520px);
+}
+@media (max-width: 600px) {
+  .message-uploaded-image {
+    max-width: min(100%, 300px);
+    max-height: 360px;
+  }
+}
 .message-user .message-content {
   padding:
     12px 18px;
@@ -1173,6 +1194,91 @@ html[data-theme="dark"] .message-user .message-content {
     3px 0;
   max-width:
     82%;
+}
+
+/* Structured assistant response typography */
+.message-assistant .message-content {
+  white-space: normal;
+  line-height: 1.75;
+}
+.message-assistant .message-content > :first-child { margin-top: 0; }
+.message-assistant .message-content > :last-child { margin-bottom: 0; }
+.message-assistant .message-content p {
+  margin: 0 0 14px;
+}
+.message-assistant .message-content h2,
+.message-assistant .message-content h3,
+.message-assistant .message-content h4,
+.message-assistant .message-content h5 {
+  margin: 22px 0 9px;
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.35;
+}
+.message-assistant .message-content h2 { font-size: 1.18rem; }
+.message-assistant .message-content h3 { font-size: 1.08rem; }
+.message-assistant .message-content h4,
+.message-assistant .message-content h5 { font-size: 1rem; }
+.message-assistant .message-content strong { font-weight: 700; }
+.message-assistant .message-content ul,
+.message-assistant .message-content ol {
+  margin: 8px 0 16px;
+  padding-left: 25px;
+}
+.message-assistant .message-content li {
+  margin: 5px 0;
+  padding-left: 3px;
+}
+.message-assistant .message-content blockquote {
+  margin: 12px 0 16px;
+  padding: 9px 15px;
+  border-left: 3px solid var(--accent);
+  color: var(--text-secondary);
+  background: var(--accent-soft);
+  border-radius: 0 10px 10px 0;
+}
+.message-assistant .message-content pre {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 12px 0 16px;
+  padding: 14px;
+  border: 1px solid var(--glass-border-soft);
+  border-radius: 12px;
+  background: var(--glass-2);
+}
+.message-assistant .message-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .9em;
+}
+.message-assistant .message-content :not(pre) > code {
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: var(--glass-3);
+}
+.message-assistant .message-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 18px;
+  font-size: .92em;
+  display: block;
+  overflow-x: auto;
+}
+.message-assistant .message-content th,
+.message-assistant .message-content td {
+  padding: 9px 11px;
+  border: 1px solid var(--glass-border-soft);
+  text-align: left;
+  vertical-align: top;
+}
+.message-assistant .message-content th {
+  background: var(--glass-3);
+  font-weight: 700;
+}
+.message-assistant .message-content a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
 }
 /* =========================================================
    GENERATED IMAGES
@@ -2670,38 +2776,128 @@ body { background: var(--zed-surface); }
   outline-offset: 2px;
 }
 .selected-file-chip {
-  display: flex;
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 52px;
+  align-self: center;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  max-width: 760px;
-  margin: 0 auto 8px;
-  padding: 9px 12px;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+  width: 52px;
+  height: 52px;
+  margin: 0;
+  padding: 4px;
+  overflow: visible;
   border: 1px solid var(--glass-border);
-  border-radius: 12px;
+  border-radius: 9px;
   color: var(--text);
   background: var(--glass-2);
-  font-size: 13px;
 }
+.selected-file-chip[hidden] { display: none !important; }
 .selected-file-name {
-  min-width: 0;
-  overflow-wrap: anywhere;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  text-overflow: ellipsis;
 }
-.remove-file-button {
-  flex: 0 0 auto;
-  border: 0;
-  border-radius: 8px;
+.selected-file-image-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--glass-2);
+}
+.selected-file-document-icon {
+  display: block !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px;
+  min-height: 30px;
+  flex: 0 0 30px;
+  color: var(--text);
+  opacity: 1;
+  visibility: visible;
+  stroke: currentColor;
+}
+.message-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  max-width: 112px;
+  margin-top: 8px;
   padding: 6px 9px;
-  color: var(--text-secondary);
-  background: transparent;
-  cursor: pointer;
+  border: 1px solid var(--glass-border);
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--glass-2);
+  font-size: 12px;
+  line-height: 1.2;
 }
-.remove-file-button:hover,
-.remove-file-button:focus-visible {
+.message-file-icon {
+  display: block;
+  width: 21px;
+  height: 24px;
+  flex: 0 0 21px;
+  color: var(--text);
+  stroke: currentColor;
+}
+.selected-file-chip .remove-file-button {
+  position: absolute !important;
+  z-index: 100 !important;
+  top: -7px !important;
+  right: -7px !important;
+  display: grid !important;
+  place-items: center !important;
+  box-sizing: border-box !important;
+  width: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 50% !important;
+  color: var(--text) !important;
+  background: var(--background, #252525) !important;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%) !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  letter-spacing: 0 !important;
+  text-indent: 0 !important;
+  text-transform: none !important;
+}
+.selected-file-chip .remove-file-button .attachment-close-mark {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  color: inherit !important;
+  font: 17px/18px Arial, sans-serif !important;
+  text-align: center !important;
+}
+.selected-file-chip .remove-file-button::before,
+.selected-file-chip .remove-file-button::after {
+  content: none !important;
+  display: none !important;
+}
+.selected-file-chip .remove-file-button:hover,
+.selected-file-chip .remove-file-button:focus-visible {
   color: var(--text);
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
 #chatSearchInput {
   box-sizing: border-box;
   width: 100%;
@@ -2983,4 +3179,267 @@ html[data-theme="dark"] .sidebar-search-wrap input { background: #252525; border
 @media (prefers-reduced-motion: reduce) {
   .thinking-dots { animation: none; }
   .message-action.message-copy-button { transition: none; }
+}
+
+/* =========================================================
+   ASSISTANT RESPONSE TYPOGRAPHY — CONSISTENT CHAT FORMATTING
+   Keep generated Markdown inside the same Zed type system.
+   ========================================================= */
+.message-assistant .message-content {
+  font-family: inherit !important;
+  font-size: 15px !important;
+  font-weight: 400;
+  line-height: 1.65 !important;
+  letter-spacing: normal;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.message-assistant .message-content p {
+  margin: 0 0 12px !important;
+  font: inherit;
+  line-height: inherit;
+}
+.message-assistant .message-content h2,
+.message-assistant .message-content h3,
+.message-assistant .message-content h4,
+.message-assistant .message-content h5 {
+  font-family: inherit;
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: normal;
+}
+.message-assistant .message-content h2 { font-size: 1.18em; }
+.message-assistant .message-content h3 { font-size: 1.08em; }
+.message-assistant .message-content h4,
+.message-assistant .message-content h5 { font-size: 1em; }
+.message-assistant .message-content ul,
+.message-assistant .message-content ol {
+  margin: 8px 0 14px;
+  padding-left: 24px;
+  font-size: inherit;
+  line-height: inherit;
+}
+.message-assistant .message-content li {
+  margin: 5px 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+.message-assistant .message-content blockquote {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.message-assistant .message-content table {
+  font-family: inherit;
+  font-size: .94em;
+  line-height: 1.5;
+}
+.message-assistant .message-content strong,
+.message-assistant .message-content b {
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   CHAT SCROLL FIX
+   Keep the app viewport locked while the conversation pane
+   owns vertical scrolling across mobile browsers and devices.
+   ========================================================= */
+html,
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+body {
+  overflow: hidden;
+}
+#app,
+.app {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.main {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+.chat-area {
+  flex: 1 1 0%;
+  min-height: 0;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scroll-padding-bottom: 24px;
+}
+.messages {
+  flex: 0 0 auto;
+  min-height: min-content;
+  width: 100%;
+}
+@media (max-width: 700px) {
+  #app,
+  .app,
+  .main {
+    height: 100dvh;
+    min-height: 0;
+  }
+  .chat-area {
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+
+/* Cross-device scroll sizing: keep the header and composer fixed in
+   the app's flex column and give the conversation the remaining height. */
+.app {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
+.main {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.topbar,
+.composer-container {
+  flex: 0 0 auto;
+}
+.chat-area {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+.messages {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+@supports not (height: 100dvh) {
+  .app,
+  #app {
+    height: 100vh;
+  }
+}
+
+
+/* Attachment preview: one predictable row above the composer on desktop and mobile. */
+.composer-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  overflow: visible !important;
+}
+.composer-container > #selectedFileChip[hidden] {
+  display: none !important;
+}
+.composer-container > #selectedFileChip.selected-file-chip:not([hidden]) {
+  position: relative !important;
+  display: flex !important;
+  flex: 0 0 48px !important;
+  align-self: flex-end !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  margin: 4px 12px 0 0 !important;
+  padding: 4px !important;
+  overflow: visible !important;
+  border: 1px solid rgba(255,255,255,.35) !important;
+  border-radius: 10px !important;
+  color: #fff !important;
+  background: #30343b !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  isolation: isolate;
+}
+.composer-container > .composer {
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+#selectedFileChip .selected-file-document-icon {
+  display: block !important;
+  width: 32px !important;
+  height: 36px !important;
+  min-width: 32px !important;
+  min-height: 36px !important;
+  flex: 0 0 36px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+#selectedFileChip .selected-file-image-preview {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 6px !important;
+}
+#selectedFileChip .selected-file-name {
+  display: block !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  color: #fff !important;
+  font-size: 9px !important;
+  line-height: 1 !important;
+  text-overflow: ellipsis !important;
+}
+#selectedFileChip .remove-file-button {
+  position: absolute !important;
+  top: -8px !important;
+  right: -8px !important;
+  z-index: 20 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  width: 24px !important;
+  min-width: 24px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
+  color: #fff !important;
+  background: #d93025 !important;
+  font: 700 20px/18px Arial, sans-serif !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+#selectedFileChip .remove-file-button .attachment-close-mark {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  color: #fff !important;
+  font: 700 20px/18px Arial, sans-serif !important;
+  text-align: center !important;
+  pointer-events: none !important;
 }

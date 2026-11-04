@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { getFirebaseDb, getFirebaseAdminApp } from "../config/firebase-admin.js";
 import { getStorage } from "firebase-admin/storage";
 
@@ -17,12 +17,58 @@ function clean(value, max = 180) {
   return String(value ?? "").replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max);
 }
 
-function getBucket() {
-  const app = getFirebaseAdminApp();
-  const bucketName = process.env.FIREBASE_STORAGE_BUCKET ||
-    (process.env.FIREBASE_PROJECT_ID ? process.env.FIREBASE_PROJECT_ID + ".firebasestorage.app" : "");
-  if (!bucketName) throw new Error("Firebase Storage is not configured. Set FIREBASE_STORAGE_BUCKET.");
-  return getStorage(app).bucket(bucketName);
+function getImageKitConfig() {
+  const privateKey = clean(process.env.IMAGEKIT_PRIVATE_KEY, 512);
+  const urlEndpoint = clean(process.env.IMAGEKIT_URL_ENDPOINT, 512).replace(/\/$/, "");
+  if (!privateKey || !urlEndpoint) {
+    throw new Error("Image storage is not configured. Add IMAGEKIT_PRIVATE_KEY and IMAGEKIT_URL_ENDPOINT to the staging service environment.");
+  }
+  let endpoint;
+  try {
+    endpoint = new URL(urlEndpoint);
+  } catch {
+    throw new Error("IMAGEKIT_URL_ENDPOINT is invalid. Use the URL endpoint shown in your ImageKit dashboard.");
+  }
+  if (endpoint.protocol !== "https:" || endpoint.search || endpoint.hash) {
+    throw new Error("IMAGEKIT_URL_ENDPOINT must be a valid HTTPS URL endpoint.");
+  }
+  return { privateKey, urlEndpoint };
+}
+
+function parseDataUrl(dataUrl) {
+  if (typeof dataUrl !== "string") throw new Error("A file upload is required.");
+
+  // Parse only the short data-URL header with a regex. Avoid a large
+  // backtracking regex over the full Base64 image payload, which can
+  // overflow the JavaScript call stack for larger images.
+  const separator = dataUrl.indexOf(",");
+  if (separator < 0) throw new Error("The uploaded file format is invalid.");
+  const header = dataUrl.slice(0, separator);
+  const match = /^data:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64$/i.exec(header);
+  if (!match) throw new Error("The uploaded file format is invalid.");
+
+  const contentType = match[1].toLowerCase();
+  if (!ALLOWED_TYPES.has(contentType)) throw new Error("This file type is not supported in Library.");
+
+  const encoded = dataUrl.slice(separator + 1).replace(/\s/g, "");
+  const maxEncodedLength = Math.ceil(MAX_FILE_BYTES / 3) * 4;
+  if (!encoded || encoded.length % 4 !== 0 || encoded.length > maxEncodedLength) {
+    throw new Error("Library files must be smaller than 15 MB.");
+  }
+
+  // Buffer's Base64 decoder is permissive; round-trip validation rejects
+  // malformed input without running a huge regex against the payload.
+  const buffer = Buffer.from(encoded, "base64");
+  if (!buffer.length || buffer.length > MAX_FILE_BYTES) {
+    throw new Error("Library files must be smaller than 15 MB.");
+  }
+  if (buffer.toString("base64") !== encoded) {
+    throw new Error("The uploaded file data is invalid.");
+  }
+  if (!hasExpectedSignature(contentType, buffer)) {
+    throw new Error("The file contents do not match the selected file type.");
+  }
+  return { contentType, buffer };
 }
 
 function hasExpectedSignature(contentType, buffer) {
@@ -37,20 +83,68 @@ function hasExpectedSignature(contentType, buffer) {
   return !buffer.includes(0);
 }
 
-function parseDataUrl(dataUrl) {
-  if (typeof dataUrl !== "string") throw new Error("A file upload is required.");
-  const match = dataUrl.match(/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64,([a-z0-9+/=\r\n]+)$/i);
-  if (!match) throw new Error("The uploaded file format is invalid.");
-  const contentType = match[1].toLowerCase();
-  if (!ALLOWED_TYPES.has(contentType)) throw new Error("This file type is not supported in Library.");
-  const encoded = match[2].replace(/\s/g, "");
-  if (!encoded || encoded.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)) {
-    throw new Error("The uploaded file data is invalid.");
+function imageKitAuthorization(privateKey) {
+  return "Basic " + Buffer.from(privateKey + ":").toString("base64");
+}
+
+async function imageKitRequest(url, options = {}) {
+  const { privateKey } = getImageKitConfig();
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      Authorization: imageKitAuthorization(privateKey),
+      ...(options.headers || {})
+    },
+    signal: AbortSignal.timeout(30000)
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = clean(payload.message || payload.help || response.statusText, 300);
+    throw new Error("Image storage request failed (" + response.status + "): " + (message || "Please try again."));
   }
-  const buffer = Buffer.from(encoded, "base64");
-  if (!buffer.length || buffer.length > MAX_FILE_BYTES) throw new Error("Library files must be smaller than 15 MB.");
-  if (!hasExpectedSignature(contentType, buffer)) throw new Error("The file contents do not match the selected file type.");
-  return { contentType, buffer };
+  return payload;
+}
+
+function createPrivateDeliveryUrl(filePath, expiresInSeconds = 300) {
+  const { privateKey, urlEndpoint } = getImageKitConfig();
+  const safePath = String(filePath || "");
+  if (!safePath.startsWith("/") || safePath.includes("..") || safePath.includes("\\") || /[\r\n]/.test(safePath)) {
+    throw new Error("Stored file path is invalid.");
+  }
+  const encodedPath = encodeURI(safePath);
+  const expiry = Math.floor(Date.now() / 1000) + expiresInSeconds;
+  const signature = createHmac("sha1", privateKey).update(encodedPath + expiry).digest("hex").toLowerCase();
+  return urlEndpoint + encodedPath + "?ik-t=" + expiry + "&ik-s=" + signature;
+}
+
+async function deleteImageKitFile(fileId) {
+  const id = clean(fileId, 128);
+  if (!id) return false;
+  await imageKitRequest("https://api.imagekit.io/v1/files/" + encodeURIComponent(id), { method: "DELETE" });
+  return true;
+}
+
+// Kept only for files created by the earlier Firebase Storage implementation.
+async function getLegacyFirebaseBucket() {
+  const app = getFirebaseAdminApp();
+  const projectId = clean(process.env.FIREBASE_PROJECT_ID, 128);
+  const configuredBucket = clean(process.env.FIREBASE_STORAGE_BUCKET, 255)
+    .replace(/^gs:\/\//i, "")
+    .replace(/\/$/, "");
+  if (!projectId && !configuredBucket) throw new Error("Legacy Firebase file storage is not configured.");
+  const candidates = [...new Set([
+    configuredBucket,
+    projectId ? projectId + ".appspot.com" : "",
+    projectId ? projectId + ".firebasestorage.app" : ""
+  ].filter(Boolean))];
+  for (const bucketName of candidates) {
+    const bucket = getStorage(app).bucket(bucketName);
+    try {
+      const [exists] = await bucket.exists();
+      if (exists) return bucket;
+    } catch {}
+  }
+  throw new Error("Legacy Firebase Storage bucket is unavailable.");
 }
 
 export async function saveLibraryFile({ userId, name, dataUrl }) {
@@ -58,29 +152,47 @@ export async function saveLibraryFile({ userId, name, dataUrl }) {
   const filename = clean(name, 180).replace(/[\/\\]/g, "_") || "uploaded-file";
   if (!uid) throw new Error("Sign in is required.");
   const { contentType, buffer } = parseDataUrl(dataUrl);
-  const db = getFirebaseDb();
-  const bucket = getBucket();
+  const config = getImageKitConfig();
   const id = randomUUID();
-  const objectPath = "zed-library/" + uid + "/" + id;
-  const file = bucket.file(objectPath);
-  await file.save(buffer, {
-    resumable: false,
-    validation: "crc32c",
-    metadata: {
-      contentType,
-      cacheControl: "private, max-age=0, no-transform",
-      metadata: { ownerUid: uid, originalName: filename }
-    }
-  });
+  const folder = "/zed-library/" + uid;
+  const form = new FormData();
+  form.set("file", new Blob([buffer], { type: contentType }), filename);
+  form.set("fileName", filename);
+  form.set("folder", folder);
+  form.set("isPrivateFile", "true");
+  form.set("useUniqueFileName", "true");
+
+  let uploaded = null;
   try {
+    uploaded = await imageKitRequest("https://upload.imagekit.io/api/v2/files/upload", {
+      method: "POST",
+      headers: {},
+      body: form
+    });
+    if (!uploaded.fileId || !uploaded.filePath) {
+      throw new Error("Image storage returned an incomplete upload confirmation.");
+    }
     const record = {
-      id, userId: uid, name: filename, contentType,
-      size: buffer.length, objectPath, createdAt: Date.now()
+      id,
+      userId: uid,
+      name: clean(uploaded.name || filename, 180),
+      contentType,
+      size: Number(uploaded.size || buffer.length),
+      provider: "imagekit",
+      providerFileId: uploaded.fileId,
+      filePath: uploaded.filePath,
+      createdAt: Date.now()
     };
-    await db.collection(COLLECTION).doc(id).create(record);
-    return { id, name: filename, contentType, size: buffer.length, createdAt: record.createdAt };
+    await getFirebaseDb().collection(COLLECTION).doc(id).create(record);
+    return {
+      id: record.id,
+      name: record.name,
+      contentType: record.contentType,
+      size: record.size,
+      createdAt: record.createdAt
+    };
   } catch (error) {
-    await file.delete({ ignoreNotFound: true }).catch(() => {});
+    if (uploaded?.fileId) await deleteImageKitFile(uploaded.fileId).catch(() => {});
     throw error;
   }
 }
@@ -93,50 +205,75 @@ export async function listLibraryFiles(userId) {
   return snapshot.docs.map(doc => {
     const data = doc.data();
     return {
-      id: doc.id, name: data.name, contentType: data.contentType,
-      size: data.size, createdAt: data.createdAt
+      id: doc.id,
+      name: data.name,
+      contentType: data.contentType,
+      size: data.size,
+      createdAt: data.createdAt
     };
   }).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
 }
 
-export async function getLibraryDownload(userId, fileId) {
+async function getOwnedLibraryRecord(userId, fileId) {
   const uid = clean(userId, 128);
   const id = clean(fileId, 64);
   if (!uid || !id) return null;
   const ref = getFirebaseDb().collection(COLLECTION).doc(id);
   const snapshot = await ref.get();
   if (!snapshot.exists || snapshot.data().userId !== uid) return null;
-  const data = snapshot.data();
-  const [url] = await getBucket().file(data.objectPath).getSignedUrl({
-    version: "v4", action: "read", expires: Date.now() + 5 * 60 * 1000,
+  return { ref, data: snapshot.data() };
+}
+
+async function getFileUrl(data) {
+  if (data.provider === "imagekit") return createPrivateDeliveryUrl(data.filePath, 300);
+  const bucket = await getLegacyFirebaseBucket();
+  const [url] = await bucket.file(data.objectPath).getSignedUrl({
+    version: "v4",
+    action: "read",
+    expires: Date.now() + 5 * 60 * 1000,
+    responseDisposition: "inline"
+  });
+  return url;
+}
+
+export async function getLibraryDownload(userId, fileId) {
+  const record = await getOwnedLibraryRecord(userId, fileId);
+  if (!record) return null;
+  const url = record.data.provider === "imagekit"
+    ? createPrivateDeliveryUrl(record.data.filePath, 300)
+    : await getLegacyFirebaseDownloadUrl(record.data);
+  return { url, name: record.data.name, contentType: record.data.contentType };
+}
+
+async function getLegacyFirebaseDownloadUrl(data) {
+  const bucket = await getLegacyFirebaseBucket();
+  const [url] = await bucket.file(data.objectPath).getSignedUrl({
+    version: "v4",
+    action: "read",
+    expires: Date.now() + 5 * 60 * 1000,
     responseDisposition: 'attachment; filename="' + String(data.name).replace(/["\r\n]/g, "_") + '"'
   });
-  return { url, name: data.name, contentType: data.contentType };
+  return url;
 }
 
 export async function getLibraryPreview(userId, fileId) {
-  const uid = clean(userId, 128);
-  const id = clean(fileId, 64);
-  if (!uid || !id) return null;
-  const snapshot = await getFirebaseDb().collection(COLLECTION).doc(id).get();
-  if (!snapshot.exists || snapshot.data().userId !== uid) return null;
-  const data = snapshot.data();
-  const [url] = await getBucket().file(data.objectPath).getSignedUrl({
-    version: "v4", action: "read", expires: Date.now() + 5 * 60 * 1000,
-    responseDisposition: "inline"
-  });
-  return { url, name: data.name, contentType: data.contentType };
+  const record = await getOwnedLibraryRecord(userId, fileId);
+  if (!record) return null;
+  return {
+    url: await getFileUrl(record.data),
+    name: record.data.name,
+    contentType: record.data.contentType
+  };
 }
 
 export async function deleteLibraryFile(userId, fileId) {
-  const uid = clean(userId, 128);
-  const id = clean(fileId, 64);
-  if (!uid || !id) return false;
-  const db = getFirebaseDb();
-  const ref = db.collection(COLLECTION).doc(id);
-  const snapshot = await ref.get();
-  if (!snapshot.exists || snapshot.data().userId !== uid) return false;
-  await getBucket().file(snapshot.data().objectPath).delete({ ignoreNotFound: true });
-  await ref.delete();
+  const record = await getOwnedLibraryRecord(userId, fileId);
+  if (!record) return false;
+  if (record.data.provider === "imagekit") {
+    await deleteImageKitFile(record.data.providerFileId);
+  } else {
+    await (await getLegacyFirebaseBucket()).file(record.data.objectPath).delete({ ignoreNotFound: true });
+  }
+  await record.ref.delete();
   return true;
 }

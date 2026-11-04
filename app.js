@@ -56,26 +56,40 @@ const state = {
   chats: [],
   chatHistoryUnavailable: false,
   selectedFile: null,
+  selectedFilePreviewUrl: null,
   sending: false,
+  authGeneration: 0,
   settingsOpen: false
 };
+
+// Expose only the signed-in Firebase user accessor needed by live voice.
+window.zedVoiceGetUser = () => state.firebaseUser;
 // ============================================================
 // AUTHENTICATED API REQUESTS
 // ============================================================
 async function apiFetch(url, options = {}) {
   const user = state.firebaseUser;
-  if (!user) {
+  if (!user || !state.userId || user.uid !== state.userId) {
     throw new Error("Please sign in to continue.");
   }
 
+  const requestUid = user.uid;
   const token = await user.getIdToken();
+  if (state.firebaseUser?.uid !== requestUid || state.userId !== requestUid) {
+    throw new Error("Your Zed account changed during this request. Please try again.");
+  }
+
   const headers = new Headers(options.headers || {});
   headers.set("Authorization", `Bearer ${token}`);
-
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers
   });
+
+  if (state.firebaseUser?.uid !== requestUid || state.userId !== requestUid) {
+    throw new Error("Your Zed account changed during this request. Please try again.");
+  }
+  return response;
 }
 
 // ============================================================
@@ -115,8 +129,108 @@ const fileInput =
   document.getElementById("fileInput");
 const messageInput =
   document.getElementById("messageInput");
+const selectedFileChip =
+  document.getElementById("selectedFileChip");
 const sendBtn =
   document.getElementById("sendBtn");
+function createDocumentIcon(className = "selected-file-document-icon") {
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  icon.setAttribute("class", className);
+  icon.setAttribute("viewBox", "0 0 32 36");
+  icon.setAttribute("width", "32");
+  icon.setAttribute("height", "36");
+  icon.setAttribute("role", "img");
+  icon.setAttribute("aria-label", "Document");
+  icon.setAttribute("focusable", "false");
+  const page = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  page.setAttribute("d", "M6 2.5h13l7 7V33H6z");
+  page.setAttribute("fill", "#ffffff");
+  page.setAttribute("stroke", "#ffffff");
+  page.setAttribute("stroke-width", "1.5");
+  page.setAttribute("stroke-linejoin", "round");
+  const fold = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  fold.setAttribute("d", "M19 2.5v7h7");
+  fold.setAttribute("fill", "none");
+  fold.setAttribute("stroke", "#64748b");
+  fold.setAttribute("stroke-width", "1.5");
+  fold.setAttribute("stroke-linejoin", "round");
+  const lines = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  lines.setAttribute("d", "M10 16h12M10 21h12M10 26h9");
+  lines.setAttribute("fill", "none");
+  lines.setAttribute("stroke", "#334155");
+  lines.setAttribute("stroke-width", "1.8");
+  lines.setAttribute("stroke-linecap", "round");
+  icon.append(page, fold, lines);
+  return icon;
+}
+function renderSelectedFileChip() {
+  if (!selectedFileChip) return;
+  selectedFileChip.replaceChildren();
+  selectedFileChip.hidden = !state.selectedFile;
+  selectedFileChip.classList.toggle("has-file", Boolean(state.selectedFile));
+  if (!state.selectedFile) {
+    selectedFileChip.removeAttribute("style");
+    return;
+  }
+  const isImage = state.selectedFile.type?.startsWith("image/");
+  if (isImage) {
+    if (!state.selectedFilePreviewUrl) {
+      state.selectedFilePreviewUrl = URL.createObjectURL(state.selectedFile);
+    }
+    const preview = document.createElement("img");
+    preview.className = "selected-file-image-preview";
+    preview.src = state.selectedFilePreviewUrl;
+    preview.alt = "Attached image preview";
+    selectedFileChip.appendChild(preview);
+  } else {
+    selectedFileChip.appendChild(createDocumentIcon());
+    const label = document.createElement("span");
+    label.className = "selected-file-name";
+    label.textContent = "File";
+    selectedFileChip.appendChild(label);
+  }
+
+  const remove = document.createElement("button");
+  remove.className = "remove-file-button";
+  remove.type = "button";
+  remove.setAttribute("aria-label", "Remove attached file");
+  remove.setAttribute("data-attachment-remove", "true");
+  const closeMark = document.createElement("span");
+  closeMark.className = "attachment-close-mark";
+  closeMark.setAttribute("aria-hidden", "true");
+  closeMark.textContent = "×";
+  remove.appendChild(closeMark);
+  remove.addEventListener("pointerdown", event => event.stopPropagation());
+  remove.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    clearSelectedFile();
+  });
+  selectedFileChip.appendChild(remove);
+}
+function clearSelectedFile() {
+  state.selectedFile = null;
+  if (state.selectedFilePreviewUrl) {
+    URL.revokeObjectURL(state.selectedFilePreviewUrl);
+    state.selectedFilePreviewUrl = null;
+  }
+  if (fileInput) fileInput.value = "";
+  renderSelectedFileChip();
+}
+
+function releaseMessagePreviewUrls(messages = []) {
+  for (const message of messages) {
+    if (message?._previewObjectUrl) {
+      URL.revokeObjectURL(message._previewObjectUrl);
+      message._previewObjectUrl = null;
+    }
+    if (typeof message?.image === "string" && message.image.startsWith("blob:")) {
+      URL.revokeObjectURL(message.image);
+      message.image = null;
+    }
+  }
+}
+
 // ============================================================
 // AUTH UI
 // ============================================================
@@ -360,7 +474,7 @@ function updateGoogleProfileAvatar() {
   const user = state.firebaseUser;
   const photoURL = user?.photoURL || "";
   const initials = (user?.displayName || user?.email || "U")
-    .trim().split(/\\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase();
+    .trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase();
 
   const renderAvatar = (button, className) => {
     if (!button) return;
@@ -892,6 +1006,150 @@ function setSending(
   }
 }
 // ============================================================
+// SAFE MARKDOWN RENDERING
+// ============================================================
+// Build DOM nodes instead of injecting model output as HTML.
+function appendInlineMarkdown(parent, source) {
+  const text = String(source || "");
+  const tokenPattern = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*]+)\*\*|__([^_]+)__|\x60([^\x60]+)\x60|\*([^*\n]+)\*|_([^_\n]+)_)/g;
+  let cursor = 0;
+  let match;
+  while ((match = tokenPattern.exec(text))) {
+    if (match.index > cursor) parent.appendChild(document.createTextNode(text.slice(cursor, match.index)));
+    let node;
+    if (match[2] && match[3]) {
+      try {
+        const url = new URL(match[3]);
+        if (url.protocol === "http:" || url.protocol === "https:") {
+          node = document.createElement("a");
+          node.href = url.href;
+          node.target = "_blank";
+          node.rel = "noopener noreferrer";
+          node.textContent = match[2];
+        }
+      } catch {}
+    } else if (match[4] || match[5]) {
+      node = document.createElement("strong");
+      node.textContent = match[4] || match[5];
+    } else if (match[6]) {
+      node = document.createElement("code");
+      node.textContent = match[6];
+    } else if (match[7] || match[8]) {
+      node = document.createElement("em");
+      node.textContent = match[7] || match[8];
+    }
+    parent.appendChild(node || document.createTextNode(match[0]));
+    cursor = tokenPattern.lastIndex;
+  }
+  if (cursor < text.length) parent.appendChild(document.createTextNode(text.slice(cursor)));
+}
+
+function renderMarkdownInto(container, markdown) {
+  const lines = String(markdown || "").replace(/\r\n?/g, "\n").split("\n");
+  let index = 0;
+  const isTableDivider = line => /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+  const splitTableRow = line => line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(cell => cell.trim());
+
+  while (index < lines.length) {
+    const line = lines[index];
+    if (!line.trim()) { index++; continue; }
+
+    if (/^\s{0,3}\x60\x60\x60/.test(line)) {
+      index++;
+      const codeLines = [];
+      while (index < lines.length && !/^\s{0,3}\x60\x60\x60/.test(lines[index])) codeLines.push(lines[index++]);
+      if (index < lines.length) index++;
+      const pre = document.createElement("pre");
+      const code = document.createElement("code");
+      code.textContent = codeLines.join("\n");
+      pre.appendChild(code);
+      container.appendChild(pre);
+      continue;
+    }
+
+    const heading = line.match(/^\s{0,3}(#{1,4})\s+(.+?)\s*#*\s*$/);
+    if (heading) {
+      const h = document.createElement("h" + Math.min(4, heading[1].length + 1));
+      appendInlineMarkdown(h, heading[2]);
+      container.appendChild(h);
+      index++;
+      continue;
+    }
+
+    if (index + 1 < lines.length && line.includes("|") && isTableDivider(lines[index + 1])) {
+      const headers = splitTableRow(line);
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      headers.forEach(value => {
+        const th = document.createElement("th");
+        appendInlineMarkdown(th, value);
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      index += 2;
+      const tbody = document.createElement("tbody");
+      while (index < lines.length && lines[index].trim() && lines[index].includes("|")) {
+        const values = splitTableRow(lines[index++]);
+        const row = document.createElement("tr");
+        headers.forEach((_, cellIndex) => {
+          const td = document.createElement("td");
+          appendInlineMarkdown(td, values[cellIndex] || "");
+          row.appendChild(td);
+        });
+        tbody.appendChild(row);
+      }
+      table.appendChild(tbody);
+      container.appendChild(table);
+      continue;
+    }
+
+    const listMatch = line.match(/^\s{0,3}([-*+]|\d+[.)])\s+(.+)$/);
+    if (listMatch) {
+      const ordered = /^\d/.test(listMatch[1]);
+      const list = document.createElement(ordered ? "ol" : "ul");
+      while (index < lines.length) {
+        const itemMatch = lines[index].match(/^\s{0,3}([-*+]|\d+[.)])\s+(.+)$/);
+        if (!itemMatch || /^\d/.test(itemMatch[1]) !== ordered) break;
+        const item = document.createElement("li");
+        appendInlineMarkdown(item, itemMatch[2]);
+        list.appendChild(item);
+        index++;
+      }
+      container.appendChild(list);
+      continue;
+    }
+
+    if (/^\s{0,3}>\s?/.test(line)) {
+      const quote = document.createElement("blockquote");
+      while (index < lines.length && /^\s{0,3}>\s?/.test(lines[index])) {
+        const paragraph = document.createElement("p");
+        appendInlineMarkdown(paragraph, lines[index++].replace(/^\s{0,3}>\s?/, ""));
+        quote.appendChild(paragraph);
+      }
+      container.appendChild(quote);
+      continue;
+    }
+
+    const paragraphLines = [];
+    while (index < lines.length && lines[index].trim()) {
+      if (/^\s{0,3}(#{1,4}\s|\x60\x60\x60|>\s?|([-*+]|\d+[.)])\s+)/.test(lines[index])) break;
+      if (index + 1 < lines.length && lines[index].includes("|") && isTableDivider(lines[index + 1])) break;
+      paragraphLines.push(lines[index++].trim());
+    }
+    if (paragraphLines.length) {
+      const paragraph = document.createElement("p");
+      appendInlineMarkdown(paragraph, paragraphLines.join(" "));
+      container.appendChild(paragraph);
+    } else {
+      container.appendChild(document.createTextNode(line));
+      index++;
+    }
+  }
+}
+
+// ============================================================
 // MESSAGE RENDERING
 // ============================================================
 function renderMessages() {
@@ -927,28 +1185,103 @@ function renderMessages() {
       document.createElement("div");
     content.className =
       "message-content";
-    content.textContent =
-      message.content || "";
+    if (message.role === "assistant") {
+      renderMarkdownInto(content, message.content || "");
+    } else {
+      content.textContent = message.content || "";
+    }
     wrapper.appendChild(
       content
     );
-    if (message.image) {
-      const image =
-        document.createElement("img");
-      image.src =
-        message.image;
-      image.alt =
-        "Image created by Zed";
-      image.style.cssText = `
-        display:block;
-        max-width:100%;
-        margin-top:12px;
-        border-radius:16px;
-        border:1px solid rgba(255,255,255,.10);
-      `;
-      content.appendChild(
-        image
-      );
+    if (message.imageAttachment?.id || message.image) {
+      const image = document.createElement("img");
+      image.className = "message-uploaded-image";
+      image.alt = message.imageAttachment?.name || message.imageName || "Uploaded image";
+      image.loading = "lazy";
+
+      // Prefer the authenticated, persistent image over a temporary blob URL.
+      // Local previews are used only until the saved attachment metadata arrives.
+      if (message.imageAttachment?.id) {
+        image.dataset.attachmentId = message.imageAttachment.id;
+        // Keep the current local/persistent preview visible while the
+        // authenticated attachment is refreshed in the background.
+        const fallbackPreview = message._previewObjectUrl || message.image;
+        if (fallbackPreview) image.src = fallbackPreview;
+      } else if (message.image) {
+        image.src = message.image;
+      }
+      content.appendChild(image);
+
+      if (message.imageAttachment?.id) {
+        image.dataset.attachmentId = message.imageAttachment.id;
+        const loadPersistentPreview = async () => {
+          const response = await apiFetch(
+            "/api/library/" + encodeURIComponent(message.imageAttachment.id) + "/content"
+          );
+          if (!response.ok) {
+            const failure = await parseResponse(response).catch(() => ({}));
+            throw new Error(failure?.error || "Image preview is unavailable.");
+          }
+
+          const imageBlob = await response.blob();
+          if (!imageBlob.size || !imageBlob.type.startsWith("image/")) {
+            throw new Error("The stored file did not return valid image data.");
+          }
+
+          const nextObjectUrl = URL.createObjectURL(imageBlob);
+          try {
+            // Decode the candidate before replacing the visible preview.
+            const candidate = new Image();
+            candidate.src = nextObjectUrl;
+            if (typeof candidate.decode === "function") {
+              await candidate.decode();
+            } else {
+              await new Promise((resolve, reject) => {
+                candidate.onload = resolve;
+                candidate.onerror = () => reject(new Error("The saved image could not be decoded."));
+              });
+            }
+
+            if (!image.isConnected) {
+              URL.revokeObjectURL(nextObjectUrl);
+              return;
+            }
+
+            const previousObjectUrl = message._previewObjectUrl;
+            image.src = nextObjectUrl;
+            message._previewObjectUrl = nextObjectUrl;
+
+            // Only release the previous preview after the new one is ready.
+            if (previousObjectUrl && previousObjectUrl !== nextObjectUrl) {
+              URL.revokeObjectURL(previousObjectUrl);
+            }
+            if (message.image && message.image.startsWith("blob:")) {
+              URL.revokeObjectURL(message.image);
+              message.image = null;
+            }
+          } catch (error) {
+            URL.revokeObjectURL(nextObjectUrl);
+            throw error;
+          }
+        };
+
+        loadPersistentPreview().catch(error => {
+          console.warn("Uploaded image could not be restored:", error.message);
+          if (image.isConnected && !image.getAttribute("src")) {
+            image.alt = "Saved image preview is temporarily unavailable.";
+          }
+        });
+      }
+    }
+    if (message.role === "user" && message.fileAttachment && !message.imageAttachment && !message.image) {
+      const fileChip = document.createElement("div");
+      fileChip.className = "message-file-chip";
+      fileChip.setAttribute("aria-label", "Attached file");
+      const fileIcon = createDocumentIcon("message-file-icon");
+      const fileLabel = document.createElement("span");
+      fileLabel.textContent = "File";
+      fileChip.append(fileIcon, fileLabel);
+      content.appendChild(fileChip);
     }
     // Display validated web sources as ordinary safe links.
     if (message.role === "assistant" && Array.isArray(message.webSources) && message.webSources.length) {
@@ -1080,38 +1413,20 @@ function removeThinking() {
 // LOAD CHATS
 // ============================================================
 async function loadChats() {
-  if (!state.userId) {
-    return;
-  }
+  const requestUid = state.userId;
+  const requestGeneration = state.authGeneration;
+  if (!requestUid || !state.firebaseUser || state.firebaseUser.uid !== requestUid) return;
   try {
-    const response =
-      await apiFetch(
-        `/api/chats?userId=${encodeURIComponent(
-          state.userId
-        )}`
-      );
-    const data =
-      await parseResponse(
-        response
-      );
-    if (!response.ok || !data.ok) {
-      throw new Error(
-        data.error ||
-        "Unable to load chats."
-      );
-    }
-    state.chats =
-      Array.isArray(data.chats)
-        ? data.chats
-        : [];
-    state.chatHistoryUnavailable =
-      data.persistent === false;
+    const response = await apiFetch(`/api/chats?userId=${encodeURIComponent(requestUid)}`);
+    const data = await parseResponse(response);
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load chats.");
+    state.chats = Array.isArray(data.chats) ? data.chats : [];
+    state.chatHistoryUnavailable = data.persistent === false;
     renderRecentChats();
   } catch (error) {
-    console.error(
-      "Load chats error:",
-      error
-    );
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    console.error("Load chats error:", error);
     state.chatHistoryUnavailable = true;
     renderRecentChats();
   }
@@ -1174,101 +1489,51 @@ function renderRecentChats() {
 // ============================================================
 // LOAD CONVERSATION
 // ============================================================
-async function loadConversation(
-  conversationId
-) {
-  if (
-    !state.userId ||
-    !conversationId
-  ) {
-    return;
-  }
+async function loadConversation(conversationId) {
+  const requestUid = state.userId;
+  const requestGeneration = state.authGeneration;
+  if (!requestUid || !conversationId || !state.firebaseUser || state.firebaseUser.uid !== requestUid) return;
   try {
-    const response =
-      await apiFetch(
-        `/api/chat/${encodeURIComponent(
-          conversationId
-        )}?userId=${encodeURIComponent(
-          state.userId
-        )}`
-      );
-    const data =
-      await parseResponse(
-        response
-      );
-    if (!response.ok || !data.ok) {
-      throw new Error(
-        data.error ||
-        "Unable to load conversation."
-      );
-    }
-    state.conversationId =
-      data.conversation.id;
-    state.messages =
-      Array.isArray(
-        data.conversation.messages
-      )
-        ? data.conversation.messages
-        : [];
+    const response = await apiFetch(`/api/chat/${encodeURIComponent(conversationId)}?userId=${encodeURIComponent(requestUid)}`);
+    const data = await parseResponse(response);
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load conversation.");
+    state.conversationId = data.conversation.id;
+    state.messages = Array.isArray(data.conversation.messages) ? data.conversation.messages : [];
     renderMessages();
   } catch (error) {
-    console.error(
-      "Conversation error:",
-      error
-    );
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    console.error("Conversation error:", error);
   }
 }
 // ============================================================
 // NEW CHAT
 // ============================================================
 async function createNewChat() {
-  if (
-    state.sending ||
-    !state.userId
-  ) {
-    return;
-  }
+  if (state.sending || !state.userId || !state.firebaseUser || state.firebaseUser.uid !== state.userId) return;
+  const requestUid = state.userId;
+  const requestGeneration = state.authGeneration;
   try {
-    const response =
-      await apiFetch(
-        "/api/new-chat",
-        {
-          method:"POST",
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
-          body:JSON.stringify({
-            userId:
-              state.userId
-          })
-        }
-      );
-    const data =
-      await parseResponse(
-        response
-      );
-    if (!response.ok || !data.ok) {
-      throw new Error(
-        data.error ||
-        "Unable to create a new chat."
-      );
-    }
-    state.conversationId =
-      data.conversationId ||
-      data.conversation?.id ||
-      null;
+    const response = await apiFetch("/api/new-chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: requestUid })
+    });
+    const data = await parseResponse(response);
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    if (!response.ok || !data.ok) throw new Error(data.error || "Unable to create a new chat.");
+    state.conversationId = data.conversationId || data.conversation?.id || null;
+    releaseMessagePreviewUrls(state.messages);
     state.messages = [];
-    state.selectedFile = null;
+    clearSelectedFile();
     renderMessages();
     await loadChats();
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
     closeSidebar();
     messageInput?.focus();
   } catch (error) {
-    console.error(
-      "New chat error:",
-      error
-    );
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
+    console.error("New chat error:", error);
   }
 }
 newChatBtn?.addEventListener(
@@ -1304,16 +1569,81 @@ function readFileAsDataURL(
     }
   );
 }
+async function optimizeImageForUpload(file) {
+  const MAX_EDGE = 2048;
+  const MAX_OUTPUT_BYTES = 12 * 1024 * 1024;
+  if (!file?.type?.startsWith("image/")) return file;
+  if (file.size <= MAX_OUTPUT_BYTES && !["image/heic", "image/heif"].includes(file.type)) return file;
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    throw new Error("This image is too large to upload. Please convert it to JPEG, PNG, or WebP and try again.");
+  }
+
+  let bitmap;
+  let sourceUrl;
+  try {
+    if (typeof createImageBitmap === "function") {
+      bitmap = await createImageBitmap(file);
+    } else {
+      const image = new Image();
+      sourceUrl = URL.createObjectURL(file);
+      bitmap = await new Promise((resolve, reject) => {
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("Zed could not read this image. Please try another image."));
+        image.src = sourceUrl;
+      });
+    }
+    const width = bitmap.width || bitmap.naturalWidth;
+    const height = bitmap.height || bitmap.naturalHeight;
+    if (!width || !height) throw new Error("Zed could not read this image.");
+
+    const scale = Math.min(1, MAX_EDGE / Math.max(width, height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Image preparation is not available in this browser.");
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    const toBlob = (type, quality) => new Promise(resolve => canvas.toBlob(resolve, type, quality));
+    let outputType = file.type === "image/png" ? "image/png" : "image/webp";
+    let blob = await toBlob(outputType, 0.82);
+    if (!blob && outputType === "image/webp") {
+      outputType = "image/jpeg";
+      blob = await toBlob(outputType, 0.82);
+    }
+    if (!blob) throw new Error("Zed could not prepare this image for upload.");
+    if (blob.size > MAX_OUTPUT_BYTES && outputType !== "image/jpeg") {
+      outputType = "image/jpeg";
+      blob = await toBlob(outputType, 0.76);
+    }
+    if (!blob || blob.size > MAX_OUTPUT_BYTES) {
+      throw new Error("This image is still too large after compression. Please choose a smaller image.");
+    }
+
+    const extension = outputType === "image/png" ? ".png" : outputType === "image/jpeg" ? ".jpg" : ".webp";
+    const baseName = String(file.name || "uploaded-image").replace(/\.[^.]+$/, "");
+    return new File([blob], baseName + extension, { type: outputType, lastModified: Date.now() });
+  } finally {
+    if (bitmap && typeof bitmap.close === "function") bitmap.close();
+    if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+  }
+}
 // ============================================================
 // SEND MESSAGE
 // ============================================================
 async function sendMessage() {
   if (
     state.sending ||
-    !state.userId
+    !state.userId ||
+    !state.firebaseUser ||
+    state.firebaseUser.uid !== state.userId
   ) {
     return;
   }
+  const requestUid = state.userId;
+  const requestGeneration = state.authGeneration;
+  const requestFile = state.selectedFile;
+  const requestConversationId = state.conversationId;
   const text =
     messageInput?.value.trim() ||
     "";
@@ -1323,10 +1653,14 @@ async function sendMessage() {
   ) {
     return;
   }
-  if (state.selectedFile && state.selectedFile.size > 18 * 1024 * 1024) {
+  const isImageUpload = Boolean(requestFile?.type?.startsWith("image/"));
+  const maxOriginalBytes = isImageUpload ? 30 * 1024 * 1024 : 18 * 1024 * 1024;
+  if (requestFile && requestFile.size > maxOriginalBytes) {
     state.messages.push({
       role: "assistant",
-      content: "This file is too large to analyse. Please choose a file smaller than 18 MB."
+      content: isImageUpload
+        ? "This image is too large for the browser to prepare safely. Please choose an image smaller than 30 MB."
+        : "This file is too large to analyse. Please choose a file smaller than 18 MB."
     });
     renderMessages();
     return;
@@ -1334,12 +1668,18 @@ async function sendMessage() {
   setSending(true);
   const previousMessages =
     state.messages.slice();
-  state.messages.push({
-    role:"user",
-    content:
-      text ||
-      "Please analyze this uploaded file."
-  });
+  const selectedImage = requestFile && requestFile.type?.startsWith("image/")
+    ? requestFile
+    : null;
+  const localImagePreview = selectedImage ? URL.createObjectURL(selectedImage) : null;
+  const optimisticUserMessage = {
+    role: "user",
+    content: text || "Please analyze this uploaded file.",
+    ...(localImagePreview ? { image: localImagePreview, imageName: selectedImage.name } : {}),
+    ...(requestFile && !isImageUpload ? { fileAttachment: { kind: "file" } } : {})
+  };
+  let sendSucceeded = false;
+  state.messages.push(optimisticUserMessage);
   renderMessages();
   messageInput.value =
     "";
@@ -1348,47 +1688,63 @@ async function sendMessage() {
   let filePayload =
     null;
   try {
-    if (state.selectedFile) {
-      filePayload =
-        await readFileAsDataURL(
-          state.selectedFile
-        );
+    if (requestFile) {
+      const uploadFile = isImageUpload
+        ? await optimizeImageForUpload(requestFile)
+        : requestFile;
+      filePayload = await readFileAsDataURL(uploadFile);
     }
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return null;
     showThinking();
-    const response =
-      await apiFetch(
-        "/api/chat",
-        {
-          method:"POST",
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
-          body:JSON.stringify({
-            message:
-              text,
-            userId:
-              state.userId,
-            conversationId:
-              state.conversationId,
-            conversation:
-              previousMessages.map(
-                message => ({
-                  role:
-                    message.role,
-                  text:
-                    message.content
-                })
-              ),
-            file:
-              filePayload
-          })
-        }
-      );
-    const data =
-      await parseResponse(
-        response
-      );
+    const chatRequestBody = {
+      message: text,
+      userId: requestUid,
+      conversationId: requestConversationId,
+      conversation: previousMessages.map(message => ({
+        role: message.role,
+        text: message.content
+      })),
+      file: filePayload
+    };
+    let response = await apiFetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(chatRequestBody)
+    });
+    let data = await parseResponse(response);
+
+    // A stale or inaccessible conversation must never block a user's first message.
+    // Create a fresh conversation under the currently authenticated UID, then retry once.
+    if (
+      response.status === 404 &&
+      requestConversationId &&
+      /conversation not found/i.test(String(data.error || data.answer || ""))
+    ) {
+      const newChatResponse = await apiFetch("/api/new-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: requestUid })
+      });
+      const newChatData = await parseResponse(newChatResponse);
+      if (
+        state.authGeneration !== requestGeneration ||
+        state.userId !== requestUid
+      ) return null;
+      const freshConversationId =
+        newChatData.conversationId || newChatData.conversation?.id;
+      if (!newChatResponse.ok || !newChatData.ok || !freshConversationId) {
+        throw new Error(newChatData.error || "A fresh chat could not be created. Please try again.");
+      }
+      state.conversationId = freshConversationId;
+      chatRequestBody.conversationId = freshConversationId;
+      response = await apiFetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(chatRequestBody)
+      });
+      data = await parseResponse(response);
+    }
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return null;
     removeThinking();
     if (!response.ok || !data.ok) {
       throw new Error(
@@ -1397,19 +1753,28 @@ async function sendMessage() {
         "Zed could not respond."
       );
     }
+    sendSucceeded = true;
     state.conversationId =
       data.conversationId ||
       state.conversationId;
+    const currentUserMessage = [...state.messages].reverse().find(message => message.role === "user");
+    if (currentUserMessage && data.imageAttachment) {
+      currentUserMessage.imageAttachment = data.imageAttachment;
+    }
+    if (currentUserMessage && data.fileAttachment) {
+      currentUserMessage.fileAttachment = data.fileAttachment;
+    }
+    if (currentUserMessage && selectedImage && !data.imageAttachment) {
+      currentUserMessage.imageSaveWarning = true;
+    }
+    const assistantAnswer = data.answer || data.reply || "Zed did not return an answer.";
     state.messages.push({
       role:"assistant",
-      content:
-        data.answer ||
-        data.reply ||
-        "Zed did not return an answer.",
+      content: assistantAnswer,
       webSearch: data.webSearch === true,
       webSources: Array.isArray(data.webSources) ? data.webSources : []
     });
-    speakZedResponse(data.answer || data.reply || "Zed did not return an answer.");
+    speakZedResponse(assistantAnswer);
     if (data.chatPersistent === false) {
       state.messages.push({
         role:"assistant",
@@ -1418,30 +1783,57 @@ async function sendMessage() {
     }
     renderMessages();
     await loadChats();
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return null;
+    return assistantAnswer;
   } catch (error) {
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) {
+      console.info("Discarded a chat response after the signed-in account changed.");
+      return null;
+    }
     console.error(
       "Chat error:",
       error
     );
     removeThinking();
+    const failedMessageIndex = state.messages.indexOf(optimisticUserMessage);
+    if (failedMessageIndex >= 0) state.messages.splice(failedMessageIndex, 1);
+    if (localImagePreview) URL.revokeObjectURL(localImagePreview);
+    if (text && messageInput && !messageInput.value.trim()) {
+      messageInput.value = text;
+      messageInput.style.height = "auto";
+    }
     state.messages.push({
-      role:"assistant",
-      content:
-        "I couldn't complete that request.\n\n" +
-        error.message
+      role: "assistant",
+      content: "I couldn't complete that request.\n\n" + error.message
     });
     renderMessages();
+    return null;
   } finally {
-    state.selectedFile =
-      null;
-    if (fileInput) {
-      fileInput.value =
-        "";
+    if (state.authGeneration === requestGeneration && state.userId === requestUid) {
+      if (sendSucceeded) clearSelectedFile();
+      setSending(false);
+      messageInput?.focus();
     }
-    setSending(false);
-    messageInput?.focus();
   }
 }
+// Voice submits recognised speech through this same authenticated chat pipeline.
+window.zedVoiceSubmitTranscript = async transcript => {
+  const spokenText = String(transcript || "").trim();
+  if (!spokenText) return "";
+  if (state.sending) throw new Error("Zed is still completing the previous request.");
+  if (!state.userId || !state.firebaseUser) throw new Error("Please sign in to use voice chat.");
+  messageInput.value = spokenText;
+  const requestUid = state.userId;
+  const answer = await sendMessage();
+  if (state.userId !== requestUid) {
+    throw new Error("Your Zed account changed during the voice request. Please restart voice chat.");
+  }
+  if (typeof answer !== "string" || !answer.trim()) {
+    throw new Error("Zed could not complete that voice request. Please try again.");
+  }
+  return answer.trim();
+};
+
 sendBtn?.addEventListener(
   "click",
   sendMessage
@@ -1533,18 +1925,27 @@ fileInput?.addEventListener(
       18 * 1024 * 1024;
 
     if (file.size > maxUploadBytes) {
-      state.selectedFile = null;
-      fileInput.value = "";
+      clearSelectedFile();
       alert(
         "This file is too large. Please choose a file smaller than 18 MB."
       );
       return;
     }
 
-    state.selectedFile =
-      file;
-    messageInput.value =
-      `Please analyze ${file.name}`;
+    if (state.selectedFilePreviewUrl) {
+      URL.revokeObjectURL(state.selectedFilePreviewUrl);
+      state.selectedFilePreviewUrl = null;
+    }
+    const originalName = String(file.name || "");
+    const extensionMatch = originalName.match(/(\.[a-z0-9]{1,12})$/i);
+    const safeDisplayName = "File" + (extensionMatch ? extensionMatch[1] : "");
+    state.selectedFile = new File([file], safeDisplayName, {
+      type: file.type,
+      lastModified: file.lastModified
+    });
+    renderSelectedFileChip();
+    // Keep the user's composer text unchanged when an attachment is selected.
+    // The user decides what Zed should do with the attached file.
     messageInput.focus();
   }
 );
@@ -1714,12 +2115,23 @@ const voiceInputBtn = document.getElementById("voiceInputBtn");
 const voiceModeBtn = document.getElementById("voiceModeBtn");
 let voiceModeEnabled = false;
 
+window.zedVoiceSetEnabled = enabled => {
+  voiceModeEnabled = Boolean(enabled);
+  if (!voiceModeEnabled && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  voiceModeBtn?.setAttribute("aria-pressed", String(voiceModeEnabled));
+};
+
 function speakZedResponse(text) {
+  // Dedicated voice mode speaks the reply itself after the shared chat request resolves.
+  if (window.ZedVoiceMode?.isActive) return;
   if (!voiceModeEnabled || !("speechSynthesis" in window) || !text) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(String(text).slice(0, 5000));
   utterance.lang = "en-US";
   utterance.rate = 1;
+  utterance.onstart = () => window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: true } }));
+  utterance.onend = () => window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: false } }));
+  utterance.onerror = () => window.dispatchEvent(new CustomEvent("zed:voice-speaking", { detail: { speaking: false } }));
   window.speechSynthesis.speak(utterance);
 }
 
@@ -1758,6 +2170,22 @@ function setupAuthListener() {
   onAuthStateChanged(
     firebaseAuth,
     async user => {
+      const nextUid = user?.uid || null;
+      if (state.userId !== nextUid) {
+        state.authGeneration += 1;
+        state.sending = false;
+        setSending(false);
+        clearSelectedFile();
+        releaseMessagePreviewUrls(state.messages);
+        state.messages = [];
+        state.chats = [];
+        state.chatHistoryUnavailable = false;
+        if (fileInput) fileInput.value = "";
+        removeThinking();
+        window.ZedVoiceMode?.stop?.();
+        renderRecentChats();
+        document.getElementById("projectList")?.replaceChildren();
+      }
       state.firebaseUser =
         user || null;
       updateGoogleProfileAvatar();
@@ -2024,7 +2452,9 @@ function formatFileSize(bytes = 0) {
 }
 
 async function loadProjects() {
-  if (!projectList || !state.firebaseUser) return;
+  const requestUid = state.userId;
+  const requestGeneration = state.authGeneration;
+  if (!projectList || !requestUid || !state.firebaseUser || state.firebaseUser.uid !== requestUid) return;
   projectList.replaceChildren();
   const loading = document.createElement("div");
   loading.className = "sidebar-empty";
@@ -2033,6 +2463,7 @@ async function loadProjects() {
   try {
     const response = await apiFetch("/api/projects");
     const data = await parseResponse(response);
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
     if (!response.ok || !data.ok) throw new Error(data.error || "Projects could not be loaded.");
     projectList.replaceChildren();
     const projects = Array.isArray(data.projects) ? data.projects : [];
@@ -2056,6 +2487,7 @@ async function loadProjects() {
       projectList.append(button);
     }
   } catch (error) {
+    if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
     projectList.replaceChildren();
     const failed = document.createElement("div");
     failed.className = "sidebar-empty";
@@ -2064,7 +2496,6 @@ async function loadProjects() {
     console.error("Project list error:", error);
   }
 }
-
 function openProjectView(project) {
   const content = document.createElement("div");
   content.append(featureCard(

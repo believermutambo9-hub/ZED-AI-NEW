@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
+import * as XLSX from "xlsx";
 
-const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements] = await Promise.all([
+const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements, css] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
   readFile(new URL("../storage/chat-history.js", import.meta.url), "utf8"),
   readFile(new URL("../features/memory.js", import.meta.url), "utf8"),
@@ -12,14 +13,35 @@ const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, u
   readFile(new URL("../interface.html", import.meta.url), "utf8"),
   readFile(new URL("../features/file-analysis.js", import.meta.url), "utf8"),
   readFile(new URL("../web-search.js", import.meta.url), "utf8"),
-  readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8")
+  readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8"),
+  readFile(new URL("../styles.css", import.meta.url), "utf8")
 ]);
+
+test("Gemini Live setup omits unsupported toolConfig and retains the Zed chat function", async () => {
+  const serverSource = await readFile(new URL("../server.js", import.meta.url), "utf8");
+  const voiceSource = await readFile(new URL("../voice-mode.js", import.meta.url), "utf8");
+  assert.doesNotMatch(serverSource, /toolConfig:\s*\{/);
+  assert.doesNotMatch(voiceSource, /toolConfig:\s*\{/);
+  assert.match(serverSource, /functionDeclarations:\s*\[\{[\s\S]{0,120}name:\s*"zed_chat"/);
+  assert.match(voiceSource, /functionDeclarations:\s*\[\{[\s\S]{0,120}name:\s*"zed_chat"/);
+});
 
 test("API routes reject missing or invalid Firebase ID tokens", () => {
   assert.match(server, /req\.path\.startsWith\("\/api\/"\)/);
   assert.match(server, /Bearer\\s\+\(\.\+\)/);
   assert.match(server, /verifyIdToken\(match\[1\]\)/);
   assert.match(server, /res\.status\(401\)/);
+});
+
+
+test("new accounts receive fresh conversation IDs instead of a predictable shared key", () => {
+  const start = server.indexOf("function getUserConversationId(");
+  const end = server.indexOf("function formatHistory(", start);
+  const implementation = server.slice(start, end);
+  assert.notEqual(start, -1);
+  assert.ok(implementation.includes("if (supplied)"));
+  assert.ok(implementation.includes('return supplied || "";'));
+  assert.ok(!implementation.includes('return `user-${userId}`;'));
 });
 
 test("chat saves use a transaction and reject another owner's conversation", () => {
@@ -57,8 +79,12 @@ test("chat UI warns when the assistant reply was not saved", () => {
 
 test("chat deletion verifies ownership inside its transaction", () => {
   assert.match(history, /runTransaction\(async transaction/);
-  assert.match(history, /doc\.data\(\)\?\.userId !== safeUserId/);
-  assert.match(history, /transaction\.delete\(chatRef\)/);
+  assert.match(history, /currentDoc\.data\(\)\?\.userId === safeUserId/);
+  assert.match(history, /legacyDoc\.data\(\)\?\.userId === safeUserId/);
+  assert.match(history, /const currentRef = db\.collection\(COLLECTION\)\.doc\(safeConversationId\)/);
+  assert.match(history, /const legacyRef = db\.collection\(LEGACY_COLLECTION\)\.doc\(safeConversationId\)/);
+  assert.match(history, /if \(currentOwned\) transaction\.delete\(currentRef\)/);
+  assert.match(history, /if \(legacyOwned\) transaction\.delete\(legacyRef\)/);
 });
 
 test("public memory deletion requires a matching owner and internal cleanup is private", () => {
@@ -74,7 +100,7 @@ test("public memory deletion requires a matching owner and internal cleanup is p
 
 test("chat reads return data only after matching the requested owner", () => {
   assert.match(history, /export async function getChat\(userId, conversationId\)/);
-  assert.match(history, /if \(data\.userId !== safeUserId\) \{\s*return null;/);
+  assert.match(history, /if \(data\.userId !== safeUserId\) return null;/);
 });
 
 test("memory API uses the authenticated user when deleting a memory", () => {
@@ -85,16 +111,50 @@ test("memory lookup rejects a user ID that differs from the authenticated UID", 
   assert.match(server, /req\.params\.userId !== req\.user\.uid/);
 });
 
-test("chat endpoint fails closed on legacy conversations without an owner", () => {
-  const ownerGuard = server.indexOf("!conversation.metadata?.userId");
-  const restoreCall = server.indexOf("await restoreConversation(", ownerGuard);
-  const assignOwner = server.indexOf("conversation.metadata.userId =\n          userId", restoreCall);
-  assert.notEqual(ownerGuard, -1);
-  assert.notEqual(restoreCall, -1);
-  assert.notEqual(assignOwner, -1);
-  assert.ok(ownerGuard < restoreCall, "owner guard must run before restoring stored history");
-  assert.ok(restoreCall < assignOwner, "owner assignment must happen only after restore");
-  assert.match(server.slice(ownerGuard - 200, restoreCall), /conversation\.messages\.length > 0/);
+test("uncached conversation IDs must be verified against the authenticated owner's persistent history", () => {
+  const chatStart = server.indexOf('app.post(\n  "/api/chat"');
+  const chatEnd = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", chatStart);
+  const route = server.slice(chatStart, chatEnd);
+  const cacheCheck = route.indexOf("!getConversationDetails(conversationId)");
+  const ownerLookup = route.indexOf("history.getChat(userId, conversationId)", cacheCheck);
+  const freshFallback = route.indexOf('conversationId = "";', ownerLookup);
+  const conversationLoad = route.indexOf("getConversation(\n          conversationId", freshFallback);
+  assert.ok(cacheCheck >= 0);
+  assert.ok(ownerLookup > cacheCheck);
+  assert.ok(freshFallback > ownerLookup);
+  assert.ok(conversationLoad > freshFallback);
+  assert.match(route.slice(cacheCheck, conversationLoad), /if \(!ownedPersistedChat\)/);
+});
+
+test("legacy cached conversations are restored only after owner-scoped history verification", () => {
+  const chatStart = server.indexOf('app.post(\n  "/api/chat"');
+  const chatEnd = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", chatStart);
+  const route = server.slice(chatStart, chatEnd);
+  const legacyGuard = route.indexOf("!conversation.metadata?.userId");
+  const verify = route.indexOf("history.getChat(userId, conversationId)", legacyGuard);
+  const assignOwner = route.indexOf("userId\n          };", verify);
+  const restoreCall = route.indexOf("await restoreConversation(", verify);
+  assert.ok(legacyGuard >= 0);
+  assert.ok(verify > legacyGuard);
+  assert.ok(assignOwner > verify);
+  assert.ok(restoreCall > assignOwner);
+  assert.match(route.slice(0, legacyGuard), /Array\.isArray\(conversation\.messages\)[\s\S]*?conversation\.messages\.length > 0/);
+});
+
+test("account changes invalidate pending chat and prevent stale data from rendering", () => {
+  assert.match(app, /authGeneration: 0/);
+  assert.match(app, /const requestGeneration = state\.authGeneration/);
+  assert.match(app, /state\.authGeneration !== requestGeneration/);
+  assert.match(app, /Discarded a chat response after the signed-in account changed/);
+  assert.match(app, /Your Zed account changed during this request/);
+  assert.match(app, /removeThinking\(\);[\s\S]{0,100}window\.ZedVoiceMode\?\.stop/);
+  assert.match(app, /state\.chats = \[\];[\s\S]{0,180}renderRecentChats\(\)/);
+});
+
+test("chat, conversation, and project loads are discarded after account changes", () => {
+  assert.match(app, /async function loadChats\(\)[\s\S]*?state\.authGeneration !== requestGeneration/);
+  assert.match(app, /async function loadConversation\(conversationId\)[\s\S]*?state\.authGeneration !== requestGeneration/);
+  assert.match(app, /async function loadProjects\(\)[\s\S]*?state\.authGeneration !== requestGeneration/);
 });
 
 test("memory list and search use only the authenticated Firebase UID", () => {
@@ -244,9 +304,8 @@ test("clear-all memory waits for every Firestore delete before clearing local st
 
 
 test("delete-all chat history chunks Firestore writes below the 500-write limit", () => {
-  assert.match(history, /const batchSize = 450/);
-  assert.match(history, /for \(let start = 0; start < snapshot\.docs\.length; start \+= batchSize\)/);
-  assert.match(history, /snapshot\.docs\.slice\(start, start \+ batchSize\)/);
+  assert.match(history, /for \(let start = 0; start < docs\.length; start \+= 450\)/);
+  assert.match(history, /docs\.slice\(start, start \+ 450\)/);
   assert.match(history, /await batch\.commit\(\)/);
 });
 
@@ -372,10 +431,25 @@ test("vision-only uploads are not sent to text-only fallback providers", () => {
   const end = server.indexOf("// ============================================================\n//", start + 30);
   const ai = server.slice(start, end);
   assert.ok(ai.includes("if (inlineData)"));
-  assert.ok(ai.includes("Gemini could not analyse the attached image/PDF"));
+  assert.ok(ai.includes("AI_MULTIMODAL_UNAVAILABLE"));
   assert.ok(ai.indexOf("if (inlineData)") < ai.indexOf("await askGroq"));
 });
 
+
+test("uploaded images render as the original image and remain linked in chat history", () => {
+  assert.match(app, /message\.imageAttachment\?\.id \|\| message\.image/);
+  assert.match(app, /message-uploaded-image/);
+  assert.match(app, /URL\.createObjectURL\(selectedImage\)/);
+  assert.match(app, /\/api\/library\/.*\/content/);
+  assert.ok(app.indexOf("if (message.imageAttachment?.id)") < app.indexOf("else if (message.image)"), "persistent image attachments must take priority over expired blob previews");
+  assert.match(app, /response\.blob\(\)/);
+  assert.match(server, /app\.get\("\/api\/library\/:fileId\/content"/);
+  assert.match(server, /This image could not be saved to your conversation/);
+  assert.match(server, /saveLibraryFile\(\{[\s\S]*?dataUrl: req\.body\.file\.data/);
+  assert.match(server, /uploadedFile\?\.mimeType\?\.startsWith\("image\/"\)/);
+  assert.match(server, /imageAttachment/);
+  assert.match(css, /\.message-uploaded-image[\s\S]*?object-fit: contain/);
+});
 
 test("browser rejects uploads over the server's 18 MB limit before reading them", () => {
   assert.match(app, /const maxUploadBytes =\s*18 \* 1024 \* 1024/);
@@ -487,13 +561,15 @@ test("chat route returns a safe client error when upload analysis fails", () => 
 });
 
 
-test("chat UI rejects oversized files before base64 encoding", () => {
-  assert.match(app, /state\.selectedFile\.size > 18 \* 1024 \* 1024/);
+test("chat UI compresses large images before base64 encoding and preserves non-image limits", () => {
+  assert.match(app, /async function optimizeImageForUpload\(file\)/);
+  assert.match(app, /const MAX_OUTPUT_BYTES = 12 \* 1024 \* 1024/);
+  assert.match(app, /const maxOriginalBytes = isImageUpload \? 30 \* 1024 \* 1024 : 18 \* 1024 \* 1024/);
   assert.match(app, /This file is too large to analyse\. Please choose a file smaller than 18 MB\./);
   const sendStart = app.indexOf("async function sendMessage()");
   const sendEnd = app.indexOf("sendBtn?.addEventListener", sendStart);
   const sendHandler = app.slice(sendStart, sendEnd);
-  assert.ok(sendHandler.indexOf("state.selectedFile.size > 18 * 1024 * 1024") < sendHandler.indexOf("readFileAsDataURL("));
+  assert.ok(sendHandler.indexOf("optimizeImageForUpload(requestFile)") < sendHandler.indexOf("readFileAsDataURL(uploadFile)"));
 });
 
  
@@ -503,8 +579,8 @@ test("Groq and OpenRouter requests have bounded provider timeouts", () => {
   const fallbackStart = server.indexOf("async function askAI(");
   const groq = server.slice(groqStart, openRouterStart);
   const openRouter = server.slice(openRouterStart, fallbackStart);
-  assert.match(groq, /signal:\s*AbortSignal\.timeout\(45_000\)/);
-  assert.match(openRouter, /signal:\s*AbortSignal\.timeout\(45_000\)/);
+  assert.match(groq, /signal:\s*AbortSignal\.timeout\(60_000\)/);
+  assert.match(openRouter, /signal:\s*AbortSignal\.timeout\(60_000\)/);
 });
 
 
@@ -549,8 +625,8 @@ test("chat history API does not expose internal persistence errors", () => {
 test("explicit web-search instructions are detected and bypass the football-data-only gate", () => {
   assert.match(server, /function isExplicitWebSearchRequest\(message = ""\)/);
   assert.match(server, /\\b\(search \(the \)\?web\|web search\|search online\|look up online\|find online\|browse \(the \)\?web\|internet search\|on the internet\)\\b/i);
-  assert.match(server, /explicitWebSearch \|\|\s*isCurrentInformationQuestion\(userMessage\)/);
-  assert.match(server, /explicitWebSearch \|\|\s*!shouldUseFootballData\(userMessage\)/);
+  assert.match(server, /explicitWebSearch \|\|\s*\([\s\S]{0,100}!isPersonalMemoryQuestion\(userMessage\)[\s\S]{0,100}isCurrentInformationQuestion\(userMessage\)/);
+  assert.match(server, /explicitWebSearch \|\|\s*\([\s\S]{0,250}!shouldUseFootballData\(userMessage\)[\s\S]{0,250}!liveDataIntent\.weatherLocation[\s\S]{0,120}!liveDataIntent\.currency/);
   assert.ok(server.indexOf("const explicitWebSearch =") < server.indexOf("if (\n        (\n          explicitWebSearch"));
 });
 
@@ -695,4 +771,92 @@ test("sidebar open and close operations synchronize accessibility attributes", (
 
 test("health endpoint reports the public app name", () => {
   assert.match(server, /service:\s*"zed"/);
+});
+
+
+test("real-time voice token provisioning is authenticated, single-use, and short-lived", () => {
+  assert.match(server, /app\.use\(async \(req, res, next\) => \{[\s\S]*?verifyIdToken\(match\[1\]\)/);
+  assert.match(server, /const voiceTokenRateLimit = createUserRateLimiter\([\s\S]*?max: 8/);
+  const start = server.indexOf('app.post("/api/voice/token"');
+  const end = server.indexOf("// FRONTEND FALLBACK", start);
+  const route = server.slice(start, end);
+  assert.notEqual(start, -1);
+  assert.match(route, /uses:\s*1/);
+  assert.match(route, /newSessionExpireTime:/);
+  assert.match(route, /expireTime:/);
+  assert.match(route, /liveConnectConstraints:/);
+  assert.match(route, /model:\s*"models\/" \+ liveModel/);
+  assert.match(route, /token:\s*token\.name/);
+  assert.match(route, /new GoogleGenAI\(\{ apiKey: GEMINI_API_KEY \}\)/);
+  assert.match(route, /genAI\.authTokens\.create\(\{/);
+  assert.match(route, /functionDeclarations:\s*\[\{/);
+  assert.doesNotMatch(route, /toolConfig:\s*\{/);
+  assert.match(route, /MUST call the zed_chat function/);
+  const clientResponse = route.slice(route.indexOf("return res.json({"));
+  assert.doesNotMatch(clientResponse, /GEMINI_API_KEY/);
+});
+
+test("real-time voice streams native audio and delegates Zed tasks through authenticated chat", async () => {
+  const voice = await readFile(new URL("../voice-mode.js", import.meta.url), "utf8");
+  assert.match(voice, /BidiGenerateContentConstrained/);
+  assert.match(voice, /window\.zedVoiceGetUser\?\.\(\)/);
+  assert.match(voice, /async function submitToZedChat\(spokenText\)/);
+  assert.match(voice, /window\.zedVoiceSubmitTranscript\(String\(spokenText/);
+  assert.match(voice, /function startMicrophoneStreaming\(\)/);
+  assert.match(voice, /function playPcm24k\(base64\)/);
+  assert.match(voice, /serverContent\.interrupted/);
+  assert.match(voice, /name: "zed_chat"/);
+  assert.match(voice, /zed-voice-screen/);
+  assert.match(app, /window\.zedVoiceSubmitTranscript = async transcript/);
+  assert.match(app, /messageInput\.value = spokenText/);
+  assert.match(app, /const answer = await sendMessage\(\)/);
+  assert.match(app, /return assistantAnswer;/);
+  assert.match(app, /return null;/);
+  assert.match(app, /Your Zed account changed during the voice request/);
+  assert.match(voice, /getIdToken\(true\)/);
+  assert.match(voice, /zedVoiceGetUser\?\.\(\)\?\.uid !== user\.uid/);
+  assert.doesNotMatch(voice, /SpeechRecognition|speechSynthesis/);
+});
+
+test("Google profile avatar fallback derives initials from whitespace-separated names", () => {
+  assert.ok(app.includes('.trim().split(/\\s+/)'));
+});
+
+
+test("XLSX parser extracts spreadsheet rows using the supported SheetJS release", async () => {
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.aoa_to_sheet([["Name", "Score"], ["Ada", 95]]);
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Results");
+  const bytes = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  const data = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + bytes.toString("base64");
+  const parsed = await prepareUploadedFile({
+    name: "results.xlsx",
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    data
+  });
+  assert.match(parsed.extractedText, /Ada/);
+  assert.match(parsed.extractedText, /95/);
+});
+
+
+test("attachment state is cleared safely across chat and account changes", () => {
+  assert.match(app, /function clearSelectedFile\(\)\s*\{[\s\S]*?URL\.revokeObjectURL\(state\.selectedFilePreviewUrl\)/);
+  assert.match(app, /function releaseMessagePreviewUrls\(messages = \[\]\)/);
+  assert.match(app, /clearSelectedFile\(\);\s*releaseMessagePreviewUrls\(state\.messages\);\s*state\.messages = \[\];/);
+  assert.match(app, /clearSelectedFile\(\);\s*renderMessages\(\);/);
+});
+
+test("failed chat requests preserve attachments and restore the user's unsent prompt", () => {
+  assert.match(app, /let sendSucceeded = false;/);
+  assert.match(app, /sendSucceeded = true;/);
+  assert.match(app, /const failedMessageIndex = state\.messages\.indexOf\(optimisticUserMessage\)/);
+  assert.match(app, /if \(text && messageInput && !messageInput\.value\.trim\(\)\)\s*\{\s*messageInput\.value = text;/);
+  assert.match(app, /if \(sendSucceeded\) clearSelectedFile\(\);/);
+});
+
+
+test("legacy chat migration queries only the authenticated user's records", () => {
+  assert.match(history, /where\("userId", "==", safeUserId\)/);
+  assert.match(history, /where\("metadata\.userId", "==", safeUserId\)/);
+  assert.doesNotMatch(history, /db\.collection\(LEGACY_COLLECTION\)\.get\(\)/);
 });

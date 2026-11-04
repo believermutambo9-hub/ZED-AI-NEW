@@ -4,12 +4,36 @@ function cleanAIAnswer(value = "") {
   return String(value).replace(/\u0000/g, "").trim();
 }
 
+function isValidBase64(value) {
+  if (!value || value.length % 4 !== 0) return false;
+  const chunkSize = 64 * 1024;
+  const pattern = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+  for (let offset = 0; offset < value.length; offset += chunkSize) {
+    const chunk = value.slice(offset, Math.min(offset + chunkSize, value.length));
+    if (chunk.length % 4 !== 0 || !pattern.test(chunk)) return false;
+  }
+  return true;
+}
+
 // ============================================================
 function detectUploadedSignature(buffer) {
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
   if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return "image/jpeg";
   if (buffer.length >= 6 && ["GIF87a", "GIF89a"].includes(buffer.toString("ascii", 0, 6))) return "image/gif";
   if (buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP") return "image/webp";
+  if (buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WAVE") return "audio/wav";
+  if (buffer.length >= 4 && buffer.toString("ascii", 0, 4) === "fLaC") return "audio/flac";
+  if (buffer.length >= 4 && buffer.toString("ascii", 0, 4) === "OggS") return "audio/ogg";
+  if (buffer.length >= 3 && buffer.toString("ascii", 0, 3) === "ID3") return "audio/mpeg";
+  if (buffer.length >= 2 && buffer[0] === 0xff && (buffer[1] & 0xf6) === 0xf0) return "audio/aac";
+  if (buffer.length >= 2 && buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0) return "audio/mpeg";
+  if (buffer.length >= 12 && buffer.toString("ascii", 4, 8) === "ftyp") {
+    const brand = buffer.toString("ascii", 8, 12);
+    return /^(3gp|3g2)/.test(brand) ? "video/3gpp" : "video/mp4";
+  }
+  if (buffer.length >= 4 && buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) return "video/webm";
+  if (buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "AVI ") return "video/x-msvideo";
+  if (buffer.length >= 12 && buffer.toString("ascii", 4, 8) === "ftyp" && /^(3gp|3g2)/.test(buffer.toString("ascii", 8, 11))) return "video/3gpp";
   if (buffer.length >= 5 && buffer.toString("ascii", 0, 5) === "%PDF-") return "application/pdf";
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]))) return "application/x-ole-storage";
   if (buffer.length >= 4 && buffer[0] === 0x50 && buffer[1] === 0x4b && [0x03, 0x05, 0x07].includes(buffer[2]) && [0x04, 0x06, 0x08].includes(buffer[3])) return "application/zip";
@@ -154,7 +178,13 @@ async function prepareUploadedFile(file) {
   const mimeType = dataUrlType || declaredType || "application/octet-stream";
   const base64 = match[2];
 
-  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(base64)) {
+  // Reject oversized encoded data before validation/decoding. Validate in bounded
+  // chunks so a legitimate near-limit upload cannot overflow the regex engine stack.
+  const maxEncodedLength = Math.ceil((18 * 1024 * 1024) / 3) * 4;
+  if (base64.length > maxEncodedLength) {
+    throw new Error("This file is too large to analyse. Please upload a file smaller than 18 MB.");
+  }
+  if (!isValidBase64(base64)) {
     throw new Error("The uploaded file data is invalid. Please upload it again.");
   }
 
@@ -173,15 +203,21 @@ async function prepareUploadedFile(file) {
     ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ".odt": "application/vnd.oasis.opendocument.text",
     ".odp": "application/vnd.oasis.opendocument.presentation",
-    ".epub": "application/epub+zip"
+    ".epub": "application/epub+zip",
+    ".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4",
+    ".aac": "audio/aac", ".ogg": "audio/ogg", ".flac": "audio/flac",
+    ".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/mov",
+    ".webm": "video/webm", ".avi": "video/x-msvideo", ".3gp": "video/3gpp"
   };
   const expectedType = knownExtensionTypes[extension];
+  const mediaExtensions = new Set([".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".mp4", ".m4v", ".mov", ".webm", ".avi", ".3gp"]);
   const isZipDocument = [".docx", ".xlsx", ".pptx", ".odt", ".odp", ".epub"].includes(extension);
   const isLegacyOffice = [".doc", ".ppt"].includes(extension);
   const mimeLooksGeneric = ["", "application/octet-stream", "binary/octet-stream"].includes(mimeType);
   const signatureMatches = expectedType && (
     (isZipDocument && signature === "application/zip") ||
-    signature === expectedType
+    signature === expectedType ||
+    ([".m4a", ".mov"].includes(extension) && signature === "video/mp4")
   );
   if (expectedType && !signatureMatches) {
     throw new Error("The file contents do not match the file type. Please upload a valid, unmodified file.");
@@ -189,7 +225,7 @@ async function prepareUploadedFile(file) {
   if (isZipDocument && signature === "application/zip") {
     validateZipArchive(buffer);
   }
-  if (!mimeLooksGeneric && expectedType && !isZipDocument && mimeType !== expectedType) {
+  if (!mimeLooksGeneric && expectedType && !isZipDocument && !mediaExtensions.has(extension) && mimeType !== expectedType) {
     throw new Error("The file's declared format does not match its filename. Please check the file and upload it again.");
   }
   if (mimeType.startsWith("image/") && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mimeType)) {
@@ -207,6 +243,21 @@ async function prepareUploadedFile(file) {
 
   if (signature === "application/zip" && !isZipDocument && extension !== ".zip") {
     throw new Error("This compressed file format is not supported for direct analysis. Please upload a supported document format.");
+  }
+
+  if (mediaExtensions.has(extension)) {
+    if (buffer.length > 14 * 1024 * 1024) {
+      throw new Error("Audio and video uploads must be 14 MB or smaller for direct analysis. Longer media support will use secure resumable uploads.");
+    }
+    if (!expectedType || (signature !== expectedType && !([".mov", ".m4a"].includes(extension) && signature === "video/mp4"))) {
+      throw new Error("The audio or video contents do not match the selected file type. Please upload a valid media file.");
+    }
+    if (!mimeLooksGeneric && mimeType !== expectedType &&
+        !(extension === ".m4a" && mimeType === "audio/x-m4a") &&
+        !(extension === ".mov" && ["video/quicktime", "video/mp4"].includes(mimeType))) {
+      throw new Error("The media format declared by your device does not match the file extension.");
+    }
+    return { fileName, mimeType: expectedType, inlineData: { mimeType: expectedType, data: base64 }, extractedText: "", mediaKind: expectedType.startsWith("audio/") ? "audio" : "video" };
   }
 
   if (signature.startsWith("image/")) {
@@ -261,7 +312,7 @@ async function prepareUploadedFile(file) {
     return { fileName, mimeType: mimeType === "application/octet-stream" ? "text/plain" : mimeType, extractedText: text.slice(0, 100000) };
   }
 
-  throw new Error("This file type is not supported yet. Supported formats include PDF, common images, DOCX, PPTX, XLS/XLSX, ODT/ODP, EPUB, CSV, JSON, and common text/code files. If a format is missing, convert it to PDF or a supported Office format.");
+  throw new Error("This file type is not supported yet. Supported formats include PDF, images, audio (MP3, WAV, M4A, AAC, OGG, FLAC), video (MP4, MOV, WebM, AVI, 3GP), DOCX, PPTX, XLS/XLSX, ODT/ODP, EPUB, CSV, JSON, and common text/code files. If a format is missing, convert it to PDF or a supported Office format.");
 }
 
 

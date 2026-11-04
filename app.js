@@ -97,7 +97,6 @@ async function apiFetch(url, options = {}) {
 // ============================================================
 const app =
   document.getElementById("app");
-menuBackdrop = document.getElementById("zedMobileScrim");
 const sidebar =
   document.getElementById("sidebar");
 const newChatBtn =
@@ -244,7 +243,7 @@ let emailLogin = null;
 let emailSignup = null;
 let accountPanel = null;
 let settingsPanel = null;
-let menuBackdrop = null;
+let menuBackdrop = document.getElementById("zedMobileScrim");
 // ============================================================
 // CREATE AUTH SCREEN
 // ============================================================

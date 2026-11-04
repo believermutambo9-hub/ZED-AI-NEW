@@ -3357,3 +3357,33 @@ body {
 .selected-file-chip .remove-file-button:active {
   filter: brightness(.92) !important;
 }
+
+/* Keep attachment close control visible and stationary during touch/focus. */
+.selected-file-chip { isolation: isolate; }
+.selected-file-chip .remove-file-button {
+  top: 2px !important;
+  right: 2px !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  transform: none !important;
+}
+.selected-file-chip .remove-file-button .attachment-close-mark {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  color: #fff !important;
+  font: 700 20px/18px Arial, sans-serif !important;
+  text-align: center !important;
+  pointer-events: none !important;
+}
+.composer:has(.remove-file-button:focus) { transform: none !important; }

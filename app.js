@@ -1104,31 +1104,27 @@ function renderMessages() {
         image.dataset.attachmentId = message.imageAttachment.id;
         const loadPersistentPreview = async () => {
           const response = await apiFetch(
-            "/api/library/" + encodeURIComponent(message.imageAttachment.id) + "/preview"
+            "/api/library/" + encodeURIComponent(message.imageAttachment.id) + "/content"
           );
-          const preview = await parseResponse(response);
-          if (!response.ok || !preview?.ok || !preview.url) {
-            throw new Error(preview?.error || "Image preview is unavailable.");
+          if (!response.ok) {
+            const failure = await parseResponse(response).catch(() => ({}));
+            throw new Error(failure?.error || "Image preview is unavailable.");
           }
-          if (image.isConnected) image.src = preview.url;
+          const imageBlob = await response.blob();
+          if (!imageBlob.size || !imageBlob.type.startsWith("image/")) {
+            throw new Error("The stored file did not return valid image data.");
+          }
+          if (image.isConnected) {
+            const nextObjectUrl = URL.createObjectURL(imageBlob);
+            const previousObjectUrl = message._previewObjectUrl;
+            message._previewObjectUrl = nextObjectUrl;
+            image.src = nextObjectUrl;
+            if (previousObjectUrl) URL.revokeObjectURL(previousObjectUrl);
+          }
         };
-        image.addEventListener("error", () => {
-          if (image.dataset.previewRetried === "true") {
-            if (message.image) image.src = message.image;
-            else image.alt = "Image preview is temporarily unavailable.";
-            return;
-          }
-          image.dataset.previewRetried = "true";
-          loadPersistentPreview().catch(error => {
-            console.warn("Uploaded image preview could not be refreshed:", error.message);
-            if (message.image && image.isConnected) image.src = message.image;
-            else image.alt = "Image preview is temporarily unavailable.";
-          });
-        }, { once: true });
         loadPersistentPreview().catch(error => {
-          console.warn("Uploaded image preview could not be loaded:", error.message);
-          if (message.image && image.isConnected) image.src = message.image;
-          else image.alt = "Image preview is temporarily unavailable.";
+          console.warn("Uploaded image could not be restored:", error.message);
+          if (!message.image && image.isConnected) image.alt = "Image preview is temporarily unavailable.";
         });
       } else if (message.image) {
         image.src = message.image;

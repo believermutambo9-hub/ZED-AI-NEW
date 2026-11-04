@@ -75,7 +75,7 @@ test("image analysis uses structured transcription rules and a sufficient output
   assert.match(server, /transcribe every fully readable visible row/);
   assert.match(server, /\\[unclear\\]/);
   assert.match(server, /maxOutputTokens: 2500/);
-  assert.match(server, /max_completion_tokens: inlineData \? 2500 : 2048/);
+  assert.match(server, /max_completion_tokens: inlineData \? 800 : 2048/);
   assert.match(server, /max_tokens: isVisionRequest \? 2500 : 2048/);
   assert.match(server, /detail: "low"/);
   assert.match(server, /include all readable rows rather than giving only a general description/);

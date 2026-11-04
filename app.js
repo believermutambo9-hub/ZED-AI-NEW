@@ -134,11 +134,34 @@ const selectedFileChip =
 const sendBtn =
   document.getElementById("sendBtn");
 function createDocumentIcon(className = "selected-file-document-icon") {
-  const icon = document.createElement("span");
-  icon.className = className;
-  icon.setAttribute("aria-hidden", "true");
-  icon.textContent = "📄";
-  icon.style.cssText = "display:flex!important;align-items:center!important;justify-content:center!important;width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;flex:0 0 32px!important;font-family:Arial,sans-serif!important;font-size:27px!important;line-height:1!important;opacity:1!important;visibility:visible!important;color:#fff!important";
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  icon.setAttribute("class", className);
+  icon.setAttribute("viewBox", "0 0 32 36");
+  icon.setAttribute("width", "32");
+  icon.setAttribute("height", "36");
+  icon.setAttribute("role", "img");
+  icon.setAttribute("aria-label", "Document");
+  icon.setAttribute("focusable", "false");
+  icon.style.cssText = "display:block!important;width:32px!important;height:36px!important;min-width:32px!important;min-height:36px!important;flex:0 0 36px!important;overflow:visible!important;opacity:1!important;visibility:visible!important";
+  const page = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  page.setAttribute("d", "M6 2.5h13l7 7V33H6z");
+  page.setAttribute("fill", "#ffffff");
+  page.setAttribute("stroke", "#ffffff");
+  page.setAttribute("stroke-width", "1.5");
+  page.setAttribute("stroke-linejoin", "round");
+  const fold = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  fold.setAttribute("d", "M19 2.5v7h7");
+  fold.setAttribute("fill", "none");
+  fold.setAttribute("stroke", "#64748b");
+  fold.setAttribute("stroke-width", "1.5");
+  fold.setAttribute("stroke-linejoin", "round");
+  const lines = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  lines.setAttribute("d", "M10 16h12M10 21h12M10 26h9");
+  lines.setAttribute("fill", "none");
+  lines.setAttribute("stroke", "#334155");
+  lines.setAttribute("stroke-width", "1.8");
+  lines.setAttribute("stroke-linecap", "round");
+  icon.append(page, fold, lines);
   return icon;
 }
 function renderSelectedFileChip() {

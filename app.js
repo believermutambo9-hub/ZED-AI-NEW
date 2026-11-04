@@ -1678,6 +1678,9 @@ async function sendMessage() {
     if (currentUserMessage && data.imageAttachment) {
       currentUserMessage.imageAttachment = data.imageAttachment;
     }
+    if (currentUserMessage && data.fileAttachment) {
+      currentUserMessage.fileAttachment = data.fileAttachment;
+    }
     if (currentUserMessage && selectedImage && !data.imageAttachment) {
       currentUserMessage.imageSaveWarning = true;
     }

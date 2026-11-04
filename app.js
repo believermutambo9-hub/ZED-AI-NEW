@@ -1123,9 +1123,13 @@ function renderMessages() {
       image.alt = message.imageAttachment?.name || message.imageName || "Uploaded image";
       image.loading = "lazy";
 
-      // Keep the original local preview until the saved image is fully fetched
-      // and decoded. A failed replacement must never blank a working preview.
-      if (message.image) image.src = message.image;
+      // Prefer the authenticated, persistent image over a temporary blob URL.
+      // Local previews are used only until the saved attachment metadata arrives.
+      if (message.imageAttachment?.id) {
+        image.dataset.attachmentId = message.imageAttachment.id;
+      } else if (message.image) {
+        image.src = message.image;
+      }
       content.appendChild(image);
 
       if (message.imageAttachment?.id) {

@@ -139,6 +139,7 @@ function createDocumentIcon(className = "selected-file-document-icon") {
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("aria-hidden", "true");
   svg.setAttribute("focusable", "false");
+  svg.style.cssText = "display:block!important;width:30px!important;height:30px!important;min-width:30px;min-height:30px;flex:0 0 30px;color:#e8e8e8;opacity:1;visibility:visible;overflow:visible";
   svg.innerHTML = '<path d="M6 2.75h8l4.25 4.3v14.2H6z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 2.9v4.5h4.2M9 12h6M9 15.5h6M9 19h4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';
   return svg;
 }
@@ -148,6 +149,8 @@ function renderSelectedFileChip() {
   selectedFileChip.hidden = !state.selectedFile;
   if (!state.selectedFile) return;
 
+  // Inline layout styles make the preview independent of broad composer/button rules.
+  selectedFileChip.style.cssText = "position:relative!important;display:inline-flex;flex:0 0 52px;align-self:center;align-items:center;justify-content:center;flex-direction:column;gap:2px;box-sizing:border-box;width:52px;min-width:52px;height:52px;margin:0 2px 0 0;padding:4px;overflow:visible;border:1px solid rgba(255,255,255,.22);border-radius:9px;color:#f1f1f1;background:#303030";
   const isImage = state.selectedFile.type?.startsWith("image/");
   if (isImage) {
     if (!state.selectedFilePreviewUrl) {
@@ -157,12 +160,14 @@ function renderSelectedFileChip() {
     preview.className = "selected-file-image-preview";
     preview.src = state.selectedFilePreviewUrl;
     preview.alt = "Attached image preview";
+    preview.style.cssText = "display:block;width:100%;height:100%;min-height:0;object-fit:cover;border-radius:6px";
     selectedFileChip.appendChild(preview);
   } else {
     selectedFileChip.appendChild(createDocumentIcon());
     const label = document.createElement("span");
     label.className = "selected-file-name";
     label.textContent = "File";
+    label.style.cssText = "display:block;max-width:100%;overflow:hidden;color:#f1f1f1;font-size:9px;font-weight:600;line-height:1";
     selectedFileChip.appendChild(label);
   }
 
@@ -171,11 +176,14 @@ function renderSelectedFileChip() {
   remove.type = "button";
   remove.setAttribute("aria-label", "Remove attached file");
   remove.setAttribute("data-attachment-remove", "true");
-  const closeMark = document.createElement("span");
-  closeMark.className = "attachment-close-mark";
-  closeMark.setAttribute("aria-hidden", "true");
-  closeMark.textContent = "×";
-  remove.appendChild(closeMark);
+  remove.style.cssText = "position:absolute!important;z-index:9999!important;top:-8px!important;right:-8px!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:22px!important;min-width:22px!important;height:22px!important;min-height:22px!important;margin:0!important;padding:0!important;overflow:hidden!important;border:1px solid #777!important;border-radius:50%!important;background:#171717!important;color:#fff!important;font-size:0!important;line-height:0!important;box-shadow:0 1px 5px rgba(0,0,0,.6)!important;cursor:pointer!important";
+  // Draw the close mark as SVG so no inherited button text or pseudo-label can appear.
+  const closeIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  closeIcon.setAttribute("viewBox", "0 0 20 20");
+  closeIcon.setAttribute("aria-hidden", "true");
+  closeIcon.style.cssText = "display:block!important;width:14px!important;height:14px!important;min-width:14px;min-height:14px;pointer-events:none";
+  closeIcon.innerHTML = '<path d="M5 5l10 10M15 5L5 15" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>';
+  remove.appendChild(closeIcon);
   remove.addEventListener("click", () => {
     if (state.sending) return;
     state.selectedFile = null;

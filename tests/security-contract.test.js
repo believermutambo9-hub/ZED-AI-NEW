@@ -754,8 +754,8 @@ test("real-time voice token provisioning is authenticated, single-use, and short
   assert.match(route, /token:\s*token\.name/);
   assert.match(route, /new GoogleGenAI\(\{ apiKey: GEMINI_API_KEY \}\)/);
   assert.match(route, /genAI\.authTokens\.create\(\{/);
-  assert.match(route, /functionCallingConfig:\s*\{\s*mode:\s*"ANY"/);
-  assert.match(route, /allowedFunctionNames:\s*\["zed_chat"\]/);
+  assert.match(route, /functionDeclarations:\s*\[\{/);
+  assert.doesNotMatch(route, /toolConfig:\s*\{/);
   assert.match(route, /MUST call the zed_chat function/);
   const clientResponse = route.slice(route.indexOf("return res.json({"));
   assert.doesNotMatch(clientResponse, /GEMINI_API_KEY/);

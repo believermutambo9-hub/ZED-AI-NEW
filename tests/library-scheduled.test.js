@@ -26,10 +26,14 @@ test("Library files are scoped to the authenticated owner", () => {
   assert.match(library, /ALLOWED_TYPES/);
 });
 
-test("Library stores file bytes in private object paths and issues short-lived links", () => {
-  assert.match(library, /zed-library\/" \+ uid/);
-  assert.match(library, /expires:\s*Date\.now\(\) \+ 5 \* 60 \* 1000/);
-  assert.match(library, /ownerUid: uid/);
+test("Library stores uploads as private ImageKit files and issues expiring signed links", () => {
+  assert.match(library, /folder = "\/zed-library\/" \+ uid/);
+  assert.match(library, /isPrivateFile", "true"/);
+  assert.match(library, /provider: "imagekit"/);
+  assert.match(library, /createHmac\("sha1", privateKey\)/);
+  assert.match(library, /expiresInSeconds = 300/);
+  assert.match(library, /providerFileId/);
+  assert.match(library, /getLegacyFirebaseBucket/);
 });
 
 test("Scheduled tasks are persistent, owner-scoped and reject past dates", () => {

@@ -186,7 +186,7 @@ function renderSelectedFileChip() {
     selectedFileChip.appendChild(createDocumentIcon());
     const label = document.createElement("span");
     label.className = "selected-file-name";
-    label.textContent = "File";
+    label.textContent = state.selectedFile.name || "File";
     selectedFileChip.appendChild(label);
   }
 

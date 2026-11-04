@@ -2776,22 +2776,25 @@ body { background: var(--zed-surface); }
   outline-offset: 2px;
 }
 .selected-file-chip {
+  position: relative;
   display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 5px;
-  flex: 0 0 auto;
+  flex: 0 0 52px;
   align-self: center;
-  width: fit-content;
-  max-width: 96px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+  width: 52px;
+  height: 52px;
   margin: 0;
-  white-space: nowrap;
-  padding: 5px 8px;
+  padding: 4px;
   border: 1px solid var(--glass-border);
   border-radius: 9px;
   color: var(--text);
   background: var(--glass-2);
-  font-size: 12px;
+  font-size: 10px;
+  white-space: nowrap;
 }
 .selected-file-chip[hidden] {
   display: none !important;
@@ -2803,11 +2806,11 @@ body { background: var(--zed-surface); }
 }
 .selected-file-image-preview {
   display: block;
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   object-fit: cover;
-  border-radius: 7px;
+  border-radius: 6px;
   background: var(--glass-2);
 }
 .selected-file-document-icon {
@@ -2817,7 +2820,11 @@ body { background: var(--zed-surface); }
   width: 22px;
   height: 22px;
   flex: 0 0 22px;
-  font-size: 15px;
+  font-size: 17px;
+}
+.selected-file-chip .selected-file-name {
+  font-size: 10px;
+  line-height: 1;
 }
 .message-file-chip {
   display: inline-flex;
@@ -2837,13 +2844,24 @@ body { background: var(--zed-surface); }
 .message-file-icon {
   font-size: 13px;
 }
-.remove-file-button {
-  flex: 0 0 auto;
-  border: 0;
-  border-radius: 8px;
-  padding: 6px 9px;
-  color: var(--text-secondary);
-  background: transparent;
+.selected-file-chip .remove-file-button {
+  position: absolute;
+  z-index: 2;
+  top: -7px;
+  right: -7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  color: var(--text);
+  background: var(--background, #252525);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+  font-size: 15px;
+  line-height: 1;
   cursor: pointer;
 }
 .remove-file-button:hover,

@@ -2,271 +2,128 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#212121">
+  <meta name="description" content="Zed — your intelligent AI assistant.">
   <title>Zed</title>
-
-  <meta
-    name="description"
-    content="Zed — your intelligent AI assistant."
-  >
-
-  <!-- Prevent theme flashing while the page loads -->
   <script>
     (function () {
       try {
         const savedTheme = localStorage.getItem("zed-theme");
-        if (savedTheme === "light" || savedTheme === "dark") {
-          document.documentElement.dataset.theme = savedTheme;
-        } else {
-          document.documentElement.dataset.theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-        }
+        document.documentElement.dataset.theme = savedTheme === "light" || savedTheme === "dark"
+          ? savedTheme
+          : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
       } catch {
-        document.documentElement.dataset.theme = "light";
+        document.documentElement.dataset.theme = "dark";
       }
     })();
   </script>
-
   <link rel="icon" type="image/svg+xml" href="super-brain.svg?v=2">
   <link rel="stylesheet" href="styles.css?v=20261104-attachment-preview-stable">
   <link rel="stylesheet" href="voice-mode.css?v=20261103-shared-chat">
   <link rel="stylesheet" href="premium-chat-voice.css?v=20261104-premium-interface-2">
+  <link rel="stylesheet" href="zed-refined.css?v=1">
 </head>
-
 <body>
-
-  <div class="app" id="app">
-
-    <!-- Navigation drawer: opens over the home screen on mobile. -->
-    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
-      <div class="sidebar-brand-row">
-        <div class="sidebar-brand">Zed</div>
-        <button class="sidebar-search-toggle" id="sidebarSearchToggle" type="button" aria-label="Search conversations">⌕</button>
+  <div class="app zed-refined-app" id="app">
+    <aside class="sidebar zed-sidebar" id="sidebar" aria-label="Main navigation">
+      <div class="sidebar-brand-row zed-brand-row">
+        <a class="zed-wordmark" href="#" aria-label="Zed home">
+          <span class="zed-mark" aria-hidden="true">Z</span>
+          <span class="zed-wordmark-copy"><strong>Zed</strong><small>AI ASSISTANT</small></span>
+        </a>
+        <button class="sidebar-search-toggle" id="sidebarSearchToggle" type="button" aria-label="Search conversations" title="Search conversations">⌕</button>
       </div>
+
+      <button class="new-chat-btn zed-new-chat-nav" id="newChatBtn" type="button">
+        <span class="new-chat-icon" aria-hidden="true">＋</span>
+        <span>New chat</span>
+        <kbd>⌘ K</kbd>
+      </button>
+
       <div class="sidebar-search-wrap" id="sidebarSearchWrap">
         <input id="chatSearchInput" type="search" placeholder="Search conversations" aria-label="Search conversations">
       </div>
-      <div class="sidebar-group-label">WORKSPACE</div>
+
+      <div class="sidebar-group-label">YOUR WORKSPACE</div>
       <nav class="primary-nav" aria-label="Zed tools">
-        <button class="nav-item" type="button" data-zed-view="images"><span class="nav-icon">▧</span><span class="nav-copy"><strong>Create images</strong><small>Generate visuals and stickers</small></span></button>
-        <button class="nav-item" type="button" data-zed-view="library"><span class="nav-icon">▤</span><span class="nav-copy"><strong>My library</strong><small>Saved files and creations</small></span></button>
-        <button class="nav-item" type="button" data-zed-view="projects"><span class="nav-icon">▱</span><span class="nav-copy"><strong>Projects</strong><small>Organise your work</small></span></button>
-        <button class="nav-item" type="button" data-zed-view="scheduled"><span class="nav-icon">◷</span><span class="nav-copy"><strong>Scheduled tasks</strong><small>Reminders and planned work</small></span></button>
-        <button class="nav-item" type="button" data-zed-view="explore"><span class="nav-icon">✣</span><span class="nav-copy"><strong>Explore tools</strong><small>Discover what Zed can do</small></span></button>
+        <button class="nav-item" type="button" data-zed-view="images"><span class="nav-icon" aria-hidden="true">▧</span><span class="nav-copy"><strong>Create images</strong><small>Images and visual ideas</small></span></button>
+        <button class="nav-item" type="button" data-zed-view="library"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-copy"><strong>Library</strong><small>Your files and creations</small></span></button>
+        <button class="nav-item" type="button" data-zed-view="projects"><span class="nav-icon" aria-hidden="true">▱</span><span class="nav-copy"><strong>Projects</strong><small>Keep work organised</small></span></button>
+        <button class="nav-item" type="button" data-zed-view="scheduled"><span class="nav-icon" aria-hidden="true">◷</span><span class="nav-copy"><strong>Scheduled tasks</strong><small>Reminders and routines</small></span></button>
+        <button class="nav-item" type="button" data-zed-view="explore"><span class="nav-icon" aria-hidden="true">✣</span><span class="nav-copy"><strong>Explore</strong><small>Discover Zed tools</small></span></button>
       </nav>
+
       <div class="sidebar-divider"></div>
       <section class="sidebar-projects" aria-label="Your projects">
-        <div class="sidebar-section-heading">
-          <span>Projects</span>
-          <button id="addProjectBtn" type="button" aria-label="Create project">＋</button>
-        </div>
-        <div id="projectList" class="project-list"><div class="sidebar-empty">Loading projects…</div></div>
+        <div class="sidebar-section-heading"><span>Projects</span><button id="addProjectBtn" type="button" aria-label="Create project">＋</button></div>
+        <div id="projectList" class="project-list"><div class="sidebar-empty">Your projects will appear here</div></div>
       </section>
-      <section class="recent-section">
-        <div class="sidebar-section-heading"><span>RECENT CHATS</span></div>
+
+      <section class="recent-section" aria-label="Recent conversations">
+        <div class="sidebar-section-heading"><span>Recent</span><span class="recent-indicator" aria-hidden="true"></span></div>
         <div class="recent-chats" id="recentChats"></div>
-        <button class="see-all-chats" id="seeAllChatsBtn" type="button">See all</button>
+        <button class="see-all-chats" id="seeAllChatsBtn" type="button">See all conversations <span aria-hidden="true">→</span></button>
       </section>
+
       <div class="sidebar-bottom">
-        <button class="sidebar-item zed-new-chat-nav" id="newChatBtn" type="button"><span class="sidebar-item-icon">＋</span><span>New chat</span></button>
-        <button class="sidebar-item" id="settingsBtn" type="button"><span class="sidebar-item-icon">⚙</span><span>Settings</span></button>
-        <button class="sidebar-item" id="accountBtn" type="button"><span class="sidebar-item-icon">●</span><span>Account</span></button>
+        <button class="sidebar-item" id="settingsBtn" type="button"><span class="sidebar-item-icon" aria-hidden="true">⚙</span><span>Settings</span></button>
+        <button class="sidebar-item" id="accountBtn" type="button"><span class="sidebar-item-icon" aria-hidden="true">◉</span><span>Account</span></button>
+        <div class="zed-sidebar-footer"><span class="zed-footer-avatar">Z</span><span><strong>Zed</strong><small>Your personal assistant</small></span><span class="zed-footer-status" title="Service status"></span></div>
       </div>
     </aside>
-    <!-- =========================
-         MAIN CONTENT
-    ========================== -->
-    <main class="main">
 
-      <!-- =========================
-           TOP BAR
-      ========================== -->
-      <header class="topbar">
-
-        <div class="topbar-left">
-
-          <button
-            class="menu-btn"
-            id="menuBtn"
-            type="button"
-            aria-label="Open menu"
-            aria-expanded="false"
-            aria-controls="sidebar"
-          >
-            ☰
-          </button>
-
-          <button class="upgrade-btn" id="upgradeBtn" type="button">✦ Upgrade</button>
-          <div class="brand">
-
-            <img class="brand-logo" src="super-brain.svg?v=2" alt="" width="32" height="32" style="width:32px;height:32px;object-fit:cover;border-radius:50%;flex-shrink:0;">
-
-            <div class="brand-name">Zed</div>
-
-            <div class="brand-status">
-
-              <span class="status-dot"></span>
-
-              <span>Online</span>
-
-            </div>
-
-          </div>
-
+    <main class="main zed-main">
+      <header class="topbar zed-topbar">
+        <div class="topbar-left zed-topbar-left">
+          <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar">☰</button>
+          <div class="zed-page-context"><span class="zed-context-label">WORKSPACE</span><span class="zed-context-title">New conversation</span></div>
         </div>
-
-        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch theme" title="Switch theme"><span aria-hidden="true" id="themeToggleIcon">☼</span></button>
-
-        <button
-          class="profile-btn"
-          id="profileBtn"
-          type="button"
-          aria-label="Account"
-        >
-          ●
-        </button>
-
+        <div class="zed-topbar-actions">
+          <button class="upgrade-btn" id="upgradeBtn" type="button"><span aria-hidden="true">✦</span> Upgrade</button>
+          <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch theme" title="Switch theme"><span aria-hidden="true" id="themeToggleIcon">☼</span></button>
+          <button class="profile-btn" id="profileBtn" type="button" aria-label="Account">●</button>
+        </div>
       </header>
 
-      <!-- =========================
-           CHAT AREA
-      ========================== -->
-      <section class="chat-area">
-
-        <!-- Welcome -->
-        <div
-          class="welcome"
-          id="welcome"
-        >
-
-          <div class="welcome-logo" aria-label="Zed Super Brain logo" role="img"></div>
-          <div class="welcome-actions" aria-label="Quick actions">
-            <button type="button" data-zed-action="image"><span>▧</span> Create an image or sticker</button>
-            <button type="button" data-zed-prompt="Help me write or edit the following: "><span>✎</span> Write or edit</button>
-            <button type="button" data-zed-prompt="Search the web for: "><span>◎</span> Search the web</button>
+      <section class="chat-area zed-chat-area">
+        <div class="welcome zed-welcome" id="welcome">
+          <div class="zed-welcome-mark" aria-hidden="true"><img src="super-brain.svg?v=2" alt=""></div>
+          <div class="zed-welcome-eyebrow"><span class="zed-eyebrow-line"></span> YOUR AI WORKSPACE</div>
+          <h1>What can I help you <span>with today?</span></h1>
+          <p>Ask a question, explore an idea, get something done. Start wherever you are.</p>
+          <div class="welcome-actions zed-prompt-grid" aria-label="Quick actions">
+            <button type="button" data-zed-prompt="Help me understand this topic step by step: "><span class="zed-prompt-icon zed-prompt-learn" aria-hidden="true">✳</span><span class="zed-prompt-copy"><strong>Learn something</strong><small>Understand a topic or solve a problem</small></span><span class="zed-prompt-arrow" aria-hidden="true">↗</span></button>
+            <button type="button" data-zed-prompt="Help me write or improve this: "><span class="zed-prompt-icon zed-prompt-write" aria-hidden="true">✎</span><span class="zed-prompt-copy"><strong>Write anything</strong><small>Draft, rewrite or polish your words</small></span><span class="zed-prompt-arrow" aria-hidden="true">↗</span></button>
+            <button type="button" data-zed-prompt="Search the web for the latest information about: "><span class="zed-prompt-icon zed-prompt-search" aria-hidden="true">⌕</span><span class="zed-prompt-copy"><strong>Find information</strong><small>Search and make sense of information</small></span><span class="zed-prompt-arrow" aria-hidden="true">↗</span></button>
+            <button type="button" data-zed-action="image"><span class="zed-prompt-icon zed-prompt-create" aria-hidden="true">▧</span><span class="zed-prompt-copy"><strong>Create an image</strong><small>Turn an idea into a visual</small></span><span class="zed-prompt-arrow" aria-hidden="true">↗</span></button>
           </div>
-
-          <h1>
-            How can I help you?
-          </h1>
-
-          <p>
-            Ask anything. Study, write, search,
-            analyze files, explore football, or work
-            on your ideas.
-          </p>
-
+          <div class="zed-welcome-note"><span class="zed-welcome-note-dot"></span> READY WHEN YOU ARE</div>
         </div>
-
-        <!-- Conversation messages -->
-        <div
-          class="messages"
-          id="messages"
-        >
-          <!-- Messages inserted by app.js -->
-        </div>
-
+        <div class="messages zed-messages" id="messages"><!-- Messages inserted by app.js --></div>
       </section>
 
-      <!-- =========================
-           MESSAGE COMPOSER
-      ========================== -->
-      <footer class="composer-container">
+      <footer class="composer-container zed-composer-container">
         <div id="selectedFileChip" class="selected-file-chip" hidden></div>
-        <div class="composer">
-
-
-          <!-- Attachment -->
-          <button
-            class="composer-btn attach-button"
-            id="attachBtn"
-            type="button"
-            aria-label="Add attachment"
-          >
-            ＋
-          </button>
-
-          <!-- File input -->
-          <input
-            type="file"
-            id="fileInput"
-            hidden
-            accept=".pdf,.txt,.csv,.tsv,.md,.json,.xml,.html,.htm,.js,.mjs,.ts,.tsx,.jsx,.css,.scss,.log,.rtf,.yaml,.yml,.toml,.ini,.conf,.config,.env,.py,.java,.c,.h,.cpp,.hpp,.cs,.go,.rs,.php,.rb,.sh,.bash,.sql,.ipynb,.vue,.svelte,.gradle,.properties,.makefile,.dockerfile,.docx,.xls,.xlsx,.pptx,.odt,.odp,.epub,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.m4a,.aac,.ogg,.flac,.mp4,.m4v,.mov,.webm,.avi,.3gp"
-          >
-
-          <!-- Message -->
-          <textarea
-            id="messageInput"
-            rows="1"
-            placeholder="Message..."
-            autocomplete="off"
-            aria-label="Message"
-          ></textarea>
-
-          <button class="composer-btn voice-input-btn" id="voiceInputBtn" type="button" aria-label="Dictate a message" title="Dictate a message">🎙</button>
-          <button class="composer-btn voice-mode-btn" id="voiceModeBtn" type="button" aria-label="Toggle spoken responses" title="Toggle spoken responses">▮))</button>
-
-          <!-- Send -->
-          <button
-            class="composer-btn send-btn"
-            id="sendBtn"
-            type="button"
-            aria-label="Send message"
-          >
-            ↑
-          </button>
-
+        <div class="composer zed-composer">
+          <button class="composer-btn attach-button" id="attachBtn" type="button" aria-label="Add attachment" title="Add attachment">＋</button>
+          <input type="file" id="fileInput" hidden accept=".pdf,.txt,.csv,.tsv,.md,.json,.xml,.html,.htm,.js,.mjs,.ts,.tsx,.jsx,.css,.scss,.log,.rtf,.yaml,.yml,.toml,.ini,.conf,.config,.env,.py,.java,.c,.h,.cpp,.hpp,.cs,.go,.rs,.php,.rb,.sh,.bash,.sql,.ipynb,.vue,.svelte,.gradle,.properties,.makefile,.dockerfile,.docx,.xls,.xlsx,.pptx,.odt,.odp,.epub,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.m4a,.aac,.ogg,.flac,.mp4,.m4v,.mov,.webm,.avi,.3gp">
+          <textarea id="messageInput" rows="1" placeholder="Message Zed..." autocomplete="off" aria-label="Message"></textarea>
+          <button class="composer-btn voice-input-btn" id="voiceInputBtn" type="button" aria-label="Start voice chat" title="Start voice chat">🎙</button>
+          <button class="composer-btn voice-mode-btn" id="voiceModeBtn" type="button" aria-label="Toggle spoken responses" title="Toggle spoken responses">◖))</button>
+          <button class="composer-btn send-btn" id="sendBtn" type="button" aria-label="Send message" title="Send message">↑</button>
         </div>
-
-        <!-- =========================
-             ATTACHMENT MENU
-        ========================== -->
-        <div
-          class="attach-menu"
-          id="attachMenu"
-        >
-
-          <button
-            id="uploadPhotoBtn"
-            type="button"
-          >
-            <span>🖼️</span>
-            <span>Upload photo</span>
-          </button>
-
-          <button
-            id="uploadFileBtn"
-            type="button"
-          >
-            <span>📎</span>
-            <span>Upload file</span>
-          </button>
-
-          <button
-            id="createImageBtn"
-            type="button"
-          >
-            <span>🎨</span>
-            <span>Create image</span>
-          </button>
-
+        <div class="attach-menu" id="attachMenu">
+          <button id="uploadPhotoBtn" type="button"><span>▧</span><span>Upload photo</span></button>
+          <button id="uploadFileBtn" type="button"><span>⌑</span><span>Upload file</span></button>
+          <button id="createImageBtn" type="button"><span>✳</span><span>Create image</span></button>
         </div>
-
-        <!-- Disclaimer -->
-        <div class="composer-note">
-          Zed can make mistakes. Check important information.
-        </div>
-
+        <div class="composer-note zed-composer-note">Zed can make mistakes. Check important information.</div>
       </footer>
-
     </main>
-
   </div>
-
-  <!-- Main application JavaScript -->
   <script src="app.js?v=20261104-attachment-preview-stable"></script>
   <script src="ui-enhancements.js?v=20261104-premium-interface-3"></script>
   <script src="voice-mode.js?v=20261104-premium-interface-3"></script>
-
 </body>
 </html>

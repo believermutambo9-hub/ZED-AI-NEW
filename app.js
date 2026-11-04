@@ -1909,6 +1909,11 @@ fileInput?.addEventListener(
 
     if (file.size > maxUploadBytes) {
       state.selectedFile = null;
+      if (state.selectedFilePreviewUrl) {
+        URL.revokeObjectURL(state.selectedFilePreviewUrl);
+        state.selectedFilePreviewUrl = null;
+      }
+      renderSelectedFileChip();
       fileInput.value = "";
       alert(
         "This file is too large. Please choose a file smaller than 18 MB."

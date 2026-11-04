@@ -278,7 +278,11 @@ function getUserConversationId(
     return supplied;
   }
 
-  return `user-${userId}`;
+  // A new account must receive a fresh conversation ID. Reusing a
+  // predictable user-${userId} key can collide with legacy or stale
+  // records in the shared conversation store and reject the first message.
+  // getConversation("") creates a cryptographically random UUID.
+  return supplied || "";
 }
 
 function formatHistory(

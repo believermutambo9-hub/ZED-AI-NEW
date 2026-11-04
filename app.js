@@ -170,7 +170,7 @@ function renderSelectedFileChip() {
   selectedFileChip.hidden = !state.selectedFile;
   if (!state.selectedFile) return;
 
-  selectedFileChip.style.cssText = "position:absolute!important;z-index:50!important;top:-64px!important;right:8px!important;left:auto!important;display:flex!important;flex:0 0 56px!important;align-items:center!important;justify-content:center!important;flex-direction:column!important;gap:1px!important;box-sizing:border-box!important;width:56px!important;min-width:56px!important;height:56px!important;min-height:56px!important;margin:0!important;padding:4px!important;overflow:visible!important;border:1px solid rgba(255,255,255,.35)!important;border-radius:10px!important;color:#fff!important;background:#30343b!important;opacity:1!important;visibility:visible!important";
+  selectedFileChip.style.cssText = "position:relative!important;z-index:50!important;top:auto!important;right:auto!important;left:auto!important;display:flex!important;flex:0 0 56px!important;align-self:flex-end!important;align-items:center!important;justify-content:center!important;flex-direction:column!important;gap:1px!important;box-sizing:border-box!important;width:56px!important;min-width:56px!important;height:56px!important;min-height:56px!important;margin:0 8px 8px 0!important;padding:4px!important;overflow:visible!important;border:1px solid rgba(255,255,255,.35)!important;border-radius:10px!important;color:#fff!important;background:#30343b!important;opacity:1!important;visibility:visible!important";
   const isImage = state.selectedFile.type?.startsWith("image/");
   if (isImage) {
     if (!state.selectedFilePreviewUrl) {

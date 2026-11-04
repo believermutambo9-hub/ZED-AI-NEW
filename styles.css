@@ -3400,3 +3400,102 @@ body {
 .composer { display:flex !important; align-items:center !important; overflow:visible !important; }
 .composer > #selectedFileChip:not([hidden]) { position:relative !important; display:flex !important; flex:0 0 48px !important; width:48px !important; height:48px !important; margin:0 4px 0 0 !important; align-self:center !important; overflow:visible !important; }
 .composer > #selectedFileChip .remove-file-button { position:absolute !important; top:-7px !important; right:-7px !important; z-index:99999 !important; width:24px !important; height:24px !important; min-width:24px !important; min-height:24px !important; display:flex !important; visibility:visible !important; opacity:1 !important; }
+
+
+/* Stable attachment preview: a dedicated row above the message composer. */
+.composer-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  overflow: visible !important;
+}
+.composer-container > #selectedFileChip.selected-file-chip:not([hidden]) {
+  position: relative !important;
+  display: flex !important;
+  flex: 0 0 48px !important;
+  align-self: flex-end !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  margin: 4px 12px 0 0 !important;
+  padding: 4px !important;
+  overflow: visible !important;
+  border: 1px solid rgba(255,255,255,.35) !important;
+  border-radius: 10px !important;
+  color: #fff !important;
+  background: #30343b !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 2 !important;
+}
+.composer-container > #selectedFileChip[hidden] {
+  display: none !important;
+}
+.composer-container > .composer {
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+#selectedFileChip .selected-file-document-icon {
+  display: block !important;
+  width: 32px !important;
+  height: 36px !important;
+  min-width: 32px !important;
+  min-height: 36px !important;
+  flex: 0 0 36px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+#selectedFileChip .selected-file-image-preview {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 6px !important;
+}
+#selectedFileChip .selected-file-name {
+  display: block !important;
+  max-width: 100% !important;
+  color: #fff !important;
+  font-size: 9px !important;
+  line-height: 1 !important;
+}
+#selectedFileChip .remove-file-button {
+  position: absolute !important;
+  top: -7px !important;
+  right: -7px !important;
+  z-index: 10 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  min-width: 24px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
+  color: #fff !important;
+  background: #d93025 !important;
+  font: 700 20px/18px Arial, sans-serif !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  transform: none !important;
+}
+#selectedFileChip .remove-file-button .attachment-close-mark {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  color: #fff !important;
+  font: 700 20px/18px Arial, sans-serif !important;
+  text-align: center !important;
+  pointer-events: none !important;
+}

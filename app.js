@@ -97,6 +97,7 @@ async function apiFetch(url, options = {}) {
 // ============================================================
 const app =
   document.getElementById("app");
+menuBackdrop = document.getElementById("zedMobileScrim");
 const sidebar =
   document.getElementById("sidebar");
 const newChatBtn =
@@ -717,13 +718,13 @@ function syncSidebarAccessibility() {
 function openSidebar() {
   if (!sidebar) return;
   sidebar.classList.add("open");
-  if (menuBackdrop && window.innerWidth <= 700) menuBackdrop.style.display = "block";
+  if (menuBackdrop && window.innerWidth <= 700) menuBackdrop.classList.add("is-visible");
   syncSidebarAccessibility();
 }
 function closeSidebar() {
   if (!sidebar) return;
   sidebar.classList.remove("open");
-  if (menuBackdrop) menuBackdrop.style.display = "none";
+  if (menuBackdrop) menuBackdrop.classList.remove("is-visible");
   syncSidebarAccessibility();
 }
 function toggleSidebar() {
@@ -731,6 +732,7 @@ function toggleSidebar() {
   if (sidebar.classList.contains("open")) closeSidebar();
   else openSidebar();
 }
+menuBackdrop?.addEventListener("click", closeSidebar);
 menuBtn?.addEventListener(
   "click",
   event => {

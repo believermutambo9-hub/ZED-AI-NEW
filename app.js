@@ -204,15 +204,18 @@ function renderSelectedFileChip() {
   remove.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    state.selectedFile = null;
-    if (state.selectedFilePreviewUrl) {
-      URL.revokeObjectURL(state.selectedFilePreviewUrl);
-      state.selectedFilePreviewUrl = null;
-    }
-    if (fileInput) fileInput.value = "";
-    renderSelectedFileChip();
+    clearSelectedFile();
   });
   selectedFileChip.appendChild(remove);
+}
+function clearSelectedFile() {
+  state.selectedFile = null;
+  if (state.selectedFilePreviewUrl) {
+    URL.revokeObjectURL(state.selectedFilePreviewUrl);
+    state.selectedFilePreviewUrl = null;
+  }
+  if (fileInput) fileInput.value = "";
+  renderSelectedFileChip();
 }
 // ============================================================
 // AUTH UI
@@ -1507,8 +1510,7 @@ async function createNewChat() {
     if (!response.ok || !data.ok) throw new Error(data.error || "Unable to create a new chat.");
     state.conversationId = data.conversationId || data.conversation?.id || null;
     state.messages = [];
-    state.selectedFile = null;
-    renderSelectedFileChip();
+    clearSelectedFile();
     renderMessages();
     await loadChats();
     if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
@@ -1787,13 +1789,7 @@ async function sendMessage() {
     return null;
   } finally {
     if (state.authGeneration === requestGeneration && state.userId === requestUid) {
-      state.selectedFile = null;
-      if (state.selectedFilePreviewUrl) {
-        URL.revokeObjectURL(state.selectedFilePreviewUrl);
-        state.selectedFilePreviewUrl = null;
-      }
-      if (fileInput) fileInput.value = "";
-      renderSelectedFileChip();
+      clearSelectedFile();
       setSending(false);
       messageInput?.focus();
     }
@@ -1908,13 +1904,7 @@ fileInput?.addEventListener(
       18 * 1024 * 1024;
 
     if (file.size > maxUploadBytes) {
-      state.selectedFile = null;
-      if (state.selectedFilePreviewUrl) {
-        URL.revokeObjectURL(state.selectedFilePreviewUrl);
-        state.selectedFilePreviewUrl = null;
-      }
-      renderSelectedFileChip();
-      fileInput.value = "";
+      clearSelectedFile();
       alert(
         "This file is too large. Please choose a file smaller than 18 MB."
       );
@@ -2164,7 +2154,7 @@ function setupAuthListener() {
         state.authGeneration += 1;
         state.sending = false;
         setSending(false);
-        state.selectedFile = null;
+        clearSelectedFile();
         state.chats = [];
         state.chatHistoryUnavailable = false;
         if (fileInput) fileInput.value = "";

@@ -140,3 +140,6 @@ html[data-theme=light] .zed-sidebar .sidebar-search-wrap input{background:#fff;b
 .zed-sidebar .zed-tools-section .primary-nav{display:flex!important;flex-direction:column!important}
 .zed-sidebar .zed-projects .project-list{display:block!important}
 .zed-sidebar .zed-sidebar-bottom{margin-top:auto!important}
+
+/* Match the supplied sidebar: keep only its named navigation groups in the visible menu. */
+.zed-sidebar .zed-tools-section,.zed-sidebar .zed-projects{display:none!important}

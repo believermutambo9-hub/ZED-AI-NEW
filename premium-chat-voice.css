@@ -1,0 +1,95 @@
+/* Zed — premium product interface refresh */
+:root{--zed-ink:#171923;--zed-muted:#7b8190;--zed-line:rgba(30,38,54,.10);--zed-panel:rgba(255,255,255,.84);--zed-shadow:0 20px 60px rgba(20,29,48,.10)}
+html[data-theme=dark]{--zed-ink:#f4f6fb;--zed-muted:#9ca4b4;--zed-line:rgba(255,255,255,.09);--zed-panel:rgba(26,30,39,.9);--zed-shadow:0 24px 70px rgba(0,0,0,.34)}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:-.012em}
+button{touch-action:manipulation}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #4fd69a;outline-offset:3px}
+.app{background:transparent}
+.sidebar{width:278px;min-width:278px;padding:18px 14px;background:var(--zed-panel);border-right:1px solid var(--zed-line);box-shadow:8px 0 36px rgba(20,29,48,.035);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+.sidebar-brand-row{padding:7px 10px 20px}.sidebar-brand{font-size:21px;font-weight:800;letter-spacing:-.06em}
+.sidebar-search-wrap input{width:100%;height:42px;border:1px solid var(--zed-line);border-radius:13px;padding:0 13px;background:transparent;color:var(--zed-ink)}
+.sidebar-group-label,.sidebar-section-heading,.section-title{font-size:10px;font-weight:750;letter-spacing:.13em;color:var(--zed-muted)}
+.primary-nav{display:grid;gap:5px}.nav-item{min-height:54px;padding:8px 11px;display:flex;align-items:center;gap:12px;text-align:left;border-radius:14px;background:transparent;color:var(--zed-ink);transition:background .18s,transform .18s}
+.nav-item:hover,.sidebar-item:hover,.recent-chat:hover{background:rgba(92,115,151,.09);transform:translateX(2px)}
+.nav-icon{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--zed-line);border-radius:11px;background:rgba(120,140,170,.07);font-size:17px}
+.nav-copy{display:grid;gap:2px}.nav-copy strong{font-size:13px;font-weight:650}.nav-copy small{font-size:10px;color:var(--zed-muted)}
+.sidebar-divider{height:1px;background:var(--zed-line);margin:16px 4px}
+.sidebar-section-heading{display:flex;align-items:center;justify-content:space-between;padding:10px 8px}
+.sidebar-bottom{border-top:1px solid var(--zed-line);padding-top:12px}.sidebar-item{width:100%;min-height:43px;display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:12px;background:transparent;color:var(--zed-ink);text-align:left;font-size:13px}
+.main{min-width:0;background:transparent}
+.topbar{height:66px;min-height:66px;padding:0 clamp(14px,2.7vw,34px);border-bottom:1px solid var(--zed-line);background:var(--zed-panel);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+.brand{gap:9px}.brand-name{font-size:17px;font-weight:800;letter-spacing:-.05em}.brand-status{font-size:10px;letter-spacing:.03em}
+.upgrade-btn{border:1px solid var(--zed-line);border-radius:12px;padding:9px 13px;background:transparent;font-size:12px;font-weight:650}
+.theme-toggle,.profile-btn,.menu-btn{width:38px;height:38px;border:1px solid var(--zed-line);border-radius:12px;background:transparent;display:grid;place-items:center}
+.chat-area{background:transparent;scroll-behavior:smooth}
+.welcome{max-width:820px;padding:clamp(30px,7vh,78px) 22px 28px}
+.welcome h1{font-size:clamp(30px,4.2vw,44px);font-weight:750;letter-spacing:-.065em;line-height:1.12;color:var(--zed-ink)}
+.welcome p{max-width:530px;margin:14px auto 0;color:var(--zed-muted);font-size:14px;line-height:1.7}
+.welcome-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:9px;margin:24px 0 26px}
+.welcome-actions button{min-height:42px;padding:9px 14px;border:1px solid var(--zed-line);border-radius:13px;background:var(--zed-panel);color:var(--zed-ink);font-size:12px;font-weight:600;box-shadow:0 5px 18px rgba(20,29,48,.035);transition:transform .18s,border-color .18s}
+.welcome-actions button:hover{transform:translateY(-2px);border-color:rgba(45,190,126,.45)}
+.messages{width:min(900px,100%);padding:28px clamp(14px,3vw,30px) 160px}
+.message{gap:13px;margin-bottom:25px;align-items:flex-start}
+.message-content{max-width:min(86%,780px);font-size:15px;line-height:1.78;letter-spacing:0}
+.message-user .message-content{padding:13px 17px;border:1px solid var(--zed-line);border-radius:19px 19px 6px 19px;background:var(--zed-panel);box-shadow:0 5px 20px rgba(20,29,48,.045)}
+.message-assistant .message-content{max-width:min(91%,800px)}
+.composer-container{width:min(940px,100%);margin:0 auto;padding:12px clamp(12px,3vw,28px) max(14px,env(safe-area-inset-bottom));background:linear-gradient(180deg,transparent,rgba(120,135,160,.045) 35%,rgba(120,135,160,.07))}
+.composer{min-height:66px;padding:9px 10px;gap:7px;border:1px solid var(--zed-line);border-radius:21px;background:var(--zed-panel);box-shadow:var(--zed-shadow);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);transition:border-color .2s,box-shadow .2s}
+.composer:focus-within{border-color:rgba(45,190,126,.5);box-shadow:var(--zed-shadow),0 0 0 4px rgba(45,190,126,.09)}
+.composer textarea,#messageInput{min-height:42px;max-height:170px;padding:11px 8px;font-size:15px;line-height:1.5}
+.composer-btn{width:42px;height:42px;min-width:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:13px;transition:transform .16s,background .16s}
+.composer-btn:active{transform:scale(.94)}
+.attach-button{background:rgba(120,135,160,.09);font-size:22px}
+.voice-input-btn,.voice-mode-btn{background:transparent;font-size:17px}
+.send-btn{border-radius:14px;background:#28c77d;color:#062b1a;font-size:22px;font-weight:800;box-shadow:0 5px 15px rgba(40,199,125,.20)}
+.send-btn:disabled{opacity:.42;box-shadow:none}
+.composer-note{padding-top:9px;color:var(--zed-muted);font-size:10px}
+.selected-file-chip{margin:0 0 9px auto;max-width:100%;border:1px solid var(--zed-line);border-radius:14px;background:var(--zed-panel);box-shadow:0 8px 24px rgba(0,0,0,.10)}
+.attach-menu{border:1px solid var(--zed-line);border-radius:16px;background:var(--zed-panel);box-shadow:var(--zed-shadow);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+/* Voice screen: coloured, animated audio waveform replaces the static orb. */
+.zed-voice-screen{box-sizing:border-box;overflow:hidden;padding:env(safe-area-inset-top) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));background:radial-gradient(ellipse at 50% 38%,rgba(97,104,255,.18),transparent 38%),radial-gradient(ellipse at 20% 70%,rgba(30,209,163,.12),transparent 34%),radial-gradient(ellipse at 85% 20%,rgba(237,103,194,.12),transparent 35%),#0b0d16;color:#f8f9ff}
+.zed-voice-header{width:min(1040px,100%);min-height:70px;border-bottom:1px solid rgba(255,255,255,.10)}
+.zed-voice-brand{font-size:16px;letter-spacing:-.03em}.zed-voice-brand-mark{width:36px;height:36px;border-radius:12px;background:linear-gradient(140deg,#55e7ac,#5d80ff 65%,#bd70e8);color:white;box-shadow:0 8px 25px rgba(94,142,255,.25)}
+.zed-voice-live-indicator{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid rgba(255,255,255,.12);border-radius:999px;color:#b9c0d4;font-size:10px;font-weight:750;letter-spacing:.12em}
+.zed-voice-live-indicator i{width:7px;height:7px;border-radius:50%;background:#54e6a5;box-shadow:0 0 12px #54e6a5}
+.zed-voice-close{width:40px;height:40px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.13);border-radius:50%;background:rgba(255,255,255,.06);font-size:24px}
+.zed-voice-stage{width:min(800px,100%);min-height:0;padding:clamp(24px,6vh,62px) 0;gap:0}
+.zed-voice-orb{width:min(76vw,590px);height:clamp(100px,23vh,190px);position:relative;display:flex;align-items:center;justify-content:center;gap:clamp(3px,.7vw,9px);border-radius:30px;background:transparent;box-shadow:none;transition:filter .3s}
+.zed-voice-orb:before,.zed-voice-orb:after{display:none}
+.zed-voice-orb span{position:relative;inset:auto!important;display:block;width:clamp(3px,.55vw,7px);height:var(--wave-h,22%);flex:0 0 auto;border-radius:99px;background:linear-gradient(180deg,#c48cff 0%,#6e8dff 42%,#43e5bb 100%);filter:drop-shadow(0 0 8px rgba(91,183,255,.38));opacity:.82;transform-origin:center;animation:zedWaveIdle 1.9s ease-in-out infinite;animation-delay:var(--wave-delay,0s)}
+.zed-voice-orb span:nth-child(3n){background:linear-gradient(180deg,#f2a1db,#9c83ff 55%,#55c9f2)}
+.zed-voice-orb span:nth-child(4n){background:linear-gradient(180deg,#76e8c1,#4e9dff)}
+.zed-voice-screen.is-speaking .zed-voice-orb span{animation-name:zedWaveSpeak;animation-duration:var(--wave-speed, .62s);opacity:1;filter:drop-shadow(0 0 13px rgba(107,160,255,.7))}
+.zed-voice-screen.is-listening .zed-voice-orb span{animation-name:zedWaveListen;animation-duration:1.25s}
+.zed-voice-screen.is-thinking .zed-voice-orb span{animation-name:zedWaveThink;animation-duration:1.6s}
+.zed-voice-heading{margin:clamp(22px,4vh,42px) 0 9px;font-size:clamp(27px,4vw,38px);font-weight:700;letter-spacing:-.055em}
+.zed-voice-status{min-height:24px;color:#b5bdd1;font-size:14px}
+.zed-voice-status[data-state=listening]{color:#72eac0}.zed-voice-status[data-state=speaking]{color:#b5a4ff}.zed-voice-status[data-state=thinking]{color:#e3c08a}.zed-voice-status[data-state=error]{color:#ff9a9a}
+.zed-voice-transcript{width:min(650px,100%);max-height:19vh;margin-top:23px;padding:15px 18px;border:1px solid rgba(255,255,255,.10);border-radius:17px;background:rgba(255,255,255,.045);color:#c5cadd;text-align:left;font-size:13px;line-height:1.7;backdrop-filter:blur(18px)}
+.zed-voice-footer{width:min(620px,100%);min-height:110px;gap:clamp(14px,4vw,30px);padding:20px 0 10px;flex-wrap:wrap}
+.zed-voice-action{width:58px;height:58px;border:1px solid rgba(255,255,255,.13);border-radius:18px;background:rgba(255,255,255,.065);box-shadow:0 8px 24px rgba(0,0,0,.16);transition:transform .18s,background .18s}
+.zed-voice-action:hover{transform:translateY(-2px);background:rgba(255,255,255,.12)}
+.zed-voice-action>span{font-size:21px}.zed-voice-action small{font-size:10px;color:#c4c9d8;white-space:nowrap}
+.zed-voice-mic{width:66px;height:66px;border:0;border-radius:21px;background:linear-gradient(145deg,#b9ffe1,#67dcb1);color:#073d2b;box-shadow:0 10px 34px rgba(66,222,171,.23)}
+.zed-voice-mic small{color:#0a5239}
+.zed-voice-end{background:rgba(236,78,100,.15);border-color:rgba(255,115,133,.27)}
+.zed-voice-mode-actions{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.zed-voice-mode-button{min-height:42px;display:inline-flex;align-items:center;gap:9px;padding:0 15px;border:1px solid rgba(255,255,255,.13);border-radius:13px;background:rgba(255,255,255,.06);color:#e7eaf5;font-size:12px;font-weight:600}
+.zed-voice-mode-button:hover{background:rgba(255,255,255,.12);border-color:rgba(132,157,255,.42)}
+.zed-voice-hint{margin:12px auto 4px;color:#858da4;text-align:center;font-size:11px}
+body.zed-voice-open{overflow:hidden}
+.voice-input-btn.voice-active,.voice-mode-btn.voice-active{background:rgba(86,117,231,.20);border-color:rgba(112,143,255,.5);color:#91aaff}
+@keyframes zedWaveIdle{0%,100%{transform:scaleY(.5);opacity:.48}50%{transform:scaleY(1);opacity:.85}}
+@keyframes zedWaveSpeak{0%,100%{transform:scaleY(.28)}50%{transform:scaleY(1.45)}}
+@keyframes zedWaveListen{0%,100%{transform:scaleY(.38)}50%{transform:scaleY(.9)}}
+@keyframes zedWaveThink{0%,100%{transform:scaleY(.35);opacity:.5}50%{transform:scaleY(.8);opacity:.9}}
+@media(max-width:640px){
+ .sidebar{width:min(300px,86vw);min-width:min(300px,86vw);padding:14px 12px}
+ .topbar{height:58px;min-height:58px;padding-inline:12px}.brand-status{display:none}
+ .messages{padding:20px 13px 135px}.message{margin-bottom:21px}.message-content{max-width:91%;font-size:14px}.message-user .message-content{max-width:88%;padding:11px 14px}
+ .welcome{padding:30px 16px}.welcome h1{font-size:32px}.welcome p{font-size:13px}
+ .welcome-actions{gap:7px}.welcome-actions button{min-height:39px;padding:8px 11px;font-size:11px}
+ .composer-container{padding:8px 10px max(10px,env(safe-area-inset-bottom))}.composer{min-height:57px;padding:6px;border-radius:19px;gap:3px}.composer-btn{width:38px;height:38px;min-width:38px;flex-basis:38px;border-radius:12px}.composer textarea,#messageInput{font-size:16px;min-height:38px;padding:8px 4px}.composer-note{font-size:9px}
+ .zed-voice-screen{padding-left:15px;padding-right:15px}.zed-voice-header{min-height:60px}.zed-voice-stage{justify-content:center;padding:18px 0 8px}.zed-voice-orb{width:92vw;height:clamp(90px,20vh,150px);gap:clamp(2px,.8vw,5px)}.zed-voice-orb span{width:clamp(2px,.65vw,5px)}.zed-voice-heading{margin:25px 0 8px;font-size:28px}.zed-voice-transcript{max-height:18vh;margin-top:17px;padding:12px 14px;font-size:12px}.zed-voice-footer{min-height:86px;padding:14px 0 8px}.zed-voice-action{width:52px;height:52px;border-radius:16px}.zed-voice-mic{width:60px;height:60px;border-radius:19px}.zed-voice-mode-button{min-height:40px;padding:0 12px;font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}

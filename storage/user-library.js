@@ -37,17 +37,37 @@ function getImageKitConfig() {
 
 function parseDataUrl(dataUrl) {
   if (typeof dataUrl !== "string") throw new Error("A file upload is required.");
-  const match = dataUrl.match(/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64,([a-z0-9+/=\r\n]+)$/i);
+
+  // Parse only the short data-URL header with a regex. Avoid a large
+  // backtracking regex over the full Base64 image payload, which can
+  // overflow the JavaScript call stack for larger images.
+  const separator = dataUrl.indexOf(",");
+  if (separator < 0) throw new Error("The uploaded file format is invalid.");
+  const header = dataUrl.slice(0, separator);
+  const match = /^data:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64$/i.exec(header);
   if (!match) throw new Error("The uploaded file format is invalid.");
+
   const contentType = match[1].toLowerCase();
   if (!ALLOWED_TYPES.has(contentType)) throw new Error("This file type is not supported in Library.");
-  const encoded = match[2].replace(/\s/g, "");
-  if (!encoded || encoded.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)) {
+
+  const encoded = dataUrl.slice(separator + 1).replace(/\s/g, "");
+  const maxEncodedLength = Math.ceil(MAX_FILE_BYTES / 3) * 4;
+  if (!encoded || encoded.length % 4 !== 0 || encoded.length > maxEncodedLength) {
+    throw new Error("Library files must be smaller than 15 MB.");
+  }
+
+  // Buffer's Base64 decoder is permissive; round-trip validation rejects
+  // malformed input without running a huge regex against the payload.
+  const buffer = Buffer.from(encoded, "base64");
+  if (!buffer.length || buffer.length > MAX_FILE_BYTES) {
+    throw new Error("Library files must be smaller than 15 MB.");
+  }
+  if (buffer.toString("base64") !== encoded) {
     throw new Error("The uploaded file data is invalid.");
   }
-  const buffer = Buffer.from(encoded, "base64");
-  if (!buffer.length || buffer.length > MAX_FILE_BYTES) throw new Error("Library files must be smaller than 15 MB.");
-  if (!hasExpectedSignature(contentType, buffer)) throw new Error("The file contents do not match the selected file type.");
+  if (!hasExpectedSignature(contentType, buffer)) {
+    throw new Error("The file contents do not match the selected file type.");
+  }
   return { contentType, buffer };
 }
 

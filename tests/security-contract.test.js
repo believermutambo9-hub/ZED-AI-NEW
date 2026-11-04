@@ -434,10 +434,13 @@ test("vision-only uploads are not sent to text-only fallback providers", () => {
 
 
 test("uploaded images render as the original image and remain linked in chat history", () => {
-  assert.match(app, /message\.image \|\| message\.imageAttachment/);
+  assert.match(app, /message\.imageAttachment\?\.id \|\| message\.image/);
   assert.match(app, /message-uploaded-image/);
   assert.match(app, /URL\.createObjectURL\(selectedImage\)/);
   assert.match(app, /\/api\/library\/.*\/preview/);
+  assert.ok(app.indexOf("if (message.imageAttachment?.id)") < app.indexOf("else if (message.image)"), "persistent image attachments must take priority over expired blob previews");
+  assert.match(app, /previewRetried/);
+  assert.match(server, /This image could not be saved to your conversation/);
   assert.match(server, /saveLibraryFile\(\{[\s\S]*?dataUrl: req\.body\.file\.data/);
   assert.match(server, /uploadedFile\?\.mimeType\?\.startsWith\("image\/"\)/);
   assert.match(server, /imageAttachment/);

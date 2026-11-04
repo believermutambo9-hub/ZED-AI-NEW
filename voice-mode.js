@@ -529,11 +529,19 @@
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       audioContext = new AudioContextClass();
       await audioContext.resume();
-      mediaStream = await navigator.mediaDevices.getUserMedia({
+      if (!active || generation !== connectGeneration) return;
+
+      // getUserMedia can resolve after the user has already closed voice mode.
+      // Do not retain a late microphone stream or let an old start affect a new session.
+      const acquiredStream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         video: false
       });
-      if (!active || generation !== connectGeneration) return;
+      if (!active || generation !== connectGeneration) {
+        for (const track of acquiredStream.getTracks()) track.stop();
+        return;
+      }
+      mediaStream = acquiredStream;
       setStatus("Connecting to Zed Live…", "connecting");
       await openLiveSession(generation);
     } catch (error) {
@@ -549,9 +557,11 @@
         }
         window.zedVoiceSetEnabled?.(false);
         updateButtons();
+        await releaseAudioResources();
       }
-      await releaseAudioResources();
     } finally {
+      // Keep a stopped session marked as connecting until its pending startup
+      // promise settles, preventing overlapping microphone/audio initializations.
       connecting = false;
     }
   }
@@ -584,7 +594,8 @@
 
   async function stop() {
     active = false;
-    connecting = false;
+    // Do not clear "connecting" here: start() may still be awaiting permission.
+    // Its finally block clears it after the pending startup has settled.
     setupReady = false;
     connectGeneration++;
     if (socket) {

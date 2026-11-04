@@ -853,3 +853,10 @@ test("failed chat requests preserve attachments and restore the user's unsent pr
   assert.match(app, /if \(text && messageInput && !messageInput\.value\.trim\(\)\)\s*\{\s*messageInput\.value = text;/);
   assert.match(app, /if \(sendSucceeded\) clearSelectedFile\(\);/);
 });
+
+
+test("legacy chat migration queries only the authenticated user's records", () => {
+  assert.match(history, /where\("userId", "==", safeUserId\)/);
+  assert.match(history, /where\("metadata\.userId", "==", safeUserId\)/);
+  assert.doesNotMatch(history, /db\.collection\(LEGACY_COLLECTION\)\.get\(\)/);
+});

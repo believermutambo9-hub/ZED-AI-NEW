@@ -1127,6 +1127,10 @@ function renderMessages() {
       // Local previews are used only until the saved attachment metadata arrives.
       if (message.imageAttachment?.id) {
         image.dataset.attachmentId = message.imageAttachment.id;
+        // Keep the current local/persistent preview visible while the
+        // authenticated attachment is refreshed in the background.
+        const fallbackPreview = message._previewObjectUrl || message.image;
+        if (fallbackPreview) image.src = fallbackPreview;
       } else if (message.image) {
         image.src = message.image;
       }
@@ -1187,7 +1191,7 @@ function renderMessages() {
 
         loadPersistentPreview().catch(error => {
           console.warn("Uploaded image could not be restored:", error.message);
-          if (image.isConnected && !message.image) {
+          if (image.isConnected && !image.getAttribute("src")) {
             image.alt = "Saved image preview is temporarily unavailable.";
           }
         });

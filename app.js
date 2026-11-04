@@ -196,12 +196,16 @@ function renderSelectedFileChip() {
   remove.type = "button";
   remove.setAttribute("aria-label", "Remove attached file");
   remove.setAttribute("data-attachment-remove", "true");
-  remove.textContent = "×";
-  remove.style.cssText = "position:absolute!important;z-index:99999!important;top:2px!important;right:2px!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:24px!important;min-width:24px!important;height:24px!important;min-height:24px!important;margin:0!important;padding:0 0 2px!important;overflow:visible!important;border:2px solid #fff!important;border-radius:50%!important;background:#d93025!important;color:#fff!important;font-family:Arial,sans-serif!important;font-size:21px!important;font-weight:700!important;line-height:20px!important;text-align:center!important;text-indent:0!important;letter-spacing:0!important;text-transform:none!important;box-shadow:0 2px 6px rgba(0,0,0,.7)!important;opacity:1!important;visibility:visible!important;cursor:pointer!important";
+  const closeMark = document.createElement("span");
+  closeMark.className = "attachment-close-mark";
+  closeMark.setAttribute("aria-hidden", "true");
+  closeMark.textContent = "×";
+  remove.appendChild(closeMark);
+  remove.style.cssText = "position:absolute!important;z-index:99999!important;top:2px!important;right:2px!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:24px!important;min-width:24px!important;height:24px!important;min-height:24px!important;margin:0!important;padding:0!important;overflow:visible!important;border:2px solid #fff!important;border-radius:50%!important;background:#d93025!important;color:#fff!important;font-family:Arial,sans-serif!important;font-size:0!important;font-weight:700!important;line-height:1!important;text-align:center!important;box-shadow:0 2px 6px rgba(0,0,0,.7)!important;opacity:1!important;visibility:visible!important;cursor:pointer!important;pointer-events:auto!important;touch-action:manipulation!important";
+  remove.addEventListener("pointerdown", event => event.stopPropagation());
   remove.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    if (state.sending) return;
     state.selectedFile = null;
     if (state.selectedFilePreviewUrl) {
       URL.revokeObjectURL(state.selectedFilePreviewUrl);
@@ -209,7 +213,6 @@ function renderSelectedFileChip() {
     }
     if (fileInput) fileInput.value = "";
     renderSelectedFileChip();
-    messageInput?.focus();
   });
   selectedFileChip.appendChild(remove);
 }

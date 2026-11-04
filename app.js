@@ -133,6 +133,15 @@ const selectedFileChip =
   document.getElementById("selectedFileChip");
 const sendBtn =
   document.getElementById("sendBtn");
+function createDocumentIcon(className = "selected-file-document-icon") {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", className);
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.innerHTML = '<path d="M6 2.75h8l4.25 4.3v14.2H6z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 2.9v4.5h4.2M9 12h6M9 15.5h6M9 19h4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';
+  return svg;
+}
 function renderSelectedFileChip() {
   if (!selectedFileChip) return;
   selectedFileChip.replaceChildren();
@@ -150,22 +159,23 @@ function renderSelectedFileChip() {
     preview.alt = "Attached image preview";
     selectedFileChip.appendChild(preview);
   } else {
-    const icon = document.createElement("span");
-    icon.className = "selected-file-document-icon";
-    icon.textContent = "📄";
-    icon.setAttribute("aria-hidden", "true");
+    selectedFileChip.appendChild(createDocumentIcon());
     const label = document.createElement("span");
     label.className = "selected-file-name";
     label.textContent = "File";
-    selectedFileChip.append(icon, label);
+    selectedFileChip.appendChild(label);
   }
 
   const remove = document.createElement("button");
   remove.className = "remove-file-button";
   remove.type = "button";
-  remove.textContent = "×";
   remove.setAttribute("aria-label", "Remove attached file");
-  remove.title = "Remove attachment";
+  remove.setAttribute("data-attachment-remove", "true");
+  const closeMark = document.createElement("span");
+  closeMark.className = "attachment-close-mark";
+  closeMark.setAttribute("aria-hidden", "true");
+  closeMark.textContent = "×";
+  remove.appendChild(closeMark);
   remove.addEventListener("click", () => {
     if (state.sending) return;
     state.selectedFile = null;
@@ -1225,9 +1235,7 @@ function renderMessages() {
       const fileChip = document.createElement("div");
       fileChip.className = "message-file-chip";
       fileChip.setAttribute("aria-label", "Attached file");
-      const fileIcon = document.createElement("span");
-      fileIcon.className = "message-file-icon";
-      fileIcon.textContent = "📎";
+      const fileIcon = createDocumentIcon("message-file-icon");
       const fileLabel = document.createElement("span");
       fileLabel.textContent = "File";
       fileChip.append(fileIcon, fileLabel);
@@ -1887,7 +1895,13 @@ fileInput?.addEventListener(
       URL.revokeObjectURL(state.selectedFilePreviewUrl);
       state.selectedFilePreviewUrl = null;
     }
-    state.selectedFile = file;
+    const originalName = String(file.name || "");
+    const extensionMatch = originalName.match(/(\.[a-z0-9]{1,12})$/i);
+    const safeDisplayName = "File" + (extensionMatch ? extensionMatch[1] : "");
+    state.selectedFile = new File([file], safeDisplayName, {
+      type: file.type,
+      lastModified: file.lastModified
+    });
     renderSelectedFileChip();
     // Keep the user's composer text unchanged when an attachment is selected.
     // The user decides what Zed should do with the attached file.

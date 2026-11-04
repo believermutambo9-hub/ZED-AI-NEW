@@ -561,13 +561,15 @@ test("chat route returns a safe client error when upload analysis fails", () => 
 });
 
 
-test("chat UI rejects oversized files before base64 encoding", () => {
-  assert.match(app, /requestFile && requestFile\.size > 18 \* 1024 \* 1024/);
+test("chat UI compresses large images before base64 encoding and preserves non-image limits", () => {
+  assert.match(app, /async function optimizeImageForUpload\(file\)/);
+  assert.match(app, /const MAX_OUTPUT_BYTES = 12 \* 1024 \* 1024/);
+  assert.match(app, /const maxOriginalBytes = isImageUpload \? 30 \* 1024 \* 1024 : 18 \* 1024 \* 1024/);
   assert.match(app, /This file is too large to analyse\. Please choose a file smaller than 18 MB\./);
   const sendStart = app.indexOf("async function sendMessage()");
   const sendEnd = app.indexOf("sendBtn?.addEventListener", sendStart);
   const sendHandler = app.slice(sendStart, sendEnd);
-  assert.ok(sendHandler.indexOf("requestFile && requestFile.size > 18 * 1024 * 1024") < sendHandler.indexOf("readFileAsDataURL("));
+  assert.ok(sendHandler.indexOf("optimizeImageForUpload(requestFile)") < sendHandler.indexOf("readFileAsDataURL(uploadFile)"));
 });
 
  

@@ -329,13 +329,12 @@
 
     if (serverContent.inputTranscription?.text) {
       inputText += serverContent.inputTranscription.text;
-      setTranscript("You\\n" + inputText.trim() + (outputText ? "\\n\\nZed\\n" + outputText.trim() : ""));
+      setTranscript("You\n" + inputText.trim() + (outputText ? "\n\nZed\n" + outputText.trim() : ""));
     }
 
     if (serverContent.outputTranscription?.text) {
-      setTranscript((inputText ? "You\\n" + inputText.trim() + "\\n\\n" : "") + "Zed\\n" + outputText.trim());
       outputText += serverContent.outputTranscription.text;
-      setTranscript((inputText ? "You\\n" + inputText.trim() + "\\n\\n" : "") + "Zed\\n" + outputText.trim());
+      setTranscript((inputText ? "You\n" + inputText.trim() + "\n\n" : "") + "Zed\n" + outputText.trim());
     }
 
     for (const part of serverContent.modelTurn?.parts || []) {
@@ -477,7 +476,7 @@
           finish(new Error("Voice startup was cancelled."));
           return;
         }
-          const preview = String(raw || "").replace(/[\\r\\n\\t]+/g, " ").slice(0, 180);
+          const preview = String(raw || "").replace(/[\\r\n\\t]+/g, " ").slice(0, 180);
           finish(new Error(
             "Zed could not read Gemini's voice setup frame" +
             (preview ? ": " + preview : ". The service returned a non-JSON frame.") +

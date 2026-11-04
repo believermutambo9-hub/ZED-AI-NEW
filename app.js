@@ -152,7 +152,7 @@ function renderSelectedFileChip() {
   } else {
     const icon = document.createElement("span");
     icon.className = "selected-file-document-icon";
-    icon.textContent = "📎";
+    icon.textContent = "📄";
     icon.setAttribute("aria-hidden", "true");
     const label = document.createElement("span");
     label.className = "selected-file-name";
@@ -165,6 +165,7 @@ function renderSelectedFileChip() {
   remove.type = "button";
   remove.textContent = "×";
   remove.setAttribute("aria-label", "Remove attached file");
+  remove.title = "Remove attachment";
   remove.addEventListener("click", () => {
     if (state.sending) return;
     state.selectedFile = null;

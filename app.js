@@ -142,7 +142,6 @@ function createDocumentIcon(className = "selected-file-document-icon") {
   icon.setAttribute("role", "img");
   icon.setAttribute("aria-label", "Document");
   icon.setAttribute("focusable", "false");
-  icon.style.cssText = "display:block!important;width:32px!important;height:36px!important;min-width:32px!important;min-height:36px!important;flex:0 0 36px!important;overflow:visible!important;opacity:1!important;visibility:visible!important";
   const page = document.createElementNS("http://www.w3.org/2000/svg", "path");
   page.setAttribute("d", "M6 2.5h13l7 7V33H6z");
   page.setAttribute("fill", "#ffffff");
@@ -168,9 +167,11 @@ function renderSelectedFileChip() {
   if (!selectedFileChip) return;
   selectedFileChip.replaceChildren();
   selectedFileChip.hidden = !state.selectedFile;
-  if (!state.selectedFile) return;
-
-  selectedFileChip.style.cssText = "position:relative!important;z-index:50!important;display:flex!important;flex:0 0 48px!important;align-self:center!important;align-items:center!important;justify-content:center!important;flex-direction:column!important;gap:1px!important;box-sizing:border-box!important;width:48px!important;min-width:48px!important;height:48px!important;min-height:48px!important;margin:0 4px 0 0!important;padding:3px!important;overflow:visible!important;border:1px solid rgba(255,255,255,.35)!important;border-radius:10px!important;color:#fff!important;background:#30343b!important;opacity:1!important;visibility:visible!important";
+  selectedFileChip.classList.toggle("has-file", Boolean(state.selectedFile));
+  if (!state.selectedFile) {
+    selectedFileChip.removeAttribute("style");
+    return;
+  }
   const isImage = state.selectedFile.type?.startsWith("image/");
   if (isImage) {
     if (!state.selectedFilePreviewUrl) {
@@ -180,14 +181,12 @@ function renderSelectedFileChip() {
     preview.className = "selected-file-image-preview";
     preview.src = state.selectedFilePreviewUrl;
     preview.alt = "Attached image preview";
-    preview.style.cssText = "display:block!important;width:100%!important;height:100%!important;min-height:0!important;object-fit:cover!important;border-radius:6px!important;opacity:1!important;visibility:visible!important";
     selectedFileChip.appendChild(preview);
   } else {
     selectedFileChip.appendChild(createDocumentIcon());
     const label = document.createElement("span");
     label.className = "selected-file-name";
     label.textContent = "File";
-    label.style.cssText = "display:block!important;max-width:100%!important;overflow:hidden!important;color:#fff!important;font-size:9px!important;font-weight:700!important;line-height:1!important";
     selectedFileChip.appendChild(label);
   }
 
@@ -201,7 +200,6 @@ function renderSelectedFileChip() {
   closeMark.setAttribute("aria-hidden", "true");
   closeMark.textContent = "×";
   remove.appendChild(closeMark);
-  remove.style.cssText = "position:absolute!important;z-index:99999!important;top:-7px!important;right:-7px!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:24px!important;min-width:24px!important;height:24px!important;min-height:24px!important;margin:0!important;padding:0!important;overflow:visible!important;border:2px solid #fff!important;border-radius:50%!important;background:#d93025!important;color:#fff!important;font-family:Arial,sans-serif!important;font-size:0!important;font-weight:700!important;line-height:1!important;text-align:center!important;box-shadow:0 2px 6px rgba(0,0,0,.7)!important;opacity:1!important;visibility:visible!important;cursor:pointer!important;pointer-events:auto!important;touch-action:manipulation!important";
   remove.addEventListener("pointerdown", event => event.stopPropagation());
   remove.addEventListener("click", (event) => {
     event.preventDefault();

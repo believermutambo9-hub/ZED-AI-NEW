@@ -2789,20 +2789,22 @@ body { background: var(--zed-surface); }
   height: 52px;
   margin: 0;
   padding: 4px;
+  overflow: visible;
   border: 1px solid var(--glass-border);
   border-radius: 9px;
   color: var(--text);
   background: var(--glass-2);
-  font-size: 10px;
-  white-space: nowrap;
 }
-.selected-file-chip[hidden] {
-  display: none !important;
-}
+.selected-file-chip[hidden] { display: none !important; }
 .selected-file-name {
-  min-width: 0;
-  overflow-wrap: anywhere;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 9px;
   font-weight: 600;
+  line-height: 1;
+  text-overflow: ellipsis;
 }
 .selected-file-image-preview {
   display: block;
@@ -2817,14 +2819,15 @@ body { background: var(--zed-surface); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  flex: 0 0 22px;
-  font-size: 17px;
-}
-.selected-file-chip .selected-file-name {
-  font-size: 10px;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  color: var(--text);
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  font-size: 25px;
   line-height: 1;
+  opacity: 1;
+  visibility: visible;
 }
 .message-file-chip {
   display: inline-flex;
@@ -2841,35 +2844,53 @@ body { background: var(--zed-surface); }
   font-size: 12px;
   line-height: 1.2;
 }
-.message-file-icon {
-  font-size: 13px;
-}
+.message-file-icon { font-size: 17px; }
 .selected-file-chip .remove-file-button {
-  position: absolute;
-  z-index: 2;
-  top: -7px;
-  right: -7px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 19px;
-  height: 19px;
-  padding: 0;
+  position: absolute !important;
+  z-index: 20;
+  top: -7px !important;
+  right: -7px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box;
+  width: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
   border: 1px solid var(--glass-border);
-  border-radius: 50%;
+  border-radius: 50% !important;
   color: var(--text);
   background: var(--background, #252525);
   box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
-  font-size: 15px;
-  line-height: 1;
+  font-family: Arial, sans-serif !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  line-height: 18px !important;
+  letter-spacing: 0 !important;
+  text-align: center !important;
+  text-indent: 0 !important;
+  text-transform: none !important;
+  white-space: nowrap;
   cursor: pointer;
 }
-.remove-file-button:hover,
-.remove-file-button:focus-visible {
+.selected-file-chip .remove-file-button::before,
+.selected-file-chip .remove-file-button::after {
+  content: none !important;
+  display: none !important;
+}
+.selected-file-chip .remove-file-button:hover,
+.selected-file-chip .remove-file-button:focus-visible {
   color: var(--text);
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
 #chatSearchInput {
   box-sizing: border-box;
   width: 100%;

@@ -17,12 +17,40 @@ function clean(value, max = 180) {
   return String(value ?? "").replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max);
 }
 
-function getBucket() {
+async function getBucket() {
   const app = getFirebaseAdminApp();
-  const bucketName = process.env.FIREBASE_STORAGE_BUCKET ||
-    (process.env.FIREBASE_PROJECT_ID ? process.env.FIREBASE_PROJECT_ID + ".firebasestorage.app" : "");
-  if (!bucketName) throw new Error("Firebase Storage is not configured. Set FIREBASE_STORAGE_BUCKET.");
-  return getStorage(app).bucket(bucketName);
+  const projectId = clean(process.env.FIREBASE_PROJECT_ID, 128);
+  const configuredBucket = clean(process.env.FIREBASE_STORAGE_BUCKET, 255)
+    .replace(/^gs:\/\//i, "")
+    .replace(/\/$/, "");
+  if (!projectId && !configuredBucket) {
+    throw new Error("Firebase Storage is not configured. Set FIREBASE_STORAGE_BUCKET.");
+  }
+
+  // Firebase projects use both legacy .appspot.com and newer
+  // .firebasestorage.app default bucket names. Probe candidates so an
+  // unset or outdated Render bucket setting cannot point uploads at a
+  // bucket that does not exist.
+  const candidates = [...new Set([
+    configuredBucket,
+    projectId ? projectId + ".appspot.com" : "",
+    projectId ? projectId + ".firebasestorage.app" : ""
+  ].filter(Boolean))];
+  let lastError = null;
+  for (const bucketName of candidates) {
+    const bucket = getStorage(app).bucket(bucketName);
+    try {
+      const [exists] = await bucket.exists();
+      if (exists) return bucket;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    throw new Error("Could not access a Firebase Storage bucket. Check the service account's Storage permissions and FIREBASE_STORAGE_BUCKET setting: " + lastError.message);
+  }
+  throw new Error("No Firebase Storage bucket exists for this project. Set FIREBASE_STORAGE_BUCKET to the exact bucket name shown in Firebase Console > Storage.");
 }
 
 function hasExpectedSignature(contentType, buffer) {
@@ -59,7 +87,7 @@ export async function saveLibraryFile({ userId, name, dataUrl }) {
   if (!uid) throw new Error("Sign in is required.");
   const { contentType, buffer } = parseDataUrl(dataUrl);
   const db = getFirebaseDb();
-  const bucket = getBucket();
+  const bucket = await getBucket();
   const id = randomUUID();
   const objectPath = "zed-library/" + uid + "/" + id;
   const file = bucket.file(objectPath);
@@ -107,7 +135,7 @@ export async function getLibraryDownload(userId, fileId) {
   const snapshot = await ref.get();
   if (!snapshot.exists || snapshot.data().userId !== uid) return null;
   const data = snapshot.data();
-  const [url] = await getBucket().file(data.objectPath).getSignedUrl({
+  const [url] = await (await getBucket()).file(data.objectPath).getSignedUrl({
     version: "v4", action: "read", expires: Date.now() + 5 * 60 * 1000,
     responseDisposition: 'attachment; filename="' + String(data.name).replace(/["\r\n]/g, "_") + '"'
   });
@@ -136,7 +164,7 @@ export async function deleteLibraryFile(userId, fileId) {
   const ref = db.collection(COLLECTION).doc(id);
   const snapshot = await ref.get();
   if (!snapshot.exists || snapshot.data().userId !== uid) return false;
-  await getBucket().file(snapshot.data().objectPath).delete({ ignoreNotFound: true });
+  await (await getBucket()).file(snapshot.data().objectPath).delete({ ignoreNotFound: true });
   await ref.delete();
   return true;
 }

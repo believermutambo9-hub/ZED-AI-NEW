@@ -2558,8 +2558,11 @@ app.post(
         "user",
         userMessage
       );
-      if (imageAttachment && conversation.messages.length) {
-        conversation.messages[conversation.messages.length - 1].imageAttachment = imageAttachment;
+      const fileAttachment = uploadedFile ? { kind: "file" } : null;
+      if (conversation.messages.length) {
+        const savedUserMessage = conversation.messages[conversation.messages.length - 1];
+        if (imageAttachment) savedUserMessage.imageAttachment = imageAttachment;
+        if (fileAttachment) savedUserMessage.fileAttachment = fileAttachment;
       }
 
       const initialChatPersistence =
@@ -3341,6 +3344,8 @@ ${fileContext}
           conversation.id,
 
         imageAttachment,
+
+        fileAttachment,
 
         memorySaved:
           memoryResult.saved,

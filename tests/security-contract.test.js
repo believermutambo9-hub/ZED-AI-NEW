@@ -33,6 +33,17 @@ test("API routes reject missing or invalid Firebase ID tokens", () => {
   assert.match(server, /res\.status\(401\)/);
 });
 
+
+test("new accounts receive fresh conversation IDs instead of a predictable shared key", () => {
+  const start = server.indexOf("function getUserConversationId(");
+  const end = server.indexOf("function formatHistory(", start);
+  const implementation = server.slice(start, end);
+  assert.notEqual(start, -1);
+  assert.match(implementation, /if \\(supplied\\) \\{\\s*return supplied;/);
+  assert.match(implementation, /return supplied \\|\\| "";/);
+  assert.doesNotMatch(implementation, /user-\\$\\{userId\\}/);
+});
+
 test("chat saves use a transaction and reject another owner's conversation", () => {
   assert.match(history, /runTransaction\(async transaction/);
   assert.match(history, /existingData\.userId !== safeUserId/);

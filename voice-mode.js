@@ -23,7 +23,11 @@
 
   function setWaveLevel(value) {
     const level = Math.max(0.08, Math.min(1, Number(value) || 0.08));
-    voiceScreen?.querySelector(".zed-voice-orb")?.style.setProperty("--voice-level", level.toFixed(3));
+    const orb = voiceScreen?.querySelector(".zed-voice-orb");
+    if (!orb) return;
+    orb.style.setProperty("--voice-level", level.toFixed(3));
+    // Precompute the scale so this animation works in Safari as well as Chromium.
+    orb.style.setProperty("--voice-scale", (0.35 + level * 1.2).toFixed(3));
   }
 
   function setStatus(message, state = "idle") {
@@ -88,8 +92,8 @@
         <button class="zed-voice-action zed-voice-end" type="button"><span>×</span><small>End</small></button>
       </footer>
       <div class="zed-voice-mode-actions" aria-label="Other ways to use Zed">
-        <button class="zed-voice-mode-button zed-voice-type" type="button"><span>⌨</span> Type a message</button>
-        <button class="zed-voice-mode-button zed-voice-attach" type="button"><span>＋</span> Upload a file</button>
+        <button class="zed-voice-mode-button zed-voice-type" type="button"><span>⌨</span> Switch to typing</button>
+        <button class="zed-voice-mode-button zed-voice-attach" type="button"><span>＋</span> Add photo or file</button>
       </div>
       <p class="zed-voice-hint">Speak naturally, or switch to typing and attachments whenever you need.</p>`;
     document.body.append(voiceScreen);

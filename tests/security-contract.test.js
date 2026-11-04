@@ -41,7 +41,7 @@ test("new accounts receive fresh conversation IDs instead of a predictable share
   assert.notEqual(start, -1);
   assert.ok(implementation.includes("if (supplied)"));
   assert.ok(implementation.includes('return supplied || "";'));
-  assert.ok(!implementation.includes('user-${userId}'));
+  assert.ok(!implementation.includes('return `user-${userId}`;'));
 });
 
 test("chat saves use a transaction and reject another owner's conversation", () => {

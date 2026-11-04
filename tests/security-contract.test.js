@@ -696,7 +696,7 @@ test("memory relevance requires lexical overlap before recency can rank a memory
 test("responsive interface exposes theme and removable attachment controls", () => {
   assert.match(html, /id="themeToggle"/);
   assert.match(html, /id="selectedFileChip"/);
-  assert.match(html, /<script src="ui-enhancements\.js"><\/script>/);
+  assert.match(html, /<script src="ui-enhancements\.js(?:\?[^"]*)?"><\/script>/);
   assert.match(uiEnhancements, /function applyTheme\(theme, persist = true\)/);
   assert.match(uiEnhancements, /remove-file-button/);
   assert.match(uiEnhancements, /state\.selectedFile = null/);

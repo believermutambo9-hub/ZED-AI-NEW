@@ -1416,6 +1416,65 @@ function readFileAsDataURL(
     }
   );
 }
+async function optimizeImageForUpload(file) {
+  const MAX_EDGE = 2048;
+  const MAX_OUTPUT_BYTES = 12 * 1024 * 1024;
+  if (!file?.type?.startsWith("image/")) return file;
+  if (file.size <= MAX_OUTPUT_BYTES && !["image/heic", "image/heif"].includes(file.type)) return file;
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    throw new Error("This image is too large to upload. Please convert it to JPEG, PNG, or WebP and try again.");
+  }
+
+  let bitmap;
+  let sourceUrl;
+  try {
+    if (typeof createImageBitmap === "function") {
+      bitmap = await createImageBitmap(file);
+    } else {
+      const image = new Image();
+      sourceUrl = URL.createObjectURL(file);
+      bitmap = await new Promise((resolve, reject) => {
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("Zed could not read this image. Please try another image."));
+        image.src = sourceUrl;
+      });
+    }
+    const width = bitmap.width || bitmap.naturalWidth;
+    const height = bitmap.height || bitmap.naturalHeight;
+    if (!width || !height) throw new Error("Zed could not read this image.");
+
+    const scale = Math.min(1, MAX_EDGE / Math.max(width, height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Image preparation is not available in this browser.");
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    const toBlob = (type, quality) => new Promise(resolve => canvas.toBlob(resolve, type, quality));
+    let outputType = file.type === "image/png" ? "image/png" : "image/webp";
+    let blob = await toBlob(outputType, 0.82);
+    if (!blob && outputType === "image/webp") {
+      outputType = "image/jpeg";
+      blob = await toBlob(outputType, 0.82);
+    }
+    if (!blob) throw new Error("Zed could not prepare this image for upload.");
+    if (blob.size > MAX_OUTPUT_BYTES && outputType !== "image/jpeg") {
+      outputType = "image/jpeg";
+      blob = await toBlob(outputType, 0.76);
+    }
+    if (!blob || blob.size > MAX_OUTPUT_BYTES) {
+      throw new Error("This image is still too large after compression. Please choose a smaller image.");
+    }
+
+    const extension = outputType === "image/png" ? ".png" : outputType === "image/jpeg" ? ".jpg" : ".webp";
+    const baseName = String(file.name || "uploaded-image").replace(/\.[^.]+$/, "");
+    return new File([blob], baseName + extension, { type: outputType, lastModified: Date.now() });
+  } finally {
+    if (bitmap && typeof bitmap.close === "function") bitmap.close();
+    if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+  }
+}
 // ============================================================
 // SEND MESSAGE
 // ============================================================
@@ -1441,10 +1500,14 @@ async function sendMessage() {
   ) {
     return;
   }
-  if (requestFile && requestFile.size > 18 * 1024 * 1024) {
+  const isImageUpload = Boolean(requestFile?.type?.startsWith("image/"));
+  const maxOriginalBytes = isImageUpload ? 30 * 1024 * 1024 : 18 * 1024 * 1024;
+  if (requestFile && requestFile.size > maxOriginalBytes) {
     state.messages.push({
       role: "assistant",
-      content: "This file is too large to analyse. Please choose a file smaller than 18 MB."
+      content: isImageUpload
+        ? "This image is too large for the browser to prepare safely. Please choose an image smaller than 30 MB."
+        : "This file is too large to analyse. Please choose a file smaller than 18 MB."
     });
     renderMessages();
     return;
@@ -1472,7 +1535,10 @@ async function sendMessage() {
     null;
   try {
     if (requestFile) {
-      filePayload = await readFileAsDataURL(requestFile);
+      const uploadFile = isImageUpload
+        ? await optimizeImageForUpload(requestFile)
+        : requestFile;
+      filePayload = await readFileAsDataURL(uploadFile);
     }
     if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return null;
     showThinking();

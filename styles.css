@@ -2816,18 +2816,16 @@ body { background: var(--zed-surface); }
   background: var(--glass-2);
 }
 .selected-file-document-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
+  display: block !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px;
+  min-height: 30px;
   flex: 0 0 30px;
   color: var(--text);
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
-  font-size: 25px;
-  line-height: 1;
   opacity: 1;
   visibility: visible;
+  stroke: currentColor;
 }
 .message-file-chip {
   display: inline-flex;
@@ -2844,16 +2842,22 @@ body { background: var(--zed-surface); }
   font-size: 12px;
   line-height: 1.2;
 }
-.message-file-icon { font-size: 17px; }
+.message-file-icon {
+  display: block;
+  width: 21px;
+  height: 24px;
+  flex: 0 0 21px;
+  color: var(--text);
+  stroke: currentColor;
+}
 .selected-file-chip .remove-file-button {
   position: absolute !important;
-  z-index: 20;
+  z-index: 100 !important;
   top: -7px !important;
   right: -7px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-sizing: border-box;
+  display: grid !important;
+  place-items: center !important;
+  box-sizing: border-box !important;
   width: 20px !important;
   min-width: 20px !important;
   max-width: 20px !important;
@@ -2862,22 +2866,25 @@ body { background: var(--zed-surface); }
   max-height: 20px !important;
   margin: 0 !important;
   padding: 0 !important;
-  overflow: hidden;
-  border: 1px solid var(--glass-border);
+  overflow: hidden !important;
+  border: 1px solid var(--glass-border) !important;
   border-radius: 50% !important;
-  color: var(--text);
-  background: var(--background, #252525);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
-  font-family: Arial, sans-serif !important;
-  font-size: 16px !important;
-  font-weight: 400 !important;
-  line-height: 18px !important;
+  color: var(--text) !important;
+  background: var(--background, #252525) !important;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%) !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
   letter-spacing: 0 !important;
-  text-align: center !important;
   text-indent: 0 !important;
   text-transform: none !important;
-  white-space: nowrap;
-  cursor: pointer;
+}
+.selected-file-chip .remove-file-button .attachment-close-mark {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  color: inherit !important;
+  font: 17px/18px Arial, sans-serif !important;
+  text-align: center !important;
 }
 .selected-file-chip .remove-file-button::before,
 .selected-file-chip .remove-file-button::after {

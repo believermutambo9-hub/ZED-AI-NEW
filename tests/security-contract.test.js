@@ -107,19 +107,34 @@ test("memory lookup rejects a user ID that differs from the authenticated UID", 
   assert.match(server, /req\.params\.userId !== req\.user\.uid/);
 });
 
-test("legacy chat recovery requires a matching owner-scoped Firestore history record", () => {
-  const guard = server.indexOf("!conversation.metadata?.userId");
-  const verify = server.indexOf("history.getChat(userId, conversationId)", guard);
-  const reject = server.indexOf('answer: "Conversation not found."', verify);
-  const assignOwner = server.indexOf("userId\n        };", verify);
-  const restoreCall = server.indexOf("await restoreConversation(", verify);
-  assert.notEqual(guard, -1);
-  assert.notEqual(verify, -1);
-  assert.notEqual(reject, -1);
-  assert.notEqual(assignOwner, -1);
-  assert.notEqual(restoreCall, -1);
-  assert.ok(guard < verify && verify < assignOwner && assignOwner < restoreCall);
-  assert.match(server.slice(guard - 180, verify), /conversation\.messages\.length > 0/);
+test("uncached conversation IDs must be verified against the authenticated owner's persistent history", () => {
+  const chatStart = server.indexOf('app.post(\n  "/api/chat"');
+  const chatEnd = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", chatStart);
+  const route = server.slice(chatStart, chatEnd);
+  const cacheCheck = route.indexOf("!getConversationDetails(conversationId)");
+  const ownerLookup = route.indexOf("history.getChat(userId, conversationId)", cacheCheck);
+  const freshFallback = route.indexOf('conversationId = "";', ownerLookup);
+  const conversationLoad = route.indexOf("getConversation(\n          conversationId", freshFallback);
+  assert.ok(cacheCheck >= 0);
+  assert.ok(ownerLookup > cacheCheck);
+  assert.ok(freshFallback > ownerLookup);
+  assert.ok(conversationLoad > freshFallback);
+  assert.match(route.slice(cacheCheck, conversationLoad), /if \(!ownedPersistedChat\)/);
+});
+
+test("legacy cached conversations are restored only after owner-scoped history verification", () => {
+  const chatStart = server.indexOf('app.post(\n  "/api/chat"');
+  const chatEnd = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", chatStart);
+  const route = server.slice(chatStart, chatEnd);
+  const legacyGuard = route.indexOf("!conversation.metadata?.userId");
+  const verify = route.indexOf("history.getChat(userId, conversationId)", legacyGuard);
+  const assignOwner = route.indexOf("userId\n          };", verify);
+  const restoreCall = route.indexOf("await restoreConversation(", verify);
+  assert.ok(legacyGuard >= 0);
+  assert.ok(verify > legacyGuard);
+  assert.ok(assignOwner > verify);
+  assert.ok(restoreCall > assignOwner);
+  assert.match(route.slice(legacyGuard, verify), /conversation\.messages\.length > 0/);
 });
 
 test("account changes invalidate pending chat and prevent stale data from rendering", () => {

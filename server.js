@@ -864,7 +864,7 @@ async function askGroq(
           type: "image_url",
           image_url: {
             url: `data:${inlineData.mimeType};base64,${inlineData.data}`,
-            detail: "high"
+            detail: "low"
           }
         }
       ]
@@ -891,7 +891,7 @@ async function askGroq(
         ],
         temperature: 0.7,
         // Keep vision output below Groq on-demand OTPM limits; text chat keeps its existing budget.
-        max_completion_tokens: inlineData ? 2500 : 2048
+        max_completion_tokens: inlineData ? 800 : 2048
       })
     }
   );

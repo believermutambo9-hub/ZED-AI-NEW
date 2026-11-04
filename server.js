@@ -2512,7 +2512,11 @@ app.post(
             size: savedImage.size
           };
         } catch (imageSaveError) {
-          console.warn("Original uploaded image could not be saved for chat history:", imageSaveError.message);
+          console.error("Original uploaded image could not be saved for chat history:", imageSaveError.message);
+          return res.status(503).json({
+            ok: false,
+            error: "This image could not be saved to your conversation. Please try again or choose an image smaller than 15 MB."
+          });
         }
       }
 

@@ -128,8 +128,33 @@ const fileInput =
   document.getElementById("fileInput");
 const messageInput =
   document.getElementById("messageInput");
+const selectedFileChip =
+  document.getElementById("selectedFileChip");
 const sendBtn =
   document.getElementById("sendBtn");
+function renderSelectedFileChip() {
+  if (!selectedFileChip) return;
+  selectedFileChip.replaceChildren();
+  selectedFileChip.hidden = !state.selectedFile;
+  if (!state.selectedFile) return;
+
+  const label = document.createElement("span");
+  label.className = "selected-file-name";
+  label.textContent = "File";
+  const remove = document.createElement("button");
+  remove.className = "remove-file-button";
+  remove.type = "button";
+  remove.textContent = "×";
+  remove.setAttribute("aria-label", "Remove attached file");
+  remove.addEventListener("click", () => {
+    if (state.sending) return;
+    state.selectedFile = null;
+    if (fileInput) fileInput.value = "";
+    renderSelectedFileChip();
+    messageInput?.focus();
+  });
+  selectedFileChip.append(label, remove);
+}
 // ============================================================
 // AUTH UI
 // ============================================================
@@ -1164,6 +1189,18 @@ function renderMessages() {
         });
       }
     }
+    if (message.role === "user" && message.fileAttachment && !message.imageAttachment && !message.image) {
+      const fileChip = document.createElement("div");
+      fileChip.className = "message-file-chip";
+      fileChip.setAttribute("aria-label", "Attached file");
+      const fileIcon = document.createElement("span");
+      fileIcon.className = "message-file-icon";
+      fileIcon.textContent = "📎";
+      const fileLabel = document.createElement("span");
+      fileLabel.textContent = "File";
+      fileChip.append(fileIcon, fileLabel);
+      content.appendChild(fileChip);
+    }
     // Display validated web sources as ordinary safe links.
     if (message.role === "assistant" && Array.isArray(message.webSources) && message.webSources.length) {
       const sourcePanel = document.createElement("section");
@@ -1406,6 +1443,7 @@ async function createNewChat() {
     state.conversationId = data.conversationId || data.conversation?.id || null;
     state.messages = [];
     state.selectedFile = null;
+    renderSelectedFileChip();
     renderMessages();
     await loadChats();
     if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
@@ -1557,7 +1595,8 @@ async function sendMessage() {
     content:
       text ||
       "Please analyze this uploaded file.",
-    ...(localImagePreview ? { image: localImagePreview, imageName: selectedImage.name } : {})
+    ...(localImagePreview ? { image: localImagePreview, imageName: selectedImage.name } : {}),
+    ...(requestFile && !isImageUpload ? { fileAttachment: { kind: "file" } } : {})
   });
   renderMessages();
   messageInput.value =
@@ -1682,6 +1721,7 @@ async function sendMessage() {
     if (state.authGeneration === requestGeneration && state.userId === requestUid) {
       state.selectedFile = null;
       if (fileInput) fileInput.value = "";
+      renderSelectedFileChip();
       setSending(false);
       messageInput?.focus();
     }
@@ -1806,6 +1846,7 @@ fileInput?.addEventListener(
 
     state.selectedFile =
       file;
+    renderSelectedFileChip();
     // Keep the user's composer text unchanged when an attachment is selected.
     // The user decides what Zed should do with the attached file.
     messageInput.focus();

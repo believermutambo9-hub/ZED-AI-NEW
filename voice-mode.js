@@ -237,6 +237,8 @@
 
   async function handleToolCalls(calls) {
     for (const call of calls || []) {
+      // A completed/late Live event must never start new chat work after voice closes.
+      if (!active) return;
       if (call.name !== "zed_chat") {
         socket?.send(JSON.stringify({
           toolResponse: {
@@ -279,6 +281,7 @@
   }
 
   async function handleLiveMessage(event) {
+    if (!active) return;
     let message;
     let raw = "";
     try {
@@ -437,6 +440,10 @@
         }
       };
       const onMessage = async (event) => {
+        if (!active || generation !== connectGeneration) {
+          finish(new Error("Voice startup was cancelled."));
+          return;
+        }
         let raw = "";
         let packet;
         try {

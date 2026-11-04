@@ -3338,3 +3338,22 @@ body {
     height: 100vh;
   }
 }
+
+
+/* Attachment close control: keep it anchored to the preview and still while pressed. */
+.selected-file-chip .remove-file-button,
+.selected-file-chip .remove-file-button:hover,
+.selected-file-chip .remove-file-button:focus,
+.selected-file-chip .remove-file-button:focus-visible,
+.selected-file-chip .remove-file-button:active {
+  position: absolute !important;
+  top: 2px !important;
+  right: 2px !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  outline: none !important;
+}
+.selected-file-chip .remove-file-button:active {
+  filter: brightness(.92) !important;
+}

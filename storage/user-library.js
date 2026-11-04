@@ -19,10 +19,9 @@ function clean(value, max = 180) {
 
 function getImageKitConfig() {
   const privateKey = clean(process.env.IMAGEKIT_PRIVATE_KEY, 512);
-  const publicKey = clean(process.env.IMAGEKIT_PUBLIC_KEY, 256);
   const urlEndpoint = clean(process.env.IMAGEKIT_URL_ENDPOINT, 512).replace(/\/$/, "");
-  if (!privateKey || !publicKey || !urlEndpoint) {
-    throw new Error("Image storage is not configured. Add IMAGEKIT_PRIVATE_KEY, IMAGEKIT_PUBLIC_KEY and IMAGEKIT_URL_ENDPOINT to the staging service environment.");
+  if (!privateKey || !urlEndpoint) {
+    throw new Error("Image storage is not configured. Add IMAGEKIT_PRIVATE_KEY and IMAGEKIT_URL_ENDPOINT to the staging service environment.");
   }
   let endpoint;
   try {
@@ -33,7 +32,7 @@ function getImageKitConfig() {
   if (endpoint.protocol !== "https:" || endpoint.search || endpoint.hash) {
     throw new Error("IMAGEKIT_URL_ENDPOINT must be a valid HTTPS URL endpoint.");
   }
-  return { privateKey, publicKey, urlEndpoint };
+  return { privateKey, urlEndpoint };
 }
 
 function parseDataUrl(dataUrl) {

@@ -2776,22 +2776,45 @@ body { background: var(--zed-surface); }
   outline-offset: 2px;
 }
 .selected-file-chip {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  max-width: 760px;
-  margin: 0 auto 8px;
-  padding: 9px 12px;
+  justify-content: flex-start;
+  gap: 8px;
+  width: fit-content;
+  max-width: 150px;
+  margin: 0 0 7px 8px;
+  padding: 5px 8px;
   border: 1px solid var(--glass-border);
-  border-radius: 12px;
+  border-radius: 9px;
   color: var(--text);
   background: var(--glass-2);
-  font-size: 13px;
+  font-size: 12px;
+}
+.selected-file-chip[hidden] {
+  display: none !important;
 }
 .selected-file-name {
   min-width: 0;
   overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.message-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  max-width: 112px;
+  margin-top: 8px;
+  padding: 6px 9px;
+  border: 1px solid var(--glass-border);
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--glass-2);
+  font-size: 12px;
+  line-height: 1.2;
+}
+.message-file-icon {
+  font-size: 13px;
 }
 .remove-file-button {
   flex: 0 0 auto;

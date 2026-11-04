@@ -1097,8 +1097,11 @@ function renderMessages() {
       image.className = "message-uploaded-image";
       image.alt = message.imageAttachment?.name || message.imageName || "Uploaded image";
       image.loading = "lazy";
-      // Keep the in-memory preview visible while the private ImageKit URL loads.
+
+      // Keep the original local preview until the saved image is fully fetched
+      // and decoded. A failed replacement must never blank a working preview.
       if (message.image) image.src = message.image;
+      content.appendChild(image);
 
       if (message.imageAttachment?.id) {
         image.dataset.attachmentId = message.imageAttachment.id;
@@ -1110,26 +1113,56 @@ function renderMessages() {
             const failure = await parseResponse(response).catch(() => ({}));
             throw new Error(failure?.error || "Image preview is unavailable.");
           }
+
           const imageBlob = await response.blob();
           if (!imageBlob.size || !imageBlob.type.startsWith("image/")) {
             throw new Error("The stored file did not return valid image data.");
           }
-          if (image.isConnected) {
-            const nextObjectUrl = URL.createObjectURL(imageBlob);
+
+          const nextObjectUrl = URL.createObjectURL(imageBlob);
+          try {
+            // Decode the candidate before replacing the visible preview.
+            const candidate = new Image();
+            candidate.src = nextObjectUrl;
+            if (typeof candidate.decode === "function") {
+              await candidate.decode();
+            } else {
+              await new Promise((resolve, reject) => {
+                candidate.onload = resolve;
+                candidate.onerror = () => reject(new Error("The saved image could not be decoded."));
+              });
+            }
+
+            if (!image.isConnected) {
+              URL.revokeObjectURL(nextObjectUrl);
+              return;
+            }
+
             const previousObjectUrl = message._previewObjectUrl;
-            message._previewObjectUrl = nextObjectUrl;
             image.src = nextObjectUrl;
-            if (previousObjectUrl) URL.revokeObjectURL(previousObjectUrl);
+            message._previewObjectUrl = nextObjectUrl;
+
+            // Only release the previous preview after the new one is ready.
+            if (previousObjectUrl && previousObjectUrl !== nextObjectUrl) {
+              URL.revokeObjectURL(previousObjectUrl);
+            }
+            if (message.image && message.image.startsWith("blob:")) {
+              URL.revokeObjectURL(message.image);
+              message.image = null;
+            }
+          } catch (error) {
+            URL.revokeObjectURL(nextObjectUrl);
+            throw error;
           }
         };
+
         loadPersistentPreview().catch(error => {
           console.warn("Uploaded image could not be restored:", error.message);
-          if (!message.image && image.isConnected) image.alt = "Image preview is temporarily unavailable.";
+          if (image.isConnected && !message.image) {
+            image.alt = "Saved image preview is temporarily unavailable.";
+          }
         });
-      } else if (message.image) {
-        image.src = message.image;
       }
-      content.appendChild(image);
     }
     // Display validated web sources as ordinary safe links.
     if (message.role === "assistant" && Array.isArray(message.webSources) && message.webSources.length) {

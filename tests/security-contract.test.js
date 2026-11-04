@@ -39,9 +39,9 @@ test("new accounts receive fresh conversation IDs instead of a predictable share
   const end = server.indexOf("function formatHistory(", start);
   const implementation = server.slice(start, end);
   assert.notEqual(start, -1);
-  assert.match(implementation, /if \\(supplied\\) \\{\\s*return supplied;/);
-  assert.match(implementation, /return supplied \\|\\| "";/);
-  assert.doesNotMatch(implementation, /user-\\$\\{userId\\}/);
+  assert.ok(implementation.includes("if (supplied)"));
+  assert.ok(implementation.includes('return supplied || "";'));
+  assert.ok(!implementation.includes('user-${userId}'));
 });
 
 test("chat saves use a transaction and reject another owner's conversation", () => {

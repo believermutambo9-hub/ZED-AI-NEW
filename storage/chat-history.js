@@ -71,10 +71,16 @@ export async function getChats(userId) {
   const safeUserId = cleanText(userId);
   if (!db || !safeUserId) return [];
 
-  const [currentSnapshot, legacySnapshot] = await Promise.all([
+  const [currentSnapshot, legacyByUserSnapshot, legacyByMetadataSnapshot] = await Promise.all([
     db.collection(COLLECTION).where("userId", "==", safeUserId).get(),
-    db.collection(LEGACY_COLLECTION).get()
+    db.collection(LEGACY_COLLECTION).where("userId", "==", safeUserId).get(),
+    db.collection(LEGACY_COLLECTION).where("metadata.userId", "==", safeUserId).get()
   ]);
+  const legacyDocsById = new Map();
+  for (const doc of [...legacyByUserSnapshot.docs, ...legacyByMetadataSnapshot.docs]) {
+    legacyDocsById.set(doc.id, doc);
+  }
+  const legacyDocs = [...legacyDocsById.values()];
 
   const chatsById = new Map();
   for (const doc of currentSnapshot.docs) {
@@ -83,7 +89,7 @@ export async function getChats(userId) {
 
   // Older versions wrote chat messages to zedConversations. Recover only
   // records whose embedded owner matches the authenticated Firebase UID.
-  const legacyChats = legacySnapshot.docs
+  const legacyChats = legacyDocs
     .map(doc => normalizeLegacyChat(doc, safeUserId))
     .filter(Boolean);
 
@@ -178,12 +184,16 @@ export async function deleteAllChats(userId) {
   const safeUserId = cleanText(userId);
   if (!db || !safeUserId) return 0;
 
-  const [currentSnapshot, legacySnapshot] = await Promise.all([
+  const [currentSnapshot, legacyByUserSnapshot, legacyByMetadataSnapshot] = await Promise.all([
     db.collection(COLLECTION).where("userId", "==", safeUserId).get(),
-    db.collection(LEGACY_COLLECTION).get()
+    db.collection(LEGACY_COLLECTION).where("userId", "==", safeUserId).get(),
+    db.collection(LEGACY_COLLECTION).where("metadata.userId", "==", safeUserId).get()
   ]);
-
-  const legacyOwned = legacySnapshot.docs.filter(doc => {
+  const legacyDocsById = new Map();
+  for (const doc of [...legacyByUserSnapshot.docs, ...legacyByMetadataSnapshot.docs]) {
+    legacyDocsById.set(doc.id, doc);
+  }
+  const legacyOwned = [...legacyDocsById.values()].filter(doc => {
     const data = doc.data() || {};
     return data.metadata?.userId === safeUserId || data.userId === safeUserId;
   });

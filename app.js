@@ -1461,40 +1461,54 @@ async function sendMessage() {
     }
     if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return null;
     showThinking();
-    const response =
-      await apiFetch(
-        "/api/chat",
-        {
-          method:"POST",
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
-          body:JSON.stringify({
-            message:
-              text,
-            userId:
-              requestUid,
-            conversationId:
-              requestConversationId,
-            conversation:
-              previousMessages.map(
-                message => ({
-                  role:
-                    message.role,
-                  text:
-                    message.content
-                })
-              ),
-            file:
-              filePayload
-          })
-        }
-      );
-    const data =
-      await parseResponse(
-        response
-      );
+    const chatRequestBody = {
+      message: text,
+      userId: requestUid,
+      conversationId: requestConversationId,
+      conversation: previousMessages.map(message => ({
+        role: message.role,
+        text: message.content
+      })),
+      file: filePayload
+    };
+    let response = await apiFetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(chatRequestBody)
+    });
+    let data = await parseResponse(response);
+
+    // A stale or inaccessible conversation must never block a user's first message.
+    // Create a fresh conversation under the currently authenticated UID, then retry once.
+    if (
+      response.status === 404 &&
+      requestConversationId &&
+      /conversation not found/i.test(String(data.error || data.answer || ""))
+    ) {
+      const newChatResponse = await apiFetch("/api/new-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: requestUid })
+      });
+      const newChatData = await parseResponse(newChatResponse);
+      if (
+        state.authGeneration !== requestGeneration ||
+        state.userId !== requestUid
+      ) return null;
+      const freshConversationId =
+        newChatData.conversationId || newChatData.conversation?.id;
+      if (!newChatResponse.ok || !newChatData.ok || !freshConversationId) {
+        throw new Error(newChatData.error || "A fresh chat could not be created. Please try again.");
+      }
+      state.conversationId = freshConversationId;
+      chatRequestBody.conversationId = freshConversationId;
+      response = await apiFetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(chatRequestBody)
+      });
+      data = await parseResponse(response);
+    }
     if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return null;
     removeThinking();
     if (!response.ok || !data.ok) {

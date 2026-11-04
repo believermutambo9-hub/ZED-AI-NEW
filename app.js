@@ -501,7 +501,7 @@ function updateGoogleProfileAvatar() {
   };
 
   renderAvatar(profileBtn, "profile-avatar-image");
-  renderAvatar(accountBtn, "sidebar-account-avatar");
+  renderAvatar(accountBtn?.querySelector(".zed-account-avatar-wrap"), "sidebar-account-avatar");
   if (profileBtn) {
     profileBtn.setAttribute("aria-label", user
       ? `Account: ${user.displayName || user.email || "signed in"}`

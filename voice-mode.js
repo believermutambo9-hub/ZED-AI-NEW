@@ -71,7 +71,7 @@
         </div>
       </header>
       <main class="zed-voice-stage">
-        <div class="zed-voice-orb" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="zed-voice-orb" aria-hidden="true"><span style="--wave-h:18%;--wave-delay:0s;--wave-speed:0.42s"></span><span style="--wave-h:35%;--wave-delay:-0.11s;--wave-speed:0.51s"></span><span style="--wave-h:52%;--wave-delay:-0.22s;--wave-speed:0.6s"></span><span style="--wave-h:69%;--wave-delay:-0.33s;--wave-speed:0.69s"></span><span style="--wave-h:19%;--wave-delay:-0.44s;--wave-speed:0.78s"></span><span style="--wave-h:36%;--wave-delay:-0.55s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:53%;--wave-delay:-0.66s;--wave-speed:0.96s"></span><span style="--wave-h:70%;--wave-delay:-0.77s;--wave-speed:0.42s"></span><span style="--wave-h:20%;--wave-delay:-0.88s;--wave-speed:0.51s"></span><span style="--wave-h:37%;--wave-delay:-0.99s;--wave-speed:0.6s"></span><span style="--wave-h:54%;--wave-delay:-1.1s;--wave-speed:0.69s"></span><span style="--wave-h:71%;--wave-delay:-1.21s;--wave-speed:0.78s"></span><span style="--wave-h:21%;--wave-delay:-1.32s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:38%;--wave-delay:0s;--wave-speed:0.96s"></span><span style="--wave-h:55%;--wave-delay:-0.11s;--wave-speed:0.42s"></span><span style="--wave-h:72%;--wave-delay:-0.22s;--wave-speed:0.51s"></span><span style="--wave-h:22%;--wave-delay:-0.33s;--wave-speed:0.6s"></span><span style="--wave-h:39%;--wave-delay:-0.44s;--wave-speed:0.69s"></span><span style="--wave-h:56%;--wave-delay:-0.55s;--wave-speed:0.78s"></span><span style="--wave-h:73%;--wave-delay:-0.66s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:23%;--wave-delay:-0.77s;--wave-speed:0.96s"></span><span style="--wave-h:40%;--wave-delay:-0.88s;--wave-speed:0.42s"></span><span style="--wave-h:57%;--wave-delay:-0.99s;--wave-speed:0.51s"></span><span style="--wave-h:74%;--wave-delay:-1.1s;--wave-speed:0.6s"></span><span style="--wave-h:24%;--wave-delay:-1.21s;--wave-speed:0.69s"></span><span style="--wave-h:41%;--wave-delay:-1.32s;--wave-speed:0.78s"></span><span style="--wave-h:58%;--wave-delay:0s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:75%;--wave-delay:-0.11s;--wave-speed:0.96s"></span><span style="--wave-h:25%;--wave-delay:-0.22s;--wave-speed:0.42s"></span><span style="--wave-h:42%;--wave-delay:-0.33s;--wave-speed:0.51s"></span><span style="--wave-h:59%;--wave-delay:-0.44s;--wave-speed:0.6s"></span><span style="--wave-h:76%;--wave-delay:-0.55s;--wave-speed:0.69s"></span><span style="--wave-h:26%;--wave-delay:-0.66s;--wave-speed:0.78s"></span><span style="--wave-h:43%;--wave-delay:-0.77s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:60%;--wave-delay:-0.88s;--wave-speed:0.96s"></span><span style="--wave-h:77%;--wave-delay:-0.99s;--wave-speed:0.42s"></span><span style="--wave-h:27%;--wave-delay:-1.1s;--wave-speed:0.51s"></span></div>
         <h2 class="zed-voice-heading">Talk with Zed</h2>
         <p class="zed-voice-status" data-state="idle" aria-live="polite">Starting real-time voice…</p>
         <div class="zed-voice-transcript" aria-live="polite">Your conversation will appear here.</div>
@@ -81,7 +81,11 @@
         <button class="zed-voice-action zed-voice-mic" type="button" aria-label="Stop current reply"><span>🎙</span><small>Interrupt</small></button>
         <button class="zed-voice-action zed-voice-end" type="button"><span>×</span><small>End</small></button>
       </footer>
-      <p class="zed-voice-hint">Speak naturally. You can interrupt Zed at any time.</p>`;
+      <div class="zed-voice-mode-actions" aria-label="Other ways to use Zed">
+        <button class="zed-voice-mode-button zed-voice-type" type="button"><span>⌨</span> Type a message</button>
+        <button class="zed-voice-mode-button zed-voice-attach" type="button"><span>＋</span> Upload a file</button>
+      </div>
+      <p class="zed-voice-hint">Speak naturally, or switch to typing and attachments whenever you need.</p>`;
     document.body.append(voiceScreen);
     statusNode = voiceScreen.querySelector(".zed-voice-status");
     transcriptNode = voiceScreen.querySelector(".zed-voice-transcript");
@@ -91,6 +95,16 @@
     voiceScreen.querySelector(".zed-voice-mic").addEventListener("click", () => {
       stopPlayback();
       if (active && setupReady) setStatus("Listening… go ahead", "listening");
+    });
+    voiceScreen.querySelector(".zed-voice-type").addEventListener("click", async () => {
+      await stop();
+      const input = document.getElementById("messageInput");
+      input?.focus();
+      input?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    voiceScreen.querySelector(".zed-voice-attach").addEventListener("click", async () => {
+      await stop();
+      document.getElementById("attachBtn")?.click();
     });
     return voiceScreen;
   }

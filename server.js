@@ -1944,6 +1944,35 @@ app.post("/api/library", async (req, res) => {
   }
 });
 
+app.get("/api/library/:fileId/content", async (req, res) => {
+  try {
+    const file = await getLibraryPreview(req.user.uid, req.params.fileId);
+    if (!file) return res.status(404).json({ ok: false, error: "File not found." });
+
+    // Fetch private media server-side so the browser never has to rely on
+    // an expiring third-party URL or cross-origin image delivery.
+    const upstream = await fetch(file.url, { signal: AbortSignal.timeout(20000) });
+    if (!upstream.ok) {
+      console.error("Private library image delivery failed:", upstream.status);
+      return res.status(502).json({ ok: false, error: "Image delivery is temporarily unavailable." });
+    }
+
+    const bytes = Buffer.from(await upstream.arrayBuffer());
+    if (!bytes.length || bytes.length > 15 * 1024 * 1024) {
+      return res.status(502).json({ ok: false, error: "The stored image could not be delivered." });
+    }
+
+    res.setHeader("Content-Type", file.contentType || upstream.headers.get("content-type") || "application/octet-stream");
+    res.setHeader("Content-Length", String(bytes.length));
+    res.setHeader("Content-Disposition", "inline");
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(200).send(bytes);
+  } catch (error) {
+    console.error("Private library image delivery error:", error.message);
+    return res.status(503).json({ ok: false, error: "Image delivery is temporarily unavailable." });
+  }
+});
+
 app.get("/api/library/:fileId/preview", async (req, res) => {
   try {
     const file = await getLibraryPreview(req.user.uid, req.params.fileId);

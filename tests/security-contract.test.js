@@ -81,7 +81,10 @@ test("chat deletion verifies ownership inside its transaction", () => {
   assert.match(history, /runTransaction\(async transaction/);
   assert.match(history, /currentDoc\.data\(\)\?\.userId === safeUserId/);
   assert.match(history, /legacyDoc\.data\(\)\?\.userId === safeUserId/);
-  assert.match(history, /transaction\.delete\(chatRef\)/);
+  assert.match(history, /const currentRef = db\.collection\(COLLECTION\)\.doc\(safeConversationId\)/);
+  assert.match(history, /const legacyRef = db\.collection\(LEGACY_COLLECTION\)\.doc\(safeConversationId\)/);
+  assert.match(history, /if \(currentOwned\) transaction\.delete\(currentRef\)/);
+  assert.match(history, /if \(legacyOwned\) transaction\.delete\(legacyRef\)/);
 });
 
 test("public memory deletion requires a matching owner and internal cleanup is private", () => {

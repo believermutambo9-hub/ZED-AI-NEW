@@ -56,6 +56,7 @@ const state = {
   chats: [],
   chatHistoryUnavailable: false,
   selectedFile: null,
+  selectedFilePreviewUrl: null,
   sending: false,
   authGeneration: 0,
   settingsOpen: false
@@ -138,9 +139,27 @@ function renderSelectedFileChip() {
   selectedFileChip.hidden = !state.selectedFile;
   if (!state.selectedFile) return;
 
-  const label = document.createElement("span");
-  label.className = "selected-file-name";
-  label.textContent = "File";
+  const isImage = state.selectedFile.type?.startsWith("image/");
+  if (isImage) {
+    if (!state.selectedFilePreviewUrl) {
+      state.selectedFilePreviewUrl = URL.createObjectURL(state.selectedFile);
+    }
+    const preview = document.createElement("img");
+    preview.className = "selected-file-image-preview";
+    preview.src = state.selectedFilePreviewUrl;
+    preview.alt = "Attached image preview";
+    selectedFileChip.appendChild(preview);
+  } else {
+    const icon = document.createElement("span");
+    icon.className = "selected-file-document-icon";
+    icon.textContent = "📎";
+    icon.setAttribute("aria-hidden", "true");
+    const label = document.createElement("span");
+    label.className = "selected-file-name";
+    label.textContent = "File";
+    selectedFileChip.append(icon, label);
+  }
+
   const remove = document.createElement("button");
   remove.className = "remove-file-button";
   remove.type = "button";
@@ -149,11 +168,15 @@ function renderSelectedFileChip() {
   remove.addEventListener("click", () => {
     if (state.sending) return;
     state.selectedFile = null;
+    if (state.selectedFilePreviewUrl) {
+      URL.revokeObjectURL(state.selectedFilePreviewUrl);
+      state.selectedFilePreviewUrl = null;
+    }
     if (fileInput) fileInput.value = "";
     renderSelectedFileChip();
     messageInput?.focus();
   });
-  selectedFileChip.append(label, remove);
+  selectedFileChip.appendChild(remove);
 }
 // ============================================================
 // AUTH UI
@@ -1731,6 +1754,10 @@ async function sendMessage() {
   } finally {
     if (state.authGeneration === requestGeneration && state.userId === requestUid) {
       state.selectedFile = null;
+      if (state.selectedFilePreviewUrl) {
+        URL.revokeObjectURL(state.selectedFilePreviewUrl);
+        state.selectedFilePreviewUrl = null;
+      }
       if (fileInput) fileInput.value = "";
       renderSelectedFileChip();
       setSending(false);
@@ -1855,8 +1882,11 @@ fileInput?.addEventListener(
       return;
     }
 
-    state.selectedFile =
-      file;
+    if (state.selectedFilePreviewUrl) {
+      URL.revokeObjectURL(state.selectedFilePreviewUrl);
+      state.selectedFilePreviewUrl = null;
+    }
+    state.selectedFile = file;
     renderSelectedFileChip();
     // Keep the user's composer text unchanged when an attachment is selected.
     // The user decides what Zed should do with the attached file.

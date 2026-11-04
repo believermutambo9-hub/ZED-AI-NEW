@@ -2410,6 +2410,22 @@ app.post(
           req.body?.conversationId
         );
 
+      // The in-memory cache is not authoritative after a restart or when
+      // multiple Render instances are running. If this process has never
+      // seen the supplied ID, verify it against this UID's persistent history
+      // before allowing getConversation() to create or restore anything.
+      if (conversationId && !getConversationDetails(conversationId)) {
+        const history = await getChatHistoryModule();
+        const ownedPersistedChat = history
+          ? await history.getChat(userId, conversationId)
+          : null;
+
+        if (!ownedPersistedChat) {
+          console.warn("Conversation ID was not found in this account's history; starting a fresh chat.");
+          conversationId = "";
+        }
+      }
+
       let conversation =
         getConversation(
           conversationId

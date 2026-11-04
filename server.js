@@ -2404,31 +2404,33 @@ app.post(
       // CONVERSATION
       // ------------------------------------------------------
 
-      const conversationId =
+      let conversationId =
         getUserConversationId(
           userId,
           req.body?.conversationId
         );
 
-      const conversation =
+      let conversation =
         getConversation(
           conversationId
         );
 
-      // Refuse to append to a conversation already associated with another user.
+      // Never let a stale or foreign conversation ID block a valid user.
+      // If the ID belongs to another account, abandon it and start a new,
+      // cryptographically random conversation owned by the authenticated UID.
+      // The foreign conversation is never read, modified, or returned.
       if (
         conversation.metadata?.userId &&
         conversation.metadata.userId !== userId
       ) {
-        return res.status(404).json({
-          ok: false,
-          answer: "Conversation not found."
-        });
+        console.warn("Rejected a conversation ID owned by another account; starting a fresh chat.");
+        conversation = getConversation();
+        conversationId = conversation.id;
       }
 
-      // Safely recover legacy conversations only when the separate,
-      // owner-scoped chat-history record proves this Firebase UID owns it.
-      // Never assign ownership based only on a client-supplied conversation ID.
+      // Recover legacy conversations only when the owner-scoped history
+      // record proves that the authenticated UID owns the conversation.
+      // If ownership cannot be proven, start a new conversation instead.
       if (
         Array.isArray(conversation.messages) &&
         conversation.messages.length > 0 &&
@@ -2438,21 +2440,22 @@ app.post(
         const ownedLegacyChat = history
           ? await history.getChat(userId, conversationId)
           : null;
-        if (!ownedLegacyChat) {
-          return res.status(404).json({
-            ok: false,
-            answer: "Conversation not found."
-          });
+
+        if (ownedLegacyChat) {
+          conversation.messages = Array.isArray(ownedLegacyChat.messages)
+            ? ownedLegacyChat.messages
+            : [];
+          conversation.createdAt = ownedLegacyChat.createdAt || conversation.createdAt;
+          conversation.updatedAt = ownedLegacyChat.updatedAt || conversation.updatedAt;
+          conversation.metadata = {
+            ...(conversation.metadata || {}),
+            userId
+          };
+        } else {
+          console.warn("Could not verify ownership of a legacy conversation; starting a fresh chat.");
+          conversation = getConversation();
+          conversationId = conversation.id;
         }
-        conversation.messages = Array.isArray(ownedLegacyChat.messages)
-          ? ownedLegacyChat.messages
-          : [];
-        conversation.createdAt = ownedLegacyChat.createdAt || conversation.createdAt;
-        conversation.updatedAt = ownedLegacyChat.updatedAt || conversation.updatedAt;
-        conversation.metadata = {
-          ...(conversation.metadata || {}),
-          userId
-        };
       }
 
       await restoreConversation(

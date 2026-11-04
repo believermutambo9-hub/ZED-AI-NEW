@@ -235,20 +235,25 @@
     return await window.zedVoiceSubmitTranscript(String(spokenText || "").trim());
   }
 
-  async function handleToolCalls(calls) {
+  async function handleToolCalls(calls, generation, liveSocket) {
+    const sendResponse = response => {
+      if (!active || generation !== connectGeneration || liveSocket.readyState !== WebSocket.OPEN) return;
+      try {
+        liveSocket.send(JSON.stringify({ toolResponse: { functionResponses: [response] } }));
+      } catch (error) {
+        console.warn("Zed could not return a voice tool result:", error);
+      }
+    };
+
     for (const call of calls || []) {
-      // A completed/late Live event must never start new chat work after voice closes.
-      if (!active) return;
+      // Never let delayed work from an old session leak into a new one.
+      if (!active || generation !== connectGeneration) return;
       if (call.name !== "zed_chat") {
-        socket?.send(JSON.stringify({
-          toolResponse: {
-            functionResponses: [{
-              id: call.id,
-              name: call.name,
-              response: { error: "This tool is not available in voice mode." }
-            }]
-          }
-        }));
+        sendResponse({
+          id: call.id,
+          name: call.name,
+          response: { error: "This tool is not available in voice mode." }
+        });
         continue;
       }
       const message = String(call.args?.message || "").trim();
@@ -257,31 +262,25 @@
       appendTranscript("You", message);
       try {
         const answer = await submitToZedChat(message);
-        socket?.send(JSON.stringify({
-          toolResponse: {
-            functionResponses: [{
-              id: call.id,
-              name: call.name,
-              response: { result: String(answer || "Zed could not find an answer.") }
-            }]
-          }
-        }));
+        if (!active || generation !== connectGeneration) return;
+        sendResponse({
+          id: call.id,
+          name: call.name,
+          response: { result: String(answer || "Zed could not find an answer.") }
+        });
       } catch (error) {
-        socket?.send(JSON.stringify({
-          toolResponse: {
-            functionResponses: [{
-              id: call.id,
-              name: call.name,
-              response: { error: error?.message || "Zed chat request failed." }
-            }]
-          }
-        }));
+        if (!active || generation !== connectGeneration) return;
+        sendResponse({
+          id: call.id,
+          name: call.name,
+          response: { error: error?.message || "Zed chat request failed." }
+        });
       }
     }
   }
 
-  async function handleLiveMessage(event) {
-    if (!active) return;
+  async function handleLiveMessage(event, generation, liveSocket) {
+    if (!active || generation !== connectGeneration || socket !== liveSocket) return;
     let message;
     let raw = "";
     try {
@@ -297,12 +296,14 @@
       }
       message = JSON.parse(raw);
     } catch (error) {
+      if (!active || generation !== connectGeneration || socket !== liveSocket) return;
       console.warn("Zed could not read a Gemini Live message:", error);
-    // Blob.text() is asynchronous; discard the frame if the session closed meanwhile.
-    if (!active) return;
-      if (active) setStatus("Zed received an unreadable voice message. Please restart voice chat.", "error");
+      setStatus("Zed received an unreadable voice message. Please restart voice chat.", "error");
       return;
     }
+
+    // Blob.text() is asynchronous; discard frames from sessions that ended or were replaced.
+    if (!active || generation !== connectGeneration || socket !== liveSocket) return;
 
     if (message.setupComplete) {
       setupReady = true;
@@ -318,7 +319,7 @@
     }
 
     if (message.toolCall?.functionCalls?.length) {
-      void handleToolCalls(message.toolCall.functionCalls);
+      void handleToolCalls(message.toolCall.functionCalls, generation, liveSocket);
     }
 
     const serverContent = message.serverContent;
@@ -328,17 +329,19 @@
 
     if (serverContent.inputTranscription?.text) {
       inputText += serverContent.inputTranscription.text;
-      setTranscript("You\n" + inputText.trim() + (outputText ? "\n\nZed\n" + outputText.trim() : ""));
+      setTranscript("You\\n" + inputText.trim() + (outputText ? "\\n\\nZed\\n" + outputText.trim() : ""));
     }
 
     if (serverContent.outputTranscription?.text) {
+      setTranscript((inputText ? "You\\n" + inputText.trim() + "\\n\\n" : "") + "Zed\\n" + outputText.trim());
       outputText += serverContent.outputTranscription.text;
-      setTranscript((inputText ? "You\n" + inputText.trim() + "\n\n" : "") + "Zed\n" + outputText.trim());
+      setTranscript((inputText ? "You\\n" + inputText.trim() + "\\n\\n" : "") + "Zed\\n" + outputText.trim());
     }
 
     for (const part of serverContent.modelTurn?.parts || []) {
       const inline = part.inlineData || part.inline_data;
       if (inline?.data && String(inline.mimeType || inline.mime_type || "").startsWith("audio/")) {
+        if (!active || generation !== connectGeneration) return;
         playPcm24k(inline.data);
       }
     }
@@ -346,7 +349,7 @@
     if (serverContent.turnComplete) {
       inputText = "";
       outputText = "";
-      if (!activeSources.size) setStatus("Listening… your turn", "listening");
+      if (!activeSources.size && active && generation === connectGeneration) setStatus("Listening… your turn", "listening");
     }
   }
 
@@ -508,13 +511,20 @@
       liveSocket.addEventListener("error", onError, { once: true });
     });
     if (!active || generation !== connectGeneration || socket !== liveSocket) return;
-    liveSocket.onmessage = handleLiveMessage;
+    liveSocket.onmessage = event => {
+      if (active && generation === connectGeneration && socket === liveSocket) {
+        void handleLiveMessage(event, generation, liveSocket);
+      }
+    };
     liveSocket.onclose = event => {
+      if (generation !== connectGeneration || socket !== liveSocket) return;
       setupReady = false;
       if (active) setStatus(event.reason || "Voice connection ended. Close and restart voice chat.", "error");
     };
-    socket.onerror = () => {
-      if (active) setStatus("The real-time voice connection was interrupted.", "error");
+    liveSocket.onerror = () => {
+      if (active && generation === connectGeneration && socket === liveSocket) {
+        setStatus("The real-time voice connection was interrupted.", "error");
+      }
     };
   }
 

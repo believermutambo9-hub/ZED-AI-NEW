@@ -113,7 +113,6 @@ html[data-theme=light] .zed-sidebar .sidebar-search-wrap input{background:#fff;b
 .zed-sidebar-header{flex:0 0 auto!important}
 .zed-sidebar .sidebar-search-wrap{flex:0 0 auto!important}
 .zed-navigation-section,.zed-favorites-section,.zed-history,.zed-sidebar-bottom{flex:0 0 auto!important}
-.zed-tools-section,.zed-projects{display:none!important}
 .zed-favorites-list .zed-sidebar-empty{display:none!important}
 .zed-favorites-section{min-height:42px!important;margin:12px 0 2px!important}
 .zed-sidebar .zed-history{margin-top:10px!important;min-height:0!important}
@@ -129,8 +128,7 @@ html[data-theme=light] .zed-sidebar .sidebar-search-wrap input{background:#fff;b
 .zed-composer{width:min(100%,560px)!important;min-height:49px!important;border-radius:7px!important}
 .zed-composer-note{width:min(100%,560px)!important}
 @media(max-width:700px){
- .zed-sidebar .zed-tools-section,.zed-sidebar .zed-projects{display:none!important}
- .zed-chat-area{justify-content:center!important}
+  .zed-chat-area{justify-content:center!important}
  .zed-welcome{width:100%!important;padding-bottom:20px!important}
  .zed-composer{width:100%!important}
 }

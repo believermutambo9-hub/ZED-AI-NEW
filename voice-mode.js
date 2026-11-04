@@ -381,27 +381,28 @@
     if (!active || generation !== connectGeneration) return;
 
     const url = LIVE_ENDPOINT + "?access_token=" + encodeURIComponent(tokenData.token);
-    socket = new WebSocket(url);
+    const liveSocket = new WebSocket(url);
+    socket = liveSocket;
     await new Promise((resolve, reject) => {
       let settled = false;
       const finish = (error) => {
         if (settled) return;
         settled = true;
         window.clearTimeout(timeout);
-        socket.removeEventListener("open", onOpen);
-        socket.removeEventListener("message", onMessage);
-        socket.removeEventListener("close", onClose);
-        socket.removeEventListener("error", onError);
+        liveSocket.removeEventListener("open", onOpen);
+        liveSocket.removeEventListener("message", onMessage);
+        liveSocket.removeEventListener("close", onClose);
+        liveSocket.removeEventListener("error", onError);
         if (error) reject(error);
         else resolve();
       };
       const timeout = window.setTimeout(() => {
         finish(new Error("Zed's real-time voice setup timed out. Please close voice chat and try again."));
-        try { socket.close(); } catch {}
+        try { liveSocket.close(); } catch {}
       }, 20000);
       const onOpen = () => {
         try {
-          socket.send(JSON.stringify({
+          liveSocket.send(JSON.stringify({
             setup: {
               model: "models/" + tokenData.model,
               generationConfig: {
@@ -489,14 +490,14 @@
       const onError = () => {
         finish(new Error("Could not connect to Gemini's real-time voice service. Check the connection and try again."));
       };
-      socket.addEventListener("open", onOpen, { once: true });
-      socket.addEventListener("message", onMessage);
-      socket.addEventListener("close", onClose, { once: true });
-      socket.addEventListener("error", onError, { once: true });
+      liveSocket.addEventListener("open", onOpen, { once: true });
+      liveSocket.addEventListener("message", onMessage);
+      liveSocket.addEventListener("close", onClose, { once: true });
+      liveSocket.addEventListener("error", onError, { once: true });
     });
-    if (!active || generation !== connectGeneration) return;
-    socket.onmessage = handleLiveMessage;
-    socket.onclose = event => {
+    if (!active || generation !== connectGeneration || socket !== liveSocket) return;
+    liveSocket.onmessage = handleLiveMessage;
+    liveSocket.onclose = event => {
       setupReady = false;
       if (active) setStatus(event.reason || "Voice connection ended. Close and restart voice chat.", "error");
     };

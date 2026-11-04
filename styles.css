@@ -3387,3 +3387,9 @@ body {
   pointer-events: none !important;
 }
 .composer:has(.remove-file-button:focus) { transform: none !important; }
+
+
+/* Attachment preview occupies its own visible row above the composer. */
+.composer-container { display:flex !important; flex-direction:column !important; align-items:stretch !important; }
+.composer-container > .selected-file-chip:not([hidden]) { position:relative !important; top:auto !important; right:auto !important; left:auto !important; align-self:flex-end !important; margin:0 8px 8px 0 !important; }
+.composer-container > .composer { width:100%; }

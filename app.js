@@ -1097,6 +1097,8 @@ function renderMessages() {
       image.className = "message-uploaded-image";
       image.alt = message.imageAttachment?.name || message.imageName || "Uploaded image";
       image.loading = "lazy";
+      // Keep the in-memory preview visible while the private ImageKit URL loads.
+      if (message.image) image.src = message.image;
 
       if (message.imageAttachment?.id) {
         image.dataset.attachmentId = message.imageAttachment.id;

@@ -3543,6 +3543,13 @@ app.listen(
       `Gemini model: ${GEMINI_MODEL}`
     );
 
+    // Report integration readiness without ever logging secret values.
+    console.log("Gemini API key: " + (GEMINI_API_KEY ? "configured" : "missing"));
+    console.log("Groq API key: " + (GROQ_API_KEY ? "configured" : "missing"));
+    console.log("OpenRouter API key: " + (OPENROUTER_API_KEY ? "configured" : "missing"));
+    console.log("ImageKit library storage: " +
+      (process.env.IMAGEKIT_PRIVATE_KEY && process.env.IMAGEKIT_URL_ENDPOINT ? "configured" : "missing"));
+
     console.log(
       "Football: worldwide"
     );

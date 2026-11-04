@@ -21,6 +21,11 @@
 
   const LIVE_ENDPOINT = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained";
 
+  function setWaveLevel(value) {
+    const level = Math.max(0.08, Math.min(1, Number(value) || 0.08));
+    voiceScreen?.querySelector(".zed-voice-orb")?.style.setProperty("--voice-level", level.toFixed(3));
+  }
+
   function setStatus(message, state = "idle") {
     if (!statusNode) return;
     statusNode.textContent = message;
@@ -28,6 +33,7 @@
     voiceScreen?.classList.toggle("is-listening", state === "listening");
     voiceScreen?.classList.toggle("is-thinking", state === "thinking");
     voiceScreen?.classList.toggle("is-speaking", state === "speaking");
+    if (state === "connecting" || state === "thinking" || state === "idle" || state === "error") setWaveLevel(0.16);
   }
 
   function setTranscript(message) {
@@ -147,6 +153,7 @@
       let sumSquares = 0;
       for (let i = 0; i < input.length; i++) sumSquares += input[i] * input[i];
       const rms = Math.sqrt(sumSquares / input.length);
+      setWaveLevel(rms * 15);
       if (rms > 0.012 && statusNode?.textContent?.startsWith("Listening")) {
         setStatus("I can hear you…", "listening");
       }
@@ -192,7 +199,12 @@
     }
     const buffer = audioContext.createBuffer(1, sampleCount, 24000);
     const channel = buffer.getChannelData(0);
-    for (let i = 0; i < sampleCount; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
+    let outputEnergy = 0;
+    for (let i = 0; i < sampleCount; i++) {
+      channel[i] = view.getInt16(i * 2, true) / 32768;
+      outputEnergy += channel[i] * channel[i];
+    }
+    setWaveLevel(Math.sqrt(outputEnergy / sampleCount) * 4.5);
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
     source.connect(audioContext.destination);

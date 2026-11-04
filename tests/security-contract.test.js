@@ -134,7 +134,7 @@ test("legacy cached conversations are restored only after owner-scoped history v
   assert.ok(verify > legacyGuard);
   assert.ok(assignOwner > verify);
   assert.ok(restoreCall > assignOwner);
-  assert.match(route.slice(legacyGuard, verify), /conversation\.messages\.length > 0/);
+  assert.match(route.slice(0, legacyGuard), /Array\.isArray\(conversation\.messages\)[\s\S]*?conversation\.messages\.length > 0/);
 });
 
 test("account changes invalidate pending chat and prevent stale data from rendering", () => {

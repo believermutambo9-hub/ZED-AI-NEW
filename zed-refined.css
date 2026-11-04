@@ -134,3 +134,9 @@ html[data-theme=light] .zed-sidebar .sidebar-search-wrap input{background:#fff;b
  .zed-welcome{width:100%!important;padding-bottom:20px!important}
  .zed-composer{width:100%!important}
 }
+
+/* Keep every navigation destination visible; the sidebar itself scrolls when needed. */
+.zed-sidebar .zed-tools-section,.zed-sidebar .zed-projects{display:block!important}
+.zed-sidebar .zed-tools-section .primary-nav{display:flex!important;flex-direction:column!important}
+.zed-sidebar .zed-projects .project-list{display:block!important}
+.zed-sidebar .zed-sidebar-bottom{margin-top:auto!important}

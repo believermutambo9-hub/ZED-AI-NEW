@@ -837,3 +837,19 @@ test("XLSX parser extracts spreadsheet rows using the supported SheetJS release"
   assert.match(parsed.extractedText, /Ada/);
   assert.match(parsed.extractedText, /95/);
 });
+
+
+test("attachment state is cleared safely across chat and account changes", () => {
+  assert.match(app, /function clearSelectedFile\(\)\s*\{[\s\S]*?URL\.revokeObjectURL\(state\.selectedFilePreviewUrl\)/);
+  assert.match(app, /function releaseMessagePreviewUrls\(messages = \[\]\)/);
+  assert.match(app, /clearSelectedFile\(\);\s*releaseMessagePreviewUrls\(state\.messages\);\s*state\.messages = \[\];/);
+  assert.match(app, /clearSelectedFile\(\);\s*renderMessages\(\);/);
+});
+
+test("failed chat requests preserve attachments and restore the user's unsent prompt", () => {
+  assert.match(app, /let sendSucceeded = false;/);
+  assert.match(app, /sendSucceeded = true;/);
+  assert.match(app, /const failedMessageIndex = state\.messages\.indexOf\(optimisticUserMessage\)/);
+  assert.match(app, /if \(text && messageInput && !messageInput\.value\.trim\(\)\)\s*\{\s*messageInput\.value = text;/);
+  assert.match(app, /if \(sendSucceeded\) clearSelectedFile\(\);/);
+});

@@ -114,6 +114,58 @@
     });
   });
 
+  // Add copy controls to generated code blocks without changing the Markdown renderer.
+  const messageArea = document.getElementById("messages");
+  function addCodeCopyControls(rootNode) {
+    if (!rootNode) return;
+    rootNode.querySelectorAll(".message-assistant pre").forEach(pre => {
+      if (pre.querySelector(".zed-code-copy")) return;
+      const code = pre.querySelector("code");
+      if (!code) return;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "zed-code-copy";
+      button.textContent = "Copy code";
+      button.setAttribute("aria-label", "Copy code block");
+      button.addEventListener("click", async () => {
+        const value = code.textContent || "";
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(value);
+          } else {
+            const temporary = document.createElement("textarea");
+            temporary.value = value;
+            temporary.setAttribute("readonly", "");
+            temporary.style.position = "fixed";
+            temporary.style.opacity = "0";
+            document.body.appendChild(temporary);
+            temporary.select();
+            const copied = document.execCommand("copy");
+            temporary.remove();
+            if (!copied) throw new Error("Clipboard access is unavailable.");
+          }
+          button.textContent = "Copied";
+          button.classList.add("is-copied");
+        } catch (error) {
+          console.warn("Unable to copy code block:", error);
+          button.textContent = "Copy failed";
+          button.classList.remove("is-copied");
+        }
+        window.setTimeout(() => {
+          if (!button.isConnected) return;
+          button.textContent = "Copy code";
+          button.classList.remove("is-copied");
+        }, 1600);
+      });
+      pre.appendChild(button);
+    });
+  }
+  if (messageArea) {
+    addCodeCopyControls(messageArea);
+    const codeObserver = new MutationObserver(() => addCodeCopyControls(messageArea));
+    codeObserver.observe(messageArea, { childList: true, subtree: true });
+  }
+
   // Respect reduced-motion preferences for people who request it.
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     root.classList.add("reduce-motion");

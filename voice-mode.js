@@ -21,6 +21,15 @@
 
   const LIVE_ENDPOINT = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained";
 
+  function setWaveLevel(value) {
+    const level = Math.max(0.08, Math.min(1, Number(value) || 0.08));
+    const orb = voiceScreen?.querySelector(".zed-voice-orb");
+    if (!orb) return;
+    orb.style.setProperty("--voice-level", level.toFixed(3));
+    // Precompute the scale so this animation works in Safari as well as Chromium.
+    orb.style.setProperty("--voice-scale", (0.35 + level * 1.2).toFixed(3));
+  }
+
   function setStatus(message, state = "idle") {
     if (!statusNode) return;
     statusNode.textContent = message;
@@ -28,6 +37,7 @@
     voiceScreen?.classList.toggle("is-listening", state === "listening");
     voiceScreen?.classList.toggle("is-thinking", state === "thinking");
     voiceScreen?.classList.toggle("is-speaking", state === "speaking");
+    if (state === "connecting" || state === "thinking" || state === "idle" || state === "error") setWaveLevel(0.16);
   }
 
   function setTranscript(message) {
@@ -71,7 +81,7 @@
         </div>
       </header>
       <main class="zed-voice-stage">
-        <div class="zed-voice-orb" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="zed-voice-orb" aria-hidden="true"><span style="--wave-h:18%;--wave-delay:0s;--wave-speed:0.42s"></span><span style="--wave-h:35%;--wave-delay:-0.11s;--wave-speed:0.51s"></span><span style="--wave-h:52%;--wave-delay:-0.22s;--wave-speed:0.6s"></span><span style="--wave-h:69%;--wave-delay:-0.33s;--wave-speed:0.69s"></span><span style="--wave-h:19%;--wave-delay:-0.44s;--wave-speed:0.78s"></span><span style="--wave-h:36%;--wave-delay:-0.55s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:53%;--wave-delay:-0.66s;--wave-speed:0.96s"></span><span style="--wave-h:70%;--wave-delay:-0.77s;--wave-speed:0.42s"></span><span style="--wave-h:20%;--wave-delay:-0.88s;--wave-speed:0.51s"></span><span style="--wave-h:37%;--wave-delay:-0.99s;--wave-speed:0.6s"></span><span style="--wave-h:54%;--wave-delay:-1.1s;--wave-speed:0.69s"></span><span style="--wave-h:71%;--wave-delay:-1.21s;--wave-speed:0.78s"></span><span style="--wave-h:21%;--wave-delay:-1.32s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:38%;--wave-delay:0s;--wave-speed:0.96s"></span><span style="--wave-h:55%;--wave-delay:-0.11s;--wave-speed:0.42s"></span><span style="--wave-h:72%;--wave-delay:-0.22s;--wave-speed:0.51s"></span><span style="--wave-h:22%;--wave-delay:-0.33s;--wave-speed:0.6s"></span><span style="--wave-h:39%;--wave-delay:-0.44s;--wave-speed:0.69s"></span><span style="--wave-h:56%;--wave-delay:-0.55s;--wave-speed:0.78s"></span><span style="--wave-h:73%;--wave-delay:-0.66s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:23%;--wave-delay:-0.77s;--wave-speed:0.96s"></span><span style="--wave-h:40%;--wave-delay:-0.88s;--wave-speed:0.42s"></span><span style="--wave-h:57%;--wave-delay:-0.99s;--wave-speed:0.51s"></span><span style="--wave-h:74%;--wave-delay:-1.1s;--wave-speed:0.6s"></span><span style="--wave-h:24%;--wave-delay:-1.21s;--wave-speed:0.69s"></span><span style="--wave-h:41%;--wave-delay:-1.32s;--wave-speed:0.78s"></span><span style="--wave-h:58%;--wave-delay:0s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:75%;--wave-delay:-0.11s;--wave-speed:0.96s"></span><span style="--wave-h:25%;--wave-delay:-0.22s;--wave-speed:0.42s"></span><span style="--wave-h:42%;--wave-delay:-0.33s;--wave-speed:0.51s"></span><span style="--wave-h:59%;--wave-delay:-0.44s;--wave-speed:0.6s"></span><span style="--wave-h:76%;--wave-delay:-0.55s;--wave-speed:0.69s"></span><span style="--wave-h:26%;--wave-delay:-0.66s;--wave-speed:0.78s"></span><span style="--wave-h:43%;--wave-delay:-0.77s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:60%;--wave-delay:-0.88s;--wave-speed:0.96s"></span><span style="--wave-h:77%;--wave-delay:-0.99s;--wave-speed:0.42s"></span><span style="--wave-h:27%;--wave-delay:-1.1s;--wave-speed:0.51s"></span></div>
         <h2 class="zed-voice-heading">Talk with Zed</h2>
         <p class="zed-voice-status" data-state="idle" aria-live="polite">Starting real-time voice…</p>
         <div class="zed-voice-transcript" aria-live="polite">Your conversation will appear here.</div>
@@ -81,7 +91,11 @@
         <button class="zed-voice-action zed-voice-mic" type="button" aria-label="Stop current reply"><span>🎙</span><small>Interrupt</small></button>
         <button class="zed-voice-action zed-voice-end" type="button"><span>×</span><small>End</small></button>
       </footer>
-      <p class="zed-voice-hint">Speak naturally. You can interrupt Zed at any time.</p>`;
+      <div class="zed-voice-mode-actions" aria-label="Other ways to use Zed">
+        <button class="zed-voice-mode-button zed-voice-type" type="button"><span>⌨</span> Switch to typing</button>
+        <button class="zed-voice-mode-button zed-voice-attach" type="button"><span>＋</span> Add photo or file</button>
+      </div>
+      <p class="zed-voice-hint">Speak naturally, or switch to typing and attachments whenever you need.</p>`;
     document.body.append(voiceScreen);
     statusNode = voiceScreen.querySelector(".zed-voice-status");
     transcriptNode = voiceScreen.querySelector(".zed-voice-transcript");
@@ -91,6 +105,16 @@
     voiceScreen.querySelector(".zed-voice-mic").addEventListener("click", () => {
       stopPlayback();
       if (active && setupReady) setStatus("Listening… go ahead", "listening");
+    });
+    voiceScreen.querySelector(".zed-voice-type").addEventListener("click", async () => {
+      await stop();
+      const input = document.getElementById("messageInput");
+      input?.focus();
+      input?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    voiceScreen.querySelector(".zed-voice-attach").addEventListener("click", async () => {
+      await stop();
+      document.getElementById("attachBtn")?.click();
     });
     return voiceScreen;
   }
@@ -133,6 +157,7 @@
       let sumSquares = 0;
       for (let i = 0; i < input.length; i++) sumSquares += input[i] * input[i];
       const rms = Math.sqrt(sumSquares / input.length);
+      setWaveLevel(rms * 15);
       if (rms > 0.012 && statusNode?.textContent?.startsWith("Listening")) {
         setStatus("I can hear you…", "listening");
       }
@@ -178,7 +203,12 @@
     }
     const buffer = audioContext.createBuffer(1, sampleCount, 24000);
     const channel = buffer.getChannelData(0);
-    for (let i = 0; i < sampleCount; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
+    let outputEnergy = 0;
+    for (let i = 0; i < sampleCount; i++) {
+      channel[i] = view.getInt16(i * 2, true) / 32768;
+      outputEnergy += channel[i] * channel[i];
+    }
+    setWaveLevel(Math.sqrt(outputEnergy / sampleCount) * 4.5);
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
     source.connect(audioContext.destination);
@@ -205,18 +235,25 @@
     return await window.zedVoiceSubmitTranscript(String(spokenText || "").trim());
   }
 
-  async function handleToolCalls(calls) {
+  async function handleToolCalls(calls, generation, liveSocket) {
+    const sendResponse = response => {
+      if (!active || generation !== connectGeneration || liveSocket.readyState !== WebSocket.OPEN) return;
+      try {
+        liveSocket.send(JSON.stringify({ toolResponse: { functionResponses: [response] } }));
+      } catch (error) {
+        console.warn("Zed could not return a voice tool result:", error);
+      }
+    };
+
     for (const call of calls || []) {
+      // Never let delayed work from an old session leak into a new one.
+      if (!active || generation !== connectGeneration) return;
       if (call.name !== "zed_chat") {
-        socket?.send(JSON.stringify({
-          toolResponse: {
-            functionResponses: [{
-              id: call.id,
-              name: call.name,
-              response: { error: "This tool is not available in voice mode." }
-            }]
-          }
-        }));
+        sendResponse({
+          id: call.id,
+          name: call.name,
+          response: { error: "This tool is not available in voice mode." }
+        });
         continue;
       }
       const message = String(call.args?.message || "").trim();
@@ -225,30 +262,25 @@
       appendTranscript("You", message);
       try {
         const answer = await submitToZedChat(message);
-        socket?.send(JSON.stringify({
-          toolResponse: {
-            functionResponses: [{
-              id: call.id,
-              name: call.name,
-              response: { result: String(answer || "Zed could not find an answer.") }
-            }]
-          }
-        }));
+        if (!active || generation !== connectGeneration) return;
+        sendResponse({
+          id: call.id,
+          name: call.name,
+          response: { result: String(answer || "Zed could not find an answer.") }
+        });
       } catch (error) {
-        socket?.send(JSON.stringify({
-          toolResponse: {
-            functionResponses: [{
-              id: call.id,
-              name: call.name,
-              response: { error: error?.message || "Zed chat request failed." }
-            }]
-          }
-        }));
+        if (!active || generation !== connectGeneration) return;
+        sendResponse({
+          id: call.id,
+          name: call.name,
+          response: { error: error?.message || "Zed chat request failed." }
+        });
       }
     }
   }
 
-  async function handleLiveMessage(event) {
+  async function handleLiveMessage(event, generation, liveSocket) {
+    if (!active || generation !== connectGeneration || socket !== liveSocket) return;
     let message;
     let raw = "";
     try {
@@ -264,10 +296,14 @@
       }
       message = JSON.parse(raw);
     } catch (error) {
+      if (!active || generation !== connectGeneration || socket !== liveSocket) return;
       console.warn("Zed could not read a Gemini Live message:", error);
-      if (active) setStatus("Zed received an unreadable voice message. Please restart voice chat.", "error");
+      setStatus("Zed received an unreadable voice message. Please restart voice chat.", "error");
       return;
     }
+
+    // Blob.text() is asynchronous; discard frames from sessions that ended or were replaced.
+    if (!active || generation !== connectGeneration || socket !== liveSocket) return;
 
     if (message.setupComplete) {
       setupReady = true;
@@ -283,7 +319,7 @@
     }
 
     if (message.toolCall?.functionCalls?.length) {
-      void handleToolCalls(message.toolCall.functionCalls);
+      void handleToolCalls(message.toolCall.functionCalls, generation, liveSocket);
     }
 
     const serverContent = message.serverContent;
@@ -304,6 +340,7 @@
     for (const part of serverContent.modelTurn?.parts || []) {
       const inline = part.inlineData || part.inline_data;
       if (inline?.data && String(inline.mimeType || inline.mime_type || "").startsWith("audio/")) {
+        if (!active || generation !== connectGeneration) return;
         playPcm24k(inline.data);
       }
     }
@@ -311,7 +348,7 @@
     if (serverContent.turnComplete) {
       inputText = "";
       outputText = "";
-      if (!activeSources.size) setStatus("Listening… your turn", "listening");
+      if (!activeSources.size && active && generation === connectGeneration) setStatus("Listening… your turn", "listening");
     }
   }
 
@@ -348,27 +385,33 @@
     if (!active || generation !== connectGeneration) return;
 
     const url = LIVE_ENDPOINT + "?access_token=" + encodeURIComponent(tokenData.token);
-    socket = new WebSocket(url);
+    const liveSocket = new WebSocket(url);
+    socket = liveSocket;
     await new Promise((resolve, reject) => {
       let settled = false;
       const finish = (error) => {
         if (settled) return;
         settled = true;
         window.clearTimeout(timeout);
-        socket.removeEventListener("open", onOpen);
-        socket.removeEventListener("message", onMessage);
-        socket.removeEventListener("close", onClose);
-        socket.removeEventListener("error", onError);
+        liveSocket.removeEventListener("open", onOpen);
+        liveSocket.removeEventListener("message", onMessage);
+        liveSocket.removeEventListener("close", onClose);
+        liveSocket.removeEventListener("error", onError);
         if (error) reject(error);
         else resolve();
       };
       const timeout = window.setTimeout(() => {
         finish(new Error("Zed's real-time voice setup timed out. Please close voice chat and try again."));
-        try { socket.close(); } catch {}
+        try { liveSocket.close(); } catch {}
       }, 20000);
       const onOpen = () => {
+        if (!active || generation !== connectGeneration || socket !== liveSocket) {
+          finish(new Error("Voice startup was cancelled."));
+          try { liveSocket.close(); } catch {}
+          return;
+        }
         try {
-          socket.send(JSON.stringify({
+          liveSocket.send(JSON.stringify({
             setup: {
               model: "models/" + tokenData.model,
               generationConfig: {
@@ -407,6 +450,10 @@
         }
       };
       const onMessage = async (event) => {
+        if (!active || generation !== connectGeneration) {
+          finish(new Error("Voice startup was cancelled."));
+          return;
+        }
         let raw = "";
         let packet;
         try {
@@ -424,7 +471,12 @@
           }
           packet = JSON.parse(raw);
         } catch (error) {
-          const preview = String(raw || "").replace(/[\\r\\n\\t]+/g, " ").slice(0, 180);
+        // Blob.text() can finish after stop() has cancelled this startup.
+        if (!active || generation !== connectGeneration || socket !== liveSocket) {
+          finish(new Error("Voice startup was cancelled."));
+          return;
+        }
+          const preview = String(raw || "").replace(/[\\r\n\\t]+/g, " ").slice(0, 180);
           finish(new Error(
             "Zed could not read Gemini's voice setup frame" +
             (preview ? ": " + preview : ". The service returned a non-JSON frame.") +
@@ -452,19 +504,26 @@
       const onError = () => {
         finish(new Error("Could not connect to Gemini's real-time voice service. Check the connection and try again."));
       };
-      socket.addEventListener("open", onOpen, { once: true });
-      socket.addEventListener("message", onMessage);
-      socket.addEventListener("close", onClose, { once: true });
-      socket.addEventListener("error", onError, { once: true });
+      liveSocket.addEventListener("open", onOpen, { once: true });
+      liveSocket.addEventListener("message", onMessage);
+      liveSocket.addEventListener("close", onClose, { once: true });
+      liveSocket.addEventListener("error", onError, { once: true });
     });
-    if (!active || generation !== connectGeneration) return;
-    socket.onmessage = handleLiveMessage;
-    socket.onclose = event => {
+    if (!active || generation !== connectGeneration || socket !== liveSocket) return;
+    liveSocket.onmessage = event => {
+      if (active && generation === connectGeneration && socket === liveSocket) {
+        void handleLiveMessage(event, generation, liveSocket);
+      }
+    };
+    liveSocket.onclose = event => {
+      if (generation !== connectGeneration || socket !== liveSocket) return;
       setupReady = false;
       if (active) setStatus(event.reason || "Voice connection ended. Close and restart voice chat.", "error");
     };
-    socket.onerror = () => {
-      if (active) setStatus("The real-time voice connection was interrupted.", "error");
+    liveSocket.onerror = () => {
+      if (active && generation === connectGeneration && socket === liveSocket) {
+        setStatus("The real-time voice connection was interrupted.", "error");
+      }
     };
   }
 
@@ -499,11 +558,19 @@
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       audioContext = new AudioContextClass();
       await audioContext.resume();
-      mediaStream = await navigator.mediaDevices.getUserMedia({
+      if (!active || generation !== connectGeneration) return;
+
+      // getUserMedia can resolve after the user has already closed voice mode.
+      // Do not retain a late microphone stream or let an old start affect a new session.
+      const acquiredStream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         video: false
       });
-      if (!active || generation !== connectGeneration) return;
+      if (!active || generation !== connectGeneration) {
+        for (const track of acquiredStream.getTracks()) track.stop();
+        return;
+      }
+      mediaStream = acquiredStream;
       setStatus("Connecting to Zed Live…", "connecting");
       await openLiveSession(generation);
     } catch (error) {
@@ -519,9 +586,11 @@
         }
         window.zedVoiceSetEnabled?.(false);
         updateButtons();
+        await releaseAudioResources();
       }
-      await releaseAudioResources();
     } finally {
+      // Keep a stopped session marked as connecting until its pending startup
+      // promise settles, preventing overlapping microphone/audio initializations.
       connecting = false;
     }
   }
@@ -554,7 +623,8 @@
 
   async function stop() {
     active = false;
-    connecting = false;
+    // Do not clear "connecting" here: start() may still be awaiting permission.
+    // Its finally block clears it after the pending startup has settled.
     setupReady = false;
     connectGeneration++;
     if (socket) {

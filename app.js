@@ -1806,8 +1806,8 @@ fileInput?.addEventListener(
 
     state.selectedFile =
       file;
-    messageInput.value =
-      `Please analyze ${file.name}`;
+    // Keep the user's composer text unchanged when an attachment is selected.
+    // The user decides what Zed should do with the attached file.
     messageInput.focus();
   }
 );

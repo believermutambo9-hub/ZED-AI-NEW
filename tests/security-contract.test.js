@@ -698,8 +698,9 @@ test("responsive interface exposes theme and removable attachment controls", () 
   assert.match(html, /id="selectedFileChip"/);
   assert.match(html, /<script src="ui-enhancements\.js(?:\?[^"]*)?"><\/script>/);
   assert.match(uiEnhancements, /function applyTheme\(theme, persist = true\)/);
-  assert.match(uiEnhancements, /remove-file-button/);
-  assert.match(uiEnhancements, /state\.selectedFile = null/);
+  assert.match(app, /remove-file-button/);
+  assert.match(app, /function clearSelectedFile\(\)/);
+  assert.doesNotMatch(uiEnhancements, /function renderFileChip/);
   assert.match(uiEnhancements, /prefers-reduced-motion/);
 });
 

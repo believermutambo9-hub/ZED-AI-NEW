@@ -298,6 +298,8 @@
       message = JSON.parse(raw);
     } catch (error) {
       console.warn("Zed could not read a Gemini Live message:", error);
+    // Blob.text() is asynchronous; discard the frame if the session closed meanwhile.
+    if (!active) return;
       if (active) setStatus("Zed received an unreadable voice message. Please restart voice chat.", "error");
       return;
     }
@@ -401,6 +403,11 @@
         try { liveSocket.close(); } catch {}
       }, 20000);
       const onOpen = () => {
+        if (!active || generation !== connectGeneration || socket !== liveSocket) {
+          finish(new Error("Voice startup was cancelled."));
+          try { liveSocket.close(); } catch {}
+          return;
+        }
         try {
           liveSocket.send(JSON.stringify({
             setup: {
@@ -462,6 +469,11 @@
           }
           packet = JSON.parse(raw);
         } catch (error) {
+        // Blob.text() can finish after stop() has cancelled this startup.
+        if (!active || generation !== connectGeneration || socket !== liveSocket) {
+          finish(new Error("Voice startup was cancelled."));
+          return;
+        }
           const preview = String(raw || "").replace(/[\\r\\n\\t]+/g, " ").slice(0, 180);
           finish(new Error(
             "Zed could not read Gemini's voice setup frame" +

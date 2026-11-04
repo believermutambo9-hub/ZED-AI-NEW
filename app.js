@@ -217,6 +217,20 @@ function clearSelectedFile() {
   if (fileInput) fileInput.value = "";
   renderSelectedFileChip();
 }
+
+function releaseMessagePreviewUrls(messages = []) {
+  for (const message of messages) {
+    if (message?._previewObjectUrl) {
+      URL.revokeObjectURL(message._previewObjectUrl);
+      message._previewObjectUrl = null;
+    }
+    if (typeof message?.image === "string" && message.image.startsWith("blob:")) {
+      URL.revokeObjectURL(message.image);
+      message.image = null;
+    }
+  }
+}
+
 // ============================================================
 // AUTH UI
 // ============================================================
@@ -1509,6 +1523,7 @@ async function createNewChat() {
     if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
     if (!response.ok || !data.ok) throw new Error(data.error || "Unable to create a new chat.");
     state.conversationId = data.conversationId || data.conversation?.id || null;
+    releaseMessagePreviewUrls(state.messages);
     state.messages = [];
     clearSelectedFile();
     renderMessages();
@@ -1657,14 +1672,14 @@ async function sendMessage() {
     ? requestFile
     : null;
   const localImagePreview = selectedImage ? URL.createObjectURL(selectedImage) : null;
-  state.messages.push({
-    role:"user",
-    content:
-      text ||
-      "Please analyze this uploaded file.",
+  const optimisticUserMessage = {
+    role: "user",
+    content: text || "Please analyze this uploaded file.",
     ...(localImagePreview ? { image: localImagePreview, imageName: selectedImage.name } : {}),
     ...(requestFile && !isImageUpload ? { fileAttachment: { kind: "file" } } : {})
-  });
+  };
+  let sendSucceeded = false;
+  state.messages.push(optimisticUserMessage);
   renderMessages();
   messageInput.value =
     "";
@@ -1738,6 +1753,7 @@ async function sendMessage() {
         "Zed could not respond."
       );
     }
+    sendSucceeded = true;
     state.conversationId =
       data.conversationId ||
       state.conversationId;
@@ -1779,17 +1795,22 @@ async function sendMessage() {
       error
     );
     removeThinking();
+    const failedMessageIndex = state.messages.indexOf(optimisticUserMessage);
+    if (failedMessageIndex >= 0) state.messages.splice(failedMessageIndex, 1);
+    if (localImagePreview) URL.revokeObjectURL(localImagePreview);
+    if (text && messageInput && !messageInput.value.trim()) {
+      messageInput.value = text;
+      messageInput.style.height = "auto";
+    }
     state.messages.push({
-      role:"assistant",
-      content:
-        "I couldn't complete that request.\n\n" +
-        error.message
+      role: "assistant",
+      content: "I couldn't complete that request.\n\n" + error.message
     });
     renderMessages();
     return null;
   } finally {
     if (state.authGeneration === requestGeneration && state.userId === requestUid) {
-      clearSelectedFile();
+      if (sendSucceeded) clearSelectedFile();
       setSending(false);
       messageInput?.focus();
     }
@@ -2155,6 +2176,8 @@ function setupAuthListener() {
         state.sending = false;
         setSending(false);
         clearSelectedFile();
+        releaseMessagePreviewUrls(state.messages);
+        state.messages = [];
         state.chats = [];
         state.chatHistoryUnavailable = false;
         if (fileInput) fileInput.value = "";

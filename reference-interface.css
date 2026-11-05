@@ -126,3 +126,16 @@ body,html[data-theme="light"] body,html[data-theme="dark"] body{color:#ededed;ba
  .zed-voice-mic{width:76px!important;height:76px!important}
 }
 @media(prefers-reduced-motion:reduce){.zed-voice-orb span{animation:none!important}}
+
+/* Reference sidebar refinements: compact sections and visible footer links. */
+.favorites-section,.sidebar-tools-section{display:flex!important;flex-direction:column!important;flex:0 0 auto!important;min-height:0!important;margin:0!important}
+.favorites-section{max-height:17%!important;overflow:auto!important}
+.favorite-chats{display:flex!important;flex-direction:column!important;gap:1px!important;min-height:18px!important}
+.favorite-chats .sidebar-empty{padding:3px 5px!important;color:#777!important;font-size:8px!important}
+.sidebar-tools-section .primary-nav{margin:0!important}
+.sidebar-bottom{flex:0 0 auto!important;gap:5px!important}
+.sidebar-bottom-group{display:flex!important;flex-direction:column!important;gap:1px!important}
+.sidebar-footer-links{padding-top:5px!important;border-top:1px solid #292929!important}
+.sidebar-item#githubBtn{display:flex!important;align-items:center!important;text-decoration:none!important}
+.zed-brand-spark{font-size:11px!important;margin-right:3px!important;color:#eee!important}
+@media(max-height:650px){.favorites-section{max-height:12%!important}.sidebar-tools-section .nav-item{min-height:20px!important;height:20px!important}.sidebar-bottom .sidebar-item{min-height:19px!important;height:19px!important}}

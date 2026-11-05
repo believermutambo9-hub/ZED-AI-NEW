@@ -3443,3 +3443,82 @@ body {
   text-align: center !important;
   pointer-events: none !important;
 }
+
+
+/* =========================================================
+   ZED REFERENCE CHAT — faithful dark, compact layout
+   ========================================================= */
+html, html[data-theme="dark"], html[data-theme="light"] { color-scheme:dark; background:#090909; }
+body, html[data-theme="light"] body, html[data-theme="dark"] body {
+  color:#ededed; background:#090909; font-family:Arial,Helvetica,sans-serif;
+}
+#app.app { background:#090909; }
+#app.app::before,.app::before { display:none!important; }
+.sidebar {
+  width:clamp(132px,19.3vw,250px)!important; min-width:clamp(132px,19.3vw,250px)!important;
+  padding:8px 7px 9px!important; gap:0!important; background:#151515!important;
+  border-right:1px solid #292929!important; box-shadow:none!important; backdrop-filter:none!important;
+}
+.sidebar-brand-row { padding:4px 5px 10px!important; min-height:28px; }
+.sidebar-brand { color:#f2f2f2!important; font-size:13px!important; font-weight:650!important; letter-spacing:0!important; }
+.sidebar-search-toggle { color:#aaa!important; }
+.sidebar-search-wrap { padding:0 1px 11px!important; }
+.sidebar-search-wrap input { height:28px!important; padding:0 8px!important; border:1px solid #292929!important; border-radius:6px!important; background:#202020!important; color:#eee!important; font-size:9px!important; }
+.sidebar-group-label,.sidebar-section-heading,.section-title { color:#aaa!important; font-size:8px!important; font-weight:500!important; letter-spacing:.02em!important; text-transform:none!important; padding:7px 4px 4px!important; }
+.primary-nav { display:flex!important; flex-direction:column!important; gap:1px!important; }
+.nav-item { min-height:23px!important; height:23px!important; padding:3px 5px!important; gap:6px!important; border-radius:4px!important; color:#e4e4e4!important; background:transparent!important; }
+.nav-item:hover,.sidebar-item:hover,.recent-chat:hover { background:#252525!important; transform:none!important; }
+.nav-icon { width:12px!important; height:12px!important; border:0!important; border-radius:0!important; background:none!important; color:#ddd!important; font-size:10px!important; }
+.nav-copy { display:flex!important; align-items:center!important; min-width:0; }
+.nav-copy strong { font-size:9px!important; font-weight:400!important; white-space:nowrap; }
+.nav-copy small { display:none!important; }
+.sidebar-divider { height:0!important; margin:5px 0!important; border:0!important; }
+.sidebar-projects { max-height:28%!important; margin:0!important; overflow:auto!important; }
+.sidebar-section-heading { padding:7px 4px 4px!important; }
+.sidebar-section-heading span { font-size:8px!important; font-weight:500!important; color:#aaa!important; }
+.sidebar-section-heading button { width:17px!important; height:17px!important; color:#aaa!important; }
+.project-list { gap:1px!important; }
+.project-link { min-height:22px!important; padding:3px 5px!important; gap:5px!important; border-radius:4px!important; font-size:9px!important; color:#ddd!important; }
+.project-link small,.project-meta,.project-description { display:none!important; }
+.recent-section { flex:1 1 auto!important; min-height:0!important; overflow:hidden!important; }
+.recent-chats { gap:1px!important; padding:0!important; }
+.recent-chat { min-height:22px!important; height:22px!important; padding:3px 5px!important; gap:5px!important; border-radius:4px!important; color:#ddd!important; font-size:9px!important; }
+.recent-chat small,.recent-chat time,.recent-chat .recent-chat-date { color:#888!important; font-size:7px!important; }
+.see-all-chats { min-height:20px!important; font-size:8px!important; color:#aaa!important; }
+.sidebar-bottom { gap:1px!important; margin-top:5px!important; padding-top:6px!important; border-top:1px solid #292929!important; }
+.sidebar-item { min-height:22px!important; height:22px!important; padding:3px 5px!important; gap:6px!important; border-radius:4px!important; color:#ddd!important; font-size:9px!important; font-weight:400!important; }
+.sidebar-item-icon { width:12px!important; font-size:10px!important; }
+.main { background:#090909!important; }
+.topbar { height:34px!important; min-height:34px!important; padding:0 13px!important; background:#090909!important; border-bottom:1px solid #171717!important; box-shadow:none!important; backdrop-filter:none!important; }
+.brand { gap:7px!important; }
+.brand-logo,.brand-status,.upgrade-btn,.theme-toggle,.profile-btn { display:none!important; }
+.brand-name { color:#eee!important; font-size:11px!important; font-weight:500!important; letter-spacing:0!important; }
+.menu-btn { width:18px!important; height:24px!important; margin-right:4px!important; border:0!important; color:#aaa!important; background:transparent!important; font-size:12px!important; }
+.chat-area { background:#090909!important; }
+.welcome { max-width:600px!important; padding:30px 14px!important; margin:auto!important; }
+.welcome-logo { display:none!important; }
+.welcome h1 { margin:0 0 20px!important; color:#e9e9e9!important; font-size:clamp(25px,4vw,34px)!important; line-height:1.15!important; font-weight:500!important; letter-spacing:-.045em!important; }
+.welcome p { display:none!important; }
+.welcome-actions { width:min(100%,350px)!important; margin:0 auto!important; display:flex!important; flex-direction:column!important; gap:5px!important; }
+.welcome-actions button { min-height:30px!important; padding:7px 9px!important; border:1px solid #242424!important; border-radius:5px!important; background:#101010!important; color:#e4e4e4!important; text-align:left!important; font-size:9px!important; font-weight:400!important; box-shadow:none!important; }
+.welcome-actions button span { display:none!important; }
+.welcome-actions button::after { content:"→"; margin-left:auto; color:#aaa; }
+.composer-container { width:min(100%,590px)!important; max-width:590px!important; padding:7px 12px 9px!important; background:#090909!important; }
+.composer { min-height:48px!important; padding:5px 7px!important; gap:5px!important; border:1px solid #242424!important; border-radius:7px!important; background:#050505!important; box-shadow:none!important; }
+.composer textarea,#messageInput { min-height:27px!important; padding:7px 4px!important; color:#eee!important; font-size:10px!important; }
+.composer-btn { width:22px!important; min-width:22px!important; height:22px!important; flex-basis:22px!important; border:0!important; border-radius:4px!important; color:#aaa!important; background:transparent!important; font-size:12px!important; }
+.send-btn { color:#aaa!important; }
+.composer-note { display:none!important; }
+.attach-menu { background:#171717!important; border:1px solid #303030!important; box-shadow:0 12px 35px #000!important; }
+.attach-menu button { color:#eee!important; }
+@media(max-width:640px) {
+  .sidebar { width:min(250px,82vw)!important; min-width:min(250px,82vw)!important; padding:10px!important; }
+  .topbar { height:48px!important; min-height:48px!important; padding:0 10px!important; }
+  .welcome { padding:22px 13px!important; }
+  .welcome h1 { font-size:29px!important; margin-bottom:18px!important; }
+  .welcome-actions { width:min(100%,360px)!important; }
+  .welcome-actions button { min-height:39px!important; font-size:12px!important; }
+  .composer-container { padding:7px 10px max(9px,env(safe-area-inset-bottom))!important; }
+  .composer { min-height:49px!important; border-radius:8px!important; }
+  .composer textarea,#messageInput { font-size:16px!important; }
+}

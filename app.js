@@ -789,6 +789,18 @@ accountBtn?.addEventListener(
 // ============================================================
 // SETTINGS BUTTON
 // ============================================================
+document.getElementById("aboutBtn")?.addEventListener("click", event => {
+  event.preventDefault();
+  closeSidebar();
+  const content = document.createElement("div");
+  content.append(featureCard(
+    "About Zed",
+    "Zed is your AI workspace for conversations, research, writing, learning, files and real-time voice. More tools will appear here as they become available.",
+    null,
+    null
+  ));
+  openFeaturePanel("About Zed", content);
+});
 settingsBtn?.addEventListener(
   "click",
   event => {

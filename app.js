@@ -186,7 +186,7 @@ function renderSelectedFileChip() {
     selectedFileChip.appendChild(createDocumentIcon());
     const label = document.createElement("span");
     label.className = "selected-file-name";
-    label.textContent = "File";
+    label.textContent = state.selectedFile.name || "File";
     selectedFileChip.appendChild(label);
   }
 
@@ -501,7 +501,7 @@ function updateGoogleProfileAvatar() {
   };
 
   renderAvatar(profileBtn, "profile-avatar-image");
-  renderAvatar(accountBtn, "sidebar-account-avatar");
+  renderAvatar(accountBtn?.querySelector(".zed-account-avatar-wrap"), "sidebar-account-avatar");
   if (profileBtn) {
     profileBtn.setAttribute("aria-label", user
       ? `Account: ${user.displayName || user.email || "signed in"}`
@@ -801,6 +801,35 @@ settingsBtn?.addEventListener(
     openSettings();
   }
 );
+
+// Sidebar destinations kept visible even when a section has no saved content.
+document.getElementById("homeNavBtn")?.addEventListener("click", () => {
+  closeSidebar();
+  closeSettings();
+  if (accountPanel) accountPanel.style.display = "none";
+  document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("zed-nav-active"));
+  document.getElementById("homeNavBtn")?.classList.add("zed-nav-active");
+  welcome?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+document.getElementById("profileMenuBtn")?.addEventListener("click", event => {
+  event.stopPropagation();
+  closeSidebar();
+  closeSettings();
+  updateAccountPanel();
+  if (accountPanel) accountPanel.style.display = "block";
+});
+document.getElementById("aboutBtn")?.addEventListener("click", () => {
+  closeSidebar();
+  const content = document.createElement("div");
+  content.append(featureCard(
+    "About Zed",
+    "Zed is your AI workspace for asking questions, learning, writing, research and getting work done. Some tools may appear in the menu before their services are enabled.",
+    null,
+    null
+  ));
+  openFeaturePanel("About Zed", content);
+});
+
 // ============================================================
 // CLOSE FLOATING PANELS
 // ============================================================

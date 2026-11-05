@@ -30,41 +30,6 @@
     applyTheme(root.dataset.theme === "dark" ? "light" : "dark");
   });
 
-  // Show the selected file and allow removal before sending.
-  function renderFileChip(file) {
-    if (!fileChip) return;
-    fileChip.replaceChildren();
-    if (!file) {
-      fileChip.hidden = true;
-      return;
-    }
-    fileChip.hidden = false;
-    const label = document.createElement("span");
-    label.className = "selected-file-name";
-    label.textContent = `Attached: ${file.name}`;
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "remove-file-button";
-    remove.textContent = "Remove";
-    remove.setAttribute("aria-label", `Remove ${file.name}`);
-    remove.addEventListener("click", () => {
-      try { state.selectedFile = null; } catch {}
-      if (fileInput) fileInput.value = "";
-      renderFileChip(null);
-      if (messageInput && messageInput.value === `Please analyze ${file.name}`) {
-        messageInput.value = "";
-      }
-    });
-    fileChip.append(label, remove);
-  }
-  fileInput?.addEventListener("change", () => renderFileChip(fileInput.files?.[0] || null));
-  if (sendButton) {
-    const sendingObserver = new MutationObserver(() => {
-      if (!sendButton.disabled && !fileInput?.files?.length) renderFileChip(null);
-    });
-    sendingObserver.observe(sendButton, { attributes: true, attributeFilter: ["disabled"] });
-  }
-
   // Make dynamically-created settings expose the same theme preference.
   const settingsObserver = new MutationObserver(() => {
     const panel = document.getElementById("zedSettingsPanel");

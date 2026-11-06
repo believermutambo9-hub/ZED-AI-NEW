@@ -107,7 +107,7 @@ test("real-time voice routes substantive requests through the authenticated Zed 
   assert.match(voiceSource, /async function submitToZedChat\(spokenText\)/);
   assert.match(voiceSource, /window\.zedVoiceSubmitTranscript\(String\(spokenText/);
   assert.match(voiceSource, /name: "zed_chat"/);
-  assert.match(voiceSource, /handleToolCalls\(message\.toolCall\.functionCalls\)/);
+  assert.match(voiceSource, /handleToolCalls\(message\.toolCall\.functionCalls,/);
   assert.match(voiceSource, /new WebSocket\(url\)/);
   assert.match(voiceSource, /realtimeInput/);
 });

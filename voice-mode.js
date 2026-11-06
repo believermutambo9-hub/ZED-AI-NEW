@@ -55,7 +55,7 @@
   }
 
   function updateButtons() {
-    for (const id of ["voiceInputBtn", "voiceModeBtn"]) {
+    for (const id of ["voiceModeBtn"]) {
       const button = document.getElementById(id);
       if (!button) continue;
       button.classList.toggle("voice-active", active);
@@ -74,29 +74,44 @@
     voiceScreen.setAttribute("aria-label", "Zed real-time voice conversation");
     voiceScreen.innerHTML = `
       <header class="zed-voice-header">
-        <div class="zed-voice-brand"><span class="zed-voice-brand-mark">Z</span><span>Zed voice</span></div>
+        <div class="zed-voice-brand"><span class="zed-voice-brand-mark">✳</span><span>Zed Voice</span></div>
         <div class="zed-voice-header-actions">
           <span class="zed-voice-live-indicator"><i></i> LIVE</span>
           <button class="zed-voice-close" type="button" aria-label="Close voice chat">×</button>
         </div>
       </header>
-      <main class="zed-voice-stage">
-        <div class="zed-voice-orb" aria-hidden="true"><span style="--wave-h:18%;--wave-delay:0s;--wave-speed:0.42s"></span><span style="--wave-h:35%;--wave-delay:-0.11s;--wave-speed:0.51s"></span><span style="--wave-h:52%;--wave-delay:-0.22s;--wave-speed:0.6s"></span><span style="--wave-h:69%;--wave-delay:-0.33s;--wave-speed:0.69s"></span><span style="--wave-h:19%;--wave-delay:-0.44s;--wave-speed:0.78s"></span><span style="--wave-h:36%;--wave-delay:-0.55s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:53%;--wave-delay:-0.66s;--wave-speed:0.96s"></span><span style="--wave-h:70%;--wave-delay:-0.77s;--wave-speed:0.42s"></span><span style="--wave-h:20%;--wave-delay:-0.88s;--wave-speed:0.51s"></span><span style="--wave-h:37%;--wave-delay:-0.99s;--wave-speed:0.6s"></span><span style="--wave-h:54%;--wave-delay:-1.1s;--wave-speed:0.69s"></span><span style="--wave-h:71%;--wave-delay:-1.21s;--wave-speed:0.78s"></span><span style="--wave-h:21%;--wave-delay:-1.32s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:38%;--wave-delay:0s;--wave-speed:0.96s"></span><span style="--wave-h:55%;--wave-delay:-0.11s;--wave-speed:0.42s"></span><span style="--wave-h:72%;--wave-delay:-0.22s;--wave-speed:0.51s"></span><span style="--wave-h:22%;--wave-delay:-0.33s;--wave-speed:0.6s"></span><span style="--wave-h:39%;--wave-delay:-0.44s;--wave-speed:0.69s"></span><span style="--wave-h:56%;--wave-delay:-0.55s;--wave-speed:0.78s"></span><span style="--wave-h:73%;--wave-delay:-0.66s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:23%;--wave-delay:-0.77s;--wave-speed:0.96s"></span><span style="--wave-h:40%;--wave-delay:-0.88s;--wave-speed:0.42s"></span><span style="--wave-h:57%;--wave-delay:-0.99s;--wave-speed:0.51s"></span><span style="--wave-h:74%;--wave-delay:-1.1s;--wave-speed:0.6s"></span><span style="--wave-h:24%;--wave-delay:-1.21s;--wave-speed:0.69s"></span><span style="--wave-h:41%;--wave-delay:-1.32s;--wave-speed:0.78s"></span><span style="--wave-h:58%;--wave-delay:0s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:75%;--wave-delay:-0.11s;--wave-speed:0.96s"></span><span style="--wave-h:25%;--wave-delay:-0.22s;--wave-speed:0.42s"></span><span style="--wave-h:42%;--wave-delay:-0.33s;--wave-speed:0.51s"></span><span style="--wave-h:59%;--wave-delay:-0.44s;--wave-speed:0.6s"></span><span style="--wave-h:76%;--wave-delay:-0.55s;--wave-speed:0.69s"></span><span style="--wave-h:26%;--wave-delay:-0.66s;--wave-speed:0.78s"></span><span style="--wave-h:43%;--wave-delay:-0.77s;--wave-speed:0.8699999999999999s"></span><span style="--wave-h:60%;--wave-delay:-0.88s;--wave-speed:0.96s"></span><span style="--wave-h:77%;--wave-delay:-0.99s;--wave-speed:0.42s"></span><span style="--wave-h:27%;--wave-delay:-1.1s;--wave-speed:0.51s"></span></div>
+      <main class="zed-voice-stage zed-voice-reference-stage">
         <h2 class="zed-voice-heading">Talk with Zed</h2>
-        <p class="zed-voice-status" data-state="idle" aria-live="polite">Starting real-time voice…</p>
+        <p class="zed-voice-status" data-state="idle" aria-live="polite">Starting your voice session…</p>
+        <div class="zed-voice-orb" aria-hidden="true">
+          ${Array.from({length:39},(_,i)=>`<span style="--wave-h:${18+Math.round(Math.abs(Math.sin(i*.48))*58)}%;--wave-delay:${(i%13)*-.09}s;--wave-speed:${(.42+(i%7)*.08).toFixed(2)}s"></span>`).join("")}
+        </div>
         <div class="zed-voice-transcript" aria-live="polite">Your conversation will appear here.</div>
+        <button class="zed-voice-mic zed-voice-reference-mic" type="button" aria-label="Interrupt Zed or continue speaking"><span>🎙</span></button>
       </main>
-      <footer class="zed-voice-footer">
-        <button class="zed-voice-action zed-voice-mute" type="button" aria-pressed="false"><span>◖</span><small>Mute reply</small></button>
-        <button class="zed-voice-action zed-voice-mic" type="button" aria-label="Stop current reply"><span>🎙</span><small>Interrupt</small></button>
-        <button class="zed-voice-action zed-voice-end" type="button"><span>×</span><small>End</small></button>
-      </footer>
-      <div class="zed-voice-mode-actions" aria-label="Other ways to use Zed">
-        <button class="zed-voice-mode-button zed-voice-type" type="button"><span>⌨</span> Switch to typing</button>
-        <button class="zed-voice-mode-button zed-voice-attach" type="button"><span>＋</span> Add photo or file</button>
-      </div>
-      <p class="zed-voice-hint">Speak naturally, or switch to typing and attachments whenever you need.</p>`;
+      <footer class="zed-voice-footer zed-voice-reference-footer">
+        <div class="zed-voice-profile">
+          <span class="zed-voice-profile-avatar" aria-hidden="true">Z</span>
+          <span class="zed-voice-profile-copy"><strong class="zed-voice-profile-name">Zed</strong><small>Real-time AI assistant</small></span>
+        </div>
+        <button class="zed-voice-action zed-voice-mute" type="button" aria-pressed="false" aria-label="Mute Zed's voice replies"><span>◖</span><small>Mute reply</small></button>
+        <button class="zed-voice-action zed-voice-end" type="button" aria-label="End voice chat"><span>×</span><small>End</small></button>
+      </footer>`;
+
     document.body.append(voiceScreen);
+    const profileUser = window.zedVoiceGetUser?.();
+    const profileName = voiceScreen.querySelector(".zed-voice-profile-name");
+    const profileAvatar = voiceScreen.querySelector(".zed-voice-profile-avatar");
+    if (profileName) profileName.textContent = profileUser?.displayName || profileUser?.email || "Zed";
+    if (profileAvatar && profileUser?.photoURL) {
+      const photo = document.createElement("img");
+      photo.src = profileUser.photoURL;
+      photo.alt = "";
+      photo.referrerPolicy = "no-referrer";
+      profileAvatar.replaceChildren(photo);
+    } else if (profileAvatar) {
+      profileAvatar.textContent = (profileUser?.displayName || profileUser?.email || "Z").trim().charAt(0).toUpperCase();
+    }
     statusNode = voiceScreen.querySelector(".zed-voice-status");
     transcriptNode = voiceScreen.querySelector(".zed-voice-transcript");
     voiceScreen.querySelector(".zed-voice-close").addEventListener("click", stop);
@@ -106,13 +121,13 @@
       stopPlayback();
       if (active && setupReady) setStatus("Listening… go ahead", "listening");
     });
-    voiceScreen.querySelector(".zed-voice-type").addEventListener("click", async () => {
+    voiceScreen.querySelector(".zed-voice-type")?.addEventListener("click", async () => {
       await stop();
       const input = document.getElementById("messageInput");
       input?.focus();
       input?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
-    voiceScreen.querySelector(".zed-voice-attach").addEventListener("click", async () => {
+    voiceScreen.querySelector(".zed-voice-attach")?.addEventListener("click", async () => {
       await stop();
       document.getElementById("attachBtn")?.click();
     });
@@ -651,7 +666,7 @@
   }
 
   function install() {
-    for (const id of ["voiceInputBtn", "voiceModeBtn"]) {
+    for (const id of ["voiceModeBtn"]) {
       const button = document.getElementById(id);
       if (!button) continue;
       button.title = "Start voice chat";

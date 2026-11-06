@@ -215,3 +215,103 @@ body,html[data-theme="light"] body,html[data-theme="dark"] body{color:#ededed;ba
  .zed-voice-reference-footer{bottom:12px!important}
  .zed-voice-profile-avatar{width:44px!important;height:44px!important}
 }
+
+
+/* CHAT HOME — closer structural and visual match to the supplied reference. */
+html,html[data-theme="dark"],html[data-theme="light"],body,html[data-theme="light"] body,html[data-theme="dark"] body,
+#app.app,.main,.chat-area{background:#090909!important;color:#ededed!important}
+.sidebar{
+ width:clamp(132px,19.3vw,250px)!important;min-width:clamp(132px,19.3vw,250px)!important;
+ flex:0 0 clamp(132px,19.3vw,250px)!important
+}
+.sidebar-brand-row{min-height:26px!important}
+.sidebar-brand{font-size:13px!important;white-space:nowrap!important}
+.sidebar-brand .zed-brand-spark{font-size:11px!important}
+.sidebar-search-wrap input{height:27px!important}
+.sidebar-group-label,.sidebar-section-heading,.section-title{font-size:8px!important}
+.nav-item{min-height:23px!important;height:23px!important}
+.nav-item.is-active,.nav-item[aria-current="page"]{background:#292929!important}
+.recent-chat{display:flex!important;align-items:center!important;min-width:0!important}
+.recent-chat>*{min-width:0!important}
+.recent-chat span,.recent-chat strong,.recent-chat .recent-chat-title{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.sidebar-tools-section{display:flex!important;flex-direction:column!important;flex:0 0 auto!important;min-height:0!important}
+.sidebar-tools-section .sidebar-section-heading{padding-top:7px!important}
+.sidebar-tools-section .nav-item{min-height:22px!important;height:22px!important}
+.sidebar-bottom{margin-top:auto!important}
+.topbar{justify-content:flex-start!important}
+.topbar-left{gap:5px!important}
+.menu-btn{display:flex!important}
+.brand{gap:0!important}
+.brand-name{font-size:11px!important}
+.chat-area{position:relative!important;min-height:0!important}
+.welcome{
+ width:100%!important;max-width:620px!important;min-height:0!important;
+ display:flex!important;flex-direction:column!important;align-items:center!important;
+ justify-content:center!important;gap:0!important;margin:auto!important;
+ padding:26px 14px!important;text-align:center!important
+}
+.welcome-logo{display:none!important}
+.welcome h1{
+ order:0!important;margin:0 0 18px!important;color:#e9e9e9!important;
+ font-size:clamp(27px,4vw,34px)!important;line-height:1.08!important;
+ font-weight:500!important;letter-spacing:-.045em!important
+}
+.welcome .welcome-subtitle{
+ display:block!important;order:1!important;margin:0 0 14px!important;
+ color:#c4c4c4!important;font-size:9px!important;line-height:1.3!important
+}
+.welcome-actions{
+ order:2!important;display:flex!important;flex-direction:column!important;
+ width:min(420px,58vw)!important;max-width:100%!important;margin:0 auto!important;gap:5px!important
+}
+.welcome-actions button{
+ width:100%!important;min-height:29px!important;height:auto!important;
+ display:flex!important;align-items:center!important;padding:6px 9px!important;
+ border:1px solid #242424!important;border-radius:5px!important;
+ background:#101010!important;color:#e4e4e4!important;text-align:left!important;
+ font-size:9px!important;line-height:1.25!important;font-weight:400!important;
+ box-shadow:none!important;white-space:normal!important
+}
+.welcome-actions button:hover{background:#171717!important;border-color:#333!important}
+.welcome-actions button span{display:none!important}
+.welcome-actions button::after{content:"→";flex:0 0 auto;margin-left:auto;padding-left:8px;color:#aaa!important}
+.composer-container{
+ width:min(560px,58%)!important;max-width:560px!important;flex:0 0 auto!important;
+ padding:7px 12px 9px!important;background:#090909!important
+}
+.composer{
+ min-height:49px!important;height:auto!important;padding:5px 7px!important;gap:5px!important;
+ border:1px solid #242424!important;border-radius:7px!important;background:#050505!important;
+ box-shadow:none!important
+}
+.composer textarea,#messageInput{
+ min-height:27px!important;padding:7px 4px!important;color:#eee!important;
+ font-size:10px!important;line-height:1.35!important
+}
+.composer textarea::placeholder,#messageInput::placeholder{color:#858585!important;opacity:1!important}
+.composer-btn{width:22px!important;min-width:22px!important;height:22px!important;flex-basis:22px!important}
+.attach-button{font-size:13px!important}
+.voice-input-btn,.voice-mode-btn{display:flex!important}
+.send-btn{color:#aaa!important;background:transparent!important}
+.composer-note{display:none!important}
+.messages{width:min(760px,88%)!important;max-width:760px!important;padding:28px 18px 90px!important}
+.message{margin-bottom:22px!important}
+.message-content{font-size:14px!important;line-height:1.7!important}
+.message-user .message-content{background:#191919!important;border:1px solid #262626!important;border-radius:14px!important;padding:10px 13px!important}
+.attach-menu{background:#171717!important;border:1px solid #303030!important;box-shadow:0 12px 35px #000!important}
+.attach-menu button{color:#eee!important}
+@media(min-width:641px){
+ .sidebar{position:relative!important;inset:auto!important;transform:none!important}
+ .menu-btn{display:flex!important}
+}
+@media(max-width:640px){
+ .sidebar{width:min(250px,82vw)!important;min-width:min(250px,82vw)!important;flex-basis:min(250px,82vw)!important}
+ .welcome{padding:20px 13px!important}
+ .welcome h1{font-size:29px!important;margin-bottom:16px!important}
+ .welcome-actions{width:min(100%,360px)!important}
+ .welcome-actions button{min-height:38px!important;font-size:12px!important}
+ .composer-container{width:100%!important;max-width:100%!important;padding:7px 10px max(9px,env(safe-area-inset-bottom))!important}
+ .composer{min-height:49px!important;border-radius:8px!important}
+ .composer textarea,#messageInput{font-size:16px!important}
+ .messages{width:100%!important;padding:22px 13px 90px!important}
+}

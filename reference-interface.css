@@ -360,3 +360,79 @@ body{min-height:100dvh!important}
  .chat-area{justify-content:center!important}
  .composer-container{align-self:stretch!important}
 }
+
+
+/* Composer redesign: larger, balanced controls and a clear input/send area. */
+.composer-container{
+  width:min(590px,calc(100% - 32px))!important;
+  max-width:590px!important;
+  padding:10px 12px 12px!important;
+}
+.composer{
+  display:flex!important;
+  align-items:center!important;
+  gap:9px!important;
+  min-height:58px!important;
+  padding:8px 10px!important;
+  border:1px solid #303030!important;
+  border-radius:16px!important;
+  background:#111!important;
+  box-shadow:0 5px 22px rgba(0,0,0,.24)!important;
+}
+.composer textarea,#messageInput{
+  flex:1 1 auto!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:38px!important;
+  max-height:150px!important;
+  padding:10px 5px!important;
+  margin:0!important;
+  border:0!important;
+  outline:0!important;
+  resize:none!important;
+  background:transparent!important;
+  color:#f2f2f2!important;
+  font-size:14px!important;
+  line-height:1.4!important;
+}
+.composer-btn{
+  display:inline-flex!important;
+  flex:0 0 36px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:36px!important;
+  min-width:36px!important;
+  height:36px!important;
+  padding:0!important;
+  border:1px solid #303030!important;
+  border-radius:50%!important;
+  background:#1b1b1b!important;
+  color:#e8e8e8!important;
+  font-size:19px!important;
+  line-height:1!important;
+  cursor:pointer!important;
+}
+.composer-btn:hover{background:#292929!important;border-color:#484848!important}
+.attach-button{font-size:27px!important;font-weight:300!important}
+.voice-input-btn span{font-size:17px!important}
+.voice-mode-btn{
+  background:#202b3b!important;
+  border-color:#344b68!important;
+  color:#bcd8ff!important;
+}
+.voice-mode-btn .voice-wave-icon{font-size:24px!important;font-weight:600!important;line-height:1!important}
+.send-btn{
+  background:#f0f0f0!important;
+  border-color:#f0f0f0!important;
+  color:#111!important;
+  font-size:23px!important;
+  font-weight:700!important;
+}
+.send-btn:hover{background:#fff!important;border-color:#fff!important}
+@media(max-width:640px){
+ .composer-container{width:100%!important;max-width:100%!important;padding:8px 12px max(12px,env(safe-area-inset-bottom))!important}
+ .composer{min-height:58px!important;padding:7px 8px!important;gap:6px!important;border-radius:17px!important}
+ .composer-btn{flex-basis:34px!important;width:34px!important;min-width:34px!important;height:34px!important}
+ .composer textarea,#messageInput{font-size:16px!important;min-height:38px!important;padding:8px 2px!important}
+ .attach-button{font-size:25px!important}
+}

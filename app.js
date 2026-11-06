@@ -262,7 +262,7 @@ function createAuthScreen() {
       #zedAuthScreen, #zedAuthScreen * { box-sizing: border-box; }
       #zedAuthScreen {
         --auth-ink:#f4f7ff; --auth-muted:#9ba9bd; --auth-blue:#72a7ff;
-        position:fixed; inset:0; z-index:9999; display:grid; place-items:center;
+        position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
         overflow:auto; padding:28px 18px; color:var(--auth-ink);
         background:#070b14;
         background-image:
@@ -459,9 +459,10 @@ function updateGoogleProfileAvatar() {
   const initials = (user?.displayName || user?.email || "U")
     .trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase();
 
-  const renderAvatar = (button, className) => {
+  const renderAvatar = (button, className, includeLabel = false) => {
     if (!button) return;
-    button.replaceChildren();
+    const avatar = document.createElement("span");
+    avatar.className = "account-avatar-wrap";
     if (photoURL) {
       const image = document.createElement("img");
       image.className = className;
@@ -472,19 +473,26 @@ function updateGoogleProfileAvatar() {
         const fallback = document.createElement("span");
         fallback.className = "profile-avatar-fallback";
         fallback.textContent = initials || "U";
-        button.replaceChildren(fallback);
+        avatar.replaceChildren(fallback);
       }, { once: true });
-      button.appendChild(image);
+      avatar.appendChild(image);
     } else {
       const fallback = document.createElement("span");
       fallback.className = "profile-avatar-fallback";
       fallback.textContent = initials || "U";
-      button.appendChild(fallback);
+      avatar.appendChild(fallback);
+    }
+    button.replaceChildren(avatar);
+    if (includeLabel) {
+      const label = document.createElement("span");
+      label.className = "sidebar-account-label";
+      label.textContent = "Profile";
+      button.appendChild(label);
     }
   };
 
   renderAvatar(profileBtn, "profile-avatar-image");
-  renderAvatar(accountBtn, "sidebar-account-avatar");
+  renderAvatar(accountBtn, "sidebar-account-avatar", true);
   if (profileBtn) {
     profileBtn.setAttribute("aria-label", user
       ? `Account: ${user.displayName || user.email || "signed in"}`

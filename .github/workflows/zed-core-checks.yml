@@ -8,9 +8,11 @@ on:
       - zed-universal-file-analysis
       - zed-v2-ai-engine
       - zed-comprehensive-repair-20261031
+      - zed-sidebar-polish
   pull_request:
     branches:
       - main
+      - zed-login-experience
 
 jobs:
   syntax:

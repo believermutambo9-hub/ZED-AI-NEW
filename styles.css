@@ -3443,3 +3443,118 @@ body {
   text-align: center !important;
   pointer-events: none !important;
 }
+
+
+
+/* Zed sidebar — spacious, consistent navigation */
+#sidebar.sidebar {
+  box-sizing: border-box;
+  width: 328px;
+  min-width: 328px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 22px 17px max(18px, env(safe-area-inset-bottom));
+  background: #111318;
+  color: #f4f5f7;
+  border-right: 1px solid rgba(255,255,255,.09);
+}
+#sidebar .sidebar-brand-row {
+  display:flex; align-items:center; min-height:48px;
+  margin:0 5px 20px;
+}
+#sidebar .sidebar-brand {
+  display:flex; align-items:center; gap:12px;
+  color:#f7f8fb; font-size:25px; font-weight:750; letter-spacing:-.7px;
+}
+#sidebar .sidebar-brand-logo {
+  display:block; width:38px; height:38px; object-fit:contain; flex:0 0 38px;
+}
+#sidebar .sidebar-search-wrap { margin:0 0 24px; }
+#sidebar .sidebar-search-wrap input {
+  width:100%; min-height:48px; padding:0 15px; box-sizing:border-box;
+  border:1px solid rgba(255,255,255,.11); border-radius:13px;
+  background:#1b1f27; color:#f4f5f7; font-size:15px;
+}
+#sidebar .sidebar-group-label,
+#sidebar .sidebar-section-heading {
+  color:#939baa; font-size:12px; font-weight:700;
+  letter-spacing:.075em; text-transform:uppercase;
+}
+#sidebar .sidebar-group-label { margin:0 10px 10px; }
+#sidebar .primary-nav { display:grid; gap:6px; margin:0 0 20px; }
+#sidebar .nav-item {
+  display:flex; align-items:center; width:100%; min-height:50px;
+  gap:13px; padding:8px 12px; border:1px solid transparent;
+  border-radius:12px; background:transparent; color:#e0e3e9;
+  text-align:left; transition:background .16s ease,border-color .16s ease;
+}
+#sidebar .nav-item:hover,#sidebar .nav-item:focus-visible {
+  background:#202530; border-color:rgba(255,255,255,.07); outline:none;
+}
+#sidebar .nav-item.is-active {
+  background:rgba(83,116,255,.17); border-color:rgba(112,140,255,.3); color:#fff;
+}
+#sidebar .nav-icon {
+  display:grid; place-items:center; width:36px; min-width:36px; height:36px;
+  border-radius:10px; background:#202530; color:#b8c5ff; font-size:19px;
+}
+#sidebar .nav-copy { display:flex; align-items:center; min-width:0; }
+#sidebar .nav-copy strong { font-size:16px; font-weight:620; line-height:1.35; }
+#sidebar .favorites-section,#sidebar .recent-section,
+#sidebar .sidebar-tools-section { margin:0 0 19px; }
+#sidebar .sidebar-section-heading { padding:5px 10px 10px; }
+#sidebar .sidebar-empty {
+  margin:0 3px; padding:12px; border:1px dashed rgba(255,255,255,.12);
+  border-radius:11px; color:#9299a7; font-size:14px; line-height:1.5;
+}
+#sidebar .recent-chats { max-height:190px; min-height:0; overflow-y:auto; }
+#sidebar .recent-chat {
+  min-height:44px; padding:10px 12px; border-radius:10px;
+  color:#d7dbe4; font-size:14px;
+}
+#sidebar .see-all-chats { min-height:38px; padding:7px 10px; color:#b9c6ff; font-size:14px; }
+#sidebar .sidebar-tools-section .primary-nav { gap:5px; margin:0; }
+#sidebar .sidebar-tools-section .nav-item { min-height:47px; }
+#sidebar .sidebar-bottom {
+  display:flex !important; flex-direction:column; gap:12px;
+  margin-top:auto; padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.11);
+}
+#sidebar .sidebar-bottom-group { display:grid; gap:6px; }
+#sidebar .sidebar-bottom-group .sidebar-group-label { margin:0 10px 3px; }
+#sidebar .sidebar-bottom .sidebar-item,
+#sidebar .sidebar-bottom .sidebar-item:last-child {
+  display:flex !important; align-items:center; width:100%; min-height:48px;
+  gap:13px; padding:8px 12px; box-sizing:border-box;
+  border:1px solid rgba(255,255,255,.09); border-radius:12px;
+  background:#191d25; color:#edf0f5; font-size:15px; font-weight:600;
+  text-align:left; text-decoration:none;
+}
+#sidebar .sidebar-item-icon {
+  display:grid; place-items:center; width:32px; min-width:32px; height:32px;
+  border-radius:9px; background:#252b37; color:#c0cbff; font-size:18px;
+}
+#sidebar .sidebar-bottom .sidebar-item:hover,
+#sidebar .sidebar-bottom .sidebar-item:focus-visible {
+  background:#242a36; border-color:rgba(255,255,255,.15); outline:none;
+}
+#sidebar #accountBtn { min-height:60px; background:#1d2330; }
+#sidebar #accountBtn .account-avatar-wrap {
+  display:inline-flex; width:40px; min-width:40px; height:40px;
+  overflow:hidden; border:2px solid rgba(150,173,255,.65); border-radius:50%;
+}
+#sidebar #accountBtn .sidebar-account-avatar,
+#sidebar #accountBtn .profile-avatar-fallback {
+  display:block; width:100%; height:100%; border-radius:50%; object-fit:cover;
+}
+#sidebar .sidebar-account-label { color:#fff; font-size:15px; font-weight:650; }
+#sidebar .sidebar-footer-links { padding-top:10px; border-top:1px solid rgba(255,255,255,.08); }
+@media (max-width:700px) {
+  #sidebar.sidebar {
+    width:min(360px,90vw) !important; min-width:min(360px,90vw) !important;
+    padding:max(20px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom)) !important;
+  }
+  #sidebar .nav-copy strong { font-size:16px; }
+}
+@media (prefers-reduced-motion:reduce) { #sidebar .nav-item { transition:none; } }

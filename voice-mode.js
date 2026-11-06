@@ -162,7 +162,7 @@
   function startMicrophoneStreaming() {
     if (!audioContext || !mediaStream || !socket || socket.readyState !== WebSocket.OPEN) return;
     micSource = audioContext.createMediaStreamSource(mediaStream);
-    micProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+    micProcessor = audioContext.createScriptProcessor(2048, 1, 1);
     silentGain = audioContext.createGain();
     silentGain.gain.value = 0;
     micProcessor.onaudioprocess = event => {

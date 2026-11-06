@@ -99,6 +99,19 @@
       </footer>`;
 
     document.body.append(voiceScreen);
+    const profileUser = window.zedVoiceGetUser?.();
+    const profileName = voiceScreen.querySelector(".zed-voice-profile-name");
+    const profileAvatar = voiceScreen.querySelector(".zed-voice-profile-avatar");
+    if (profileName) profileName.textContent = profileUser?.displayName || profileUser?.email || "Zed";
+    if (profileAvatar && profileUser?.photoURL) {
+      const photo = document.createElement("img");
+      photo.src = profileUser.photoURL;
+      photo.alt = "";
+      photo.referrerPolicy = "no-referrer";
+      profileAvatar.replaceChildren(photo);
+    } else if (profileAvatar) {
+      profileAvatar.textContent = (profileUser?.displayName || profileUser?.email || "Z").trim().charAt(0).toUpperCase();
+    }
     statusNode = voiceScreen.querySelector(".zed-voice-status");
     transcriptNode = voiceScreen.querySelector(".zed-voice-transcript");
     voiceScreen.querySelector(".zed-voice-close").addEventListener("click", stop);

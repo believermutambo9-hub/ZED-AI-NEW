@@ -262,7 +262,7 @@ function createAuthScreen() {
       #zedAuthScreen, #zedAuthScreen * { box-sizing: border-box; }
       #zedAuthScreen {
         --auth-ink:#f4f7ff; --auth-muted:#9ba9bd; --auth-blue:#72a7ff;
-        position:fixed; inset:0; z-index:9999; display:grid; place-items:center;
+        position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
         overflow:auto; padding:28px 18px; color:var(--auth-ink);
         background:#070b14;
         background-image:

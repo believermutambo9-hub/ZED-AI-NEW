@@ -249,166 +249,149 @@ let menuBackdrop = null;
 // ============================================================
 function createAuthScreen() {
   if (document.getElementById("zedAuthScreen")) {
-    authScreen =
-      document.getElementById("zedAuthScreen");
+    authScreen = document.getElementById("zedAuthScreen");
     return;
   }
-  authScreen =
-    document.createElement("div");
-  authScreen.id =
-    "zedAuthScreen";
-  authScreen.style.cssText = `
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background:
-      radial-gradient(circle at 20% 20%, rgba(114,230,164,.12), transparent 30%),
-      radial-gradient(circle at 80% 80%, rgba(100,160,255,.12), transparent 30%),
-      #101114;
-    color: #f5f5f5;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    padding: 20px;
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-  `;
-  const box =
-    document.createElement("div");
-  box.style.cssText = `
-    width: 100%;
-    max-width: 390px;
-    background: rgba(42,44,51,.72);
-    border: 1px solid rgba(255,255,255,.13);
-    border-radius: 26px;
-    padding: 28px;
-    box-shadow:
-      0 30px 80px rgba(0,0,0,.40),
-      inset 0 1px 0 rgba(255,255,255,.16);
-    backdrop-filter: blur(35px) saturate(150%);
-    -webkit-backdrop-filter: blur(35px) saturate(150%);
-  `;
-  box.innerHTML = `
-    <div style="
-      width:64px;
-      height:64px;
-      margin:0 auto 18px;
-      border-radius:20px;
-      background:rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.14);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#72e6a4;
-      font-size:30px;
-      font-weight:700;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.20);
-    "><img src="/super-brain.svg?v=2" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:19px;display:block;"></div>
-    <h1 style="
-      text-align:center;
-      font-size:25px;
-      margin-bottom:8px;
-    ">Welcome to Zed</h1>
-    <p style="
-      text-align:center;
-      color:#a7a7a7;
-      font-size:14px;
-      margin-bottom:22px;
-    ">Sign in to continue</p>
-    <button id="googleLogin" style="
-      width:100%;
-      height:44px;
-      border:0;
-      border-radius:13px;
-      background:rgba(255,255,255,.92);
-      color:#202020;
-      cursor:pointer;
-      font-weight:600;
-      margin-bottom:16px;
-    ">Continue with Google</button>
-    <div style="
-      text-align:center;
-      color:#777;
-      font-size:12px;
-      margin:10px 0;
-    ">or</div>
-    <input id="emailInput"
-      type="email"
-      placeholder="Email"
-      style="
-        width:100%;
-        height:44px;
-        margin-bottom:10px;
-        padding:0 12px;
-        border:1px solid rgba(255,255,255,.10);
-        border-radius:13px;
-        outline:none;
-        background:rgba(0,0,0,.16);
-        color:#f5f5f5;
-      "
-    >
-    <input id="passwordInput"
-      type="password"
-      placeholder="Password"
-      style="
-        width:100%;
-        height:44px;
-        margin-bottom:12px;
-        padding:0 12px;
-        border:1px solid rgba(255,255,255,.10);
-        border-radius:13px;
-        outline:none;
-        background:rgba(0,0,0,.16);
-        color:#f5f5f5;
-      "
-    >
-    <div style="
-      display:flex;
-      gap:8px;
-    ">
-      <button id="emailLogin" style="
-        flex:1;
-        height:42px;
-        border:0;
-        border-radius:13px;
-        background:#72e6a4;
-        color:#111;
-        cursor:pointer;
-        font-weight:700;
-      ">Login</button>
-      <button id="emailSignup" style="
-        flex:1;
-        height:42px;
-        border:1px solid rgba(255,255,255,.12);
-        border-radius:13px;
-        background:rgba(255,255,255,.06);
-        color:#f5f5f5;
-        cursor:pointer;
-      ">Sign up</button>
+
+  authScreen = document.createElement("section");
+  authScreen.id = "zedAuthScreen";
+  authScreen.className = "zed-auth-screen";
+  authScreen.setAttribute("aria-label", "Sign in to Zed");
+  authScreen.innerHTML = `
+    <style>
+      #zedAuthScreen, #zedAuthScreen * { box-sizing: border-box; }
+      #zedAuthScreen {
+        --auth-ink:#f4f7ff; --auth-muted:#9ba9bd; --auth-blue:#72a7ff;
+        position:fixed; inset:0; z-index:9999; display:grid; place-items:center;
+        overflow:auto; padding:28px 18px; color:var(--auth-ink);
+        background:#070b14;
+        background-image:
+          radial-gradient(ellipse at 16% 18%,rgba(35,105,210,.23),transparent 38%),
+          radial-gradient(ellipse at 86% 82%,rgba(34,78,164,.22),transparent 42%),
+          linear-gradient(135deg,#070b14 0%,#0b1424 52%,#080d18 100%);
+        font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+        isolation:isolate;
+      }
+      #zedAuthScreen::before,#zedAuthScreen::after {
+        content:"";position:absolute;z-index:-1;border-radius:50%;filter:blur(2px);
+        pointer-events:none;animation:zed-auth-drift 12s ease-in-out infinite alternate;
+      }
+      #zedAuthScreen::before {
+        width:min(46vw,440px);aspect-ratio:1;top:-18%;left:-12%;
+        border:1px solid rgba(114,167,255,.13);
+        box-shadow:0 0 90px rgba(45,119,255,.10),inset 0 0 80px rgba(45,119,255,.06);
+      }
+      #zedAuthScreen::after {
+        width:min(38vw,360px);aspect-ratio:1;right:-12%;bottom:-18%;
+        border:1px solid rgba(114,167,255,.12);animation-delay:-5s;
+        box-shadow:0 0 100px rgba(45,119,255,.10);
+      }
+      #zedAuthScreen .zed-auth-card {
+        width:min(100%,430px);position:relative;padding:clamp(26px,5vw,42px);
+        border:1px solid rgba(177,204,255,.17);border-radius:28px;
+        background:linear-gradient(145deg,rgba(23,37,59,.88),rgba(12,22,38,.82));
+        box-shadow:0 32px 100px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.09);
+        backdrop-filter:blur(26px) saturate(135%);-webkit-backdrop-filter:blur(26px) saturate(135%);
+        animation:zed-auth-enter .85s cubic-bezier(.2,.8,.2,1) both;
+      }
+      #zedAuthScreen .zed-auth-brand {display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:27px}
+      #zedAuthScreen .zed-auth-mark {
+        width:68px;height:68px;display:grid;place-items:center;margin-bottom:20px;
+        border-radius:22px;background:linear-gradient(145deg,#dceaff,#8bbaff);
+        box-shadow:0 0 0 7px rgba(114,167,255,.08),0 12px 40px rgba(47,119,255,.28);
+        animation:zed-auth-mark 3.2s ease-in-out infinite;
+      }
+      #zedAuthScreen .zed-auth-mark img {width:54px;height:54px;object-fit:cover;border-radius:16px}
+      #zedAuthScreen .zed-auth-title {
+        margin:0;max-width:100%;overflow:hidden;white-space:nowrap;
+        font-size:clamp(27px,6vw,34px);font-weight:700;letter-spacing:-1.3px;line-height:1.25;
+        background:linear-gradient(100deg,#fff 10%,#b9d6ff 48%,#fff 85%);
+        background-size:200% auto;background-clip:text;-webkit-background-clip:text;color:transparent;
+        border-right:2px solid rgba(163,202,255,.9);width:0;
+        animation:zed-auth-type 1.55s steps(14,end) .35s forwards,zed-auth-caret .8s step-end infinite,zed-auth-shimmer 5s linear 2s infinite;
+      }
+      #zedAuthScreen .zed-auth-subtitle {margin:12px 0 0;color:var(--auth-muted);font-size:14px;line-height:1.6}
+      #zedAuthScreen .zed-auth-form {display:grid;gap:12px}
+      #zedAuthScreen .zed-auth-input {
+        width:100%;height:50px;padding:0 15px;border:1px solid rgba(181,205,244,.17);
+        border-radius:13px;outline:none;background:rgba(3,10,20,.42);color:#f5f8ff;
+        font:inherit;font-size:14px;transition:border-color .2s,box-shadow .2s,background .2s;
+      }
+      #zedAuthScreen .zed-auth-input::placeholder {color:#8190a6}
+      #zedAuthScreen .zed-auth-input:focus {border-color:#76aaff;box-shadow:0 0 0 3px rgba(83,145,255,.15);background:rgba(3,10,20,.62)}
+      #zedAuthScreen .zed-auth-button {
+        min-height:49px;width:100%;border-radius:13px;cursor:pointer;font:inherit;font-size:14px;
+        font-weight:650;transition:transform .18s,filter .18s,box-shadow .18s;
+      }
+      #zedAuthScreen .zed-auth-button:hover {transform:translateY(-1px);filter:brightness(1.06)}
+      #zedAuthScreen .zed-auth-button:active {transform:scale(.985)}
+      #zedAuthScreen .zed-auth-button:focus-visible {outline:2px solid #a9ccff;outline-offset:3px}
+      #zedAuthScreen .zed-auth-google {display:flex;align-items:center;justify-content:center;gap:11px;border:1px solid rgba(255,255,255,.7);background:#f7f9fc;color:#182235}
+      #zedAuthScreen .zed-google-g {font-size:19px;font-weight:800;color:#4285f4}
+      #zedAuthScreen .zed-auth-divider {display:flex;align-items:center;gap:13px;color:#7f8da3;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin:3px 0}
+      #zedAuthScreen .zed-auth-divider::before,#zedAuthScreen .zed-auth-divider::after {content:"";height:1px;flex:1;background:rgba(180,202,237,.15)}
+      #zedAuthScreen .zed-auth-actions {display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      #zedAuthScreen #emailLogin {border:0;background:linear-gradient(110deg,#8fc0ff,#5f98f5);color:#071326;box-shadow:0 9px 25px rgba(69,135,238,.2)}
+      #zedAuthScreen #emailSignup {border:1px solid rgba(181,205,244,.22);background:rgba(255,255,255,.055);color:#eaf1ff}
+      #zedAuthScreen #authMessage {min-height:20px;margin-top:2px;text-align:center;color:#ff9b9b;font-size:12px;line-height:1.5}
+      #zedAuthScreen .zed-auth-footnote {margin:16px 0 0;text-align:center;color:#71819a;font-size:11px}
+      @keyframes zed-auth-enter {from{opacity:0;transform:translateY(22px) scale(.975);filter:blur(8px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+      @keyframes zed-auth-type {from{width:0}to{width:14ch}}
+      @keyframes zed-auth-caret {50%{border-color:transparent}}
+      @keyframes zed-auth-shimmer {to{background-position:200% center}}
+      @keyframes zed-auth-mark {0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-4px) rotate(2deg)}}
+      @keyframes zed-auth-drift {to{transform:translate3d(28px,-20px,0) scale(1.06)}}
+      @media(max-width:480px) {
+        #zedAuthScreen{padding:18px 14px}
+        #zedAuthScreen .zed-auth-card{padding:27px 22px;border-radius:23px}
+        #zedAuthScreen .zed-auth-mark{width:60px;height:60px;border-radius:19px}
+        #zedAuthScreen .zed-auth-mark img{width:48px;height:48px}
+      }
+      @media(prefers-reduced-motion:reduce) {
+        #zedAuthScreen *,#zedAuthScreen::before,#zedAuthScreen::after {animation:none!important;transition:none!important}
+        #zedAuthScreen .zed-auth-title{width:auto;border-right:0}
+      }
+    </style>
+    <div class="zed-auth-card">
+      <div class="zed-auth-brand">
+        <div class="zed-auth-mark"><img src="/super-brain.svg?v=2" alt="Zed logo"></div>
+        <h1 class="zed-auth-title">Welcome to Zed</h1>
+        <p class="zed-auth-subtitle">Your space to think, create and get things done.</p>
+      </div>
+      <div class="zed-auth-form">
+        <button id="googleLogin" class="zed-auth-button zed-auth-google" type="button">
+          <span class="zed-google-g" aria-hidden="true">G</span><span>Continue with Google</span>
+        </button>
+        <div class="zed-auth-divider">or continue with email</div>
+        <input id="emailInput" class="zed-auth-input" type="email" placeholder="Email address" aria-label="Email address" autocomplete="email" inputmode="email">
+        <input id="passwordInput" class="zed-auth-input" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password">
+        <div class="zed-auth-actions">
+          <button id="emailLogin" class="zed-auth-button" type="button">Log in</button>
+          <button id="emailSignup" class="zed-auth-button" type="button">Create account</button>
+        </div>
+        <div id="authMessage" role="status" aria-live="polite"></div>
+      </div>
+      <p class="zed-auth-footnote">Secure sign-in · Your account stays yours</p>
     </div>
-    <div id="authMessage" style="
-      min-height:20px;
-      margin-top:14px;
-      text-align:center;
-      color:#ff8c8c;
-      font-size:12px;
-    "></div>
   `;
-  authScreen.appendChild(box);
+
   document.body.appendChild(authScreen);
-  googleLogin =
-    document.getElementById("googleLogin");
-  emailLogin =
-    document.getElementById("emailLogin");
-  emailSignup =
-    document.getElementById("emailSignup");
-  emailInput =
-    document.getElementById("emailInput");
-  passwordInput =
-    document.getElementById("passwordInput");
-  authMessage =
-    document.getElementById("authMessage");
+  googleLogin = document.getElementById("googleLogin");
+  emailLogin = document.getElementById("emailLogin");
+  emailSignup = document.getElementById("emailSignup");
+  emailInput = document.getElementById("emailInput");
+  passwordInput = document.getElementById("passwordInput");
+  authMessage = document.getElementById("authMessage");
+
+  // Native haptics are optional: supported Android browsers may vibrate;
+  // iOS Safari does not expose the Vibration API, so visual motion remains primary.
+  authScreen.querySelectorAll(".zed-auth-button").forEach(button => {
+    button.addEventListener("click", () => {
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate(12);
+      }
+    }, { passive: true });
+  });
 }
 // ============================================================
 // ACCOUNT PANEL

@@ -162,7 +162,7 @@
   function startMicrophoneStreaming() {
     if (!audioContext || !mediaStream || !socket || socket.readyState !== WebSocket.OPEN) return;
     micSource = audioContext.createMediaStreamSource(mediaStream);
-    micProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+    micProcessor = audioContext.createScriptProcessor(2048, 1, 1);
     silentGain = audioContext.createGain();
     silentGain.gain.value = 0;
     micProcessor.onaudioprocess = event => {
@@ -370,7 +370,7 @@
   async function openLiveSession(generation) {
     const user = window.zedVoiceGetUser?.();
     if (!user) throw new Error("Please sign in before starting voice chat.");
-    const idToken = await user.getIdToken(true);
+    const idToken = await user.getIdToken();
     if (!active || generation !== connectGeneration) return;
     if (window.zedVoiceGetUser?.()?.uid !== user.uid) {
       throw new Error("Your Zed account changed while voice was starting. Please close and restart voice chat.");

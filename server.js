@@ -1341,11 +1341,22 @@ function isPersonalMemoryQuestion(message = "") {
   );
 }
 
+function isNeutralGreeting(userMessage = "") {
+  return /^(?:hi|hello|hey|hiya|howdy|good morning|good afternoon|good evening|how are you|how's it going|what's up)[.!?,\\s]*$/i.test(
+    String(userMessage).trim()
+  );
+}
+
 function getRelevantMemoryContext(
   userId,
   userMessage
 ) {
   try {
+    // Standalone greetings are not requests to recall personal history.
+    // Keep unrelated saved project details out of a fresh conversation.
+    if (isNeutralGreeting(userMessage)) {
+      return "";
+    }
     // Broad identity questions need a profile overview, not keyword-only
     // matching against the words "know me".
     if (isPersonalMemoryQuestion(userMessage)) {

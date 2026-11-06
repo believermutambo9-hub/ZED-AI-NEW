@@ -656,7 +656,7 @@ function isCurrentInformationQuestion(
   // Match complete words/phrases only. Substring matching made
   // "know" contain "now", incorrectly triggering web search.
   return words.some(word => {
-    const escaped = word.replace(/ /g, "\s+");
+    const escaped = word.replace(/ /g, "\\s+");
     return new RegExp("(^|[^a-z0-9])" + escaped + "($|[^a-z0-9])", "i").test(text);
   });
 }
@@ -1342,7 +1342,7 @@ function isPersonalMemoryQuestion(message = "") {
 }
 
 function isNeutralGreeting(userMessage = "") {
-  return /^(?:hi|hello|hey|hiya|howdy|good morning|good afternoon|good evening|how are you|how's it going|what's up)[.!?,\\s]*$/i.test(
+  return /^(?:hi|hello|hey|hiya|howdy|good morning|good afternoon|good evening|how are you|how's it going|what's up)[.!?,\s]*$/i.test(
     String(userMessage).trim()
   );
 }
@@ -1352,8 +1352,7 @@ function getRelevantMemoryContext(
   userMessage
 ) {
   try {
-    // Standalone greetings are not requests to recall personal history.
-    // Keep unrelated saved project details out of a fresh conversation.
+    // Ignore saved history for a standalone greeting; it is not a memory request.
     if (isNeutralGreeting(userMessage)) {
       return "";
     }

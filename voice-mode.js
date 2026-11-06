@@ -121,13 +121,13 @@
       stopPlayback();
       if (active && setupReady) setStatus("Listening… go ahead", "listening");
     });
-    voiceScreen.querySelector(".zed-voice-type").addEventListener("click", async () => {
+    voiceScreen.querySelector(".zed-voice-type")?.addEventListener("click", async () => {
       await stop();
       const input = document.getElementById("messageInput");
       input?.focus();
       input?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
-    voiceScreen.querySelector(".zed-voice-attach").addEventListener("click", async () => {
+    voiceScreen.querySelector(".zed-voice-attach")?.addEventListener("click", async () => {
       await stop();
       document.getElementById("attachBtn")?.click();
     });

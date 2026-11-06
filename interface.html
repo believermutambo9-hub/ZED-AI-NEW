@@ -41,7 +41,7 @@
     <!-- Navigation drawer: opens over the home screen on mobile. -->
     <aside class="sidebar" id="sidebar" aria-label="Main navigation">
       <div class="sidebar-brand-row">
-        <div class="sidebar-brand"><span class="zed-brand-spark">✣</span> Zed</div>
+        <div class="sidebar-brand"><img class="sidebar-brand-logo" src="super-brain.svg?v=2" alt="" width="38" height="38"><span>Zed</span></div>
       </div>
       <div class="sidebar-search-wrap" id="sidebarSearchWrap">
         <input id="chatSearchInput" type="search" placeholder="Search conversations..." aria-label="Search conversations">
@@ -78,9 +78,12 @@
       </section>
 
       <div class="sidebar-bottom">
-        <div class="sidebar-bottom-group">
+        <div class="sidebar-bottom-group sidebar-settings-group">
           <div class="sidebar-group-label">Settings</div>
           <button class="sidebar-item" id="settingsBtn" type="button"><span class="sidebar-item-icon">⚙</span><span>Settings</span></button>
+        </div>
+        <div class="sidebar-bottom-group sidebar-profile-group">
+          <div class="sidebar-group-label">Account</div>
           <button class="sidebar-item" id="accountBtn" type="button"><span class="sidebar-item-icon">♙</span><span>Profile</span></button>
         </div>
         <div class="sidebar-bottom-group sidebar-footer-links">

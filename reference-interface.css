@@ -766,8 +766,3 @@ body{min-height:100dvh!important}
   #sidebar #aboutBtn,
   #sidebar #githubBtn { min-height: 44px !important; }
 }
-
-
-/* Keep the welcome suggestions on empty chats only. The reference layout uses
-   display:flex!important, so a normal inline display:none cannot hide it. */
-.welcome.is-hidden{display:none!important}

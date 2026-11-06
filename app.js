@@ -1162,10 +1162,16 @@ function renderMessages() {
   messages.innerHTML =
     "";
   if (!state.messages.length) {
-    if (welcome) welcome.classList.remove("is-hidden");
+    if (welcome) {
+      welcome.style.display =
+        "block";
+    }
     return;
   }
-  if (welcome) welcome.classList.add("is-hidden");
+  if (welcome) {
+    welcome.style.display =
+      "none";
+  }
   for (
     const message of state.messages
   ) {

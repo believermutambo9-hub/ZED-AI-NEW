@@ -666,7 +666,7 @@
   }
 
   function install() {
-    for (const id of ["voiceInputBtn", "voiceModeBtn"]) {
+    for (const id of ["voiceModeBtn"]) {
       const button = document.getElementById(id);
       if (!button) continue;
       button.title = "Start voice chat";

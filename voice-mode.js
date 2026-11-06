@@ -370,7 +370,7 @@
   async function openLiveSession(generation) {
     const user = window.zedVoiceGetUser?.();
     if (!user) throw new Error("Please sign in before starting voice chat.");
-    const idToken = await user.getIdToken();
+    const idToken = await user.getIdToken(true);
     if (!active || generation !== connectGeneration) return;
     if (window.zedVoiceGetUser?.()?.uid !== user.uid) {
       throw new Error("Your Zed account changed while voice was starting. Please close and restart voice chat.");

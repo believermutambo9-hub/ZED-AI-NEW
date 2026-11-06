@@ -74,7 +74,7 @@
     voiceScreen.setAttribute("aria-label", "Zed real-time voice conversation");
     voiceScreen.innerHTML = `
       <header class="zed-voice-header">
-        <div class="zed-voice-brand"><span class="zed-voice-brand-mark">✳</span><span>Zed Voice</span></div>
+        <div class="zed-voice-brand"><img class="zed-voice-brand-mark" src="super-brain.svg?v=2" alt="" width="28" height="28"><span>Zed Voice</span></div>
         <div class="zed-voice-header-actions">
           <span class="zed-voice-live-indicator"><i></i> LIVE</span>
           <button class="zed-voice-close" type="button" aria-label="Close voice chat">×</button>

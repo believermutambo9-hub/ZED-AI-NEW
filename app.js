@@ -308,7 +308,7 @@ function createAuthScreen() {
         background:linear-gradient(100deg,#fff 10%,#b9d6ff 48%,#fff 85%);
         background-size:200% auto;background-clip:text;-webkit-background-clip:text;color:transparent;
         border-right:2px solid rgba(163,202,255,.9);width:0;
-        animation:zed-auth-type 1.55s steps(14,end) .35s forwards,zed-auth-caret .8s step-end infinite,zed-auth-shimmer 5s linear 2s infinite;
+        animation:zed-auth-type 1.55s steps(14,end) .35s forwards,zed-auth-caret .8s step-end 2 forwards,zed-auth-shimmer 5s linear 2s infinite;
       }
       #zedAuthScreen .zed-auth-subtitle {margin:12px 0 0;color:var(--auth-muted);font-size:14px;line-height:1.6}
       #zedAuthScreen .zed-auth-form {display:grid;gap:12px}
@@ -327,7 +327,7 @@ function createAuthScreen() {
       #zedAuthScreen .zed-auth-button:active {transform:scale(.985)}
       #zedAuthScreen .zed-auth-button:focus-visible {outline:2px solid #a9ccff;outline-offset:3px}
       #zedAuthScreen .zed-auth-google {display:flex;align-items:center;justify-content:center;gap:11px;border:1px solid rgba(255,255,255,.7);background:#f7f9fc;color:#182235}
-      #zedAuthScreen .zed-google-g {font-size:19px;font-weight:800;color:#4285f4}
+      #zedAuthScreen .zed-google-g {width:21px;height:21px;display:block;flex:0 0 21px}
       #zedAuthScreen .zed-auth-divider {display:flex;align-items:center;gap:13px;color:#7f8da3;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin:3px 0}
       #zedAuthScreen .zed-auth-divider::before,#zedAuthScreen .zed-auth-divider::after {content:"";height:1px;flex:1;background:rgba(180,202,237,.15)}
       #zedAuthScreen .zed-auth-actions {display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -337,7 +337,7 @@ function createAuthScreen() {
       #zedAuthScreen .zed-auth-footnote {margin:16px 0 0;text-align:center;color:#71819a;font-size:11px}
       @keyframes zed-auth-enter {from{opacity:0;transform:translateY(22px) scale(.975);filter:blur(8px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
       @keyframes zed-auth-type {from{width:0}to{width:14ch}}
-      @keyframes zed-auth-caret {50%{border-color:transparent}}
+      @keyframes zed-auth-caret {0%,49%{border-color:rgba(163,202,255,.9)}50%,100%{border-color:transparent}}\n      @keyframes zed-auth-bg-flow {0%{background-position:0% 20%}100%{background-position:100% 80%}}
       @keyframes zed-auth-shimmer {to{background-position:200% center}}
       @keyframes zed-auth-mark {0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-4px) rotate(2deg)}}
       @keyframes zed-auth-drift {to{transform:translate3d(28px,-20px,0) scale(1.06)}}
@@ -360,7 +360,7 @@ function createAuthScreen() {
       </div>
       <div class="zed-auth-form">
         <button id="googleLogin" class="zed-auth-button zed-auth-google" type="button">
-          <span class="zed-google-g" aria-hidden="true">G</span><span>Continue with Google</span>
+          <svg class="zed-google-g" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.6c3.9-3.6 6.1-8.9 6.1-15z"/><path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.9l-6.6-5.1c-1.8 1.2-4.1 2-6.9 2-5.3 0-9.8-3.6-11.4-8.4H5.8v5.3A20 20 0 0 0 24 44z"/><path fill="#FBBC05" d="M12.6 27.6a12 12 0 0 1 0-7.2v-5.3H5.8a20 20 0 0 0 0 17.8z"/><path fill="#EA4335" d="M24 12c3 0 5.7 1 7.8 3.1l5.8-5.8C34.1 6 29.5 4 24 4A20 20 0 0 0 5.8 15.1l6.8 5.3C14.2 15.6 18.7 12 24 12z"/></svg><span>Continue with Google</span>
         </button>
         <div class="zed-auth-divider">or continue with email</div>
         <input id="emailInput" class="zed-auth-input" type="email" placeholder="Email address" aria-label="Email address" autocomplete="email" inputmode="email">

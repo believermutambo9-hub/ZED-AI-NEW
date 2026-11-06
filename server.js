@@ -656,7 +656,7 @@ function isCurrentInformationQuestion(
   // Match complete words/phrases only. Substring matching made
   // "know" contain "now", incorrectly triggering web search.
   return words.some(word => {
-    const escaped = word.replace(/ /g, "\\s+");
+    const escaped = word.replace(/ /g, "\s+");
     return new RegExp("(^|[^a-z0-9])" + escaped + "($|[^a-z0-9])", "i").test(text);
   });
 }

@@ -2095,33 +2095,45 @@ if (SpeechRecognition) {
   recognition =
     new SpeechRecognition();
   recognition.lang =
-    "en-US";
-  recognition.interimResults =
-    false;
-  recognition.continuous =
-    false;
-  recognition.onresult =
-    event => {
-      const transcript =
-        event.results[0][0]
-          .transcript;
-      if (messageInput) {
-        messageInput.value =
-          transcript;
-        messageInput.dispatchEvent(
-          new Event("input")
-        );
-        messageInput.focus();
-      }
-    };
-  recognition.onerror =
-    error => {
-      console.error(
-        "Voice recognition error:",
-        error
-      );
-      if (voiceInputBtn) voiceInputBtn.setAttribute("aria-label", "Dictate a message");
-    };
+    (navigator.languages && navigator.languages[0]) ||
+    navigator.language ||
+    "en";
+  recognition.interimResults = true;
+  recognition.continuous = false;
+  recognition.onresult = event => {
+    const transcript = Array.from(event.results)
+      .slice(event.resultIndex)
+      .map(result => result[0]?.transcript || "")
+      .join("")
+      .trim();
+    if (!messageInput || !transcript) return;
+    const start = Number.isInteger(messageInput.selectionStart)
+      ? messageInput.selectionStart
+      : messageInput.value.length;
+    const end = Number.isInteger(messageInput.selectionEnd)
+      ? messageInput.selectionEnd
+      : start;
+    messageInput.setRangeText(transcript, start, end, "end");
+    messageInput.dispatchEvent(new Event("input", { bubbles: true }));
+    messageInput.focus();
+  };
+  recognition.onstart = () => {
+    voiceInputBtn?.classList.add("is-listening");
+    voiceInputBtn?.setAttribute("aria-pressed", "true");
+    voiceInputBtn?.setAttribute("aria-label", "Listening");
+    if (voiceInputBtn) voiceInputBtn.title = "Listening — tap again to stop";
+  };
+  recognition.onerror = error => {
+    console.error("Voice recognition error:", error);
+    if (voiceInputBtn) {
+      voiceInputBtn.classList.remove("is-listening");
+      voiceInputBtn.setAttribute("aria-pressed", "false");
+      voiceInputBtn.setAttribute("aria-label", "Dictate a message");
+      voiceInputBtn.title = error?.error === "not-allowed"
+        ? "Allow microphone access to use dictation"
+        : "Speak to fill the message box";
+    }
+  };
 }
 const voiceInputBtn = document.getElementById("voiceInputBtn");
 const voiceModeBtn = document.getElementById("voiceModeBtn");
@@ -2153,15 +2165,21 @@ voiceInputBtn?.addEventListener("click", () => {
     return;
   }
   try {
+    if (recognition && voiceInputBtn?.classList.contains("is-listening")) {
+      recognition.stop();
+      return;
+    }
     recognition.start();
-    voiceInputBtn.setAttribute("aria-label", "Listening");
   } catch (error) {
     console.warn("Voice input could not start:", error);
   }
 });
 
 recognition && (recognition.onend = () => {
+  voiceInputBtn?.classList.remove("is-listening");
+  voiceInputBtn?.setAttribute("aria-pressed", "false");
   voiceInputBtn?.setAttribute("aria-label", "Dictate a message");
+  if (voiceInputBtn) voiceInputBtn.title = "Speak to fill the message box";
 });
 
 voiceModeBtn?.setAttribute("aria-pressed", "false");

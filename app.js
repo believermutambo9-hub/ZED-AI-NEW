@@ -2779,6 +2779,12 @@ async function checkDueScheduledTasks() {
 }
 
 
+function openWorkspacePlaceholder(title, description) {
+  const content = document.createElement("div");
+  content.append(featureCard(title, description, null, null));
+  openFeaturePanel(title, content);
+}
+
 document.querySelectorAll("[data-zed-view]").forEach(button => {
   button.addEventListener("click", () => {
     const view = button.dataset.zedView;
@@ -2792,6 +2798,10 @@ document.querySelectorAll("[data-zed-view]").forEach(button => {
       loadProjects();
     } else if (view === "scheduled") openScheduledView();
     else if (view === "explore") openExploreView();
+    else if (view === "writing") openWorkspacePlaceholder("Writing", "A dedicated writing workspace is planned. For now, start a chat and ask Zed to draft, edit or improve your writing.");
+    else if (view === "study") openWorkspacePlaceholder("Study", "A dedicated study workspace is planned. For now, ask Zed to explain a topic, create revision notes or quiz you in a regular chat.");
+    else if (view === "business") openWorkspacePlaceholder("Business", "A dedicated business workspace is planned. For now, use Zed chat for business plans, market research, documents and calculations.");
+    else if (view === "cv") openWorkspacePlaceholder("CV Maker", "A guided CV builder is planned. For now, ask Zed to create or improve your CV and provide your work history, skills and education.");
   });
 });
 

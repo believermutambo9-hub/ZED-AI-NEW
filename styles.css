@@ -3558,3 +3558,34 @@ body {
   #sidebar .nav-copy strong { font-size:16px; }
 }
 @media (prefers-reduced-motion:reduce) { #sidebar .nav-item { transition:none; } }
+
+
+/* Final attachment-chip interaction pass. Keep the close control above the
+   thumbnail/document icon and make its hit target reliable on touch screens. */
+.selected-file-chip {
+  position: relative !important;
+  z-index: 35 !important;
+  overflow: visible !important;
+  isolation: isolate;
+}
+.selected-file-chip .remove-file-button {
+  z-index: 250 !important;
+  top: -8px !important;
+  right: -8px !important;
+  width: 23px !important;
+  min-width: 23px !important;
+  max-width: 23px !important;
+  height: 23px !important;
+  min-height: 23px !important;
+  max-height: 23px !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  cursor: pointer !important;
+}
+.selected-file-chip .remove-file-button .attachment-close-mark {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+.selected-file-name {
+  font-size: 10px !important;
+}

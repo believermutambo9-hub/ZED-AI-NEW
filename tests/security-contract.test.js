@@ -896,3 +896,34 @@ test("attachment chip keeps the generic File label and an accessible working clo
   assert.ok(css.includes(".selected-file-chip .remove-file-button .attachment-close-mark {"));
   assert.ok(css.includes("pointer-events: none !important;"));
 });
+
+
+test("refined workspace retains the current app navigation and account controls", () => {
+  for (const id of [
+    "homeNavBtn",
+    "newChatBtn",
+    "projectList",
+    "addProjectBtn",
+    "recentChats",
+    "settingsBtn",
+    "profileMenuBtn",
+    "aboutBtn",
+    "accountBtn",
+    "profileBtn",
+    "menuBtn",
+    "themeToggle",
+    "messages",
+    "selectedFileChip",
+    "attachBtn",
+    "fileInput",
+    "messageInput",
+    "voiceInputBtn",
+    "voiceModeBtn",
+    "sendBtn"
+  ]) {
+    assert.ok(html.includes(`id="${id}"`), `Refined interface is missing required integration id: ${id}`);
+  }
+  assert.ok(app.includes('document.getElementById("homeNavBtn")'));
+  assert.ok(app.includes('document.getElementById("profileMenuBtn")'));
+  assert.ok(app.includes('querySelector(".zed-account-avatar-wrap")'));
+});

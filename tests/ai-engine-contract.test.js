@@ -168,6 +168,7 @@ test("Gemini Live pauses microphone frames during Zed tool calls and sends expli
   const micEnd = voiceSource.indexOf("function stopPlayback()", micStart);
   const microphone = voiceSource.slice(micStart, micEnd);
   assert.match(microphone, /pendingToolCallBatches > 0/);
+  assert.match(microphone, /socket\.bufferedAmount > 256 \* 1024/);
   assert.match(microphone, /createScriptProcessor\(1024, 1, 1\)/);
   assert.match(voiceSource, /pendingToolCallBatches \+= 1/);
   assert.match(voiceSource, /pendingToolCallBatches = Math\.max\(0, pendingToolCallBatches - 1\)/);

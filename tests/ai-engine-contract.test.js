@@ -160,3 +160,18 @@ test("voice startup has bounded token and Live setup waits and releases failed s
   assert.match(voiceSource, /active = false;[\s\S]{0,250}setupReady = false/);
   assert.match(voiceSource, /window\.zedVoiceSetEnabled\?\.\(false\)/);
 });
+
+
+test("Gemini Live pauses microphone frames during Zed tool calls and sends explicit little-endian PCM", () => {
+  assert.match(voiceSource, /let pendingToolCallBatches = 0/);
+  const micStart = voiceSource.indexOf("function startMicrophoneStreaming()");
+  const micEnd = voiceSource.indexOf("function stopPlayback()", micStart);
+  const microphone = voiceSource.slice(micStart, micEnd);
+  assert.match(microphone, /pendingToolCallBatches > 0/);
+  assert.match(microphone, /createScriptProcessor\(1024, 1, 1\)/);
+  assert.match(voiceSource, /pendingToolCallBatches \+= 1/);
+  assert.match(voiceSource, /pendingToolCallBatches = Math\.max\(0, pendingToolCallBatches - 1\)/);
+  assert.match(voiceSource, /view\.setInt16\(i \* 2, pcmSample, true\)/);
+  assert.match(voiceSource, /mimeType: "audio\/pcm;rate=16000"/);
+  assert.match(voiceSource, /if \(generation !== connectGeneration\) return/);
+});

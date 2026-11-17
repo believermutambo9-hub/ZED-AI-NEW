@@ -926,7 +926,11 @@ test("refined workspace retains the current app navigation and account controls"
   }
   assert.ok(app.includes('document.getElementById("homeNavBtn")'));
   assert.ok(app.includes('document.getElementById("profileMenuBtn")'));
+  assert.ok(app.includes('homeNavBtn?.addEventListener("click"'));
+  assert.ok(app.includes("await createNewChat();"));
+  assert.ok(app.includes('document.getElementById("profileMenuBtn")?.addEventListener("click"'));
   assert.ok(app.includes('querySelector(".zed-account-avatar-wrap")'));
+  assert.ok(app.includes('renderAvatar(accountAvatarSlot, "sidebar-account-avatar", false, true)'));
 });
 
 

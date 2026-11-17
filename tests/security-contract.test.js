@@ -860,3 +860,31 @@ test("legacy chat migration queries only the authenticated user's records", () =
   assert.match(history, /where\("metadata\.userId", "==", safeUserId\)/);
   assert.doesNotMatch(history, /db\.collection\(LEGACY_COLLECTION\)\.get\(\)/);
 });
+
+
+test("all local browser assets referenced by the interface are publicly allowlisted", () => {
+  const allowlist = server.match(/const PUBLIC_ASSETS = new Set\\(\\[([\\s\\S]*?)\\]\\);/);
+  assert.ok(allowlist, "server must define an explicit public asset allowlist");
+  const publicAssets = [...allowlist[1].matchAll(/"([^"]+)"/g)].map(match => match[1]);
+  const references = [...html.matchAll(/\\b(?:src|href)=["']([^"']+\\.(?:css|js|svg))(?:\\?[^"']*)?["']/g)];
+  assert.ok(references.length > 0, "interface should reference browser assets");
+  for (const reference of references) {
+    const assetPath = reference[1].replace(/^\\/+/, "");
+    assert.ok(publicAssets.includes(assetPath), `Interface asset is missing from PUBLIC_ASSETS: ${assetPath}`);
+  }
+});
+
+test("attachment chip keeps the generic File label and an accessible working close control", () => {
+  const start = app.indexOf("function renderSelectedFileChip()");
+  const end = app.indexOf("function clearSelectedFile()", start);
+  const renderer = app.slice(start, end);
+  assert.notEqual(start, -1);
+  assert.ok(end > start);
+  assert.match(renderer, /label\\.textContent = "File"/);
+  assert.match(renderer, /data-attachment-remove/);
+  assert.match(renderer, /aria-label", "Remove attached file"/);
+  assert.match(renderer, /title", "Remove attached file"/);
+  assert.match(renderer, /clearSelectedFile\\(\\)/);
+  assert.match(css, /selected-file-chip \\.remove-file-button[\\s\\S]*?pointer-events: auto !important/);
+  assert.match(css, /attachment-close-mark[\\s\\S]*?pointer-events: none !important/);
+});

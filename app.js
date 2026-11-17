@@ -194,6 +194,7 @@ function renderSelectedFileChip() {
   remove.className = "remove-file-button";
   remove.type = "button";
   remove.setAttribute("aria-label", "Remove attached file");
+  remove.setAttribute("title", "Remove attached file");
   remove.setAttribute("data-attachment-remove", "true");
   const closeMark = document.createElement("span");
   closeMark.className = "attachment-close-mark";

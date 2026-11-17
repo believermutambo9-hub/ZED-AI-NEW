@@ -182,6 +182,9 @@
     silentGain.gain.value = 0;
     micProcessor.onaudioprocess = event => {
       if (!active || !setupReady || pendingToolCallBatches > 0 || !socket || socket.readyState !== WebSocket.OPEN) return;
+      // Drop stale microphone frames instead of queueing seconds of latency on
+      // a slow connection. Live audio must stay near real time.
+      if (socket.bufferedAmount > 256 * 1024) return;
       const input = event.inputBuffer.getChannelData(0);
       // Give visible feedback when the microphone is actually capturing speech.
       let sumSquares = 0;

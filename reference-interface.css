@@ -771,3 +771,35 @@ body{min-height:100dvh!important}
 /* Keep the welcome suggestions on empty chats only. The reference layout uses
    display:flex!important, so a normal inline display:none cannot hide it. */
 .welcome.is-hidden{display:none!important}
+
+
+/* Final readability pass: keep the compact workspace legible at every size. */
+.welcome .welcome-subtitle {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  margin-bottom: 16px !important;
+}
+.welcome-actions button {
+  min-height: 40px !important;
+  padding: 9px 12px !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+.messages .message-content {
+  font-size: 15px !important;
+  line-height: 1.72 !important;
+}
+@media (max-width: 640px) {
+  .welcome .welcome-subtitle {
+    font-size: 14px !important;
+  }
+  .welcome-actions button {
+    min-height: 44px !important;
+    padding: 10px 12px !important;
+    font-size: 14px !important;
+  }
+  .messages .message-content {
+    font-size: 15px !important;
+    line-height: 1.7 !important;
+  }
+}

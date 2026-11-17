@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { zipSync } from "fflate";
 import * as XLSX from "xlsx";
 
-const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements, css] = await Promise.all([
+const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, uiEnhancements, css, zedRefinedCss] = await Promise.all([
   readFile(new URL("../server.js", import.meta.url), "utf8"),
   readFile(new URL("../storage/chat-history.js", import.meta.url), "utf8"),
   readFile(new URL("../features/memory.js", import.meta.url), "utf8"),
@@ -14,7 +14,8 @@ const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, u
   readFile(new URL("../features/file-analysis.js", import.meta.url), "utf8"),
   readFile(new URL("../web-search.js", import.meta.url), "utf8"),
   readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8"),
-  readFile(new URL("../styles.css", import.meta.url), "utf8")
+  readFile(new URL("../styles.css", import.meta.url), "utf8"),
+  readFile(new URL("../zed-refined.css", import.meta.url), "utf8")
 ]);
 
 test("Gemini Live setup omits unsupported toolConfig and retains the Zed chat function", async () => {
@@ -926,4 +927,20 @@ test("refined workspace retains the current app navigation and account controls"
   assert.ok(app.includes('document.getElementById("homeNavBtn")'));
   assert.ok(app.includes('document.getElementById("profileMenuBtn")'));
   assert.ok(app.includes('querySelector(".zed-account-avatar-wrap")'));
+});
+
+
+test("the planned Writing, Study, Business and CV Maker destinations remain visible and honest", () => {
+  for (const [view, label] of [
+    ["writing", "Writing"],
+    ["study", "Study"],
+    ["business", "Business"],
+    ["cv", "CV Maker"]
+  ]) {
+    assert.ok(html.includes(`data-zed-view="${view}"`), `Missing ${label} workspace entry`);
+    assert.ok(app.includes(`view === "${view}"`), `Missing ${label} workspace handler`);
+  }
+  assert.match(app, /function openWorkspacePlaceholder\(/);
+  assert.match(zedRefinedCss, /\.zed-sidebar[\s\S]*?overflow-y: auto !important/);
+  assert.match(zedRefinedCss, /\.zed-messages \.message-assistant \.message-content[\s\S]*?font-size: 15px/);
 });

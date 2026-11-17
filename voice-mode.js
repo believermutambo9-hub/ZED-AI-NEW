@@ -13,6 +13,7 @@
   let statusNode = null;
   let transcriptNode = null;
   let setupReady = false;
+  let pendingToolCallBatches = 0;
   let scheduledUntil = 0;
   let activeSources = new Set();
   let inputText = "";
@@ -132,29 +133,45 @@
   }
 
   function downsampleToPcm16(input, inputRate) {
+    if (!input?.length || !Number.isFinite(inputRate) || inputRate <= 0) {
+      return new Uint8Array(0);
+    }
     const ratio = inputRate / 16000;
-    const outputLength = Math.max(1, Math.floor(input.length / ratio));
-    const pcm = new Int16Array(outputLength);
+    const outputLength = Math.floor(input.length / ratio);
+    if (outputLength < 1) return new Uint8Array(0);
+
+    // Gemini Live expects signed 16-bit PCM in little-endian byte order.
+    // DataView makes the byte order explicit on every browser/device.
+    const bytes = new Uint8Array(outputLength * 2);
+    const view = new DataView(bytes.buffer);
     for (let i = 0; i < outputLength; i++) {
       const position = i * ratio;
       const left = Math.floor(position);
       const right = Math.min(left + 1, input.length - 1);
       const fraction = position - left;
-      const sample = input[left] * (1 - fraction) + input[right] * fraction;
+      const leftSample = Number.isFinite(input[left]) ? input[left] : 0;
+      const rightSample = Number.isFinite(input[right]) ? input[right] : 0;
+      const sample = leftSample * (1 - fraction) + rightSample * fraction;
       const clipped = Math.max(-1, Math.min(1, sample));
-      pcm[i] = clipped < 0 ? clipped * 0x8000 : clipped * 0x7fff;
+      const pcmSample = clipped < 0
+        ? Math.round(clipped * 0x8000)
+        : Math.round(clipped * 0x7fff);
+      view.setInt16(i * 2, pcmSample, true);
     }
-    return new Uint8Array(pcm.buffer);
+    return bytes;
   }
 
   function startMicrophoneStreaming() {
     if (!audioContext || !mediaStream || !socket || socket.readyState !== WebSocket.OPEN) return;
     micSource = audioContext.createMediaStreamSource(mediaStream);
-    micProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+    // 1024 source frames produce ~21–23ms packets on common 44.1/48kHz devices.
+    micProcessor = audioContext.createScriptProcessor(1024, 1, 1);
     silentGain = audioContext.createGain();
     silentGain.gain.value = 0;
     micProcessor.onaudioprocess = event => {
-      if (!active || !setupReady || !socket || socket.readyState !== WebSocket.OPEN) return;
+      if (!active || !setupReady || pendingToolCallBatches > 0 || !socket || socket.readyState !== WebSocket.OPEN) return;
+      // Drop stale microphone frames instead of queueing seconds of latency.
+      if (socket.bufferedAmount > 256 * 1024) return;
       const input = event.inputBuffer.getChannelData(0);
       // Give visible feedback when the microphone is actually capturing speech.
       let sumSquares = 0;
@@ -165,6 +182,7 @@
         setStatus("I can hear you…", "listening");
       }
       const pcm = downsampleToPcm16(input, audioContext.sampleRate);
+      if (!pcm.length || pcm.length % 2 !== 0) return;
       try {
         socket.send(JSON.stringify({
           realtimeInput: {
@@ -317,12 +335,32 @@
 
     if (message.error) {
       console.error("Zed Live API error:", message.error);
-      setStatus(message.error.message || "The real-time voice service returned an error.", "error");
+      const detail = typeof message.error === "string"
+        ? message.error
+        : (message.error.message || message.error.status || "The real-time voice service returned an error.");
+      if (/input stream|invalid audio|audio format/i.test(detail)) {
+        setupReady = false;
+        pendingToolCallBatches = 0;
+        setStatus("The voice service rejected the microphone audio. Close and restart voice chat, then try again.", "error");
+      } else {
+        setStatus(detail, "error");
+      }
       return;
     }
 
     if (message.toolCall?.functionCalls?.length) {
-      void handleToolCalls(message.toolCall.functionCalls, generation, liveSocket);
+      // Gemini can reject new realtimeInput while a function call is pending.
+      // Pause microphone frames until Zed's authenticated chat result is returned.
+      pendingToolCallBatches += 1;
+      void handleToolCalls(message.toolCall.functionCalls, generation, liveSocket)
+        .catch(error => console.warn("Zed voice tool call failed:", error))
+        .finally(() => {
+          if (generation !== connectGeneration) return;
+          pendingToolCallBatches = Math.max(0, pendingToolCallBatches - 1);
+          if (pendingToolCallBatches === 0 && active && setupReady && socket === liveSocket) {
+            setStatus("Listening… speak naturally", "listening");
+          }
+        });
     }
 
     const serverContent = message.serverContent;
@@ -544,6 +582,7 @@
     connecting = true;
     muted = false;
     setupReady = false;
+    pendingToolCallBatches = 0;
     inputText = "";
     outputText = "";
     connectGeneration++;
@@ -629,6 +668,7 @@
     // Do not clear "connecting" here: start() may still be awaiting permission.
     // Its finally block clears it after the pending startup has settled.
     setupReady = false;
+    pendingToolCallBatches = 0;
     connectGeneration++;
     if (socket) {
       const current = socket;

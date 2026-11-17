@@ -54,3 +54,36 @@ button,input,textarea{font:inherit}
   .zed-welcome{margin:auto}
   .zed-composer{width:100%;min-height:55px}
 }
+
+
+/* Keep the complete workspace navigation reachable on short screens. */
+.zed-sidebar {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+}
+.zed-sidebar .zed-navigation-section,
+.zed-sidebar .zed-tools-section,
+.zed-sidebar .sidebar-projects,
+.zed-sidebar .sidebar-bottom {
+  flex-shrink: 0;
+}
+.zed-sidebar .recent-section {
+  flex: 1 1 auto;
+  min-height: 90px;
+}
+.zed-sidebar .nav-copy strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.zed-messages .message-assistant .message-content {
+  font-size: 15px;
+  line-height: 1.72;
+}
+@media (max-width: 700px) {
+  .zed-messages .message-assistant .message-content {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+}

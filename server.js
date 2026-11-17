@@ -131,6 +131,7 @@ const PUBLIC_ASSETS = new Set([
   "voice-mode.css",
   "premium-chat-voice.css",
   "reference-interface.css",
+  "zed-refined.css",
   "ui-enhancements.js",
   "super-brain.svg"
 ]);

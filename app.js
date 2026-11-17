@@ -460,10 +460,22 @@ function updateGoogleProfileAvatar() {
   const initials = (user?.displayName || user?.email || "U")
     .trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase();
 
-  const renderAvatar = (button, className, includeLabel = false) => {
+  // Render directly into the redesigned sidebar avatar slot when present so
+  // the account name and secondary actions remain intact.
+  const renderAvatar = (button, className, includeLabel = false, directContent = false) => {
     if (!button) return;
-    const avatar = document.createElement("span");
-    avatar.className = "account-avatar-wrap";
+    const avatar = directContent ? button : document.createElement("span");
+    if (!directContent) avatar.className = "account-avatar-wrap";
+
+    const makeFallback = () => {
+      const fallback = document.createElement("span");
+      fallback.className = className === "sidebar-account-avatar"
+        ? "sidebar-account-avatar profile-avatar-fallback"
+        : "profile-avatar-fallback";
+      fallback.textContent = initials || "U";
+      return fallback;
+    };
+
     if (photoURL) {
       const image = document.createElement("img");
       image.className = className;
@@ -471,19 +483,14 @@ function updateGoogleProfileAvatar() {
       image.alt = "Google account profile";
       image.referrerPolicy = "no-referrer";
       image.addEventListener("error", () => {
-        const fallback = document.createElement("span");
-        fallback.className = "profile-avatar-fallback";
-        fallback.textContent = initials || "U";
-        avatar.replaceChildren(fallback);
+        avatar.replaceChildren(makeFallback());
       }, { once: true });
-      avatar.appendChild(image);
+      avatar.replaceChildren(image);
     } else {
-      const fallback = document.createElement("span");
-      fallback.className = "profile-avatar-fallback";
-      fallback.textContent = initials || "U";
-      avatar.appendChild(fallback);
+      avatar.replaceChildren(makeFallback());
     }
-    button.replaceChildren(avatar);
+
+    if (!directContent) button.replaceChildren(avatar);
     if (includeLabel) {
       const label = document.createElement("span");
       label.className = "sidebar-account-label";
@@ -493,7 +500,12 @@ function updateGoogleProfileAvatar() {
   };
 
   renderAvatar(profileBtn, "profile-avatar-image");
-  renderAvatar(accountBtn, "sidebar-account-avatar", true);
+  const accountAvatarSlot = accountBtn?.querySelector(".zed-account-avatar-wrap");
+  if (accountAvatarSlot) {
+    renderAvatar(accountAvatarSlot, "sidebar-account-avatar", false, true);
+  } else {
+    renderAvatar(accountBtn, "sidebar-account-avatar", true);
+  }
   if (profileBtn) {
     profileBtn.setAttribute("aria-label", user
       ? `Account: ${user.displayName || user.email || "signed in"}`
@@ -778,6 +790,14 @@ accountBtn?.addEventListener(
     toggleAccountPanel();
   }
 );
+
+document.getElementById("profileMenuBtn")?.addEventListener("click", event => {
+  event.preventDefault();
+  event.stopPropagation();
+  closeSidebar();
+  closeSettings();
+  toggleAccountPanel();
+});
 // ============================================================
 // SETTINGS BUTTON
 // ============================================================
@@ -1538,6 +1558,23 @@ newChatBtn?.addEventListener(
   "click",
   createNewChat
 );
+
+const homeNavBtn = document.getElementById("homeNavBtn");
+homeNavBtn?.addEventListener("click", async event => {
+  event.preventDefault();
+  closeSidebar();
+  closeSettings();
+  if (accountPanel) accountPanel.style.display = "none";
+  closeFeaturePanel();
+  document.querySelectorAll(".zed-nav-active").forEach(item => item.classList.remove("zed-nav-active"));
+  homeNavBtn.classList.add("zed-nav-active");
+  if (state.messages.length && !state.sending) {
+    await createNewChat();
+  } else {
+    welcome?.scrollIntoView({ behavior: "smooth", block: "center" });
+    messageInput?.focus();
+  }
+});
 // ============================================================
 // FILE READER
 // ============================================================

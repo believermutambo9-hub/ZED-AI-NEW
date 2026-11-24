@@ -157,7 +157,7 @@ function extractMatchup(message) {
   if (!match) return null;
 
   const cleanHome = match[1]
-    .replace(/^(?:(?:please|can you|could you|would you|give me|show me|predict|prediction for|forecast|analyse|analyze|analysis of|who will win)\s+)+/i, "")
+    .replace(/^(?:(?:please|can you|could you|would you|give me|show me|predict|prediction for|forecast|analyse|analyze|analysis of|who will win|head[ -]?to[ -]?head|h2h|previous meetings)\s+)+/i, "")
     .replace(/^(?:(?:the )?(?:football )?(?:match|game)\s+(?:between\s+)?)*/i, "")
     .trim();
   const cleanAway = match[2]

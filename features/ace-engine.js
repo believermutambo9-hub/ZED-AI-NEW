@@ -47,10 +47,10 @@ export async function getAcePredictionChatData(message = "", options = {}) {
 
   const kickoffTime = evidence.fixture?.kickoffTime || new Date().toISOString();
   const homeContext = evidence.home?.daysRest !== undefined
-    ? { daysRest: evidence.home.daysRest, travelDistanceKm: 0, playedMidweekEuropean: false }
+    ? { daysRest: evidence.home.daysRest }
     : undefined;
   const awayContext = evidence.away?.daysRest !== undefined
-    ? { daysRest: evidence.away.daysRest, travelDistanceKm: 0, playedMidweekEuropean: false }
+    ? { daysRest: evidence.away.daysRest }
     : undefined;
 
   const prediction = PredictionEngine.calculatePrediction({

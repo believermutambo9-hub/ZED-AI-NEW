@@ -4,7 +4,6 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_FAILURE_THRESHOLD = 3;
 const DEFAULT_COOLDOWN_MS = 20_000;
 const DEFAULT_MODEL = "qwen3:8b";
-const DEFAULT_URL = "http://127.0.0.1:11434";
 
 function normalizeEndpoint(value) {
   return String(value || "").trim().replace(/\/+$/, "");

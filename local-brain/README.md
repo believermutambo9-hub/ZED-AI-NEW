@@ -43,7 +43,7 @@ The default is `qwen3:8b`. A desktop with 32 GB system RAM is a reasonable start
 
 8. Open http://localhost:10000 in the desktop browser and sign in.
 
-Ollama normally runs as a background service on Windows. If it is not running, start it before launching Zed.
+The local startup command checks the Firebase service-account configuration, confirms Ollama is responding, and verifies that the selected model is installed before starting the Zed server. If a check fails, it prints the specific correction instead of starting a server that cannot answer. Ollama normally runs as a background service on Windows; if it is not running, start it before launching Zed.
 
 ## Local mode behaviour
 

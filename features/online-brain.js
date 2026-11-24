@@ -1,3 +1,5 @@
+import { ZED_CORE_INSTRUCTIONS } from "./ai-instructions.js";
+
 const DEFAULT_TIMEOUT_MS = 45_000;
 const DEFAULT_FAILURE_THRESHOLD = 3;
 const DEFAULT_COOLDOWN_MS = 30_000;
@@ -69,7 +71,7 @@ export function createOnlineBrainClient({
           messages: [
             {
               role: "system",
-              content: "You are Zed, an independent AI assistant. Follow the supplied user request and context. Be accurate, concise and transparent about uncertainty. Never invent facts or claim actions you did not perform."
+              content: ZED_CORE_INSTRUCTIONS
             },
             { role: "user", content: String(prompt || "") }
           ],

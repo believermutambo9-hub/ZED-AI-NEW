@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { getFirebaseDb } from "../config/firebase-admin.js";
 
 const API_FOOTBALL_BASE = "https://v3.football.api-sports.io";
+const RAPIDAPI_FOOTBALL_BASE = "https://api-football-v1.p.rapidapi.com/v3";
 const CACHE_COLLECTION = "zedFootballDataCache";
 const MEMORY_CACHE = new Map();
 const DEFAULT_TIMEOUT_MS = 9000;
@@ -60,7 +61,7 @@ async function readPersistentCache(key, ttlMs) {
     if (!snapshot.exists) return null;
     const record = snapshot.data() || {};
     if (!record.payload || !Number.isFinite(record.savedAt) || Date.now() - record.savedAt > ttlMs) return null;
-    return record.payload;
+    return { payload: record.payload, savedAt: record.savedAt };
   } catch {
     return null;
   }
@@ -79,12 +80,12 @@ async function writePersistentCache(key, payload) {
   }
 }
 
-function setMemoryCache(key, payload) {
+function setMemoryCache(key, payload, savedAt = Date.now()) {
   if (!MEMORY_CACHE.has(key) && MEMORY_CACHE.size >= 500) {
     const oldestKey = MEMORY_CACHE.keys().next().value;
     if (oldestKey !== undefined) MEMORY_CACHE.delete(oldestKey);
   }
-  MEMORY_CACHE.set(key, { payload, savedAt: Date.now() });
+  MEMORY_CACHE.set(key, { payload, savedAt });
 }
 
 function cacheAllowed(fetchImpl, options) {
@@ -106,7 +107,8 @@ async function apiGet(endpoint, params, options = {}) {
   for (const [key, value] of Object.entries(params || {})) {
     if (value !== undefined && value !== null && value !== "") query.set(key, String(value));
   }
-  const requestUrl = API_FOOTBALL_BASE + "/" + endpoint + (query.size ? "?" + query.toString() : "");
+  const providerBase = config.rapidApi ? RAPIDAPI_FOOTBALL_BASE : API_FOOTBALL_BASE;
+  const requestUrl = providerBase + "/" + endpoint + (query.size ? "?" + query.toString() : "");
   const cacheKey = "api-football:" + requestUrl;
   const ttlMs = options.ttlMs || 15 * 60 * 1000;
   const allowCache = cacheAllowed(fetchImpl, options);
@@ -116,8 +118,8 @@ async function apiGet(endpoint, params, options = {}) {
     if (memoryRecord && Date.now() - memoryRecord.savedAt < ttlMs) return memoryRecord.payload;
     const persistent = await readPersistentCache(cacheKey, ttlMs);
     if (persistent) {
-      setMemoryCache(cacheKey, persistent);
-      return persistent;
+      setMemoryCache(cacheKey, persistent.payload, persistent.savedAt);
+      return persistent.payload;
     }
   }
 
@@ -473,11 +475,19 @@ export async function collectFootballEvidence({
       return { ...empty, providerAvailable: true, missingInputs: ["The provider resolved both names to the same team."] };
     }
 
-    const h2hResponse = await apiGet("fixtures/headtohead", { h2h: homeId + "-" + awayId, last: 5, next: 1 }, {
-      ...options,
-      ttlMs: 20 * 60 * 1000
-    });
-    const upcoming = findUpcomingFixture(h2hResponse.response, homeId, awayId);
+    let h2hRecords = [];
+    let h2hAvailable = false;
+    try {
+      const h2hResponse = await apiGet("fixtures/headtohead", { h2h: homeId + "-" + awayId, last: 5, next: 1 }, {
+        ...options,
+        ttlMs: 20 * 60 * 1000
+      });
+      h2hRecords = h2hResponse.response;
+      h2hAvailable = true;
+    } catch {
+      // H2H is supplemental: do not discard valid team-form data if this endpoint is unavailable.
+    }
+    const upcoming = findUpcomingFixture(h2hRecords, homeId, awayId);
     const kickoffTime = upcoming?.fixture?.date || new Date().toISOString();
 
     const [homeMatches, awayMatches] = await Promise.all([
@@ -487,7 +497,7 @@ export async function collectFootballEvidence({
 
     const home = deriveTeamStrength(homeMatches, homeId, kickoffTime);
     const away = deriveTeamStrength(awayMatches, awayId, kickoffTime);
-    const h2h = summarizeHeadToHead(h2hResponse.response, homeId, kickoffTime);
+    const h2h = summarizeHeadToHead(h2hRecords, homeId, kickoffTime);
     const fixture = upcoming ? {
       id: Number(upcoming.fixture.id),
       kickoffTime: new Date(upcoming.fixture.date).toISOString(),
@@ -511,6 +521,10 @@ export async function collectFootballEvidence({
     if (!away || away.matchesPlayed < MIN_RATING_MATCHES) {
       missingInputs.push("Insufficient completed away-team history (5 matches minimum for a form rating).");
     }
+    if (!h2hAvailable || !h2h.sampleCount) {
+      missingInputs.push("Recent head-to-head history was unavailable; no head-to-head trend was used.");
+    }
+    missingInputs.push("Travel distance and midweek continental congestion are unverified; no travel-fatigue adjustment was applied.");
     if (!fixture) {
       missingInputs.push("No verified upcoming fixture was found for this exact home/away pairing; competition and kickoff are unconfirmed.");
       missingInputs.push("No fixture-specific official injury/lineup feed is available without a verified fixture ID.");

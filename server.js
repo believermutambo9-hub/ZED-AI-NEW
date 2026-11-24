@@ -12,6 +12,8 @@ import {
   createScheduledTask, listScheduledTasks, updateScheduledTask, deleteScheduledTask
 } from "./storage/scheduled-tasks.js";
 
+import { getAcePredictionChatData } from "./features/ace-engine.js";
+
 import {
   footballFeature,
   footballTeamFeature,
@@ -2718,6 +2720,19 @@ app.post(
 
           footballData =
             "No verified football data was available for this request.";
+        }
+      }
+
+      // ACE statistical ensemble for explicit match predictions.
+      // Preserve the model confidence and missing-input disclosures.
+      if (footballMode === "prediction") {
+        try {
+          const acePrediction = getAcePredictionChatData(userMessage);
+          if (acePrediction) {
+            footballData += "\n\nACE STATISTICAL MODEL (baseline; inspect data quality and missing inputs):\n" + JSON.stringify(acePrediction, null, 2);
+          }
+        } catch (error) {
+          console.warn("ACE prediction engine notice:", error?.message || error);
         }
       }
 

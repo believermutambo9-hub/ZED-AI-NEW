@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --import tsx server.js",
     "check": "node --check server.js && node --check web-search.js && node --check features/file-analysis.js && node --check app.js && node --check voice-mode.js && node --check ui-enhancements.js && node --check storage/chat-history.js && node --check storage/user-library.js && node --check storage/scheduled-tasks.js && node --check features/memory.js && node --check features/ai-instructions.js && node --check features/current-information.js && node --check features/news-intelligence.js && node --check features/football.js && node --check features/live-data.js && node --check config/firebase-admin.js",
-    "test": "npm run check && node --test"
+    "test": "npm run check && node --import tsx --test"
   },
   "dependencies": {
     "express": "^5.1.0",
@@ -15,7 +15,8 @@
     "pdf-parse": "^1.1.1",
     "mammoth": "^1.9.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "fflate": "^0.8.2"
+    "fflate": "^0.8.2",
+    "tsx": "^4.21.0"
   },
   "engines": {
     "node": ">=22"

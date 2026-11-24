@@ -1,0 +1,29 @@
+name: Zed staging checks
+
+on:
+  pull_request:
+    branches:
+      - zed-chatgpt-inspired-refinement
+  push:
+    branches:
+      - zed-online-brain-staging
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Syntax and automated tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run syntax checks and tests
+        run: npm test

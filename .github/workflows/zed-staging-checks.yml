@@ -1,0 +1,27 @@
+name: Zed staging checks
+
+on:
+  pull_request:
+    branches:
+      - zed-chatgpt-inspired-refinement
+  push:
+    branches:
+      - zed-pitchintel-integration-staging
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Run syntax and automated tests
+        run: npm test

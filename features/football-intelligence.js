@@ -518,7 +518,8 @@ export async function collectFootballEvidence({
     } else {
       const settled = await Promise.allSettled([
         apiGet("injuries", { fixture: fixture.id }, { ...options, ttlMs: 4 * 60 * 60 * 1000 }),
-        apiGet("odds", { fixture: fixture.id }, { ...options, ttlMs: 3 * 60 * 60 * 1000 })
+        apiGet("odds", { fixture: fixture.id }, { ...options, ttlMs: 3 * 60 * 60 * 1000 }),
+        apiGet("fixtures/lineups", { fixture: fixture.id }, { ...options, ttlMs: 15 * 60 * 1000 })
       ]);
       if (settled[0].status === "fulfilled") {
         injuriesChecked = true;

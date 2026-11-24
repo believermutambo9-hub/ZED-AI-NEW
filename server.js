@@ -13,7 +13,7 @@ import {
 } from "./storage/scheduled-tasks.js";
 
 import { getAcePredictionChatData } from "./features/ace-engine.js";
-import { askOnlineBrain, getOnlineBrainStatus } from "./features/online-brain.js";
+import { askLocalBrain, getLocalBrainStatus } from "./features/local-brain.js";
 
 import {
   footballFeature,
@@ -78,6 +78,8 @@ const __dirname =
 
 const PORT =
   process.env.PORT || 10000;
+
+const LOCAL_AI_MODE = String(process.env.ZED_AI_MODE || "").trim().toLowerCase() === "local";
 
 // ============================================================
 // ENVIRONMENT
@@ -1005,6 +1007,22 @@ async function askAI(
       ].join("\n\n")
     : prompt;
 
+  // When this server is running on the user's desktop in local mode,
+  // all ordinary text generation stays on that computer. This deliberately
+  // bypasses paid cloud text providers. Media remains on modality-capable
+  // providers because the local phase-one model is text-only.
+  if (!inlineData && LOCAL_AI_MODE) {
+    try {
+      const answer = await askLocalBrain(prompt);
+      return { answer, provider: "zed-local-brain" };
+    } catch (error) {
+      console.error("Zed local brain failed:", error.message);
+      const unavailable = new Error("Zed's local AI brain is unavailable. Make sure Ollama is running and the selected model is installed.");
+      unavailable.code = "AI_PROVIDERS_UNAVAILABLE";
+      throw unavailable;
+    }
+  }
+
   try {
     const answer =
       await askGemini(
@@ -1107,13 +1125,14 @@ async function askAI(
     );
   }
 
-  // Final text-only fallback: a separately hosted GPU model owned by Zed.
-  // Binary media never reaches this provider because it has no vision/audio path.
+  // Local desktop model is the final text-only fallback when cloud mode
+  // is active. In local mode it is called first above. Binary media never
+  // reaches this provider because Ollama is configured for text generation.
   try {
-    const answer = await askOnlineBrain(prompt);
-    return { answer, provider: "zed-online-brain" };
+    const answer = await askLocalBrain(prompt);
+    return { answer, provider: "zed-local-brain" };
   } catch (error) {
-    errors.push(`Zed online brain: ${error.message}`);
+    errors.push(`Zed local brain: ${error.message}`);
   }
 
   // Keep provider diagnostics in server logs only; return a stable error
@@ -3574,7 +3593,7 @@ app.listen(
     console.log("Gemini API key: " + (GEMINI_API_KEY ? "configured" : "missing"));
     console.log("Groq API key: " + (GROQ_API_KEY ? "configured" : "missing"));
     console.log("OpenRouter API key: " + (OPENROUTER_API_KEY ? "configured" : "missing"));
-    console.log("Zed online brain: " + (getOnlineBrainStatus().configured ? "configured" : "not configured"));
+    console.log("Zed local brain: " + (getLocalBrainStatus().configured ? "Ollama endpoint configured" : "Ollama endpoint unavailable"));\n    console.log("Zed AI mode: " + (LOCAL_AI_MODE ? "local-only text generation" : "cloud providers with local fallback"));
     console.log("ImageKit library storage: " +
       (process.env.IMAGEKIT_PRIVATE_KEY && process.env.IMAGEKIT_URL_ENDPOINT ? "configured" : "missing"));
 

@@ -83,6 +83,41 @@ function providerFetch() {
   };
 }
 
+test("RapidAPI fallback uses its matching host and credential header", async () => {
+  const originalApiKey = process.env.API_FOOTBALL_KEY;
+  const originalRapidApiKey = process.env.RAPIDAPI_KEY;
+  delete process.env.API_FOOTBALL_KEY;
+  process.env.RAPIDAPI_KEY = "rapid-test-key";
+  const calls = [];
+
+  try {
+    const evidence = await collectFootballEvidence({
+      homeTeam: "Unknown Home",
+      awayTeam: "Unknown Away",
+      fetchImpl: async (url, options) => {
+        calls.push({ url: String(url), headers: options.headers });
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ errors: [], response: [], results: 0 })
+        };
+      },
+      cache: false
+    });
+
+    assert.equal(evidence.providerConfigured, true);
+    assert.equal(calls.length, 2);
+    assert.ok(calls.every(call => call.url.startsWith("https://api-football-v1.p.rapidapi.com/v3/")));
+    assert.ok(calls.every(call => call.headers["x-rapidapi-key"] === "rapid-test-key"));
+    assert.ok(calls.every(call => call.headers["x-rapidapi-host"] === "api-football-v1.p.rapidapi.com"));
+  } finally {
+    if (originalApiKey === undefined) delete process.env.API_FOOTBALL_KEY;
+    else process.env.API_FOOTBALL_KEY = originalApiKey;
+    if (originalRapidApiKey === undefined) delete process.env.RAPIDAPI_KEY;
+    else process.env.RAPIDAPI_KEY = originalRapidApiKey;
+  }
+});
+
 test("team names are normalized without accents or common club suffixes", () => {
   assert.equal(normalizeFootballName("Atlético de Madrid C.F."), "atletico de madrid");
 });

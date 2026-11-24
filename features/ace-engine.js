@@ -1,5 +1,5 @@
 import { PredictionEngine } from "../ace/models/engine.ts";
-import { collectFootballEvidence } from "./football-intelligence.js";
+import { collectFootballEvidence, persistPredictionEvidence } from "./football-intelligence.js";
 
 export function extractMatchup(message = "") {
   const input = String(message)
@@ -80,6 +80,12 @@ export async function getAcePredictionChatData(message = "", options = {}) {
     ...(evidence.missingInputs || [])
   ])];
 
+  const persistence = await persistPredictionEvidence({
+    prediction,
+    evidence,
+    missingInputs
+  });
+
   const dataEnriched = Boolean(evidence.hasTeamRatings);
   const mode = evidence.fixture
     ? (dataEnriched ? "verified_fixture_with_recent_form" : "verified_fixture_limited_history")
@@ -127,6 +133,7 @@ export async function getAcePredictionChatData(message = "", options = {}) {
       marketOddsAvailable: Boolean(evidence.marketOdds),
       dataRetrievedAt: evidence.dataRetrievedAt || null,
       sources: evidence.sources || []
-    }
+    },
+    persistence
   };
 }

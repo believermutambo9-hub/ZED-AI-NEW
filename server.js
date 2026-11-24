@@ -13,6 +13,7 @@ import {
 } from "./storage/scheduled-tasks.js";
 
 import { getAcePredictionChatData } from "./features/ace-engine.js";
+import { askOnlineBrain, getOnlineBrainStatus } from "./features/online-brain.js";
 
 import {
   footballFeature,
@@ -1104,6 +1105,15 @@ async function askAI(
     errors.push(
       `OpenRouter: ${error.message}`
     );
+  }
+
+  // Final text-only fallback: a separately hosted GPU model owned by Zed.
+  // Binary media never reaches this provider because it has no vision/audio path.
+  try {
+    const answer = await askOnlineBrain(prompt);
+    return { answer, provider: "zed-online-brain" };
+  } catch (error) {
+    errors.push(`Zed online brain: ${error.message}`);
   }
 
   // Keep provider diagnostics in server logs only; return a stable error
@@ -3564,6 +3574,7 @@ app.listen(
     console.log("Gemini API key: " + (GEMINI_API_KEY ? "configured" : "missing"));
     console.log("Groq API key: " + (GROQ_API_KEY ? "configured" : "missing"));
     console.log("OpenRouter API key: " + (OPENROUTER_API_KEY ? "configured" : "missing"));
+    console.log("Zed online brain: " + (getOnlineBrainStatus().configured ? "configured" : "not configured"));
     console.log("ImageKit library storage: " +
       (process.env.IMAGEKIT_PRIVATE_KEY && process.env.IMAGEKIT_URL_ENDPOINT ? "configured" : "missing"));
 

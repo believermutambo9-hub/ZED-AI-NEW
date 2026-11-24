@@ -70,6 +70,7 @@ export async function getAcePredictionChatData(message = "", options = {}) {
     homeContext,
     awayContext,
     hasTeamRatings: Boolean(evidence.hasTeamRatings),
+    teamRatingsSource: evidence.hasTeamRatings ? "RECENT_FORM_PROXY" : undefined,
     hasWebIntelligence: Boolean(evidence.hasWebIntelligence),
     webIntelligenceReliability: evidence.hasWebIntelligence ? 0.7 : 0
   });
@@ -80,9 +81,12 @@ export async function getAcePredictionChatData(message = "", options = {}) {
   ])];
 
   const dataEnriched = Boolean(evidence.hasTeamRatings);
+  const mode = evidence.fixture
+    ? (dataEnriched ? "verified_fixture_with_recent_form" : "verified_fixture_limited_history")
+    : (dataEnriched ? "recent_form_enriched_fixture_unverified" : "baseline_or_limited_evidence");
   return {
     source: "ACE statistical engine",
-    mode: dataEnriched ? "verified_recent_results_enriched" : "baseline_or_limited_evidence",
+    mode,
     match: prediction.match,
     probabilities: {
       homeWin: Number((prediction.prediction.homeWin * 100).toFixed(1)),

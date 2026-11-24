@@ -21,6 +21,16 @@ import {
   getFootballRequestType
 } from "./features/football.js";
 
+import {
+  isPitchIntelConfigured,
+  getPitchIntelChatData,
+  getPitchIntelHealth,
+  getPitchIntelUpcoming,
+  getPitchIntelPrediction,
+  getPitchIntelHeadToHead,
+  getPitchIntelNews
+} from "./features/pitchintel.js";
+
 import { webSearch } from "./web-search.js";
 import { detectLiveDataIntent, getLiveDataForMessage, formatLiveDataEvidence } from "./features/live-data.js";
 
@@ -719,9 +729,7 @@ function shouldUseFootball(
 function shouldUseFootballData(
   message = ""
 ) {
-  const text =
-    message.toLowerCase();
-
+  const text = message.toLowerCase();
   const dataWords = [
     "score",
     "scores",
@@ -737,6 +745,7 @@ function shouldUseFootballData(
     "next game",
     "upcoming match",
     "upcoming matches",
+    "upcoming fixtures",
     "live score",
     "live scores",
     "matches today",
@@ -747,15 +756,24 @@ function shouldUseFootballData(
     "who is playing",
     "who are playing",
     "match statistics",
-    "match stats"
+    "match stats",
+    "football news",
+    "football analysis",
+    "soccer analysis",
+    "match prediction",
+    "football prediction",
+    "soccer prediction",
+    "match forecast",
+    "football forecast"
   ];
 
-  return dataWords.some(
-    word =>
-      text.includes(word)
-  );
+  const hasKnownTeam = Boolean(detectFootballTeam(message));
+  return dataWords.some(word => text.includes(word)) ||
+    (/\b(?:football|soccer)\b.*\b(?:analyse|analyze|analysis|predict|prediction|forecast|odds|xg|expected goals|form|news)\b/i.test(text)) ||
+    (/\b(?:head[\s-]?to[\s-]?head|h2h)\b/i.test(text)) ||
+    (/\b(?:vs?\.?|versus)\b/i.test(text) && hasKnownTeam) ||
+    (hasKnownTeam && /\b(?:predict|prediction|forecast|analysis|analyse|analyze|odds|xg|expected goals|form|statistics|stats|news)\b/i.test(text));
 }
-
 // ============================================================
 // UPLOADED FILE ANALYSIS
 import { prepareUploadedFile } from "./features/file-analysis.js";
@@ -1424,6 +1442,9 @@ app.get(
 
       footballScope:
         "worldwide",
+
+      pitchIntelConfigured:
+        isPitchIntelConfigured(),
 
       webSearch:
         true,
@@ -2233,6 +2254,83 @@ app.post(
 );
 
 // ============================================================
+// PITCHINTEL FOOTBALL INTELLIGENCE PROXY
+// All browser requests use Zed's existing Firebase authentication.
+// The PitchIntel service secret is only attached server-to-server.
+// ============================================================
+
+function sendPitchIntelResponse(res, result) {
+  if (!result?.ok) {
+    return res.status(503).json({
+      ok: false,
+      source: "PitchIntel",
+      configured: Boolean(result?.configured),
+      error: result?.error || "Football intelligence is not configured on this environment."
+    });
+  }
+
+  return res.json({
+    ok: true,
+    source: "PitchIntel",
+    requestId: result.requestId || null,
+    data: result.data
+  });
+}
+
+app.get("/api/football/intelligence/health", async (_req, res) => {
+  try {
+    return sendPitchIntelResponse(res, await getPitchIntelHealth());
+  } catch (error) {
+    console.error("PitchIntel health request failed:", error.message);
+    return res.status(503).json({ ok: false, source: "PitchIntel", error: "Football intelligence health check failed." });
+  }
+});
+
+app.get("/api/football/intelligence/upcoming", async (req, res) => {
+  try {
+    const result = await getPitchIntelUpcoming({
+      hours: req.query.hours,
+      competition: req.query.competition,
+      timezone: "Africa/Lusaka"
+    });
+    return sendPitchIntelResponse(res, result);
+  } catch (error) {
+    console.error("PitchIntel upcoming request failed:", error.message);
+    return res.status(503).json({ ok: false, source: "PitchIntel", error: "Upcoming football fixtures are temporarily unavailable." });
+  }
+});
+
+app.post("/api/football/intelligence/predict", async (req, res) => {
+  try {
+    const result = await getPitchIntelPrediction(req.body || {});
+    return sendPitchIntelResponse(res, result);
+  } catch (error) {
+    console.error("PitchIntel prediction request failed:", error.message);
+    return res.status(503).json({ ok: false, source: "PitchIntel", error: "Match prediction is temporarily unavailable." });
+  }
+});
+
+app.get("/api/football/intelligence/h2h", async (req, res) => {
+  try {
+    const result = await getPitchIntelHeadToHead(req.query.home, req.query.away);
+    return sendPitchIntelResponse(res, result);
+  } catch (error) {
+    console.error("PitchIntel head-to-head request failed:", error.message);
+    return res.status(503).json({ ok: false, source: "PitchIntel", error: "Head-to-head analysis is temporarily unavailable." });
+  }
+});
+
+app.get("/api/football/intelligence/news", async (req, res) => {
+  try {
+    const result = await getPitchIntelNews(req.query.category);
+    return sendPitchIntelResponse(res, result);
+  } catch (error) {
+    console.error("PitchIntel news request failed:", error.message);
+    return res.status(503).json({ ok: false, source: "PitchIntel", error: "Football news is temporarily unavailable." });
+  }
+});
+
+// ============================================================
 // FOOTBALL MEMORY API
 // ============================================================
 
@@ -2660,55 +2758,56 @@ app.post(
               userMessage
             );
 
-          const team =
-            detectFootballTeam(
-              userMessage
-            );
+          // Prefer the dedicated PitchIntel engine when the requested operation
+          // is supported. If it is unavailable or unconfigured, preserve Zed's
+          // existing football data path as a safe fallback.
+          const pitchIntelResult =
+            await getPitchIntelChatData(userMessage);
 
-          const league =
-            detectFootballLeague(
-              userMessage
-            );
-
-          if (team) {
-            const result =
-              await footballTeamFeature(
-                userMessage
-              );
-
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
-          } else if (league) {
-            const result =
-              await footballLeagueFeature(
-                userMessage
-              );
-
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
+          if (pitchIntelResult?.ok) {
+            footballData = JSON.stringify(pitchIntelResult);
           } else {
-            const result =
-              await footballFeature(
+            const team =
+              detectFootballTeam(
                 userMessage
               );
 
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
+            const league =
+              detectFootballLeague(
+                userMessage
+              );
+
+            if (team) {
+              const result =
+                await footballTeamFeature(
+                  userMessage
+                );
+
+              footballData =
+                typeof result === "string"
+                  ? result
+                  : JSON.stringify(result);
+            } else if (league) {
+              const result =
+                await footballLeagueFeature(
+                  userMessage
+                );
+
+              footballData =
+                typeof result === "string"
+                  ? result
+                  : JSON.stringify(result);
+            } else {
+              const result =
+                await footballFeature(
+                  userMessage
+                );
+
+              footballData =
+                typeof result === "string"
+                  ? result
+                  : JSON.stringify(result);
+            }
           }
         } catch (error) {
           console.error(

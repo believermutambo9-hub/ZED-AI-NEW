@@ -2555,7 +2555,7 @@ function openExploreView() {
     featureCard("Business assistant", "Work through business ideas, planning, marketing and practical documents.", "Explore business", () => { closeFeaturePanel(); messageInput.value = "Help me with a business task: "; messageInput.focus(); }),
     featureCard("Research assistant", "Research a topic, compare evidence and organise findings. Ask for current sources when freshness matters.", "Start research", () => { closeFeaturePanel(); messageInput.value = "Research this topic and provide reliable sources: "; messageInput.focus(); }),
     featureCard("File analysis", "Upload supported documents, spreadsheets, code or images for analysis.", "Upload a file", () => { closeFeaturePanel(); fileInput?.click(); }),
-    featureCard("Football analysis", "Ask about fixtures, results, team data and match analysis where reliable data is available.", "Analyse a match", () => { closeFeaturePanel(); messageInput.value = "Analyse this football match using available verified data: "; messageInput.focus(); })
+    featureCard("Football analysis", "Explore fixtures, match forecasts, head-to-head records, team form and football news using PitchIntel when connected.", "Analyse a match", () => { closeFeaturePanel(); messageInput.value = "Analyse this football match using available verified data: "; messageInput.focus(); })
   );
   openFeaturePanel("Explore Zed", content);
 }

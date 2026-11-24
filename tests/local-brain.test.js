@@ -59,6 +59,37 @@ test("local brain opens its circuit after repeated failures and recovers", async
   assert.equal(client.status().circuit, "closed");
 });
 
+test("local brain rejects endpoints with credentials, paths, queries or fragments", () => {
+  for (const baseUrl of [
+    "http://user:password@localhost:11434",
+    "http://localhost:11434/proxy",
+    "http://localhost:11434?token=secret",
+    "http://localhost:11434#fragment"
+  ]) {
+    const client = createLocalBrainClient({
+      baseUrl,
+      fetchImpl: async () => response({})
+    });
+    assert.equal(client.status().configured, false, baseUrl);
+  }
+});
+
+test("local brain reports request timeouts clearly", async () => {
+  const client = createLocalBrainClient({
+    baseUrl: "http://127.0.0.1:11434",
+    timeoutMs: 10,
+    fetchImpl: async (_url, { signal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener("abort", () => {
+        const error = new Error("The operation was aborted.");
+        error.name = "AbortError";
+        reject(error);
+      }, { once: true });
+    })
+  });
+
+  await assert.rejects(client.generate("This should time out."), /request timed out/);
+});
+
 test("local brain rejects empty responses", async () => {
   const client = createLocalBrainClient({
     baseUrl: "http://127.0.0.1:11434",

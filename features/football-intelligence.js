@@ -14,6 +14,8 @@ export function normalizeFootballName(value = "") {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+    // Remove punctuation before suffix matching so forms such as "C.F." and "F.C." normalize correctly.
+    .replace(/[.]/g, "")
     .replace(/\b(fc|cf|sc|afc|club|ac|ssc|as|rb|cd)\b/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")

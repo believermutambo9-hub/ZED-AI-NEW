@@ -116,3 +116,57 @@ test("PitchIntel connection failures return null so Zed can use its existing foo
     restore();
   }
 });
+
+test("head-to-head chat questions call the dedicated PitchIntel endpoint", async () => {
+  const restore = preserveEnv();
+  try {
+    process.env.NODE_ENV = "test";
+    process.env.PITCHINTEL_API_URL = "https://pitchintel-staging.example";
+    process.env.PITCHINTEL_SERVICE_SECRET = "test-only-secret";
+    let capturedUrl = "";
+    globalThis.fetch = async (url) => {
+      capturedUrl = String(url);
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        text: async () => JSON.stringify({ totalEncounters: 10, record: { homeWins: 4, draws: 3, awayWins: 3 } })
+      };
+    };
+
+    const result = await getPitchIntelChatData("Head-to-head Arsenal vs Chelsea");
+    assert.equal(result.ok, true);
+    assert.equal(result.type, "head_to_head");
+    assert.match(capturedUrl, /\\/api\\/v1\\/zed\\/h2h\\?/);
+    assert.match(capturedUrl, /home=Arsenal/);
+    assert.match(capturedUrl, /away=Chelsea/);
+  } finally {
+    restore();
+  }
+});
+
+test("upcoming fixture requests preserve the requested time horizon", async () => {
+  const restore = preserveEnv();
+  try {
+    process.env.NODE_ENV = "test";
+    process.env.PITCHINTEL_API_URL = "https://pitchintel-staging.example";
+    process.env.PITCHINTEL_SERVICE_SECRET = "test-only-secret";
+    let capturedUrl = "";
+    globalThis.fetch = async (url) => {
+      capturedUrl = String(url);
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        text: async () => JSON.stringify({ totalUpcoming: 0, matches: [] })
+      };
+    };
+
+    const result = await getPitchIntelChatData("Show upcoming fixtures next 7 days");
+    assert.equal(result.ok, true);
+    assert.equal(result.type, "upcoming");
+    assert.match(capturedUrl, /hours=168/);
+  } finally {
+    restore();
+  }
+});

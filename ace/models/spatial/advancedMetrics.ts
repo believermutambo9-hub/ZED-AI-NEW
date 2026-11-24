@@ -9,8 +9,8 @@
 
 export interface TeamContextFactors {
   daysRest: number; // Days since last competitive fixture
-  travelDistanceKm: number; // One-way travel distance
-  playedMidweekEuropean: boolean;
+  travelDistanceKm?: number; // One-way travel distance, only when verified
+  playedMidweekEuropean?: boolean; // Only true when a midweek continental fixture is verified
   isDerbyMatch?: boolean;
 }
 
@@ -44,7 +44,7 @@ export class AdvancedMetricsEngine {
   ): AdvancedMetricsResult {
     const hRest = homeContext?.daysRest ?? 6;
     const aRest = awayContext?.daysRest ?? 6;
-    const aTravel = awayContext?.travelDistanceKm ?? 120;
+    const aTravel = awayContext?.travelDistanceKm;
     const aEuropean = awayContext?.playedMidweekEuropean ?? false;
     const hEuropean = homeContext?.playedMidweekEuropean ?? false;
 
@@ -61,8 +61,8 @@ export class AdvancedMetricsEngine {
 
     // Travel penalty (long away European trips)
     let travelImpact = 0;
-    if (aTravel > 1500) travelImpact = 0.06;
-    else if (aTravel > 800) travelImpact = 0.03;
+    if (typeof aTravel === "number" && aTravel > 1500) travelImpact = 0.06;
+    else if (typeof aTravel === "number" && aTravel > 800) travelImpact = 0.03;
 
     // 3. Final-Third Pitch Tilt Share
     const expectedGoalRatio = homeBaseXg / (homeBaseXg + awayBaseXg);

@@ -3580,6 +3580,7 @@ console.log(
 
 app.listen(
   PORT,
+  LOCAL_AI_MODE ? "127.0.0.1" : "0.0.0.0",
   () => {
     console.log(
       `Zed running on port ${PORT}`
@@ -3593,7 +3594,8 @@ app.listen(
     console.log("Gemini API key: " + (GEMINI_API_KEY ? "configured" : "missing"));
     console.log("Groq API key: " + (GROQ_API_KEY ? "configured" : "missing"));
     console.log("OpenRouter API key: " + (OPENROUTER_API_KEY ? "configured" : "missing"));
-    console.log("Zed local brain: " + (getLocalBrainStatus().configured ? "Ollama endpoint configured" : "Ollama endpoint unavailable"));\n    console.log("Zed AI mode: " + (LOCAL_AI_MODE ? "local-only text generation" : "cloud providers with local fallback"));
+    console.log("Zed local brain: " + (getLocalBrainStatus().configured ? "Ollama endpoint configured" : "Ollama endpoint unavailable"));
+    console.log("Zed AI mode: " + (LOCAL_AI_MODE ? "local-only text generation" : "cloud providers with local fallback"));
     console.log("ImageKit library storage: " +
       (process.env.IMAGEKIT_PRIVATE_KEY && process.env.IMAGEKIT_URL_ENDPOINT ? "configured" : "missing"));
 

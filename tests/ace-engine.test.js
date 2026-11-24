@@ -29,6 +29,14 @@ test("ACE parses common explicit matchup phrasing", () => {
     homeTeam: "Bayern Munich",
     awayTeam: "PSG"
   });
+  assert.deepEqual(extractMatchup("Arsenal vs Chelsea, who will win?"), {
+    homeTeam: "Arsenal",
+    awayTeam: "Chelsea"
+  });
+  assert.deepEqual(extractMatchup("Which team will win between Inter Milan and AC Milan?"), {
+    homeTeam: "Inter Milan",
+    awayTeam: "AC Milan"
+  });
 });
 
 test("ACE does not create a prediction without a clear matchup", async () => {

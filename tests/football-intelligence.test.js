@@ -48,12 +48,14 @@ function providerFetch() {
         ? [{ team: { id: 101, name: "Arsenal FC" } }]
         : [{ team: { id: 202, name: "Chelsea FC" } }];
     } else if (path.endsWith("/fixtures/headtohead")) {
-      response = [upcoming];
+      response = [h2hHistory, upcoming];
     } else if (path.endsWith("/fixtures") && search.get("team") === "101") {
       response = homeHistory;
     } else if (path.endsWith("/fixtures") && search.get("team") === "202") {
       response = awayHistory;
-    } else if (path.endsWith("/lineups")) {\n      response = lineups;\n    } else if (path.endsWith("/injuries")) {
+    } else if (path.endsWith("/lineups")) {
+      response = lineups;
+    } else if (path.endsWith("/injuries")) {
       response = [{
         team: { id: 101 },
         player: { name: "Test Striker", type: "Missing Fixture", reason: "Injury" }
@@ -112,12 +114,17 @@ test("ACE evidence adapter uses pre-kickoff history and retrieves fixture-specif
   assert.equal(evidence.providerAvailable, true);
   assert.equal(evidence.hasTeamRatings, true);
   assert.equal(evidence.sampleMatchesCount, 8);
-  assert.equal(evidence.fixture.id, 9009);\n  assert.equal(evidence.h2h.sampleCount, 1);\n  assert.equal(evidence.h2h.homeTeamWins, 1);
+  assert.equal(evidence.fixture.id, 9009);
+  assert.equal(evidence.h2h.sampleCount, 1);
+  assert.equal(evidence.h2h.homeTeamWins, 1);
   assert.equal(evidence.home.matchesPlayed, 8);
   assert.equal(evidence.away.matchesPlayed, 8);
   assert.equal(evidence.injuriesChecked, true);
   assert.equal(evidence.injuries.length, 1);
-  assert.ok(evidence.missingInputs.some(item => item.includes("no lineup adjustments were applied")));
+  assert.equal(evidence.lineupsChecked, true);
+  assert.equal(evidence.lineups.length, 2);
+  assert.equal(evidence.lineups[0].startingPlayersConfirmed, 11);
+  assert.ok(evidence.missingInputs.some(item => item.includes("player-role impact mapping is not yet applied")));
   assert.deepEqual(evidence.marketOdds, {
     homeOdds: 2.1,
     drawOdds: 3.3,

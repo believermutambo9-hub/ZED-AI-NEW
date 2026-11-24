@@ -31,7 +31,7 @@ function isLoopbackEndpoint(value) {
  * The endpoint implements Ollama's OpenAI-compatible /v1/chat/completions API.
  */
 export function createLocalBrainClient({
-  baseUrl = process.env.ZED_LOCAL_BRAIN_URL || DEFAULT_URL,
+  baseUrl = process.env.ZED_LOCAL_BRAIN_URL || "",
   model = process.env.ZED_LOCAL_BRAIN_MODEL || DEFAULT_MODEL,
   timeoutMs = Number(process.env.ZED_LOCAL_BRAIN_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS,
   failureThreshold = DEFAULT_FAILURE_THRESHOLD,

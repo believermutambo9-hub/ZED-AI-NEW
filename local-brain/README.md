@@ -23,7 +23,8 @@ The default is `qwen3:8b`. A desktop with 32 GB system RAM is a reasonable start
 
 3. Install Node.js 22 or later.
 4. Get the Zed repository on the desktop and install dependencies with `npm install`.
-5. Create a private `.env.local` file in the project root. It must contain the existing Firebase Admin configuration required by Zed:
+5. Create a Firebase Admin service-account key for the existing Zed Firebase project. In the Firebase Console, open Project settings → Service accounts → Generate new private key. The project ID is `zed-ai-6d201`. Save the downloaded JSON file somewhere private; do not put it in the repository.
+6. Create a private `.env.local` file in the project root. It must contain the Firebase Admin configuration required by Zed:
 
    ```dotenv
    FIREBASE_PROJECT_ID=your-existing-firebase-project-id
@@ -32,15 +33,15 @@ The default is `qwen3:8b`. A desktop with 32 GB system RAM is a reasonable start
    ZED_LOCAL_BRAIN_MODEL=qwen3:8b
    ```
 
-   Replace the placeholders with the actual values from your existing secure Firebase configuration. The service-account value must be the complete JSON on one line, wrapped in single quotes. Do not commit `.env.local`, paste credentials into chat, or put service-account data in browser code.
+   Set `FIREBASE_PROJECT_ID=zed-ai-6d201`. Put the complete downloaded service-account JSON on one line inside single quotes for `FIREBASE_SERVICE_ACCOUNT_JSON`. Keep the key private. Never commit `.env.local`, paste credentials into chat, or put service-account data in browser code. The `.gitignore` already excludes this local environment file.
 
-6. Start Zed locally:
+7. Start Zed locally:
 
    ```powershell
    npm run start:local
    ```
 
-7. Open http://localhost:10000 in the desktop browser and sign in.
+8. Open http://localhost:10000 in the desktop browser and sign in.
 
 Ollama normally runs as a background service on Windows. If it is not running, start it before launching Zed.
 
@@ -57,7 +58,8 @@ Ollama normally runs as a background service on Windows. If it is not running, s
 - `ZED_AI_MODE=local` enables local-only text generation. The `npm run start:local` script sets this automatically.
 - `ZED_LOCAL_BRAIN_URL` defaults to `http://127.0.0.1:11434`. Public endpoints are deliberately rejected.
 - `ZED_LOCAL_BRAIN_MODEL` defaults to `qwen3:8b`.
-- `ZED_LOCAL_BRAIN_TIMEOUT_MS` defaults to 120000.
+- `ZED_LOCAL_BRAIN_TIMEOUT_MS` defaults to 120000 and is capped at ten minutes.
+- The `/health` endpoint reports whether local mode is selected and whether the configured Ollama endpoint is a valid loopback address; it does not expose credentials.
 
 ## Rollout safety
 

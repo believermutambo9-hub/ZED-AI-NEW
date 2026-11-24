@@ -1,5 +1,6 @@
 // Validate local prerequisites before importing the full Zed server.
 process.env.ZED_AI_MODE = "local";
+process.env.ZED_LOCAL_BRAIN_URL = process.env.ZED_LOCAL_BRAIN_URL || "http://127.0.0.1:11434";
 
 function stop(message) {
   console.error(`\nZed local setup: ${message}\n`);

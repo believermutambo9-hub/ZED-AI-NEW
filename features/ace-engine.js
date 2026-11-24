@@ -18,7 +18,7 @@ export function extractMatchup(message = "") {
       result = result.replace(/^(?:(?:please|can you|could you|would you|predict|prediction for|forecast|analyse|analyze|analysis of|who will win|who wins|will|show me|give me|what about)\s+)+/i, "");
       result = result.replace(/^(?:(?:the\s+)?(?:football\s+)?(?:match|game)\s+(?:between\s+)?)*/i, "");
     } else {
-      result = result.replace(/\b(?:prediction|predict|forecast|analysis|analyse|analyze|odds|today|tonight|tomorrow|please|kickoff|kick-off)\b[\s\S]*$/i, "");
+      result = result.replace(/\b(?:prediction|predict|forecast|analysis|analyse|analyze|odds|today|tonight|tomorrow|please|kickoff|kick-off|who will win|who wins|which team|which side|what is your prediction)\b[\s\S]*$/i, "");
     }
     return result.replace(/^[\s,;:-]+|[\s,;:-]+$/g, "").trim();
   };

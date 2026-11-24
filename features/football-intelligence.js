@@ -487,7 +487,8 @@ export async function collectFootballEvidence({
 
     const home = deriveTeamStrength(homeMatches, homeId, kickoffTime);
     const away = deriveTeamStrength(awayMatches, awayId, kickoffTime);
-    const h2h = summarizeHeadToHead(h2hResponse.response, homeId, kickoffTime);\n    const fixture = upcoming ? {
+    const h2h = summarizeHeadToHead(h2hResponse.response, homeId, kickoffTime);
+    const fixture = upcoming ? {
       id: Number(upcoming.fixture.id),
       kickoffTime: new Date(upcoming.fixture.date).toISOString(),
       competition: String(upcoming.league?.name || "Competition not supplied"),
@@ -501,6 +502,8 @@ export async function collectFootballEvidence({
     let injuries = [];
     let injuriesChecked = false;
     let marketOdds = null;
+    let lineups = [];
+    let lineupsChecked = false;
     const missingInputs = [];
     if (!home || home.matchesPlayed < MIN_RATING_MATCHES) {
       missingInputs.push("Insufficient completed home-team history (5 matches minimum for a form rating).");
@@ -558,6 +561,9 @@ export async function collectFootballEvidence({
       home,
       away,
       fixture,
+      h2h,
+      lineups,
+      lineupsChecked,
       sampleMatchesCount: Math.min(home?.matchesPlayed || 0, away?.matchesPlayed || 0),
       hasTeamRatings: ratingsAvailable,
       hasWebIntelligence: Boolean(fixture && injuriesChecked),
@@ -621,7 +627,9 @@ export async function persistPredictionEvidence({ prediction, evidence, missingI
       confidence: prediction?.confidence || null,
       dataQuality: prediction?.dataQuality || null,
       evidence: {
-        teamSamples: evidence?.providerSampleCount || null,\n        headToHead: evidence?.h2h || null,\n        lineups: Array.isArray(evidence?.lineups) ? evidence.lineups : [],
+        teamSamples: evidence?.providerSampleCount || null,
+        headToHead: evidence?.h2h || null,
+        lineups: Array.isArray(evidence?.lineups) ? evidence.lineups : [],
         homeForm: evidence?.home?.form || null,
         awayForm: evidence?.away?.form || null,
         injuriesChecked: Boolean(evidence?.injuriesChecked),

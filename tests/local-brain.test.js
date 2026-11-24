@@ -28,6 +28,14 @@ test("local brain sends prompts to Ollama's OpenAI-compatible endpoint", async (
   assert.equal(client.status().circuit, "closed");
 });
 
+test("local brain stays disabled when no local endpoint is configured", () => {
+  const client = createLocalBrainClient({
+    baseUrl: "",
+    fetchImpl: async () => response({})
+  });
+  assert.equal(client.status().configured, false);
+});
+
 test("local brain refuses public endpoints", () => {
   const client = createLocalBrainClient({
     baseUrl: "https://public.example.com",

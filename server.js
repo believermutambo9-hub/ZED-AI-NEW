@@ -2778,44 +2778,35 @@ app.post(
               );
 
             if (team) {
-            const result =
-              await footballTeamFeature(
-                userMessage
-              );
+              const result =
+                await footballTeamFeature(
+                  userMessage
+                );
 
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
-          } else if (league) {
-            const result =
-              await footballLeagueFeature(
-                userMessage
-              );
+              footballData =
+                typeof result === "string"
+                  ? result
+                  : JSON.stringify(result);
+            } else if (league) {
+              const result =
+                await footballLeagueFeature(
+                  userMessage
+                );
 
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
-          } else {
-            const result =
-              await footballFeature(
-                userMessage
-              );
+              footballData =
+                typeof result === "string"
+                  ? result
+                  : JSON.stringify(result);
+            } else {
+              const result =
+                await footballFeature(
+                  userMessage
+                );
 
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
+              footballData =
+                typeof result === "string"
+                  ? result
+                  : JSON.stringify(result);
             }
           }
         } catch (error) {

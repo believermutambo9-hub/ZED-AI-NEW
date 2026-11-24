@@ -44,7 +44,7 @@ export function getFootballIntelligenceStatus() {
   return {
     provider: "API-Football v3",
     providerConfigured: config.configured,
-    persistentCacheAvailable: firestoreAvailable,
+    firestoreClientInitialized: firestoreAvailable,
     fallback: "ACE baseline with explicit low-confidence disclosure"
   };
 }
@@ -79,6 +79,14 @@ async function writePersistentCache(key, payload) {
   }
 }
 
+function setMemoryCache(key, payload) {
+  if (!MEMORY_CACHE.has(key) && MEMORY_CACHE.size >= 500) {
+    const oldestKey = MEMORY_CACHE.keys().next().value;
+    if (oldestKey !== undefined) MEMORY_CACHE.delete(oldestKey);
+  }
+  MEMORY_CACHE.set(key, { payload, savedAt: Date.now() });
+}
+
 function cacheAllowed(fetchImpl, options) {
   return fetchImpl === globalThis.fetch && options.cache !== false;
 }
@@ -108,7 +116,7 @@ async function apiGet(endpoint, params, options = {}) {
     if (memoryRecord && Date.now() - memoryRecord.savedAt < ttlMs) return memoryRecord.payload;
     const persistent = await readPersistentCache(cacheKey, ttlMs);
     if (persistent) {
-      MEMORY_CACHE.set(cacheKey, { payload: persistent, savedAt: Date.now() });
+      setMemoryCache(cacheKey, persistent);
       return persistent;
     }
   }
@@ -158,7 +166,7 @@ async function apiGet(endpoint, params, options = {}) {
     };
 
     if (allowCache) {
-      MEMORY_CACHE.set(cacheKey, { payload, savedAt: Date.now() });
+      setMemoryCache(cacheKey, payload);
       await writePersistentCache(cacheKey, payload);
     }
     return payload;
@@ -315,6 +323,62 @@ function findUpcomingFixture(records, homeId, awayId) {
   return candidates[0] || null;
 }
 
+function summarizeHeadToHead(records, homeTeamId, before) {
+  const cutoff = new Date(before).getTime();
+  const matches = (Array.isArray(records) ? records : [])
+    .map(normalizeFinishedFixture)
+    .filter(Boolean)
+    .filter(match => new Date(match.date).getTime() < cutoff)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5);
+
+  let homeWins = 0;
+  let draws = 0;
+  let awayWins = 0;
+  let homeGoals = 0;
+  let awayGoals = 0;
+
+  for (const match of matches) {
+    const targetHomeGoals = match.homeId === homeTeamId ? match.homeGoals : match.awayGoals;
+    const targetAwayGoals = match.homeId === homeTeamId ? match.awayGoals : match.homeGoals;
+    homeGoals += targetHomeGoals;
+    awayGoals += targetAwayGoals;
+    if (targetHomeGoals > targetAwayGoals) homeWins += 1;
+    else if (targetHomeGoals < targetAwayGoals) awayWins += 1;
+    else draws += 1;
+  }
+
+  return {
+    sampleCount: matches.length,
+    homeTeamWins: homeWins,
+    draws,
+    awayTeamWins: awayWins,
+    averageHomeGoals: matches.length ? Number((homeGoals / matches.length).toFixed(2)) : null,
+    averageAwayGoals: matches.length ? Number((awayGoals / matches.length).toFixed(2)) : null,
+    lastMeetings: matches.map(match => ({
+      date: match.date,
+      homeGoals: match.homeId === homeTeamId ? match.homeGoals : match.awayGoals,
+      awayGoals: match.homeId === homeTeamId ? match.awayGoals : match.homeGoals
+    }))
+  };
+}
+
+function summarizeLineups(records, homeId, awayId) {
+  return (Array.isArray(records) ? records : []).map(item => {
+    const teamId = Number(item?.team?.id);
+    if (teamId !== homeId && teamId !== awayId) return null;
+    const starting = Array.isArray(item.startXI) ? item.startXI : [];
+    const substitutes = Array.isArray(item.substitutes) ? item.substitutes : [];
+    return {
+      team: teamId === homeId ? "HOME" : "AWAY",
+      formation: String(item.formation || ""),
+      startingPlayersConfirmed: starting.length,
+      substitutesListed: substitutes.length,
+      coach: String(item.coach?.name || "")
+    };
+  }).filter(Boolean);
+}
+
 function parseDecimal(value) {
   const number = Number(String(value ?? "").replace(",", "."));
   return Number.isFinite(number) && number > 1.01 && number < 1000 ? number : null;
@@ -409,7 +473,7 @@ export async function collectFootballEvidence({
       return { ...empty, providerAvailable: true, missingInputs: ["The provider resolved both names to the same team."] };
     }
 
-    const h2hResponse = await apiGet("fixtures/headtohead", { h2h: homeId + "-" + awayId, next: 1 }, {
+    const h2hResponse = await apiGet("fixtures/headtohead", { h2h: homeId + "-" + awayId, last: 5, next: 1 }, {
       ...options,
       ttlMs: 20 * 60 * 1000
     });
@@ -423,7 +487,7 @@ export async function collectFootballEvidence({
 
     const home = deriveTeamStrength(homeMatches, homeId, kickoffTime);
     const away = deriveTeamStrength(awayMatches, awayId, kickoffTime);
-    const fixture = upcoming ? {
+    const h2h = summarizeHeadToHead(h2hResponse.response, homeId, kickoffTime);\n    const fixture = upcoming ? {
       id: Number(upcoming.fixture.id),
       kickoffTime: new Date(upcoming.fixture.date).toISOString(),
       competition: String(upcoming.league?.name || "Competition not supplied"),
@@ -463,13 +527,20 @@ export async function collectFootballEvidence({
         marketOdds = extractMatchWinnerOdds(settled[1].value.response, homeTeam, awayTeam);
       }
       if (!marketOdds) missingInputs.push("Comparable bookmaker 1X2 odds were unavailable for this fixture.");
+      if (settled[2].status === "fulfilled") {
+        lineupsChecked = true;
+        lineups = summarizeLineups(settled[2].value.response, homeId, awayId);
+      }
+      if (!lineups.length) {
+        missingInputs.push("Confirmed starting XIs are not yet available from the provider or are not covered for this competition.");
+      }
       if (!injuries.length && injuriesChecked) {
         missingInputs.push("The injury feed returned no listed absences; this is not proof that every player is fully fit.");
       }
       if (injuries.length) {
         missingInputs.push("Provider-reported absences were retrieved but player positions and replacement roles are not verified; no lineup adjustments were applied.");
       }
-      missingInputs.push("Confirmed starting XIs and positional lineup impacts are not currently integrated; no lineup adjustments were applied.");
+      missingInputs.push("Starting-XI information is collected for display, but player-role impact mapping is not yet applied to the statistical model.");
     }
 
     const ratingsAvailable = Boolean(home && away &&
@@ -550,7 +621,7 @@ export async function persistPredictionEvidence({ prediction, evidence, missingI
       confidence: prediction?.confidence || null,
       dataQuality: prediction?.dataQuality || null,
       evidence: {
-        teamSamples: evidence?.providerSampleCount || null,
+        teamSamples: evidence?.providerSampleCount || null,\n        headToHead: evidence?.h2h || null,\n        lineups: Array.isArray(evidence?.lineups) ? evidence.lineups : [],
         homeForm: evidence?.home?.form || null,
         awayForm: evidence?.away?.form || null,
         injuriesChecked: Boolean(evidence?.injuriesChecked),

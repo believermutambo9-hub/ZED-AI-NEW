@@ -729,9 +729,7 @@ function shouldUseFootball(
 function shouldUseFootballData(
   message = ""
 ) {
-  const text =
-    message.toLowerCase();
-
+  const text = message.toLowerCase();
   const dataWords = [
     "score",
     "scores",
@@ -747,6 +745,7 @@ function shouldUseFootballData(
     "next game",
     "upcoming match",
     "upcoming matches",
+    "upcoming fixtures",
     "live score",
     "live scores",
     "matches today",
@@ -759,30 +758,22 @@ function shouldUseFootballData(
     "match statistics",
     "match stats",
     "football news",
-    "team news",
-    "upcoming fixtures",
-    "upcoming matches",
-    "predict",
-    "prediction",
-    "probability",
-    "probabilities",
-    "head-to-head",
-    "h2h",
-    "expected goals",
-    "xg",
     "football analysis",
-    "soccer analysis"
+    "soccer analysis",
+    "match prediction",
+    "football prediction",
+    "soccer prediction",
+    "match forecast",
+    "football forecast"
   ];
 
-  return dataWords.some(
-    word =>
-      text.includes(word)
-  ) ||
-    (/\\b(?:football|soccer)\\b.*\\b(?:analyse|analyze|analysis|predict|prediction|forecast|odds|xg)\\b/i.test(text)) ||
-    (/\\b(?:head[\\s-]?to[\\s-]?head|h2h)\\b/i.test(text)) ||
-    (/\\b(?:vs?\\.?|versus)\\b/i.test(text) && Boolean(detectFootballTeam(message)));
+  const hasKnownTeam = Boolean(detectFootballTeam(message));
+  return dataWords.some(word => text.includes(word)) ||
+    (/\b(?:football|soccer)\b.*\b(?:analyse|analyze|analysis|predict|prediction|forecast|odds|xg|expected goals|form|news)\b/i.test(text)) ||
+    (/\b(?:head[\s-]?to[\s-]?head|h2h)\b/i.test(text)) ||
+    (/\b(?:vs?\.?|versus)\b/i.test(text) && hasKnownTeam) ||
+    (hasKnownTeam && /\b(?:predict|prediction|forecast|analysis|analyse|analyze|odds|xg|expected goals|form|statistics|stats|news)\b/i.test(text));
 }
-
 // ============================================================
 // UPLOADED FILE ANALYSIS
 import { prepareUploadedFile } from "./features/file-analysis.js";

@@ -130,6 +130,7 @@ export async function getAcePredictionChatData(message = "", options = {}) {
       injuriesChecked: Boolean(evidence.injuriesChecked),
       reportedInjuries: evidence.injuries || [],
       h2h: evidence.h2h || null,
+      h2hUsedInModelProbabilities: false,
       lineups: evidence.lineups || [],
       lineupFeedChecked: Boolean(evidence.lineupsChecked),
       lineupAdjustmentsApplied: false,

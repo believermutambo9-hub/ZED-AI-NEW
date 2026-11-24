@@ -14,7 +14,12 @@ function isLoopbackEndpoint(value) {
   try {
     const parsed = new URL(value);
     return parsed.protocol === "http:" &&
-      ["localhost", "127.0.0.1", "::1", "[::1]"].includes(parsed.hostname);
+      ["localhost", "127.0.0.1", "::1", "[::1]"].includes(parsed.hostname) &&
+      !parsed.username &&
+      !parsed.password &&
+      parsed.pathname === "/" &&
+      !parsed.search &&
+      !parsed.hash;
   } catch {
     return false;
   }
@@ -35,7 +40,18 @@ export function createLocalBrainClient({
   now = Date.now
 } = {}) {
   const endpoint = normalizeEndpoint(baseUrl);
-  const configured = Boolean(endpoint && model && isLoopbackEndpoint(endpoint));
+  const selectedModel = String(model || "").trim();
+  const requestedTimeout = Number(timeoutMs);
+  const safeTimeoutMs = Number.isFinite(requestedTimeout) && requestedTimeout > 0
+    ? Math.min(requestedTimeout, 10 * 60 * 1000)
+    : DEFAULT_TIMEOUT_MS;
+  const safeFailureThreshold = Number.isInteger(failureThreshold) && failureThreshold > 0
+    ? failureThreshold
+    : DEFAULT_FAILURE_THRESHOLD;
+  const safeCooldownMs = Number.isFinite(cooldownMs) && cooldownMs > 0
+    ? Math.min(cooldownMs, 10 * 60 * 1000)
+    : DEFAULT_COOLDOWN_MS;
+  const configured = Boolean(endpoint && selectedModel && isLoopbackEndpoint(endpoint));
   let failures = 0;
   let circuitOpenUntil = 0;
   let probeInFlight = false;
@@ -43,7 +59,7 @@ export function createLocalBrainClient({
   function status() {
     return {
       configured,
-      model,
+      model: selectedModel,
       circuit: now() < circuitOpenUntil ? "open" : failures ? "recovering" : "closed",
       failures
     };
@@ -55,13 +71,13 @@ export function createLocalBrainClient({
     if (now() < circuitOpenUntil) throw new Error("Zed local brain circuit is open after repeated failures.");
     if (probeInFlight) throw new Error("Zed local brain recovery probe is already running.");
 
-    probeInFlight = failures >= failureThreshold;
+    probeInFlight = failures >= safeFailureThreshold;
     const controller = new AbortController();
     let timedOut = false;
     const timeout = setTimeout(() => {
       timedOut = true;
       controller.abort();
-    }, timeoutMs);
+    }, safeTimeoutMs);
 
     try {
       const response = await fetchImpl(`${endpoint}/v1/chat/completions`, {
@@ -69,12 +85,12 @@ export function createLocalBrainClient({
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model,
+          model: selectedModel,
           messages: [
             { role: "system", content: ZED_CORE_INSTRUCTIONS },
             { role: "user", content: String(prompt || "") }
           ],
-          temperature: 0.7,
+          temperature: 0.6,
           max_tokens: 2048,
           stream: false
         })
@@ -90,7 +106,7 @@ export function createLocalBrainClient({
       return answer;
     } catch (error) {
       failures += 1;
-      if (failures >= failureThreshold) circuitOpenUntil = now() + cooldownMs;
+      if (failures >= safeFailureThreshold) circuitOpenUntil = now() + safeCooldownMs;
       const safeError = new Error(
         timedOut || error?.name === "AbortError"
           ? "Zed local brain request timed out."

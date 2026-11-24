@@ -464,6 +464,10 @@ export async function collectFootballEvidence({
       if (!injuries.length && injuriesChecked) {
         missingInputs.push("The injury feed returned no listed absences; this is not proof that every player is fully fit.");
       }
+      if (injuries.length) {
+        missingInputs.push("Provider-reported absences were retrieved but player positions and replacement roles are not verified; no lineup adjustments were applied.");
+      }
+      missingInputs.push("Confirmed starting XIs and positional lineup impacts are not currently integrated; no lineup adjustments were applied.");
     }
 
     const ratingsAvailable = Boolean(home && away &&

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { getAcePredictionChatData, extractMatchup } from "../features/ace-engine.js";
+import { PredictionEngine } from "../ace/models/engine.ts";
 
 test("ACE creates a transparent low-confidence baseline when no provider key is configured", async () => {
   const result = await getAcePredictionChatData("Predict Arsenal vs Chelsea", { cache: false });
@@ -42,3 +43,25 @@ test("ACE parses common explicit matchup phrasing", () => {
 test("ACE does not create a prediction without a clear matchup", async () => {
   assert.equal(await getAcePredictionChatData("Show me today's football fixtures"), null);
 });
+
+test("ACE caps data quality when only recent-form proxies and no verified event xG are available", () => {
+  const prediction = PredictionEngine.calculatePrediction({
+    homeTeam: "Arsenal",
+    awayTeam: "Chelsea",
+    competition: "Test League",
+    homeElo: 1580,
+    awayElo: 1510,
+    sampleMatchesCount: 12,
+    hasTeamRatings: true,
+    teamRatingsSource: "RECENT_FORM_PROXY",
+    hasWebIntelligence: true,
+    webIntelligenceReliability: 0.7,
+    marketOdds: { homeOdds: 2.1, drawOdds: 3.3, awayOdds: 3.6 }
+  });
+
+  assert.ok(prediction.dataQuality.score <= 0.68);
+  assert.notEqual(prediction.confidence.level, "HIGH");
+  assert.ok(prediction.dataQuality.missingInputs.some(item => item.includes("Official calibrated Elo")));
+  assert.ok(prediction.dataQuality.missingInputs.some(item => item.includes("Verified event-level expected-goals")));
+});
+

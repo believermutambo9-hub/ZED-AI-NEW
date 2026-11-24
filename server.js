@@ -12,6 +12,9 @@ import {
   createScheduledTask, listScheduledTasks, updateScheduledTask, deleteScheduledTask
 } from "./storage/scheduled-tasks.js";
 
+import { getAcePredictionChatData } from "./features/ace-engine.js";
+import { askLocalBrain, getLocalBrainStatus } from "./features/local-brain.js";
+
 import {
   footballFeature,
   footballTeamFeature,
@@ -75,6 +78,8 @@ const __dirname =
 
 const PORT =
   process.env.PORT || 10000;
+
+const LOCAL_AI_MODE = String(process.env.ZED_AI_MODE || "").trim().toLowerCase() === "local";
 
 // ============================================================
 // ENVIRONMENT
@@ -1002,6 +1007,22 @@ async function askAI(
       ].join("\n\n")
     : prompt;
 
+  // When this server is running on the user's desktop in local mode,
+  // all ordinary text generation stays on that computer. This deliberately
+  // bypasses paid cloud text providers. Media remains on modality-capable
+  // providers because the local phase-one model is text-only.
+  if (!inlineData && LOCAL_AI_MODE) {
+    try {
+      const answer = await askLocalBrain(prompt);
+      return { answer, provider: "zed-local-brain" };
+    } catch (error) {
+      console.error("Zed local brain failed:", error.message);
+      const unavailable = new Error("Zed's local AI brain is unavailable. Make sure Ollama is running and the selected model is installed.");
+      unavailable.code = "AI_PROVIDERS_UNAVAILABLE";
+      throw unavailable;
+    }
+  }
+
   try {
     const answer =
       await askGemini(
@@ -1102,6 +1123,16 @@ async function askAI(
     errors.push(
       `OpenRouter: ${error.message}`
     );
+  }
+
+  // Local desktop model is the final text-only fallback when cloud mode
+  // is active. In local mode it is called first above. Binary media never
+  // reaches this provider because Ollama is configured for text generation.
+  try {
+    const answer = await askLocalBrain(prompt);
+    return { answer, provider: "zed-local-brain" };
+  } catch (error) {
+    errors.push(`Zed local brain: ${error.message}`);
   }
 
   // Keep provider diagnostics in server logs only; return a stable error
@@ -1414,7 +1445,15 @@ app.get(
         "zed",
 
       provider:
-        "gemini-with-groq-and-openrouter-fallback",
+        LOCAL_AI_MODE
+          ? "ollama-local"
+          : "gemini-with-groq-openrouter-and-local-fallback",
+
+      aiMode:
+        LOCAL_AI_MODE ? "local-text-only" : "cloud-with-local-fallback",
+
+      localBrain:
+        getLocalBrainStatus(),
 
       geminiModel:
         GEMINI_MODEL,
@@ -2721,6 +2760,19 @@ app.post(
         }
       }
 
+      // ACE statistical ensemble for explicit match predictions.
+      // Preserve the model confidence and missing-input disclosures.
+      if (footballMode === "prediction") {
+        try {
+          const acePrediction = getAcePredictionChatData(userMessage);
+          if (acePrediction) {
+            footballData += "\n\nACE STATISTICAL MODEL (baseline; inspect data quality and missing inputs):\n" + JSON.stringify(acePrediction, null, 2);
+          }
+        } catch (error) {
+          console.warn("ACE prediction engine notice:", error?.message || error);
+        }
+      }
+
       // ------------------------------------------------------
       // WEB SEARCH
       // ------------------------------------------------------
@@ -3536,6 +3588,7 @@ console.log(
 
 app.listen(
   PORT,
+  LOCAL_AI_MODE ? "127.0.0.1" : "0.0.0.0",
   () => {
     console.log(
       `Zed running on port ${PORT}`
@@ -3549,6 +3602,8 @@ app.listen(
     console.log("Gemini API key: " + (GEMINI_API_KEY ? "configured" : "missing"));
     console.log("Groq API key: " + (GROQ_API_KEY ? "configured" : "missing"));
     console.log("OpenRouter API key: " + (OPENROUTER_API_KEY ? "configured" : "missing"));
+    console.log("Zed local brain: " + (getLocalBrainStatus().configured ? "Ollama endpoint configured" : "Ollama endpoint unavailable"));
+    console.log("Zed AI mode: " + (LOCAL_AI_MODE ? "local-only text generation" : "cloud providers with local fallback"));
     console.log("ImageKit library storage: " +
       (process.env.IMAGEKIT_PRIVATE_KEY && process.env.IMAGEKIT_URL_ENDPOINT ? "configured" : "missing"));
 

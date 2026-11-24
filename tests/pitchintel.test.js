@@ -137,7 +137,7 @@ test("head-to-head chat questions call the dedicated PitchIntel endpoint", async
     const result = await getPitchIntelChatData("Head-to-head Arsenal vs Chelsea");
     assert.equal(result.ok, true);
     assert.equal(result.type, "head_to_head");
-    assert.match(capturedUrl, /\\/api\\/v1\\/zed\\/h2h\\?/);
+    assert.match(capturedUrl, /\/api\/v1\/zed\/h2h\\?/);
     assert.match(capturedUrl, /home=Arsenal/);
     assert.match(capturedUrl, /away=Chelsea/);
   } finally {

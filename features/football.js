@@ -582,7 +582,7 @@ function getFootballRequestType(
     clean(message);
 
   if (
-    /predict|prediction|predictive|who will win|winner|forecast|odds|chance|probability|likely to win|likely winner|score prediction|correct score/.test(
+    /predict|prediction|predictive|who will win|who wins|which team will win|which side will win|who is likely to win|winner|forecast|odds|chance|probability|likely to win|likely winner|score prediction|correct score/.test(
       q
     )
   ) {

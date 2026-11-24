@@ -145,6 +145,7 @@ export class PredictionEngine {
     hasTeamRatings?: boolean;
     hasWebIntelligence?: boolean;
     webIntelligenceReliability?: number;
+    teamRatingsSource?: "RECENT_FORM_PROXY" | "VERIFIED_PROVIDER_RATINGS";
   }): PredictionResult {
     const hasRatings =
       params.hasTeamRatings ?? (params.homeElo !== undefined && params.awayElo !== undefined);
@@ -293,7 +294,12 @@ export class PredictionEngine {
     const missingInputs: string[] = [];
 
     if (hasRatings) {
-      qualityFactors.push('Pre-match Elo & attack/defense ratings derived from historical results');
+      if (params.teamRatingsSource === 'RECENT_FORM_PROXY') {
+        qualityFactors.push('Recent-form strength proxies and attack/defense ratings derived from prior completed results; these are not official Elo ratings');
+        missingInputs.push('Official calibrated Elo and opponent-adjusted team ratings are unavailable; recent-form proxies are used.');
+      } else {
+        qualityFactors.push('Pre-match Elo & attack/defense ratings derived from historical results');
+      }
     } else {
       missingInputs.push('Club historical Elo/strength ratings unavailable (neutral 1500 baseline used)');
     }
@@ -305,6 +311,10 @@ export class PredictionEngine {
       missingInputs.push(`Limited match history sample (${sampleSize} matches; < 10 recommended)`);
     } else {
       missingInputs.push('Zero prior completed matches found for form/H2H calibration');
+    }
+
+    if (params.homeXgAvg === undefined || params.awayXgAvg === undefined) {
+      missingInputs.push('Verified event-level expected-goals data is unavailable; score-based goal-rate estimates are used.');
     }
 
     if (params.absences && params.absences.length > 0) {
@@ -328,7 +338,10 @@ export class PredictionEngine {
       (hasWebIntel ? webRel * 0.10 : 0) +
       (hasMarketOdds ? 0.10 : 0);
 
-    const qualityScore = Number(Math.max(0.18, Math.min(0.98, rawQuality)).toFixed(2));
+    // Recent-form proxies are useful evidence but are not a substitute for
+    // calibrated Elo, opponent-adjusted ratings, or event-level xG.
+    const sourceQualityCap = params.teamRatingsSource === 'RECENT_FORM_PROXY' ? 0.68 : 0.98;
+    const qualityScore = Number(Math.max(0.18, Math.min(sourceQualityCap, rawQuality)).toFixed(2));
     let qualityRating: 'EXCELLENT' | 'GOOD' | 'MODERATE' | 'LIMITED' = 'LIMITED';
     if (qualityScore >= 0.80) qualityRating = 'EXCELLENT';
     else if (qualityScore >= 0.65) qualityRating = 'GOOD';

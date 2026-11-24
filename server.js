@@ -12,7 +12,9 @@ import {
   createScheduledTask, listScheduledTasks, updateScheduledTask, deleteScheduledTask
 } from "./storage/scheduled-tasks.js";
 
-import { getAcePredictionChatData } from "./features/ace-engine.js";
+import { getAcePredictionChatData, extractMatchup } from "./features/ace-engine.js";
+import { getFootballIntelligenceStatus } from "./features/football-intelligence.js";
+import { shouldUseFootballPrediction } from "./features/football-intent.js";
 
 import {
   footballFeature,
@@ -724,6 +726,12 @@ function shouldUseFootballData(
   const text =
     message.toLowerCase();
 
+  // Explicit prediction prompts need the ACE path even when they do not use
+  // the words "fixture", "score", or "match statistics".
+  if (shouldUseFootballPrediction(message)) {
+    return true;
+  }
+
   const dataWords = [
     "score",
     "scores",
@@ -1426,6 +1434,9 @@ app.get(
 
       footballScope:
         "worldwide",
+
+      acePrediction:
+        getFootballIntelligenceStatus(),
 
       webSearch:
         true,
@@ -2653,86 +2664,39 @@ app.post(
           userMessage
         )
       ) {
-        try {
-          footballUsed =
-            true;
+        footballUsed = true;
+        footballMode = getFootballRequestType(userMessage);
 
-          footballMode =
-            getFootballRequestType(
-              userMessage
-            );
-
-          const team =
-            detectFootballTeam(
-              userMessage
-            );
-
-          const league =
-            detectFootballLeague(
-              userMessage
-            );
-
-          if (team) {
-            const result =
-              await footballTeamFeature(
-                userMessage
-              );
-
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
-          } else if (league) {
-            const result =
-              await footballLeagueFeature(
-                userMessage
-              );
-
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
-          } else {
-            const result =
-              await footballFeature(
-                userMessage
-              );
-
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
+        const requestedMatchup = extractMatchup(userMessage);
+        if (footballMode === "prediction" && requestedMatchup) {
+          try {
+            const acePrediction = await getAcePredictionChatData(userMessage);
+            footballData = acePrediction
+              ? "ACE STATISTICAL MODEL (use confidence and missing-input disclosures; do not overstate limited evidence):\n" + JSON.stringify(acePrediction, null, 2)
+              : "A clear home-versus-away team matchup could not be extracted. Ask the user to specify both teams.";
+          } catch (error) {
+            console.warn("ACE prediction engine notice:", error?.message || error);
+            footballData = "ACE could not retrieve football evidence for this matchup. Do not invent statistics; explain that the data source is temporarily unavailable.";
           }
-        } catch (error) {
-          console.error(
-            "Football feature error:",
-            error
-          );
+        } else {
+          try {
+            const team = detectFootballTeam(userMessage);
+            const league = detectFootballLeague(userMessage);
 
-          footballData =
-            "No verified football data was available for this request.";
-        }
-      }
-
-      // ACE statistical ensemble for explicit match predictions.
-      // Preserve the model confidence and missing-input disclosures.
-      if (footballMode === "prediction") {
-        try {
-          const acePrediction = getAcePredictionChatData(userMessage);
-          if (acePrediction) {
-            footballData += "\n\nACE STATISTICAL MODEL (baseline; inspect data quality and missing inputs):\n" + JSON.stringify(acePrediction, null, 2);
+            if (team) {
+              const result = await footballTeamFeature(userMessage);
+              footballData = typeof result === "string" ? result : JSON.stringify(result);
+            } else if (league) {
+              const result = await footballLeagueFeature(userMessage);
+              footballData = typeof result === "string" ? result : JSON.stringify(result);
+            } else {
+              const result = await footballFeature(userMessage);
+              footballData = typeof result === "string" ? result : JSON.stringify(result);
+            }
+          } catch (error) {
+            console.error("Football feature error:", error);
+            footballData = "No verified football data was available for this request.";
           }
-        } catch (error) {
-          console.warn("ACE prediction engine notice:", error?.message || error);
         }
       }
 

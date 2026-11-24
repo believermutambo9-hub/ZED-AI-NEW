@@ -103,12 +103,12 @@ test("ACE evidence adapter uses pre-kickoff history and retrieves fixture-specif
   assert.equal(evidence.providerAvailable, true);
   assert.equal(evidence.hasTeamRatings, true);
   assert.equal(evidence.sampleMatchesCount, 8);
-  assert.equal(evidence.fixtureVerified, undefined);
   assert.equal(evidence.fixture.id, 9009);
   assert.equal(evidence.home.matchesPlayed, 8);
   assert.equal(evidence.away.matchesPlayed, 8);
   assert.equal(evidence.injuriesChecked, true);
   assert.equal(evidence.injuries.length, 1);
+  assert.ok(evidence.missingInputs.some(item => item.includes("no lineup adjustments were applied")));
   assert.deepEqual(evidence.marketOdds, {
     homeOdds: 2.1,
     drawOdds: 3.3,

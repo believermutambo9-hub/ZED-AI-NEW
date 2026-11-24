@@ -27,7 +27,7 @@ The default is `qwen3:8b`. A desktop with 32 GB system RAM is a reasonable start
 6. Create a private `.env.local` file in the project root. It must contain the Firebase Admin configuration required by Zed:
 
    ```dotenv
-   FIREBASE_PROJECT_ID=your-existing-firebase-project-id
+   FIREBASE_PROJECT_ID=zed-ai-6d201
    FIREBASE_SERVICE_ACCOUNT_JSON='PASTE_YOUR_COMPLETE_SERVICE_ACCOUNT_JSON_ON_ONE_LINE'
    ZED_LOCAL_BRAIN_URL=http://127.0.0.1:11434
    ZED_LOCAL_BRAIN_MODEL=qwen3:8b

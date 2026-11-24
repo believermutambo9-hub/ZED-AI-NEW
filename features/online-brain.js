@@ -59,11 +59,11 @@ export function createOnlineBrainClient({
     const timeout = setTimeout(() => controller.abort(new Error("Zed online brain request timed out.")), timeoutMs);
 
     try {
-      const response = await fetchImpl(\`\${endpoint}/v1/chat/completions\`, {
+      const response = await fetchImpl(`${endpoint}/v1/chat/completions`, {
         method: "POST",
         signal: controller.signal,
         headers: {
-          Authorization: \`Bearer \${apiKey}\`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -80,7 +80,7 @@ export function createOnlineBrainClient({
         })
       });
 
-      if (!response.ok) throw new Error(\`Online brain returned HTTP \${response.status}.\`);
+      if (!response.ok) throw new Error(`Online brain returned HTTP ${response.status}.`);
       const data = await response.json();
       const answer = String(data?.choices?.[0]?.message?.content || "").trim();
       if (!answer) throw new Error("Online brain returned an empty response.");

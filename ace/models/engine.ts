@@ -145,6 +145,7 @@ export class PredictionEngine {
     hasTeamRatings?: boolean;
     hasWebIntelligence?: boolean;
     webIntelligenceReliability?: number;
+    teamRatingsSource?: "RECENT_FORM_PROXY" | "VERIFIED_PROVIDER_RATINGS";
   }): PredictionResult {
     const hasRatings =
       params.hasTeamRatings ?? (params.homeElo !== undefined && params.awayElo !== undefined);
@@ -293,7 +294,11 @@ export class PredictionEngine {
     const missingInputs: string[] = [];
 
     if (hasRatings) {
-      qualityFactors.push('Pre-match Elo & attack/defense ratings derived from historical results');
+      if (params.teamRatingsSource === 'RECENT_FORM_PROXY') {
+        qualityFactors.push('Recent-form strength proxies and attack/defense ratings derived from prior completed results; these are not official Elo ratings');
+      } else {
+        qualityFactors.push('Pre-match Elo & attack/defense ratings derived from historical results');
+      }
     } else {
       missingInputs.push('Club historical Elo/strength ratings unavailable (neutral 1500 baseline used)');
     }

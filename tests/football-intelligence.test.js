@@ -27,7 +27,16 @@ function providerFetch() {
   );
   // A completed match after the requested fixture date must not enter the sample.
   homeHistory.push(makeFixture(1099, "2031-01-10T15:00:00Z", 101, 999, 9, 0));
+  const h2hHistory = makeFixture(3000, "2029-06-01T15:00:00Z", 101, 202, 3, 1);
   const upcoming = makeFixture(9009, "2030-01-10T15:00:00Z", 101, 202, null, null, "NS");
+  const lineups = [101, 202].map(teamId => ({
+    team: { id: teamId },
+    formation: "4-3-3",
+    startXI: Array.from({ length: 11 }, (_, index) => ({
+      player: { id: teamId * 100 + index, name: "Player " + index, pos: "M" }
+    })),
+    substitutes: []
+  }));
 
   return async (url) => {
     const parsed = new URL(url);
@@ -44,7 +53,7 @@ function providerFetch() {
       response = homeHistory;
     } else if (path.endsWith("/fixtures") && search.get("team") === "202") {
       response = awayHistory;
-    } else if (path.endsWith("/injuries")) {
+    } else if (path.endsWith("/lineups")) {\n      response = lineups;\n    } else if (path.endsWith("/injuries")) {
       response = [{
         team: { id: 101 },
         player: { name: "Test Striker", type: "Missing Fixture", reason: "Injury" }
@@ -103,7 +112,7 @@ test("ACE evidence adapter uses pre-kickoff history and retrieves fixture-specif
   assert.equal(evidence.providerAvailable, true);
   assert.equal(evidence.hasTeamRatings, true);
   assert.equal(evidence.sampleMatchesCount, 8);
-  assert.equal(evidence.fixture.id, 9009);
+  assert.equal(evidence.fixture.id, 9009);\n  assert.equal(evidence.h2h.sampleCount, 1);\n  assert.equal(evidence.h2h.homeTeamWins, 1);
   assert.equal(evidence.home.matchesPlayed, 8);
   assert.equal(evidence.away.matchesPlayed, 8);
   assert.equal(evidence.injuriesChecked, true);

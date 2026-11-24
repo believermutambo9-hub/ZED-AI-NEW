@@ -1445,7 +1445,15 @@ app.get(
         "zed",
 
       provider:
-        "gemini-with-groq-and-openrouter-fallback",
+        LOCAL_AI_MODE
+          ? "ollama-local"
+          : "gemini-with-groq-openrouter-and-local-fallback",
+
+      aiMode:
+        LOCAL_AI_MODE ? "local-text-only" : "cloud-with-local-fallback",
+
+      localBrain:
+        getLocalBrainStatus(),
 
       geminiModel:
         GEMINI_MODEL,

@@ -508,3 +508,62 @@ export async function collectFootballEvidence({
     };
   }
 }
+
+
+/**
+ * Append a compact, non-user-identifying prediction snapshot for later
+ * score settlement and walk-forward accuracy evaluation.
+ */
+export async function persistPredictionEvidence({ prediction, evidence, missingInputs = [] } = {}) {
+  try {
+    const db = getFirebaseDb();
+    const predictedAt = new Date();
+    const kickoffTime = prediction?.match?.kickoffTime || null;
+    const kickoffMs = kickoffTime ? new Date(kickoffTime).getTime() : NaN;
+    const hasFutureFixture = Boolean(
+      evidence?.fixture?.id &&
+      Number.isFinite(kickoffMs) &&
+      kickoffMs > predictedAt.getTime()
+    );
+
+    await db.collection("zedAcePredictionLedger").add({
+      schemaVersion: 1,
+      provider: evidence?.provider || "unknown",
+      fixtureId: evidence?.fixture?.id ? String(evidence.fixture.id) : null,
+      fixtureVerified: Boolean(evidence?.fixture),
+      match: {
+        homeTeam: String(prediction?.match?.homeTeam || ""),
+        awayTeam: String(prediction?.match?.awayTeam || ""),
+        competition: String(prediction?.match?.competition || "Competition not confirmed"),
+        kickoffTime
+      },
+      prediction: {
+        homeWin: Number(prediction?.prediction?.homeWin || 0),
+        draw: Number(prediction?.prediction?.draw || 0),
+        awayWin: Number(prediction?.prediction?.awayWin || 0),
+        expectedGoals: prediction?.expectedGoals || null,
+        mostLikelyScores: (prediction?.mostLikelyScores || []).slice(0, 5),
+        modelVersion: prediction?.modelVersion || "unknown"
+      },
+      confidence: prediction?.confidence || null,
+      dataQuality: prediction?.dataQuality || null,
+      evidence: {
+        teamSamples: evidence?.providerSampleCount || null,
+        homeForm: evidence?.home?.form || null,
+        awayForm: evidence?.away?.form || null,
+        injuriesChecked: Boolean(evidence?.injuriesChecked),
+        reportedInjuries: (evidence?.injuries || []).slice(0, 30),
+        marketOdds: evidence?.marketOdds || null,
+        sources: evidence?.sources || [],
+        missingInputs: Array.isArray(missingInputs) ? missingInputs.slice(0, 30) : []
+      },
+      settlementStatus: hasFutureFixture ? "PENDING_RESULT" : "NOT_LINKED_TO_VERIFIED_FIXTURE",
+      predictedAt: predictedAt.toISOString()
+    });
+
+    return { saved: true, settlementTracked: hasFutureFixture };
+  } catch {
+    // Ledger failures must not break chat or hide a valid calculation.
+    return { saved: false, settlementTracked: false };
+  }
+}

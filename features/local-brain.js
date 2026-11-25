@@ -34,7 +34,7 @@ function isLoopbackEndpoint(value) {
 /**
  * Local Ollama client. The Zed backend and Ollama must run on the same
  * computer; this prevents accidentally sending local prompts to a public host.
- * The endpoint implements Ollama's OpenAI-compatible /v1/chat/completions API.
+ * The native Ollama chat API supports explicit Qwen3 thinking control.
  */
 export function createLocalBrainClient({
   baseUrl = process.env.ZED_LOCAL_BRAIN_URL || "",

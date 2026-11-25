@@ -28,8 +28,7 @@ export function getAcePredictionChatData(message = "") {
 
   const prediction = PredictionEngine.calculatePrediction({
     ...matchup,
-    competition: "Competition not confirmed",
-    kickoffTime: new Date(),
+    competition: "Not verified",
     sampleMatchesCount: 0,
     hasTeamRatings: false,
     hasWebIntelligence: false,

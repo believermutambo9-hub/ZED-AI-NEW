@@ -9,7 +9,7 @@ function shouldUseDeepReasoning(userRequest) {
   const text = String(userRequest || "").trim();
   if (!text) return false;
   if (text.length > 700) return true;
-  return /\\b(analy[sz]e|analysis|compare|contrast|evaluate|investigate|debug|troubleshoot|program|programming|code|script|step[- ]by[- ]step|business plan|proposal|strategy|forecast|predict|calculate|derive|prove|research|detailed|in depth|comprehensive|multi[- ]step|spreadsheet|excel|formula|architecture|design a system)\\b/i.test(text);
+  return /\b(analy[sz]e|analysis|compare|contrast|evaluate|investigate|debug|troubleshoot|program|programming|code|script|step[- ]by[- ]step|business plan|proposal|strategy|forecast|predict|calculate|derive|prove|research|detailed|in depth|comprehensive|multi[- ]step|spreadsheet|excel|formula|architecture|design a system)\b/i.test(text);
 }
 
 function normalizeEndpoint(value) {

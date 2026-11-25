@@ -108,6 +108,37 @@ test("local brain rejects empty responses", async () => {
   await assert.rejects(client.generate("Hello"), /empty response/);
 });
 
+test("local brain enables reasoning for troubleshooting and comparison requests", async () => {
+  for (const userRequest of [
+    "Help me diagnose why my external hard drive is clicking.",
+    "Explain the difference between these two approaches."
+  ]) {
+    let capturedBody;
+    const client = createLocalBrainClient({
+      baseUrl: "http://127.0.0.1:11434",
+      fetchImpl: async (_url, options) => {
+        capturedBody = JSON.parse(options.body);
+        return response({ message: { content: "Detailed answer." } });
+      }
+    });
+    await client.generate("Context", userRequest);
+    assert.equal(capturedBody.think, true, userRequest);
+  }
+});
+
+test("local brain keeps routine personal questions in fast mode", async () => {
+  let capturedBody;
+  const client = createLocalBrainClient({
+    baseUrl: "http://127.0.0.1:11434",
+    fetchImpl: async (_url, options) => {
+      capturedBody = JSON.parse(options.body);
+      return response({ message: { content: "I am Zed." } });
+    }
+  });
+  await client.generate("Context", "What is your name?");
+  assert.equal(capturedBody.think, false);
+});
+
 test("local brain keeps reasoning enabled for complex requests", async () => {
   let capturedBody;
   const client = createLocalBrainClient({

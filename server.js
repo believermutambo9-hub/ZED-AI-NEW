@@ -2759,6 +2759,7 @@ app.post(
       const explicitWebSearch =
         isExplicitWebSearchRequest(userMessage);
       const liveDataIntent = detectLiveDataIntent(userMessage);
+      const isFootballRequest = shouldUseFootballData(userMessage);
       const isFootballPrediction = footballMode === "prediction" && Boolean(extractMatchup(userMessage));
 
       if (
@@ -2766,13 +2767,13 @@ app.post(
           explicitWebSearch ||
           (
             !isPersonalMemoryQuestion(userMessage) &&
-            (isCurrentInformationQuestion(userMessage) || isFootballPrediction)
+            (isCurrentInformationQuestion(userMessage) || isFootballRequest)
           )
         ) &&
         (
           explicitWebSearch ||
           (
-            (!shouldUseFootballData(userMessage) || isFootballPrediction) &&
+            (!shouldUseFootballData(userMessage) || isFootballRequest) &&
             !liveDataIntent.weatherLocation &&
             !liveDataIntent.currency &&
             !liveDataIntent.needsLocation
@@ -2919,6 +2920,11 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
         memoryContext ? `Relevant long-term user memory:\n${memoryContext}` : "",
         conversationHistory ? `Recent conversation:\n${conversationHistory}` : "",
         footballData ? `Verified football data:\n${footballData}` : "",
+        footballMode === "prediction"
+          ? "Unified football prediction rule: ACE is the single numerical prediction authority. Use API-Football structured data for quantitative model inputs, Zed/ESPN for independent fixture and results cross-checks, and web search for current qualitative team news. Do not average competing prediction percentages or turn unverified reports into numerical adjustments. Clearly disclose missing or conflicting evidence."
+          : footballUsed
+            ? "Football evidence rule: prioritize verified structured fixture, score and competition data; use web search for current context and distinguish confirmed reports from rumours."
+            : "",
         liveDataEvidence
           ? `Live weather and exchange-rate evidence:\n${liveDataEvidence}\nUse the supplied provider, date/time and values accurately. Rates are reference rates, not guaranteed cash-market or bank prices. Do not guess missing values or locations.`
           : "",

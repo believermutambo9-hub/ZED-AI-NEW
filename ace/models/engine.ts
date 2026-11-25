@@ -411,9 +411,9 @@ export class PredictionEngine {
           awayWin: Number(eloAwayWin.toFixed(4)),
         },
         poisson: {
-          homeWin: Number(pHomeWin.toFixed(4)),
-          draw: Number(pDraw.toFixed(4)),
-          awayWin: Number(pAwayWin.toFixed(4)),
+          homeWin: Number(normPoissonHome.toFixed(4)),
+          draw: Number(normPoissonDraw.toFixed(4)),
+          awayWin: Number(normPoissonAway.toFixed(4)),
           lambdaHome,
           muAway,
         },

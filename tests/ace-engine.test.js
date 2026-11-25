@@ -4,8 +4,8 @@ import { getAcePredictionChatData } from "../features/ace-engine.js";
 import { PredictionEngine, poissonPmf } from "../ace/models/engine.ts";
 import { MonteCarloSimulator } from "../ace/simulation/monteCarlo.ts";
 
-test("ACE produces a transparent baseline prediction for an explicit matchup", () => {
-  const result = getAcePredictionChatData("Predict Arsenal vs Chelsea");
+test("ACE produces a transparent baseline prediction for an explicit matchup", async () => {
+  const result = await getAcePredictionChatData("Predict Arsenal vs Chelsea");
   assert.ok(result);
   assert.equal(result.source, "ACE statistical engine");
   const total = result.probabilities.homeWin + result.probabilities.draw + result.probabilities.awayWin;
@@ -17,8 +17,8 @@ test("ACE produces a transparent baseline prediction for an explicit matchup", (
   assert.equal(result.match.kickoffTime, "Not provided");
 });
 
-test("ACE does not create a prediction without a clear matchup", () => {
-  assert.equal(getAcePredictionChatData("Show me today's football fixtures"), null);
+test("ACE does not create a prediction without a clear matchup", async () => {
+  assert.equal(await getAcePredictionChatData("Show me today's football fixtures"), null);
 });
 
 test("Poisson probabilities reject invalid rates and goal counts", () => {
@@ -54,4 +54,23 @@ test("xG model keeps all 1X2 probabilities non-negative for extreme mismatches",
   assert.ok(xg.homeWin >= 0 && xg.draw >= 0 && xg.awayWin >= 0);
   assert.ok(Math.abs(xg.homeWin + xg.draw + xg.awayWin - 1) < 0.0001);
   assert.ok(Math.abs(result.models.poisson.homeWin + result.models.poisson.draw + result.models.poisson.awayWin - 1) < 0.0002);
+});
+
+
+test("ACE attaches web and Zed evidence without silently changing numerical probabilities", async () => {
+  const result = await getAcePredictionChatData("Predict Arsenal vs Chelsea", {
+    webSearchUsed: true,
+    zedFootballData: "ESPN fixture evidence",
+    webSearchResults: [{
+      title: "Team news",
+      source: "Example source",
+      published: "Today",
+      url: "https://example.com/team-news",
+      snippet: "A reported team update."
+    }]
+  });
+  assert.equal(result.evidence.crossSource.zedFootballDataAvailable, true);
+  assert.equal(result.evidence.crossSource.webSearchUsed, true);
+  assert.equal(result.evidence.crossSource.webResearch.length, 1);
+  assert.equal(result.evidence.crossSource.webNewsAppliedToNumericProbabilities, false);
 });

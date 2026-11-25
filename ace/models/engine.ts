@@ -105,7 +105,13 @@ function factorial(n: number): number {
 }
 
 export function poissonPmf(k: number, lambda: number): number {
-  if (lambda <= 0) return k === 0 ? 1 : 0;
+  if (!Number.isInteger(k) || k < 0) {
+    throw new RangeError('Poisson goal count must be a non-negative integer.');
+  }
+  if (!Number.isFinite(lambda) || lambda < 0 || lambda > 20) {
+    throw new RangeError('Poisson rate must be finite and between 0 and 20.');
+  }
+  if (lambda === 0) return k === 0 ? 1 : 0;
   return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
 }
 
@@ -146,10 +152,15 @@ export class PredictionEngine {
     hasWebIntelligence?: boolean;
     webIntelligenceReliability?: number;
   }): PredictionResult {
+    const ratingsWereDeclared = Boolean(
+      params.hasTeamRatings ?? (params.homeElo !== undefined && params.awayElo !== undefined)
+    );
     const hasRatings =
-      params.hasTeamRatings ?? (params.homeElo !== undefined && params.awayElo !== undefined);
-    let homeElo = params.homeElo ?? 1500;
-    let awayElo = params.awayElo ?? 1500;
+      ratingsWereDeclared &&
+      Number.isFinite(params.homeElo) &&
+      Number.isFinite(params.awayElo);
+    let homeElo = hasRatings ? params.homeElo! : 1500;
+    let awayElo = hasRatings ? params.awayElo! : 1500;
     const homeAdvantage = 65;
 
     // 1. Process Lineup & Starting XI Absences
@@ -200,6 +211,7 @@ export class PredictionEngine {
     let pHomeWin = 0;
     let pDraw = 0;
     let pAwayWin = 0;
+    let poissonMass = 0;
     let dcHomeWin = 0;
     let dcDraw = 0;
     let dcAwayWin = 0;
@@ -207,6 +219,7 @@ export class PredictionEngine {
     for (let h = 0; h <= 7; h++) {
       for (let a = 0; a <= 7; a++) {
         const pIndep = poissonPmf(h, lambdaHome) * poissonPmf(a, muAway);
+        poissonMass += pIndep;
         const tau = dixonColesTau(h, a, lambdaHome, muAway);
         const pDC = Math.max(0, pIndep * tau);
 
@@ -220,17 +233,26 @@ export class PredictionEngine {
       }
     }
 
+    // The finite 0-7 goal grid omits a small Poisson tail. Normalize the
+    // independent-Poisson model too, so it contributes a proper 1X2 distribution.
+    const normPoissonHome = pHomeWin / poissonMass;
+    const normPoissonDraw = pDraw / poissonMass;
+    const normPoissonAway = pAwayWin / poissonMass;
+
     const dcTotal = dcHomeWin + dcDraw + dcAwayWin;
     const normDcHome = dcHomeWin / dcTotal;
     const normDcDraw = dcDraw / dcTotal;
     const normDcAway = dcAwayWin / dcTotal;
 
     // 6. Model D: Goal Projection Logistic Blend
-    const homeXg = params.homeXgAvg ?? lambdaHome;
-    const awayXg = params.awayXgAvg ?? muAway;
-    const xgHomeWin = 1 / (1 + Math.exp(-(homeXg - awayXg) * 1.5));
-    const xgAwayWin = 1 - xgHomeWin - 0.25;
+    const homeXg = Number.isFinite(params.homeXgAvg) ? params.homeXgAvg! : lambdaHome;
+    const awayXg = Number.isFinite(params.awayXgAvg) ? params.awayXgAvg! : muAway;
+    // First estimate the home share of decisive outcomes, then reserve a
+    // draw component. This guarantees all three probabilities stay valid.
+    const xgHomeShare = 1 / (1 + Math.exp(-(homeXg - awayXg) * 1.5));
     const xgDraw = 0.25;
+    const xgHomeWin = xgHomeShare * (1 - xgDraw);
+    const xgAwayWin = (1 - xgHomeShare) * (1 - xgDraw);
 
     // 7. Model E: 5,000-Iteration Monte Carlo Simulation
     const mcResult = MonteCarloSimulator.simulateMatch({
@@ -244,21 +266,21 @@ export class PredictionEngine {
       0.30 * normDcHome +
       0.25 * mcResult.probabilities.homeWin +
       0.20 * eloHomeWin +
-      0.15 * pHomeWin +
+      0.15 * normPoissonHome +
       0.10 * xgHomeWin;
 
     const finalDraw =
       0.30 * normDcDraw +
       0.25 * mcResult.probabilities.draw +
       0.20 * eloDraw +
-      0.15 * pDraw +
+      0.15 * normPoissonDraw +
       0.10 * xgDraw;
 
     const finalAway =
       0.30 * normDcAway +
       0.25 * mcResult.probabilities.awayWin +
       0.20 * eloAwayWin +
-      0.15 * pAwayWin +
+      0.15 * normPoissonAway +
       0.10 * xgAwayWin;
 
     // Calibrate probabilities
@@ -282,13 +304,15 @@ export class PredictionEngine {
       : undefined;
 
     // Empirical Data Quality & Missing Inputs Assessment
-    const sampleSize = Math.max(0, params.sampleMatchesCount ?? 0);
+    const sampleSize = Number.isFinite(params.sampleMatchesCount)
+      ? Math.max(0, Math.floor(params.sampleMatchesCount!))
+      : 0;
     const hasWebIntel = Boolean(params.hasWebIntelligence);
     const webRel = Math.max(0, Math.min(1, params.webIntelligenceReliability ?? (hasWebIntel ? 0.65 : 0)));
     const hasMarketOdds = Boolean(params.marketOdds);
 
     const qualityFactors: string[] = [
-      '5,000 Monte Carlo iterations & Dixon-Coles bivariate distribution executed',
+      '5,000 independent-Poisson Monte Carlo iterations; Dixon-Coles low-score matrix calculated separately',
     ];
     const missingInputs: string[] = [];
 
@@ -356,11 +380,9 @@ export class PredictionEngine {
         awayTeam: params.awayTeam,
         competition: params.competition,
         venue: params.venue,
-        kickoffTime: params.kickoffTime
-          ? (params.kickoffTime instanceof Date
-              ? params.kickoffTime.toISOString()
-              : new Date(params.kickoffTime).toISOString())
-          : new Date().toISOString(),
+        kickoffTime: params.kickoffTime && Number.isFinite(new Date(params.kickoffTime).getTime())
+          ? new Date(params.kickoffTime).toISOString()
+          : 'Not provided',
       },
       prediction: {
         homeWin: calibrated.homeCalibrated,

@@ -167,3 +167,29 @@ test("ACE evidence adapter uses pre-kickoff history and retrieves fixture-specif
   });
   assert.ok(!evidence.missingInputs.some(item => item.includes("Insufficient completed")));
 });
+
+
+test("missing upcoming fixture stays unverified and never receives a synthetic kickoff", async () => {
+  const baseFetch = providerFetch();
+  const fetchWithoutUpcoming = async (url, options) => {
+    const response = await baseFetch(url, options);
+    const payload = await response.json();
+    if (new URL(url).pathname.endsWith("/fixtures/headtohead")) {
+      payload.response = payload.response.filter(item => item?.fixture?.status?.short === "FT");
+    }
+    return { ...response, json: async () => payload };
+  };
+
+  const evidence = await collectFootballEvidence({
+    homeTeam: "Arsenal",
+    awayTeam: "Chelsea",
+    apiKey: "test-key",
+    fetchImpl: fetchWithoutUpcoming,
+    cache: false
+  });
+
+  assert.equal(evidence.fixture, null);
+  assert.equal(evidence.home?.daysRest, undefined);
+  assert.equal(evidence.away?.daysRest, undefined);
+  assert.ok(evidence.missingInputs.some(item => item.includes("No verified upcoming fixture")));
+});

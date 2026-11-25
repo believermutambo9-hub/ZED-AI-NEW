@@ -2847,12 +2847,13 @@ app.post(
       // CURRENT INFORMATION INTELLIGENCE
       // ------------------------------------------------------
 
-      const currentInformation =
-        buildCurrentInformationPrompt({
-          currentDate,
-          searchData,
-          footballData
-        });
+      const currentInformation = searchData || footballData
+        ? buildCurrentInformationPrompt({
+            currentDate,
+            searchData,
+            footballData
+          })
+        : "";
 
       // ------------------------------------------------------
       // NEWS INTELLIGENCE

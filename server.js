@@ -294,7 +294,7 @@ function getUserConversationId(
 
 function formatHistory(
   conversation,
-  { excludeLatestUserMessage = false } = {}
+  { excludeLatestUserMessage = false, limit = 30 } = {}
 ) {
   if (
     !conversation ||
@@ -318,7 +318,7 @@ function formatHistory(
   }
 
   return messages
-    .slice(-30)
+    .slice(-Math.max(1, Number(limit) || 30))
     .map(message => {
       const role =
         message.role === "assistant"
@@ -337,6 +337,34 @@ function formatHistory(
  * The original search object is still passed
  * separately to the intelligence modules.
  */
+function buildLocalPrompt({
+  currentDate,
+  memoryContext,
+  conversationHistory,
+  footballData,
+  liveDataEvidence,
+  hasLiveData,
+  webEvidence,
+  newsIntelligence,
+  currentInformation,
+  hasWebSearch,
+  userMessage,
+  fileContext
+}) {
+  const sections = [
+    "You are Zed, a capable general-purpose AI assistant. Answer the user's latest request directly in natural, clear language. Keep simple answers concise and give complex requests the detail they need. Use relevant memory and conversation context. Never invent facts.",
+    `Current date and time in Zambia: ${currentDate}`,
+    memoryContext ? `RELEVANT LONG-TERM MEMORY:\n${memoryContext}` : "",
+    conversationHistory ? `RECENT CONVERSATION:\n${conversationHistory}` : "",
+    footballData ? `VERIFIED FOOTBALL DATA:\n${footballData}\nUse this data for scores, results, fixtures, standings and match facts. Never invent missing data.` : "",
+    hasLiveData ? `LIVE WEATHER / CURRENCY DATA:\n${liveDataEvidence}\nUse supplied values and provider details accurately. Do not guess missing values.` : "",
+    hasWebSearch ? `CURRENT WEB SEARCH EVIDENCE:\n${webEvidence}\n\nNEWS INTELLIGENCE:\n${newsIntelligence}\n\nCURRENT INFORMATION GUIDANCE:\n${currentInformation}\nUse only supplied evidence for current claims. Do not invent events, sources, dates or details.` : "",
+    fileContext || "",
+    `USER'S LATEST MESSAGE:\n${userMessage}`
+  ];
+  return sections.filter(Boolean).join("\n\n");
+}
+
 function formatSearchEvidence(
   searchData
 ) {
@@ -1013,7 +1041,7 @@ async function askAI(
   // providers because the local phase-one model is text-only.
   if (!inlineData && LOCAL_AI_MODE) {
     try {
-      const answer = await askLocalBrain(prompt);
+      const answer = await askLocalBrain(prompt, userRequest);
       return { answer, provider: "zed-local-brain" };
     } catch (error) {
       console.error("Zed local brain failed:", error.message);
@@ -2669,7 +2697,7 @@ app.post(
       const conversationHistory =
         formatHistory(
           conversation,
-          { excludeLatestUserMessage: true }
+          { excludeLatestUserMessage: true, limit: LOCAL_AI_MODE ? 10 : 30 }
         );
 
       // ------------------------------------------------------
@@ -3342,9 +3370,24 @@ ${fileContext}
       // AI
       // ------------------------------------------------------
 
+      const localPrompt = buildLocalPrompt({
+        currentDate,
+        memoryContext,
+        conversationHistory,
+        footballData,
+        liveDataEvidence,
+        hasLiveData: liveData.results.length > 0 || liveData.errors.length > 0,
+        webEvidence,
+        newsIntelligence,
+        currentInformation,
+        hasWebSearch: Boolean(searchData),
+        userMessage,
+        fileContext
+      });
+
       const result =
         await askAI(
-          finalPrompt,
+          LOCAL_AI_MODE ? localPrompt : finalPrompt,
           uploadedFile?.inlineData && !uploadedFile.extractedText?.trim()
             ? uploadedFile.inlineData
             : null,

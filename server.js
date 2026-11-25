@@ -2847,7 +2847,7 @@ app.post(
       // CURRENT INFORMATION INTELLIGENCE
       // ------------------------------------------------------
 
-      const currentInformation = searchData || footballData
+      const currentInformation = searchData
         ? buildCurrentInformationPrompt({
             currentDate,
             searchData,

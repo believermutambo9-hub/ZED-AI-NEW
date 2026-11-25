@@ -13,6 +13,7 @@ import {
 } from "./storage/scheduled-tasks.js";
 
 import { getAcePredictionChatData } from "./features/ace-engine.js";
+import { askLocalBrain, getLocalBrainStatus } from "./features/local-brain.js";
 
 import {
   footballFeature,
@@ -77,6 +78,8 @@ const __dirname =
 
 const PORT =
   process.env.PORT || 10000;
+
+const LOCAL_AI_MODE = String(process.env.ZED_AI_MODE || "").trim().toLowerCase() === "local";
 
 // ============================================================
 // ENVIRONMENT
@@ -291,7 +294,7 @@ function getUserConversationId(
 
 function formatHistory(
   conversation,
-  { excludeLatestUserMessage = false } = {}
+  { excludeLatestUserMessage = false, limit = 30 } = {}
 ) {
   if (
     !conversation ||
@@ -315,7 +318,7 @@ function formatHistory(
   }
 
   return messages
-    .slice(-30)
+    .slice(-Math.max(1, Number(limit) || 30))
     .map(message => {
       const role =
         message.role === "assistant"
@@ -991,6 +994,11 @@ async function askAI(
   inlineData = null,
   userRequest = ""
 ) {
+  if (!inlineData && LOCAL_AI_MODE) {
+    const answer = await askLocalBrain(prompt, userRequest);
+    return { answer, provider: "zed-local-brain" };
+  }
+
   const errors = [];
   // Image requests do not need the full chat history, memory, news, and web
   // evidence prompt. Sending that entire context with the image can exceed
@@ -2632,7 +2640,7 @@ app.post(
       const conversationHistory =
         formatHistory(
           conversation,
-          { excludeLatestUserMessage: true }
+          { excludeLatestUserMessage: true, limit: LOCAL_AI_MODE ? 10 : 30 }
         );
 
       // ------------------------------------------------------
@@ -3551,6 +3559,7 @@ console.log(
 
 app.listen(
   PORT,
+  LOCAL_AI_MODE ? "127.0.0.1" : "0.0.0.0",
   () => {
     console.log(
       `Zed running on port ${PORT}`
@@ -3564,6 +3573,8 @@ app.listen(
     console.log("Gemini API key: " + (GEMINI_API_KEY ? "configured" : "missing"));
     console.log("Groq API key: " + (GROQ_API_KEY ? "configured" : "missing"));
     console.log("OpenRouter API key: " + (OPENROUTER_API_KEY ? "configured" : "missing"));
+    console.log("Zed local brain: " + (getLocalBrainStatus().configured ? "Ollama endpoint configured" : "Ollama endpoint unavailable"));
+    console.log("Zed AI mode: " + (LOCAL_AI_MODE ? "local-only text generation" : "cloud providers"));
     console.log("ImageKit library storage: " +
       (process.env.IMAGEKIT_PRIVATE_KEY && process.env.IMAGEKIT_URL_ENDPOINT ? "configured" : "missing"));
 

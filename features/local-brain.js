@@ -5,6 +5,13 @@ const DEFAULT_FAILURE_THRESHOLD = 3;
 const DEFAULT_COOLDOWN_MS = 20_000;
 const DEFAULT_MODEL = "qwen3:8b";
 
+function shouldUseDeepReasoning(userRequest) {
+  const text = String(userRequest || "").trim();
+  if (!text) return false;
+  if (text.length > 700) return true;
+  return /\\b(analy[sz]e|analysis|compare|contrast|evaluate|investigate|debug|troubleshoot|program|programming|code|script|step[- ]by[- ]step|business plan|proposal|strategy|forecast|predict|calculate|derive|prove|research|detailed|in depth|comprehensive|multi[- ]step|spreadsheet|excel|formula|architecture|design a system)\\b/i.test(text);
+}
+
 function normalizeEndpoint(value) {
   return String(value || "").trim().replace(/\/+$/, "");
 }
@@ -64,7 +71,7 @@ export function createLocalBrainClient({
     };
   }
 
-  async function generate(prompt) {
+  async function generate(prompt, userRequest = "") {
     if (!configured) throw new Error("Zed local brain is not configured for a loopback Ollama endpoint.");
     if (typeof fetchImpl !== "function") throw new Error("Fetch is unavailable in this Node.js runtime.");
     if (now() < circuitOpenUntil) throw new Error("Zed local brain circuit is open after repeated failures.");
@@ -79,7 +86,7 @@ export function createLocalBrainClient({
     }, safeTimeoutMs);
 
     try {
-      const response = await fetchImpl(`${endpoint}/v1/chat/completions`, {
+      const response = await fetchImpl(`${endpoint}/api/chat`, {
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },
@@ -89,15 +96,18 @@ export function createLocalBrainClient({
             { role: "system", content: ZED_CORE_INSTRUCTIONS },
             { role: "user", content: String(prompt || "") }
           ],
-          temperature: 0.6,
-          max_tokens: 2048,
-          stream: false
+          stream: false,
+          think: shouldUseDeepReasoning(userRequest || prompt),
+          options: {
+            temperature: 0.6,
+            num_predict: 2048
+          }
         })
       });
 
       if (!response.ok) throw new Error(`Ollama returned HTTP ${response.status}.`);
       const data = await response.json();
-      const answer = String(data?.choices?.[0]?.message?.content || "").trim();
+      const answer = String(data?.message?.content || "").trim();
       if (!answer) throw new Error("Ollama returned an empty response.");
 
       failures = 0;
@@ -124,8 +134,8 @@ export function createLocalBrainClient({
 
 const defaultClient = createLocalBrainClient();
 
-export function askLocalBrain(prompt) {
-  return defaultClient.generate(prompt);
+export function askLocalBrain(prompt, userRequest = "") {
+  return defaultClient.generate(prompt, userRequest);
 }
 
 export function getLocalBrainStatus() {

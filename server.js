@@ -12,7 +12,7 @@ import {
   createScheduledTask, listScheduledTasks, updateScheduledTask, deleteScheduledTask
 } from "./storage/scheduled-tasks.js";
 
-import { getAcePredictionChatData } from "./features/ace-engine.js";
+import { getAcePredictionChatData, extractMatchup } from "./features/ace-engine.js";
 import { askLocalBrain, getLocalBrainStatus } from "./features/local-brain.js";
 
 import {
@@ -2732,18 +2732,9 @@ app.post(
         }
       }
 
-      // ACE statistical ensemble for explicit match predictions.
-      // Preserve the model confidence and missing-input disclosures.
-      if (footballMode === "prediction") {
-        try {
-          const acePrediction = getAcePredictionChatData(userMessage);
-          if (acePrediction) {
-            footballData += "\n\nACE STATISTICAL MODEL (baseline; inspect data quality and missing inputs):\n" + JSON.stringify(acePrediction, null, 2);
-          }
-        } catch (error) {
-          console.warn("ACE prediction engine notice:", error?.message || error);
-        }
-      }
+      // ACE runs after the parallel evidence-gathering stages so it can
+      // return one joined result containing Zed football data, API-Football
+      // evidence, and current web research.
 
       // ------------------------------------------------------
       // WEB SEARCH
@@ -2768,19 +2759,20 @@ app.post(
       const explicitWebSearch =
         isExplicitWebSearchRequest(userMessage);
       const liveDataIntent = detectLiveDataIntent(userMessage);
+      const isFootballPrediction = footballMode === "prediction" && Boolean(extractMatchup(userMessage));
 
       if (
         (
           explicitWebSearch ||
           (
             !isPersonalMemoryQuestion(userMessage) &&
-            isCurrentInformationQuestion(userMessage)
+            (isCurrentInformationQuestion(userMessage) || isFootballPrediction)
           )
         ) &&
         (
           explicitWebSearch ||
           (
-            !shouldUseFootballData(userMessage) &&
+            (!shouldUseFootballData(userMessage) || isFootballPrediction) &&
             !liveDataIntent.weatherLocation &&
             !liveDataIntent.currency &&
             !liveDataIntent.needsLocation
@@ -2788,9 +2780,12 @@ app.post(
         )
       ) {
         try {
+          const searchQuery = isFootballPrediction
+            ? userMessage + " latest team news injuries suspensions manager updates confirmed lineups match preview"
+            : userMessage;
           const result =
             await webSearch(
-              userMessage
+              searchQuery
             );
 
           if (
@@ -2811,6 +2806,28 @@ app.post(
 
           searchData =
             null;
+        }
+      }
+
+      // ------------------------------------------------------
+      // UNIFIED ACE FOOTBALL ANALYSIS
+      // ------------------------------------------------------
+
+      if (isFootballPrediction) {
+        try {
+          const acePrediction = await getAcePredictionChatData(userMessage, {
+            webSearchResults: searchData?.results || [],
+            webSearchUsed: searchUsed,
+            zedFootballData: footballData
+          });
+          if (acePrediction) {
+            footballData += "\n\nUNIFIED ACE FOOTBALL ANALYSIS (API-Football + Zed football data + web research):\n" + JSON.stringify(acePrediction, null, 2);
+          } else {
+            footballData += "\n\nACE could not identify both teams clearly. Do not invent a matchup; ask for the home and away teams.";
+          }
+        } catch (error) {
+          console.warn("Unified ACE football analysis notice:", error?.message || error);
+          footballData += "\n\nACE prediction analysis is temporarily unavailable. Use only the retrieved evidence and explain the limitation.";
         }
       }
 

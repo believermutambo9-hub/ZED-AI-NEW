@@ -95,7 +95,7 @@ function cacheAllowed(fetchImpl, options) {
 async function apiGet(endpoint, params, options = {}) {
   const config = providerConfig(options);
   if (!config.configured) {
-    const error = new Error("API_FOOTBALL_KEY is not configured on this staging service.");
+    const error = new Error("API_FOOTBALL_KEY is not configured on this service.");
     error.code = "FOOTBALL_PROVIDER_NOT_CONFIGURED";
     throw error;
   }
@@ -326,7 +326,7 @@ function findUpcomingFixture(records, homeId, awayId) {
 }
 
 function summarizeHeadToHead(records, homeTeamId, before) {
-  const cutoff = new Date(before).getTime();
+  const cutoff = before ? new Date(before).getTime() : Date.now();
   const matches = (Array.isArray(records) ? records : [])
     .map(normalizeFinishedFixture)
     .filter(Boolean)

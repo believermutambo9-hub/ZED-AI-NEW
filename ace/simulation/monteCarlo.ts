@@ -1,13 +1,15 @@
 /**
  * Monte Carlo Football Match Simulation Engine
- * Simulates N matches (default 5,000 to 10,000) using bivariate Poisson goal rates
- * and Dixon-Coles correlation adjustments to generate empirical probability distributions.
+ * Simulates N matches using independent Poisson goal rates. Dixon-Coles
+ * low-score correlation is calculated analytically in the prediction engine,
+ * rather than approximated by ad-hoc score mutation in this simulator.
  */
 
 export interface MonteCarloConfig {
   simulationsCount: number;
   homeLambda: number;
   awayMu: number;
+  /** Retained for backwards compatibility; correlation is not applied in this sampler. */
   dixonColesRho?: number;
 }
 
@@ -50,7 +52,10 @@ export class MonteCarloSimulator {
    * Sample Poisson distributed random integer using Knuth's algorithm
    */
   public static samplePoisson(lambda: number): number {
-    if (lambda <= 0) return 0;
+    if (!Number.isFinite(lambda) || lambda < 0 || lambda > 20) {
+      throw new RangeError('Poisson rate must be finite and between 0 and 20.');
+    }
+    if (lambda === 0) return 0;
     const L = Math.exp(-lambda);
     let k = 0;
     let p = 1.0;
@@ -65,8 +70,18 @@ export class MonteCarloSimulator {
    * Execute N Monte Carlo simulations of the fixture
    */
   public static simulateMatch(config: MonteCarloConfig): MonteCarloResult {
-    const N = Math.max(500, Math.min(20000, config.simulationsCount || 5000));
-    const { homeLambda, awayMu, dixonColesRho = -0.06 } = config;
+    if (!config || typeof config !== 'object') {
+      throw new TypeError('Simulation configuration is required.');
+    }
+    const requestedCount = Number.isFinite(config.simulationsCount)
+      ? Math.floor(config.simulationsCount)
+      : 5000;
+    const N = Math.max(500, Math.min(20000, requestedCount));
+    const { homeLambda, awayMu } = config;
+    if (!Number.isFinite(homeLambda) || !Number.isFinite(awayMu) ||
+        homeLambda < 0 || awayMu < 0 || homeLambda > 20 || awayMu > 20) {
+      throw new RangeError('Home and away goal rates must be finite and between 0 and 20.');
+    }
 
     let homeWins = 0;
     let draws = 0;
@@ -85,19 +100,8 @@ export class MonteCarloSimulator {
     const totalGoalsDist: Record<number, number> = {};
 
     for (let i = 0; i < N; i++) {
-      let homeGoals = this.samplePoisson(homeLambda);
-      let awayGoals = this.samplePoisson(awayMu);
-
-      // Apply Dixon-Coles adjustment for low scores (0-0, 1-0, 0-1, 1-1)
-      if (homeGoals <= 1 && awayGoals <= 1 && Math.random() < Math.abs(dixonColesRho)) {
-        if (dixonColesRho < 0) {
-          // Negative correlation: reduce 0-0 and 1-1, boost 1-0 and 0-1
-          if (homeGoals === awayGoals && Math.random() < 0.3) {
-            if (Math.random() > 0.5) homeGoals++;
-            else awayGoals++;
-          }
-        }
-      }
+      const homeGoals = this.samplePoisson(homeLambda);
+      const awayGoals = this.samplePoisson(awayMu);
 
       totalHomeGoals += homeGoals;
       totalAwayGoals += awayGoals;

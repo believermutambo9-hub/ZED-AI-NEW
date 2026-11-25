@@ -370,7 +370,7 @@
   async function openLiveSession(generation) {
     const user = window.zedVoiceGetUser?.();
     if (!user) throw new Error("Please sign in before starting voice chat.");
-    const idToken = await user.getIdToken(true);
+    const idToken = await user.getIdToken();
     if (!active || generation !== connectGeneration) return;
     if (window.zedVoiceGetUser?.()?.uid !== user.uid) {
       throw new Error("Your Zed account changed while voice was starting. Please close and restart voice chat.");
@@ -443,7 +443,7 @@
               tools: [{
                 functionDeclarations: [{
                   name: "zed_chat",
-                  description: "MANDATORY: route every user utterance through Zed authenticated chat. This includes greetings, ordinary conversation, calculations, current exchange rates, weather, news, sports, image or document questions, and every other request. Never answer directly from the voice model own knowledge. Wait for the result and then speak that result naturally.",
+                  description: "Use zed_chat when a request needs the user's account-specific memory, saved conversations or projects, current/live information, web research, football data or predictions, uploaded files, or an action handled by Zed's app backend. For greetings, ordinary conversation, general knowledge, creative requests, and simple calculations that need no personal or live data, answer directly in the live voice session so the conversation stays responsive. Never claim to have checked personal or live information unless zed_chat was used.",
                   parameters: {
                     type: "OBJECT",
                     properties: {
@@ -455,7 +455,7 @@
               }],
               systemInstruction: {
                 parts: [{
-                  text: "You are Zed natural spoken interface. For every user turn, you MUST call the zed_chat function with the complete request and wait for its result before speaking. Never answer directly from your own knowledge, especially for current facts such as exchange rates, weather, news, sports, prices or schedules. Speak the returned result naturally and concisely. Do not invent, alter or contradict the returned result."
+                  text: "You are Zed's natural, fast spoken interface. Keep ordinary conversation responsive: answer greetings, casual conversation, general knowledge, creative requests, and simple calculations directly when they do not require personal account context or live information. Call zed_chat for anything requiring the user's saved memory, previous conversations, projects, current/live facts, web research, football data or predictions, uploaded files, or actions in Zed. When you call zed_chat, send the complete request, wait for its result, and speak that result naturally and concisely without changing or contradicting it. Never pretend to have checked personal or live information when you have not. If a request needs current data or personal context, use zed_chat rather than guessing."
                 }]
               }
             }

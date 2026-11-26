@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { getFirebaseDb } from "../config/firebase-admin.js";
 import { archiveHistoricalFixtures, getArchivedTeamMatches, getHistoricalImportState, saveHistoricalImportState } from "./football-history.js";
-import { getEspnScoreboard } from "./football-providers.js";
+import { getEspnScoreboard, getFootballDataMatches } from "./football-providers.js";
 
 const API_FOOTBALL_BASE = "https://v3.football.api-sports.io";
 const RAPIDAPI_FOOTBALL_BASE = "https://api-football-v1.p.rapidapi.com/v3";
@@ -576,6 +576,117 @@ async function collectEspnEvidence(homeTeam, awayTeam, fetchImpl) {
   };
 }
 
+
+const FOOTBALL_DATA_COMPETITIONS = String(process.env.FOOTBALL_DATA_COMPETITIONS || "PL,PD,SA,BL1,FL1,CL")
+  .split(",").map(value => value.trim()).filter(value => /^[A-Z0-9_]+$/i.test(value)).slice(0, 8);
+
+async function collectFootballDataEvidence(homeTeam, awayTeam, fetchImpl) {
+  if (!process.env.FOOTBALL_DATA_API_TOKEN || !FOOTBALL_DATA_COMPETITIONS.length) return null;
+  const now = new Date();
+  const dateFrom = new Date(now.getTime() - 42 * 86400000).toISOString().slice(0, 10);
+  const dateTo = new Date(now.getTime() + 14 * 86400000).toISOString().slice(0, 10);
+  const settled = await Promise.allSettled(FOOTBALL_DATA_COMPETITIONS.map(competitionCode =>
+    getFootballDataMatches({ competitionCode, dateFrom, dateTo, fetchImpl, cache: true })
+  ));
+  const records = settled.flatMap(item => item.status === "fulfilled" ? item.value.matches : []);
+  const available = settled.some(item => item.status === "fulfilled");
+  const homeName = normalizeExternalTeamName(homeTeam);
+  const awayName = normalizeExternalTeamName(awayTeam);
+  const matching = records.filter(item => normalizeExternalTeamName(item.home.name) === homeName &&
+    normalizeExternalTeamName(item.away.name) === awayName);
+  const nowMs = now.getTime();
+  const upcoming = matching.filter(item => new Date(item.date).getTime() > nowMs &&
+    /SCHEDULED|TIMED|POSTPONED/i.test(item.status))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+  const sample = upcoming || matching[0];
+  const homeId = Number(sample?.home.id);
+  const awayId = Number(sample?.away.id);
+  if (!Number.isInteger(homeId) || !Number.isInteger(awayId)) return {
+    provider: "Football-data.org", providerAvailable: available, providerConfigured: true,
+    fixture: null, home: null, away: null, sampleMatchesCount: 0, hasTeamRatings: false,
+    hasWebIntelligence: false, injuries: [], injuriesChecked: false, marketOdds: null,
+    missingInputs: ["Football-data.org did not return a matching fixture in the configured competitions."],
+    sources: ["Football-data.org"]
+  };
+  const mapped = records.map(match => {
+    const status = String(match.status || "").toUpperCase();
+    return {
+      fixture: { id: match.sourceId, date: match.date, status: { short: status === "FINISHED" ? "FT" : status === "SCHEDULED" || status === "TIMED" ? "NS" : status }, venue: {} },
+      league: { name: match.competition || "Competition not supplied", country: "" },
+      teams: { home: { id: Number(match.home.id), name: match.home.name }, away: { id: Number(match.away.id), name: match.away.name } },
+      goals: { home: match.score.home, away: match.score.away }
+    };
+  });
+  const cutoff = upcoming ? new Date(upcoming.date).getTime() : nowMs;
+  const recent = teamId => {
+    const unique = new Map();
+    for (const match of mapped.map(normalizeFinishedFixture).filter(Boolean)) {
+      if (match.homeId !== teamId && match.awayId !== teamId) continue;
+      if (new Date(match.date).getTime() >= cutoff) continue;
+      unique.set(String(match.id), match);
+    }
+    return [...unique.values()].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, HISTORY_LIMIT);
+  };
+  const homeMatches = recent(homeId), awayMatches = recent(awayId);
+  const home = deriveTeamStrength(homeMatches, homeId, upcoming?.date);
+  const away = deriveTeamStrength(awayMatches, awayId, upcoming?.date);
+  const h2h = summarizeHeadToHead(mapped.filter(item =>
+    (Number(item.teams.home.id) === homeId && Number(item.teams.away.id) === awayId) ||
+    (Number(item.teams.home.id) === awayId && Number(item.teams.away.id) === homeId)
+  ), homeId, upcoming?.date);
+  const missingInputs = [];
+  if (!upcoming) missingInputs.push("Football-data.org did not verify an upcoming fixture for this exact home/away pairing.");
+  if (!home || home.matchesPlayed < MIN_RATING_MATCHES) missingInputs.push("Fewer than five completed home-team matches were available from Football-data.org.");
+  if (!away || away.matchesPlayed < MIN_RATING_MATCHES) missingInputs.push("Fewer than five completed away-team matches were available from Football-data.org.");
+  if (!h2h.sampleCount) missingInputs.push("No recent head-to-head result was found in Football-data.org data.");
+  missingInputs.push("Football-data.org does not provide the fixture-specific injury, confirmed lineup, or bookmaker odds evidence required here.");
+  return {
+    provider: "Football-data.org", providerAvailable: available, providerConfigured: true,
+    providerSampleCount: { home: home?.matchesPlayed || 0, away: away?.matchesPlayed || 0 },
+    home, away, fixture: upcoming ? {
+      id: "football-data.org:" + upcoming.sourceId,
+      kickoffTime: new Date(upcoming.date).toISOString(),
+      competition: upcoming.competition || "Competition not supplied",
+      country: "", venue: "", status: "NS",
+      homeTeam: upcoming.home.name, awayTeam: upcoming.away.name, source: "football-data.org"
+    } : null,
+    h2h, lineups: [], lineupsChecked: false,
+    sampleMatchesCount: Math.min(home?.matchesPlayed || 0, away?.matchesPlayed || 0),
+    hasTeamRatings: Boolean(home && away && home.matchesPlayed >= MIN_RATING_MATCHES && away.matchesPlayed >= MIN_RATING_MATCHES),
+    hasWebIntelligence: false, injuries: [], injuriesChecked: false, marketOdds: null,
+    missingInputs, dataRetrievedAt: new Date().toISOString(), sources: ["Football-data.org"]
+  };
+}
+
+function evidenceCompleteness(item) {
+  if (!item) return -1;
+  return (item.fixture ? 4 : 0) + (item.hasTeamRatings ? 4 : 0) +
+    Math.min(3, Number(item.sampleMatchesCount) || 0) + (item.h2h?.sampleCount ? 1 : 0);
+}
+
+async function collectAvailableProviderEvidence(homeTeam, awayTeam, fetchImpl) {
+  const [espnResult, footballDataResult] = await Promise.allSettled([
+    collectEspnEvidence(homeTeam, awayTeam, fetchImpl),
+    collectFootballDataEvidence(homeTeam, awayTeam, fetchImpl)
+  ]);
+  const candidates = [
+    espnResult.status === "fulfilled" ? espnResult.value : null,
+    footballDataResult.status === "fulfilled" ? footballDataResult.value : null
+  ].filter(Boolean);
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => evidenceCompleteness(b) - evidenceCompleteness(a));
+  const best = candidates[0];
+  const allSources = [...new Set(candidates.flatMap(item => item.sources || []))];
+  const missingInputs = [...new Set(candidates.flatMap(item => item.missingInputs || []))];
+  return {
+    ...best,
+    sources: allSources,
+    provider: allSources.map(source => source === "espn" ? "ESPN" : source).join(" + "),
+    missingInputs,
+    providerAvailable: candidates.some(item => item.providerAvailable)
+  };
+}
+
 function mapInjuries(records, homeId, awayId) {
   return (Array.isArray(records) ? records : []).map(item => ({
     teamId: Number(item?.team?.id) || null,
@@ -614,10 +725,10 @@ export async function collectFootballEvidence({
   }
   if (!empty.providerConfigured || process.env.API_FOOTBALL_ENABLED !== "true") {
     try {
-      const espn = await collectEspnEvidence(homeTeam, awayTeam, fetchImpl);
-      if (espn) return espn;
+      const alternative = await collectAvailableProviderEvidence(homeTeam, awayTeam, fetchImpl);
+      if (alternative) return alternative;
     } catch { /* retain explicit unavailable-source response */ }
-    return { ...empty, providerConfigured: false, missingInputs: ["API-Football is paused; ESPN evidence could not be retrieved."] };
+    return { ...empty, providerConfigured: false, missingInputs: ["API-Football is paused; ESPN and Football-data.org evidence could not be retrieved."] };
   }
 
   const options = { fetchImpl, apiKey, cache };
@@ -759,10 +870,10 @@ export async function collectFootballEvidence({
     };
   } catch (error) {
     try {
-      const espn = await collectEspnEvidence(homeTeam, awayTeam, fetchImpl);
-      if (espn?.providerAvailable) {
-        espn.missingInputs.unshift("API-Football evidence was unavailable; ACE used ESPN as its fallback source.");
-        return espn;
+      const alternative = await collectAvailableProviderEvidence(homeTeam, awayTeam, fetchImpl);
+      if (alternative?.providerAvailable) {
+        alternative.missingInputs.unshift("API-Football evidence was unavailable; ACE used available alternative football providers.");
+        return alternative;
       }
     } catch { /* retain original provider diagnostic */ }
     const reason = error?.code === "FOOTBALL_PROVIDER_RATE_LIMIT"

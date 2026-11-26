@@ -10,6 +10,7 @@ on:
       - zed-comprehensive-repair-20261031
       - zed-sidebar-polish
       - ace-engine-staging-integration
+      - ace-reliability-fixes
   pull_request:
     branches:
       - main

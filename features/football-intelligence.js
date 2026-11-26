@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { getFirebaseDb } from "../config/firebase-admin.js";
 import { archiveHistoricalFixtures, getArchivedTeamMatches, getHistoricalImportState, saveHistoricalImportState } from "./football-history.js";
+import { getEspnScoreboard } from "./football-providers.js";
 
 const API_FOOTBALL_BASE = "https://v3.football.api-sports.io";
 const RAPIDAPI_FOOTBALL_BASE = "https://api-football-v1.p.rapidapi.com/v3";
@@ -495,6 +496,86 @@ export function extractMatchWinnerOdds(records, homeTeamName, awayTeamName) {
   return null;
 }
 
+
+const ESPN_LEAGUES = String(process.env.ESPN_SOCCER_LEAGUES || "eng.1,esp.1,ita.1,ger.1,fra.1,uefa.champions")
+  .split(",").map(value => value.trim()).filter(value => /^[-a-z0-9.]+$/i.test(value)).slice(0, 8);
+function normalizeExternalTeamName(value = "") {
+  return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[.]/g, "").replace(/\b(fc|cf|sc|afc|club|ac|ssc|as|rb|cd)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+function toInternalEspnFixture(match) {
+  const status = String(match.status || "").toUpperCase();
+  const finished = /FINAL|FULL.?TIME|STATUS_FINAL/.test(status);
+  const scheduled = /SCHEDULED|PRE.?GAME|STATUS_SCHEDULED/.test(status);
+  return {
+    fixture: { id: match.sourceId, date: match.date, status: { short: finished ? "FT" : scheduled ? "NS" : status }, venue: {} },
+    league: { name: match.competition || "Competition not supplied", country: "" },
+    teams: { home: { id: Number(match.home.id), name: match.home.name }, away: { id: Number(match.away.id), name: match.away.name } },
+    goals: { home: match.score.home, away: match.score.away }
+  };
+}
+async function collectEspnEvidence(homeTeam, awayTeam, fetchImpl) {
+  if (!ESPN_LEAGUES.length) return null;
+  const now = new Date();
+  const from = new Date(now.getTime() - 42 * 86400000);
+  const to = new Date(now.getTime() + 14 * 86400000);
+  const fmt = date => date.toISOString().slice(0, 10).replace(/-/g, "");
+  const dateRange = fmt(from) + "-" + fmt(to);
+  const settled = await Promise.allSettled(ESPN_LEAGUES.map(league =>
+    getEspnScoreboard({ league, date: dateRange, fetchImpl, cache: true })
+  ));
+  const all = settled.flatMap(item => item.status === "fulfilled" ? item.value.matches : []);
+  const homeName = normalizeExternalTeamName(homeTeam);
+  const awayName = normalizeExternalTeamName(awayTeam);
+  const matching = all.filter(item => normalizeExternalTeamName(item.home.name) === homeName &&
+    normalizeExternalTeamName(item.away.name) === awayName);
+  const nowMs = now.getTime();
+  const upcoming = matching.filter(item => new Date(item.date).getTime() > nowMs &&
+    /SCHEDULED|PRE.?GAME|STATUS_SCHEDULED/i.test(item.status))
+    .sort((a,b) => new Date(a.date)-new Date(b.date))[0];
+  const sample = upcoming || matching[0];
+  const homeId = Number(sample?.home.id), awayId = Number(sample?.away.id);
+  const available = settled.some(item => item.status === "fulfilled");
+  if (!Number.isFinite(homeId) || !Number.isFinite(awayId)) return {
+    provider:"ESPN", providerAvailable:available, providerConfigured:true, fixture:null, home:null, away:null,
+    sampleMatchesCount:0, hasTeamRatings:false, hasWebIntelligence:false, injuries:[], injuriesChecked:false,
+    marketOdds:null, missingInputs:["ESPN did not return a matching fixture for the requested home/away pairing."],
+    sources: available ? ["ESPN"] : []
+  };
+  const mapped = all.map(toInternalEspnFixture);
+  const cutoff = upcoming ? new Date(upcoming.date).getTime() : nowMs;
+  const recent = id => mapped.map(normalizeFinishedFixture).filter(Boolean)
+    .filter(match => (match.homeId === id || match.awayId === id) && new Date(match.date).getTime() < cutoff)
+    .sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,HISTORY_LIMIT);
+  const homeMatches = recent(homeId), awayMatches = recent(awayId);
+  const home = deriveTeamStrength(homeMatches, homeId, upcoming?.date);
+  const away = deriveTeamStrength(awayMatches, awayId, upcoming?.date);
+  const h2h = summarizeHeadToHead(mapped.filter(item => {
+    const h=Number(item.teams.home.id), a=Number(item.teams.away.id);
+    return (h===homeId && a===awayId)||(h===awayId && a===homeId);
+  }), homeId, upcoming?.date);
+  const missingInputs = [];
+  if (!upcoming) missingInputs.push("ESPN did not verify an upcoming fixture for this exact home/away pairing.");
+  if (!home || home.matchesPlayed < MIN_RATING_MATCHES) missingInputs.push("ESPN supplied fewer than five completed home-team matches in the 42-day lookback.");
+  if (!away || away.matchesPlayed < MIN_RATING_MATCHES) missingInputs.push("ESPN supplied fewer than five completed away-team matches in the 42-day lookback.");
+  if (!h2h.sampleCount) missingInputs.push("No recent head-to-head result was found in the ESPN match window.");
+  missingInputs.push("ESPN does not supply the fixture-specific injury, confirmed lineup, or bookmaker odds evidence required here.");
+  missingInputs.push("Travel distance and midweek continental congestion are unverified; no travel-fatigue adjustment was applied.");
+  return {
+    provider:"ESPN", providerAvailable:available, providerConfigured:true,
+    providerSampleCount:{home:home?.matchesPlayed||0,away:away?.matchesPlayed||0}, home, away,
+    fixture:upcoming ? { id:upcoming.sourceId, kickoffTime:new Date(upcoming.date).toISOString(),
+      competition:upcoming.competition||"Competition not supplied", country:"", venue:"",
+      status:"NS", homeTeam:upcoming.home.name, awayTeam:upcoming.away.name } : null,
+    h2h, lineups:[], lineupsChecked:false,
+    sampleMatchesCount:Math.min(home?.matchesPlayed||0,away?.matchesPlayed||0),
+    hasTeamRatings:Boolean(home&&away&&home.matchesPlayed>=MIN_RATING_MATCHES&&away.matchesPlayed>=MIN_RATING_MATCHES),
+    hasWebIntelligence:false, injuries:[], injuriesChecked:false, marketOdds:null, missingInputs,
+    dataRetrievedAt:new Date().toISOString(), sources:["ESPN"]
+  };
+}
+
 function mapInjuries(records, homeId, awayId) {
   return (Array.isArray(records) ? records : []).map(item => ({
     teamId: Number(item?.team?.id) || null,
@@ -532,7 +613,11 @@ export async function collectFootballEvidence({
     return { ...empty, missingInputs: ["A valid pair of different teams is required."] };
   }
   if (!empty.providerConfigured) {
-    return { ...empty, missingInputs: ["API_FOOTBALL_KEY is not configured on the staging service."] };
+    try {
+      const espn = await collectEspnEvidence(homeTeam, awayTeam, fetchImpl);
+      if (espn) return espn;
+    } catch { /* retain explicit unavailable-source response */ }
+    return { ...empty, missingInputs: ["API-Football is not configured and ESPN evidence could not be retrieved."] };
   }
 
   const options = { fetchImpl, apiKey, cache };
@@ -673,6 +758,13 @@ export async function collectFootballEvidence({
       sources: ["API-Football v3"]
     };
   } catch (error) {
+    try {
+      const espn = await collectEspnEvidence(homeTeam, awayTeam, fetchImpl);
+      if (espn?.providerAvailable) {
+        espn.missingInputs.unshift("API-Football evidence was unavailable; ACE used ESPN as its fallback source.");
+        return espn;
+      }
+    } catch { /* retain original provider diagnostic */ }
     const reason = error?.code === "FOOTBALL_PROVIDER_RATE_LIMIT"
       ? "API-Football rate limit reached."
       : error?.code === "FOOTBALL_PROVIDER_NOT_CONFIGURED"

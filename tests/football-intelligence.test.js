@@ -7,6 +7,9 @@ import {
   normalizeFootballName
 } from "../features/football-intelligence.js";
 
+// These tests explicitly exercise the retained API-Football adapter; production keeps it paused by default.
+process.env.API_FOOTBALL_ENABLED = "true";
+
 function makeFixture(id, date, homeId, awayId, homeGoals, awayGoals, status = "FT") {
   return {
     fixture: { id, date, status: { short: status }, venue: { name: "Test Ground" } },

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { getFirebaseDb } from "../config/firebase-admin.js";
+import { archiveHistoricalFixtures, getArchivedTeamMatches, getHistoricalImportState, saveHistoricalImportState } from "./football-history.js";
 
 const API_FOOTBALL_BASE = "https://v3.football.api-sports.io";
 const RAPIDAPI_FOOTBALL_BASE = "https://api-football-v1.p.rapidapi.com/v3";
@@ -241,17 +242,87 @@ function normalizeFinishedFixture(item) {
 }
 
 async function getRecentTeamMatches(teamId, before, options = {}) {
-  const result = await apiGet("fixtures", { team: teamId, last: 30 }, {
-    ...options,
-    ttlMs: 4 * 60 * 60 * 1000
-  });
   const cutoff = before ? new Date(before).getTime() : Date.now();
-  return result.response
-    .map(normalizeFinishedFixture)
-    .filter(Boolean)
-    .filter(match => new Date(match.date).getTime() < cutoff)
+  let archived = [];
+  try {
+    archived = await getArchivedTeamMatches(teamId, { before: new Date(cutoff).toISOString(), limit: 100 });
+  } catch {
+    // The archive is an enhancement; provider retrieval remains available if Firestore is unavailable.
+  }
+
+  let providerMatches = [];
+  try {
+    const result = await apiGet("fixtures", { team: teamId, last: 30 }, {
+      ...options,
+      ttlMs: 4 * 60 * 60 * 1000
+    });
+    providerMatches = result.response
+      .map(normalizeFinishedFixture)
+      .filter(Boolean)
+      .filter(match => new Date(match.date).getTime() < cutoff);
+    try {
+      await archiveHistoricalFixtures(result.response);
+    } catch {
+      // Archiving must never break a live prediction.
+    }
+  } catch (error) {
+    if (!archived.length) throw error;
+  }
+
+  const merged = new Map();
+  for (const match of [...archived, ...providerMatches]) merged.set(String(match.id), match);
+  return [...merged.values()]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, HISTORY_LIMIT);
+}
+
+/**
+ * Import one league/season in bounded pages. The page checkpoint is persisted
+ * after each successful page so an interrupted import can safely resume.
+ */
+export async function importHistoricalFootballSeason({
+  leagueId,
+  season,
+  maxPages = 5,
+  fetchImpl = globalThis.fetch,
+  apiKey,
+  cache = true
+} = {}) {
+  const league = Number(leagueId);
+  const year = Number(season);
+  if (!Number.isInteger(league) || league <= 0 || !Number.isInteger(year) || year < 1900 || year > 2200) {
+    throw new Error("A valid API-Football league ID and season are required.");
+  }
+  const importId = league + ":" + year;
+  const existing = await getHistoricalImportState(importId);
+  let page = Math.max(1, Number(existing?.nextPage) || 1);
+  let imported = Number(existing?.imported) || 0;
+  let pagesProcessed = 0;
+  let complete = false;
+
+  while (pagesProcessed < Math.max(1, Math.min(20, Number(maxPages) || 5))) {
+    const payload = await apiGet("fixtures", { league, season: year, page }, {
+      fetchImpl, apiKey, cache, ttlMs: 24 * 60 * 60 * 1000
+    });
+    const archived = await archiveHistoricalFixtures(payload.response);
+    imported += archived.saved;
+    pagesProcessed += 1;
+    const currentPage = Number(payload.paging?.current) || page;
+    const totalPages = Number(payload.paging?.total) || currentPage;
+    complete = currentPage >= totalPages;
+    page = currentPage + 1;
+    await saveHistoricalImportState(importId, {
+      leagueId: league,
+      season: year,
+      imported,
+      nextPage: complete ? null : page,
+      complete,
+      lastPage: currentPage,
+      status: complete ? "complete" : "in_progress"
+    });
+    if (complete || !payload.response.length) break;
+  }
+  return { importId, leagueId: league, season: year, imported, pagesProcessed, complete, nextPage: complete ? null : page };
 }
 
 function deriveTeamStrength(matches, teamId, kickoffTime) {

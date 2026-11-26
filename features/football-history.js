@@ -59,7 +59,7 @@ export async function archiveHistoricalFixtures(fixtures, { db = getFirebaseDb()
     const chunk = records.slice(offset, offset + 400);
     for (const record of chunk) {
       const { fixtureId, ...data } = record;
-      batch.set(db.collection(HISTORICAL_MATCHES_COLLECTION).doc(fixtureId), data, { merge: true });
+      batch.set(db.collection(HISTORICAL_MATCHES_COLLECTION).doc(fixtureId), { ...data, fixtureId }, { merge: true });
     }
     await batch.commit();
     saved += chunk.length;
@@ -75,15 +75,16 @@ export async function getArchivedTeamMatches(teamId, { before, limit = 100, db =
 
   const collection = db.collection(HISTORICAL_MATCHES_COLLECTION);
   const [home, away] = await Promise.all([
-    collection.where("homeId", "==", id).limit(Math.min(1000, limit * 4)).get(),
-    collection.where("awayId", "==", id).limit(Math.min(1000, limit * 4)).get()
+    collection.where("homeId", "==", id).get(),
+    collection.where("awayId", "==", id).get()
   ]);
   const unique = new Map();
   for (const doc of [...home.docs, ...away.docs]) {
     const value = doc.data();
-    unique.set(String(value.fixtureId || doc.id), value);
+    unique.set(String(value.fixtureId || doc.id), { ...value, fixtureId: String(value.fixtureId || doc.id) });
   }
   return [...unique.values()]
+    .filter(match => Number(match.timestamp) < cutoff)
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, limit)
     .map(match => ({

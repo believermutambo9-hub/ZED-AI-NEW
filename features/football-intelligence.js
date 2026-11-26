@@ -520,6 +520,25 @@ function toInternalEspnFixture(match) {
     goals: { home: match.score.home, away: match.score.away }
   };
 }
+async function settleWithConcurrency(items, concurrency, task) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= items.length) return;
+      try {
+        results[index] = { status: "fulfilled", value: await task(items[index]) };
+      } catch (reason) {
+        results[index] = { status: "rejected", reason };
+      }
+    }
+  };
+  const workers = Math.max(1, Math.min(items.length, Number(concurrency) || 1));
+  await Promise.all(Array.from({ length: workers }, worker));
+  return results;
+}
+
 async function collectEspnEvidence(homeTeam, awayTeam, fetchImpl) {
   if (!ESPN_LEAGUES.length) return null;
   const now = new Date();
@@ -527,9 +546,9 @@ async function collectEspnEvidence(homeTeam, awayTeam, fetchImpl) {
   const to = new Date(now.getTime() + 14 * 86400000);
   const fmt = date => date.toISOString().slice(0, 10).replace(/-/g, "");
   const dateRange = fmt(from) + "-" + fmt(to);
-  const settled = await Promise.allSettled(ESPN_LEAGUES.map(league =>
+  const settled = await settleWithConcurrency(ESPN_LEAGUES, 2, league =>
     getEspnScoreboard({ league, date: dateRange, fetchImpl, cache: true })
-  ));
+  );
   const all = settled.flatMap(item => item.status === "fulfilled" ? item.value.matches : []);
   const homeName = normalizeExternalTeamName(homeTeam);
   const awayName = normalizeExternalTeamName(awayTeam);
@@ -590,9 +609,9 @@ async function collectFootballDataEvidence(homeTeam, awayTeam, fetchImpl) {
   const now = new Date();
   const dateFrom = new Date(now.getTime() - 42 * 86400000).toISOString().slice(0, 10);
   const dateTo = new Date(now.getTime() + 14 * 86400000).toISOString().slice(0, 10);
-  const settled = await Promise.allSettled(FOOTBALL_DATA_COMPETITIONS.map(competitionCode =>
+  const settled = await settleWithConcurrency(FOOTBALL_DATA_COMPETITIONS, 2, competitionCode =>
     getFootballDataMatches({ competitionCode, dateFrom, dateTo, fetchImpl, cache: true })
-  ));
+  );
   const records = settled.flatMap(item => item.status === "fulfilled" ? item.value.matches : []);
   const available = settled.some(item => item.status === "fulfilled");
   const homeName = normalizeExternalTeamName(homeTeam);

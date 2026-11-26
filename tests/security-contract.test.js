@@ -16,6 +16,7 @@ const [server, history, memory, app, pkg, html, fileAnalysis, webSearchModule, u
   readFile(new URL("../ui-enhancements.js", import.meta.url), "utf8"),
   readFile(new URL("../styles.css", import.meta.url), "utf8")
 ]);
+const aiInstructions = await readFile(new URL("../features/ai-instructions.js", import.meta.url), "utf8");
 
 test("Gemini Live setup omits unsupported toolConfig and retains the Zed chat function", async () => {
   const serverSource = await readFile(new URL("../server.js", import.meta.url), "utf8");
@@ -709,12 +710,9 @@ test("interface enhancement syntax is part of the project check command", () => 
 
 
 test("Zed's system prompt defines its own identity without referencing another assistant", () => {
-  const promptStart = server.indexOf("You are Zed.");
-  const promptEnd = server.indexOf("CURRENT DATE AND TIME IN ZAMBIA:", promptStart);
-  assert.ok(promptStart >= 0 && promptEnd > promptStart, "Zed system prompt should be present");
-  const identityPrompt = server.slice(promptStart, promptEnd);
-  assert.match(identityPrompt, /You are the AI assistant inside the Zed application/);
-  assert.doesNotMatch(identityPrompt, /ChatGPT|OpenAI assistant/i);
+  assert.match(aiInstructions, /You are Zed, an independent AI assistant with its own identity and voice/);
+  assert.match(aiInstructions, /Keep Zed's identity independent/);
+  assert.doesNotMatch(aiInstructions, /ChatGPT|OpenAI assistant/i);
 });
 
 test("conversation search shortcut targets the existing search field", () => {
@@ -769,8 +767,9 @@ test("sidebar open and close operations synchronize accessibility attributes", (
   assert.match(sidebar, /function closeSidebar\([\s\S]*?syncSidebarAccessibility\(\)/);
 });
 
-test("health endpoint reports the public app name", () => {
+test("health endpoint reports the public app name and safe football-provider status", () => {
   assert.match(server, /service:\s*"zed"/);
+  assert.match(server, /apiFootball:\s*Boolean\(process\.env\.API_FOOTBALL_KEY \|\| process\.env\.RAPIDAPI_KEY\)/);
 });
 
 
@@ -791,7 +790,7 @@ test("real-time voice token provisioning is authenticated, single-use, and short
   assert.match(route, /genAI\.authTokens\.create\(\{/);
   assert.match(route, /functionDeclarations:\s*\[\{/);
   assert.doesNotMatch(route, /toolConfig:\s*\{/);
-  assert.match(route, /MUST call the zed_chat function/);
+  assert.match(route, /Call zed_chat for anything requiring the user's saved memory/);
   const clientResponse = route.slice(route.indexOf("return res.json({"));
   assert.doesNotMatch(clientResponse, /GEMINI_API_KEY/);
 });
@@ -813,7 +812,8 @@ test("real-time voice streams native audio and delegates Zed tasks through authe
   assert.match(app, /return assistantAnswer;/);
   assert.match(app, /return null;/);
   assert.match(app, /Your Zed account changed during the voice request/);
-  assert.match(voice, /getIdToken\(true\)/);
+  assert.match(voice, /getIdToken\(\)/);
+  assert.doesNotMatch(voice, /getIdToken\(true\)/);
   assert.match(voice, /zedVoiceGetUser\?\.\(\)\?\.uid !== user\.uid/);
   assert.doesNotMatch(voice, /SpeechRecognition|speechSynthesis/);
 });

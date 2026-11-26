@@ -1,4 +1,5 @@
 import express from "express";
+import { timingSafeEqual } from "node:crypto";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
@@ -13,6 +14,7 @@ import {
 } from "./storage/scheduled-tasks.js";
 
 import { getAcePredictionChatData, extractMatchup } from "./features/ace-engine.js";
+import { importHistoricalFootballSeason } from "./features/football-intelligence.js";
 import { askLocalBrain, getLocalBrainStatus } from "./features/local-brain.js";
 
 import {
@@ -124,6 +126,35 @@ app.use(
     limit: "25mb"
   })
 );
+
+// Temporary, bearer-token-protected operator route for the initial historical
+// football backfill. Remove after the one-off import has been verified.
+app.post("/internal/football-history/import", async (req, res) => {
+  const expected = process.env.FOOTBALL_HISTORY_IMPORT_TOKEN || "";
+  const supplied = String(req.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  const expectedBytes = Buffer.from(expected);
+  const suppliedBytes = Buffer.from(supplied);
+  if (!expected || expectedBytes.length !== suppliedBytes.length ||
+      !timingSafeEqual(expectedBytes, suppliedBytes)) {
+    return res.status(404).json({ ok: false });
+  }
+
+  const leagueId = Number(req.body?.leagueId);
+  const season = Number(req.body?.season);
+  const maxPages = Math.max(1, Math.min(20, Number(req.body?.maxPages) || 5));
+  if (!Number.isInteger(leagueId) || leagueId <= 0 ||
+      !Number.isInteger(season) || season < 1900 || season > 2200) {
+    return res.status(400).json({ ok: false, error: "Invalid league or season." });
+  }
+
+  try {
+    const result = await importHistoricalFootballSeason({ leagueId, season, maxPages });
+    return res.json({ ok: true, result });
+  } catch (error) {
+    console.error("Historical football import failed:", error?.message || error);
+    return res.status(502).json({ ok: false, error: "Historical import failed; check server logs." });
+  }
+});
 
 // Only explicitly approved browser assets are public. Server modules, tests,
 // configuration, storage code and package metadata must never be web-accessible.

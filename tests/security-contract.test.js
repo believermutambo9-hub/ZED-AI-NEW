@@ -767,8 +767,9 @@ test("sidebar open and close operations synchronize accessibility attributes", (
   assert.match(sidebar, /function closeSidebar\([\s\S]*?syncSidebarAccessibility\(\)/);
 });
 
-test("health endpoint reports the public app name", () => {
+test("health endpoint reports the public app name and safe football-provider status", () => {
   assert.match(server, /service:\s*"zed"/);
+  assert.match(server, /apiFootball:\s*Boolean\(process\.env\.API_FOOTBALL_KEY \|\| process\.env\.RAPIDAPI_KEY\)/);
 });
 
 

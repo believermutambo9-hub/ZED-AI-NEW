@@ -89,13 +89,21 @@ export async function getAcePredictionChatData(message = "", options = {}) {
 
   const webResearch = (Array.isArray(options.webSearchResults) ? options.webSearchResults : [])
     .slice(0, 8)
-    .map(item => ({
-      title: String(item?.title || "Untitled").slice(0, 240),
-      source: String(item?.source || item?.domain || "Unknown source").slice(0, 120),
-      published: String(item?.published || item?.pubDate || item?.date || "Date not supplied").slice(0, 80),
-      url: String(item?.url || "").slice(0, 1000),
-      snippet: String(item?.snippet || item?.summary || item?.description || "").slice(0, 1200)
-    }))
+    .map(item => {
+      const url = String(item?.url || "").slice(0, 1000);
+      let sourceDomain = String(item?.domain || "");
+      try { if (url) sourceDomain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* retain supplied domain */ }
+      return {
+        title: String(item?.title || "Untitled").slice(0, 240),
+        source: String(item?.source || sourceDomain || "Unknown source").slice(0, 120),
+        provider: String(item?.provider || "Zed web search").slice(0, 80),
+        sourceDomain: sourceDomain.slice(0, 160),
+        publishedAt: String(item?.published || item?.pubDate || item?.date || "").slice(0, 80) || null,
+        retrievedAt: new Date().toISOString(),
+        url,
+        snippet: String(item?.snippet || item?.summary || item?.description || "").slice(0, 1200)
+      };
+    })
     .filter(item => item.url || item.snippet);
   const dataEnriched = Boolean(evidence.hasTeamRatings);
   const mode = evidence.fixture

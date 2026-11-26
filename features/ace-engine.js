@@ -92,7 +92,7 @@ export async function getAcePredictionChatData(message = "", options = {}) {
     .map(item => {
       const url = String(item?.url || "").slice(0, 1000);
       let sourceDomain = String(item?.domain || "");
-      try { if (url) sourceDomain = new URL(url).hostname.replace(/^www\\./, ""); } catch { /* retain supplied domain */ }
+      try { if (url) sourceDomain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* retain supplied domain */ }
       return {
         title: String(item?.title || "Untitled").slice(0, 240),
         source: String(item?.source || sourceDomain || "Unknown source").slice(0, 120),

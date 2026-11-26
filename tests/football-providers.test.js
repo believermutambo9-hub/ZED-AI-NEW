@@ -10,7 +10,7 @@ test("provider status keeps ESPN public and football-data.org token-gated", () =
   const status = getFootballProviderStatus();
   assert.equal(status.find(item => item.id === "espn").configured, true);
   assert.equal(status.find(item => item.id === "football-data.org").configured, Boolean(process.env.FOOTBALL_DATA_API_TOKEN));
-  assert.ok(status.every(item => item.dailyLimit > 0 && item.minuteLimit > 0));
+  assert.ok(status.every(item => item.dailySafetyBudget > 0 && item.minuteSafetyBudget > 0));
 });
 
 test("normalizes ESPN events into provider-neutral match records", () => {

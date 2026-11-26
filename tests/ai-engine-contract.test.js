@@ -85,7 +85,7 @@ test("personal-memory questions load the user profile instead of keyword-only ma
   assert.match(server, /function isPersonalMemoryQuestion\(message = ""\)/);
   assert.match(server, /if \(isPersonalMemoryQuestion\(userMessage\)\)/);
   assert.match(server, /getUserMemories\(userId, \{ limit: 30 \}\)/);
-  assert.match(server, /do not claim this is the[\s\S]{0,100}first conversation/i);
+  assert.match(ZED_CORE_INSTRUCTIONS, /Never say or imply that this is the user's first conversation/i);
   assert.match(server, /Do not trigger web search for personal-memory questions/i);
   assert.match(server, /!isPersonalMemoryQuestion\(userMessage\)\s*&&\s*isCurrentInformationQuestion\(userMessage\)/);
 });

@@ -201,7 +201,9 @@ export function normalizeFootballDataMatches(payload) {
 
 export async function getEspnScoreboard({ league = "eng.1", date, fetchImpl, cache = true } = {}) {
   if (!/^[-a-z0-9.]+$/i.test(String(league))) throw new Error("Invalid ESPN league identifier.");
-  const params = date ? { dates: String(date).replace(/\D/g, "").slice(0, 8) } : {};
+  const dateValue = String(date || "");
+  const validDate = /^\d{8}$/.test(dateValue) || /^\d{8}-\d{8}$/.test(dateValue);
+  const params = validDate ? { dates: dateValue } : {};
   const result = await providerGet("espn", league + "/scoreboard", { params, fetchImpl, cache, ttlMs: 5 * 60 * 1000 });
   return { ...result, matches: normalizeEspnEvents(result.data) };
 }

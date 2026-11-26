@@ -295,6 +295,18 @@ export async function importHistoricalFootballSeason({
   }
   const importId = league + ":" + year;
   const existing = await getHistoricalImportState(importId);
+  if (existing?.complete === true) {
+    return {
+      importId,
+      leagueId: league,
+      season: year,
+      imported: Number(existing.imported) || 0,
+      pagesProcessed: 0,
+      complete: true,
+      nextPage: null,
+      alreadyComplete: true
+    };
+  }
   let page = Math.max(1, Number(existing?.nextPage) || 1);
   let imported = Number(existing?.imported) || 0;
   let pagesProcessed = 0;

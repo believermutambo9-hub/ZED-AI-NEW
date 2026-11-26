@@ -6,7 +6,8 @@ const payload = {
   season: Number(process.env.FOOTBALL_HISTORY_SEASON || 2025),
   maxPages: Math.max(1, Math.min(20, Number(process.env.FOOTBALL_HISTORY_MAX_PAGES || 20)))
 };
-const response = await fetch(base.replace(/\\/$/, "") + "/internal/football-history/import", {
+const endpoint = base.endsWith("/") ? base.slice(0, -1) : base;
+const response = await fetch(endpoint + "/internal/football-history/import", {
   method: "POST",
   headers: { "content-type": "application/json", authorization: "Bearer " + token },
   body: JSON.stringify(payload),
@@ -16,4 +17,4 @@ const body = await response.json().catch(() => ({}));
 if (!response.ok || !body.ok) {
   throw new Error("Remote import failed with HTTP " + response.status + ".");
 }
-process.stdout.write(JSON.stringify(body.result) + "\\n");
+process.stdout.write(JSON.stringify(body.result) + String.fromCharCode(10));

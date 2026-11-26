@@ -10,16 +10,17 @@ const PROVIDERS = Object.freeze({
     id: "espn",
     label: "ESPN",
     baseUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer",
-    dailyLimit: Number(process.env.ESPN_DAILY_REQUEST_LIMIT) || 500,
-    minuteLimit: Number(process.env.ESPN_PER_MINUTE_LIMIT) || 30,
+    // Zed-side protective budgets only; ESPN publishes no guaranteed quota for this endpoint.
+    dailySafetyBudget: Number(process.env.ESPN_DAILY_REQUEST_LIMIT) || 500,
+    minuteSafetyBudget: Number(process.env.ESPN_PER_MINUTE_LIMIT) || 30,
     configured: true
   },
   footballData: {
     id: "football-data.org",
     label: "Football-data.org",
     baseUrl: "https://api.football-data.org/v4",
-    dailyLimit: Number(process.env.FOOTBALL_DATA_DAILY_REQUEST_LIMIT) || 100,
-    minuteLimit: Number(process.env.FOOTBALL_DATA_PER_MINUTE_LIMIT) || 10,
+    dailySafetyBudget: Number(process.env.FOOTBALL_DATA_DAILY_REQUEST_LIMIT) || 100,
+    minuteSafetyBudget: Number(process.env.FOOTBALL_DATA_PER_MINUTE_LIMIT) || 10,
     configured: Boolean(process.env.FOOTBALL_DATA_API_TOKEN)
   }
 });
@@ -35,8 +36,9 @@ function providerRecord(provider) {
 }
 
 export function getFootballProviderStatus() {
-  return Object.values(PROVIDERS).map(({ id, label, dailyLimit, minuteLimit, configured }) => ({
-    id, label, dailyLimit, minuteLimit, configured
+  return Object.values(PROVIDERS).map(({ id, label, dailySafetyBudget, minuteSafetyBudget, configured }) => ({
+    id, label, dailySafetyBudget, minuteSafetyBudget, configured,
+    quotaType: "zed_safety_budget_not_provider_published_quota"
   }));
 }
 
@@ -60,12 +62,12 @@ async function reserveQuota(provider) {
     const current = snapshot.exists ? snapshot.data() : {};
     const dailyUsed = Number(current.dailyUsed) || 0;
     const minuteUsed = current.minuteBucket === minute ? Number(current.minuteUsed) || 0 : 0;
-    if (dailyUsed >= config.dailyLimit) {
+    if (dailyUsed >= config.dailySafetyBudget) {
       const error = new Error(config.label + " daily request budget reached.");
       error.code = "FOOTBALL_PROVIDER_DAILY_QUOTA";
       throw error;
     }
-    if (minuteUsed >= config.minuteLimit) {
+    if (minuteUsed >= config.minuteSafetyBudget) {
       const error = new Error(config.label + " per-minute request budget reached.");
       error.code = "FOOTBALL_PROVIDER_RATE_LIMIT";
       throw error;

@@ -75,8 +75,8 @@ export async function getArchivedTeamMatches(teamId, { before, limit = 100, db =
 
   const collection = db.collection(HISTORICAL_MATCHES_COLLECTION);
   const [home, away] = await Promise.all([
-    collection.where("homeId", "==", id).where("timestamp", "<", cutoff).orderBy("timestamp", "desc").limit(limit).get(),
-    collection.where("awayId", "==", id).where("timestamp", "<", cutoff).orderBy("timestamp", "desc").limit(limit).get()
+    collection.where("homeId", "==", id).limit(Math.min(1000, limit * 4)).get(),
+    collection.where("awayId", "==", id).limit(Math.min(1000, limit * 4)).get()
   ]);
   const unique = new Map();
   for (const doc of [...home.docs, ...away.docs]) {

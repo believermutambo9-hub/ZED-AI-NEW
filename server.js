@@ -131,7 +131,7 @@ app.use(
 // football backfill. Remove after the one-off import has been verified.
 app.post("/internal/football-history/import", async (req, res) => {
   const expected = process.env.FOOTBALL_HISTORY_IMPORT_TOKEN || "";
-  const supplied = String(req.get("authorization") || "").replace(/^Bearer\\s+/i, "");
+  const supplied = String(req.get("authorization") || "").replace(/^Bearer\s+/i, "");
   const expectedBytes = Buffer.from(expected);
   const suppliedBytes = Buffer.from(supplied);
   if (!expected || expectedBytes.length !== suppliedBytes.length ||

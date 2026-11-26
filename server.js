@@ -1435,6 +1435,9 @@ app.get(
       footballScope:
         "worldwide",
 
+      apiFootball:
+        Boolean(process.env.API_FOOTBALL_KEY || process.env.RAPIDAPI_KEY),
+
       webSearch:
         true,
 

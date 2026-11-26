@@ -10,21 +10,23 @@ function response(body, status = 200) {
   };
 }
 
-test("local brain sends prompts to Ollama's OpenAI-compatible endpoint", async () => {
+test("local brain uses Ollama's native chat endpoint and disables thinking for routine prompts", async () => {
   let captured;
   const client = createLocalBrainClient({
     baseUrl: "http://127.0.0.1:11434",
     model: "qwen3:8b",
     fetchImpl: async (url, options) => {
       captured = { url, options };
-      return response({ choices: [{ message: { content: "Zed is ready." } }] });
+      return response({ message: { content: "Zed is ready." } });
     }
   });
 
   assert.equal(await client.generate("Hello"), "Zed is ready.");
-  assert.equal(captured.url, "http://127.0.0.1:11434/v1/chat/completions");
+  assert.equal(captured.url, "http://127.0.0.1:11434/api/chat");
   assert.equal(captured.options.headers["Content-Type"], "application/json");
   assert.equal(JSON.parse(captured.options.body).model, "qwen3:8b");
+  assert.equal(JSON.parse(captured.options.body).think, false);
+  assert.equal(JSON.parse(captured.options.body).options.num_predict, 2048);
   assert.equal(client.status().circuit, "closed");
 });
 
@@ -54,7 +56,7 @@ test("local brain opens its circuit after repeated failures and recovers", async
     now: () => clock,
     fetchImpl: async () => shouldFail
       ? response({}, 503)
-      : response({ choices: [{ message: { content: "Recovered." } }] })
+      : response({ message: { content: "Recovered." } })
   });
 
   await assert.rejects(client.generate("one"));
@@ -101,7 +103,52 @@ test("local brain reports request timeouts clearly", async () => {
 test("local brain rejects empty responses", async () => {
   const client = createLocalBrainClient({
     baseUrl: "http://127.0.0.1:11434",
-    fetchImpl: async () => response({ choices: [{ message: { content: " " } }] })
+    fetchImpl: async () => response({ message: { content: " " } })
   });
   await assert.rejects(client.generate("Hello"), /empty response/);
+});
+
+test("local brain enables reasoning for troubleshooting and comparison requests", async () => {
+  for (const userRequest of [
+    "Help me diagnose why my external hard drive is clicking.",
+    "Explain the difference between these two approaches."
+  ]) {
+    let capturedBody;
+    const client = createLocalBrainClient({
+      baseUrl: "http://127.0.0.1:11434",
+      fetchImpl: async (_url, options) => {
+        capturedBody = JSON.parse(options.body);
+        return response({ message: { content: "Detailed answer." } });
+      }
+    });
+    await client.generate("Context", userRequest);
+    assert.equal(capturedBody.think, true, userRequest);
+  }
+});
+
+test("local brain keeps routine personal questions in fast mode", async () => {
+  let capturedBody;
+  const client = createLocalBrainClient({
+    baseUrl: "http://127.0.0.1:11434",
+    fetchImpl: async (_url, options) => {
+      capturedBody = JSON.parse(options.body);
+      return response({ message: { content: "I am Zed." } });
+    }
+  });
+  await client.generate("Context", "What is your name?");
+  assert.equal(capturedBody.think, false);
+});
+
+test("local brain keeps reasoning enabled for complex requests", async () => {
+  let capturedBody;
+  const client = createLocalBrainClient({
+    baseUrl: "http://127.0.0.1:11434",
+    fetchImpl: async (_url, options) => {
+      capturedBody = JSON.parse(options.body);
+      return response({ message: { content: "Here is the debugging plan." } });
+    }
+  });
+
+  await client.generate("Context", "Please debug this code and explain the steps.");
+  assert.equal(capturedBody.think, true);
 });

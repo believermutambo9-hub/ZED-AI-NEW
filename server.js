@@ -1,5 +1,4 @@
 import express from "express";
-import { timingSafeEqual } from "node:crypto";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
@@ -126,35 +125,6 @@ app.use(
     limit: "25mb"
   })
 );
-
-// Temporary, bearer-token-protected operator route for the initial historical
-// football backfill. Remove after the one-off import has been verified.
-app.post("/internal/football-history/import", async (req, res) => {
-  const expected = process.env.FOOTBALL_HISTORY_IMPORT_TOKEN || "";
-  const supplied = String(req.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  const expectedBytes = Buffer.from(expected);
-  const suppliedBytes = Buffer.from(supplied);
-  if (!expected || expectedBytes.length !== suppliedBytes.length ||
-      !timingSafeEqual(expectedBytes, suppliedBytes)) {
-    return res.status(404).json({ ok: false });
-  }
-
-  const leagueId = Number(req.body?.leagueId);
-  const season = Number(req.body?.season);
-  const maxPages = Math.max(1, Math.min(20, Number(req.body?.maxPages) || 5));
-  if (!Number.isInteger(leagueId) || leagueId <= 0 ||
-      !Number.isInteger(season) || season < 1900 || season > 2200) {
-    return res.status(400).json({ ok: false, error: "Invalid league or season." });
-  }
-
-  try {
-    const result = await importHistoricalFootballSeason({ leagueId, season, maxPages });
-    return res.json({ ok: true, result });
-  } catch (error) {
-    console.error("Historical football import failed:", error?.message || error);
-    return res.status(502).json({ ok: false, error: "Historical import failed; check server logs." });
-  }
-});
 
 // Only explicitly approved browser assets are public. Server modules, tests,
 // configuration, storage code and package metadata must never be web-accessible.
@@ -3295,5 +3265,19 @@ app.listen(
     console.log(
       "Chat history: Firebase persistence enabled when configured"
     );
+
+    if (String(process.env.FOOTBALL_HISTORY_IMPORT_ON_START || "").toLowerCase() === "true") {
+      const leagueId = Number(process.env.FOOTBALL_HISTORY_IMPORT_LEAGUE_ID || 0);
+      const season = Number(process.env.FOOTBALL_HISTORY_IMPORT_SEASON || 0);
+      const maxPages = Math.max(1, Math.min(20, Number(process.env.FOOTBALL_HISTORY_IMPORT_MAX_PAGES) || 5));
+      if (Number.isInteger(leagueId) && leagueId > 0 && Number.isInteger(season) && season >= 1900) {
+        console.log("Historical football backfill starting:", { leagueId, season, maxPages });
+        importHistoricalFootballSeason({ leagueId, season, maxPages })
+          .then(result => console.log("Historical football backfill result:", result))
+          .catch(error => console.error("Historical football backfill failed:", error?.message || error));
+      } else {
+        console.error("Historical football backfill skipped: invalid league or season configuration.");
+      }
+    }
   }
 );

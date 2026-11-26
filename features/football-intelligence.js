@@ -250,18 +250,23 @@ async function getRecentTeamMatches(teamId, before, options = {}) {
     // The archive is an enhancement; provider retrieval remains available if Firestore is unavailable.
   }
 
-  const result = await apiGet("fixtures", { team: teamId, last: 30 }, {
-    ...options,
-    ttlMs: 4 * 60 * 60 * 1000
-  });
-  const providerMatches = result.response
-    .map(normalizeFinishedFixture)
-    .filter(Boolean)
-    .filter(match => new Date(match.date).getTime() < cutoff);
+  let providerMatches = [];
   try {
-    await archiveHistoricalFixtures(result.response);
-  } catch {
-    // Archiving must never break a live prediction.
+    const result = await apiGet("fixtures", { team: teamId, last: 30 }, {
+      ...options,
+      ttlMs: 4 * 60 * 60 * 1000
+    });
+    providerMatches = result.response
+      .map(normalizeFinishedFixture)
+      .filter(Boolean)
+      .filter(match => new Date(match.date).getTime() < cutoff);
+    try {
+      await archiveHistoricalFixtures(result.response);
+    } catch {
+      // Archiving must never break a live prediction.
+    }
+  } catch (error) {
+    if (!archived.length) throw error;
   }
 
   const merged = new Map();

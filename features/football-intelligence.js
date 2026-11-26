@@ -676,13 +676,13 @@ async function collectAvailableProviderEvidence(homeTeam, awayTeam, fetchImpl) {
   if (!candidates.length) return null;
   candidates.sort((a, b) => evidenceCompleteness(b) - evidenceCompleteness(a));
   const best = candidates[0];
-  const allSources = [...new Set(candidates.flatMap(item => item.sources || []))];
-  const missingInputs = [...new Set(candidates.flatMap(item => item.missingInputs || []))];
+  const availableProviders = [...new Set(candidates
+    .filter(item => item.providerAvailable)
+    .map(item => item.provider))];
   return {
     ...best,
-    sources: allSources,
-    provider: allSources.map(source => source === "espn" ? "ESPN" : source).join(" + "),
-    missingInputs,
+    sources: best.sources || [],
+    availableProviders,
     providerAvailable: candidates.some(item => item.providerAvailable)
   };
 }

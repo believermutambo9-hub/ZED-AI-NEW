@@ -612,12 +612,12 @@ export async function collectFootballEvidence({
   if (!homeTeam || !awayTeam || normalizeFootballName(homeTeam) === normalizeFootballName(awayTeam)) {
     return { ...empty, missingInputs: ["A valid pair of different teams is required."] };
   }
-  if (!empty.providerConfigured) {
+  if (!empty.providerConfigured || process.env.API_FOOTBALL_ENABLED !== "true") {
     try {
       const espn = await collectEspnEvidence(homeTeam, awayTeam, fetchImpl);
       if (espn) return espn;
     } catch { /* retain explicit unavailable-source response */ }
-    return { ...empty, missingInputs: ["API-Football is not configured and ESPN evidence could not be retrieved."] };
+    return { ...empty, providerConfigured: false, missingInputs: ["API-Football is paused; ESPN evidence could not be retrieved."] };
   }
 
   const options = { fetchImpl, apiKey, cache };

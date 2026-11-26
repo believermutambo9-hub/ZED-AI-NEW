@@ -669,6 +669,112 @@ function evidenceCompleteness(item) {
     Math.min(3, Number(item.sampleMatchesCount) || 0) + (item.h2h?.sampleCount ? 1 : 0);
 }
 
+const evidenceTeamKey = value => normalizeFootballName(value || "");
+
+function sameVerifiedFixture(first, second) {
+  if (!first || !second) return false;
+  const sameTeams = evidenceTeamKey(first.homeTeam) === evidenceTeamKey(second.homeTeam) &&
+    evidenceTeamKey(first.awayTeam) === evidenceTeamKey(second.awayTeam);
+  const firstTime = new Date(first.kickoffTime || "").getTime();
+  const secondTime = new Date(second.kickoffTime || "").getTime();
+  return sameTeams && Number.isFinite(firstTime) && Number.isFinite(secondTime) &&
+    Math.abs(firstTime - secondTime) <= 5 * 60 * 1000;
+}
+
+/**
+ * Merge provider fields without silently overwriting disagreements. Numerical
+ * team-form estimates are selected independently per side from the source with
+ * the largest sample; fixture identity requires cross-source agreement.
+ * Every selected field records its source in evidenceProvenance.
+ */
+export function mergeFootballProviderEvidence(candidates = []) {
+  const valid = candidates.filter(item => item && item.provider);
+  if (!valid.length) return null;
+  const ranked = [...valid].sort((a, b) => evidenceCompleteness(b) - evidenceCompleteness(a));
+  const availableProviders = [...new Set(valid.filter(item => item.providerAvailable).map(item => item.provider))];
+  const provenance = {};
+  const result = {
+    provider: availableProviders.length > 1 ? "Multi-source football evidence" : (ranked[0].provider || "Unknown"),
+    providerConfigured: valid.some(item => item.providerConfigured),
+    providerAvailable: valid.some(item => item.providerAvailable),
+    availableProviders,
+    sources: [...new Set(valid.flatMap(item => item.sources || [item.provider]))],
+    fixture: null,
+    fixtureConflict: false,
+    home: null,
+    away: null,
+    h2h: null,
+    marketOdds: null,
+    injuries: [],
+    injuriesChecked: false,
+    lineups: [],
+    lineupsChecked: false,
+    sampleMatchesCount: 0,
+    hasTeamRatings: false,
+    hasWebIntelligence: false,
+    missingInputs: [...new Set(valid.flatMap(item => item.missingInputs || []))],
+    dataRetrievedAt: new Date().toISOString(),
+    evidenceProvenance: provenance
+  };
+
+  const fixtures = valid.filter(item => item.fixture).map(item => ({ provider: item.provider, value: item.fixture }));
+  if (fixtures.length) {
+    const reference = fixtures[0];
+    const conflicts = fixtures.some(item => !sameVerifiedFixture(reference.value, item.value));
+    result.fixtureConflict = conflicts;
+    if (!conflicts) {
+      result.fixture = reference.value;
+      provenance.fixture = fixtures.map(item => item.provider);
+    } else {
+      result.missingInputs.push("Providers returned conflicting fixture identity or kickoff times; fixture verification was withheld.");
+    }
+  }
+
+  for (const side of ["home", "away"]) {
+    const options = valid.filter(item => item[side]).sort((a, b) =>
+      (Number(b[side].matchesPlayed) || 0) - (Number(a[side].matchesPlayed) || 0));
+    if (options.length) {
+      result[side] = options[0][side];
+      provenance[side] = options[0].provider;
+    }
+  }
+  result.hasTeamRatings = Boolean(
+    valid.some(item => item.hasTeamRatings) &&
+    result.home && result.away
+  );
+  result.sampleMatchesCount = Math.min(
+    Number(result.home?.matchesPlayed) || 0,
+    Number(result.away?.matchesPlayed) || 0
+  );
+
+  const h2hOptions = valid.filter(item => item.h2h?.sampleCount).sort((a, b) =>
+    Number(b.h2h.sampleCount) - Number(a.h2h.sampleCount));
+  if (h2hOptions.length) {
+    result.h2h = h2hOptions[0].h2h;
+    provenance.h2h = h2hOptions[0].provider;
+  }
+  const oddsOptions = valid.filter(item => item.marketOdds);
+  if (oddsOptions.length) {
+    result.marketOdds = oddsOptions[0].marketOdds;
+    provenance.marketOdds = oddsOptions[0].provider;
+  }
+  const injuryOptions = valid.filter(item => item.injuriesChecked);
+  if (injuryOptions.length) {
+    result.injuries = injuryOptions.flatMap(item => item.injuries || []);
+    result.injuriesChecked = true;
+    provenance.injuries = injuryOptions.map(item => item.provider);
+  }
+  const lineupOptions = valid.filter(item => item.lineupsChecked);
+  if (lineupOptions.length) {
+    result.lineups = lineupOptions.flatMap(item => item.lineups || []);
+    result.lineupsChecked = true;
+    provenance.lineups = lineupOptions.map(item => item.provider);
+  }
+  result.hasWebIntelligence = valid.some(item => item.hasWebIntelligence);
+  result.missingInputs = [...new Set(result.missingInputs)];
+  return result;
+}
+
 async function collectAvailableProviderEvidence(homeTeam, awayTeam, fetchImpl) {
   const [espnResult, footballDataResult] = await Promise.allSettled([
     collectEspnEvidence(homeTeam, awayTeam, fetchImpl),
@@ -678,18 +784,7 @@ async function collectAvailableProviderEvidence(homeTeam, awayTeam, fetchImpl) {
     espnResult.status === "fulfilled" ? espnResult.value : null,
     footballDataResult.status === "fulfilled" ? footballDataResult.value : null
   ].filter(Boolean);
-  if (!candidates.length) return null;
-  candidates.sort((a, b) => evidenceCompleteness(b) - evidenceCompleteness(a));
-  const best = candidates[0];
-  const availableProviders = [...new Set(candidates
-    .filter(item => item.providerAvailable)
-    .map(item => item.provider))];
-  return {
-    ...best,
-    sources: best.sources || [],
-    availableProviders,
-    providerAvailable: candidates.some(item => item.providerAvailable)
-  };
+  return mergeFootballProviderEvidence(candidates);
 }
 
 function mapInjuries(records, homeId, awayId) {

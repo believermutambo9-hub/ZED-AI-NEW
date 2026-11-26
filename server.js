@@ -2724,9 +2724,15 @@ app.post(
         isExplicitWebSearchRequest(userMessage);
       const liveDataIntent = detectLiveDataIntent(userMessage);
 
+      const shouldSearchFootballPrediction =
+        footballUsed &&
+        footballMode === "prediction" &&
+        Boolean(extractMatchup(userMessage));
+
       if (
         (
           explicitWebSearch ||
+          shouldSearchFootballPrediction ||
           (
             !isPersonalMemoryQuestion(userMessage) &&
             isCurrentInformationQuestion(userMessage)
@@ -2734,6 +2740,7 @@ app.post(
         ) &&
         (
           explicitWebSearch ||
+          shouldSearchFootballPrediction ||
           (
             !shouldUseFootballData(userMessage) &&
             !liveDataIntent.weatherLocation &&

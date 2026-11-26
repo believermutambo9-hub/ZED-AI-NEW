@@ -44,9 +44,14 @@ export function getFootballIntelligenceStatus() {
   } catch {
     // Firestore is optional for public-data caching; predictions still run without it.
   }
+  const apiFootballEnabled = process.env.API_FOOTBALL_ENABLED === "true";
   return {
-    provider: "API-Football v3",
-    providerConfigured: config.configured,
+    provider: apiFootballEnabled ? "API-Football v3" : "ESPN / Football-data.org",
+    apiFootballConfigured: config.configured,
+    apiFootballEnabled,
+    apiFootballPaused: !apiFootballEnabled,
+    alternativeProviders: ["ESPN", "Football-data.org"],
+    footballDataConfigured: Boolean(process.env.FOOTBALL_DATA_API_TOKEN),
     firestoreClientInitialized: firestoreAvailable,
     fallback: "ACE baseline with explicit low-confidence disclosure"
   };

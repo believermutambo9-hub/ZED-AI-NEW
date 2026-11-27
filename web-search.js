@@ -773,7 +773,7 @@ function normalizeExaResults(payload) {
   return (Array.isArray(payload?.results) ? payload.results : []).map(item => ({
     title: cleanText(item?.title || ""),
     url: item?.url || "",
-    snippet: cleanText(item?.text || item?.highlights?.join(" ") || item?.summary || ""),
+    snippet: cleanText(item?.text || (Array.isArray(item?.highlights) ? item.highlights.join(" ") : "") || item?.summary || ""),
     published: item?.publishedDate || item?.published_date || "",
     source: extractDomain(item?.url || ""),
     provider: "Exa"

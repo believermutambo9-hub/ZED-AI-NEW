@@ -148,6 +148,7 @@ export async function providerGet(provider, path, {
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== "") query.set(key, String(value));
   }
+  if (provider === "sportmonks") query.set("api_token", process.env.SPORTMONKS_API_TOKEN);
   const url = config.baseUrl + "/" + String(path).replace(/^\/+/, "") +
     (query.size ? "?" + query.toString() : "");
   const cacheKey = provider + ":" + url;

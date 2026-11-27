@@ -557,8 +557,12 @@ async function collectEspnEvidence(homeTeam, awayTeam, fetchImpl) {
   const all = settled.flatMap(item => item.status === "fulfilled" ? item.value.matches : []);
   const homeName = normalizeExternalTeamName(homeTeam);
   const awayName = normalizeExternalTeamName(awayTeam);
-  const matching = all.filter(item => normalizeExternalTeamName(item.home.name) === homeName &&
-    normalizeExternalTeamName(item.away.name) === awayName);
+  const matching = all.filter(item => {
+    const fixtureHome = normalizeExternalTeamName(item.home.name);
+    const fixtureAway = normalizeExternalTeamName(item.away.name);
+    return (fixtureHome === homeName && fixtureAway === awayName) ||
+      (fixtureHome === awayName && fixtureAway === homeName);
+  });
   const nowMs = now.getTime();
   const upcoming = matching.filter(item => new Date(item.date).getTime() > nowMs &&
     /SCHEDULED|PRE.?GAME|STATUS_SCHEDULED/i.test(item.status))
@@ -621,8 +625,12 @@ async function collectFootballDataEvidence(homeTeam, awayTeam, fetchImpl) {
   const available = settled.some(item => item.status === "fulfilled");
   const homeName = normalizeExternalTeamName(homeTeam);
   const awayName = normalizeExternalTeamName(awayTeam);
-  const matching = records.filter(item => normalizeExternalTeamName(item.home.name) === homeName &&
-    normalizeExternalTeamName(item.away.name) === awayName);
+  const matching = records.filter(item => {
+    const fixtureHome = normalizeExternalTeamName(item.home.name);
+    const fixtureAway = normalizeExternalTeamName(item.away.name);
+    return (fixtureHome === homeName && fixtureAway === awayName) ||
+      (fixtureHome === awayName && fixtureAway === homeName);
+  });
   const nowMs = now.getTime();
   const upcoming = matching.filter(item => new Date(item.date).getTime() > nowMs &&
     /SCHEDULED|TIMED/i.test(item.status))
@@ -902,7 +910,11 @@ export async function collectFootballEvidence({
 
     const home = deriveTeamStrength(homeMatches, homeId, kickoffTime);
     const away = deriveTeamStrength(awayMatches, awayId, kickoffTime);
-    const h2h = summarizeHeadToHead(h2hRecords, homeId, kickoffTime);
+    const h2h = summarizeHeadToHead(h2hRecords, fixtureHomeId, kickoffTime);
+    const fixtureHomeId = upcoming ? Number(upcoming.teams?.home?.id) : homeId;
+    const fixtureAwayId = upcoming ? Number(upcoming.teams?.away?.id) : awayId;
+    const fixtureHomeProfile = fixtureHomeId === homeId ? home : away;
+    const fixtureAwayProfile = fixtureAwayId === awayId ? away : home;
     const fixture = upcoming ? {
       id: Number(upcoming.fixture.id),
       kickoffTime: new Date(upcoming.fixture.date).toISOString(),
@@ -942,7 +954,7 @@ export async function collectFootballEvidence({
       ]);
       if (settled[0].status === "fulfilled") {
         injuriesChecked = true;
-        injuries = mapInjuries(settled[0].value.response, homeId, awayId);
+        injuries = mapInjuries(settled[0].value.response, fixtureHomeId, fixtureAwayId);
       } else {
         missingInputs.push("Official injury feed could not be checked for this fixture.");
       }
@@ -952,7 +964,7 @@ export async function collectFootballEvidence({
       if (!marketOdds) missingInputs.push("Comparable bookmaker 1X2 odds were unavailable for this fixture.");
       if (settled[2].status === "fulfilled") {
         lineupsChecked = true;
-        lineups = summarizeLineups(settled[2].value.response, homeId, awayId);
+        lineups = summarizeLineups(settled[2].value.response, fixtureHomeId, fixtureAwayId);
       }
       if (!lineups.length) {
         missingInputs.push("Confirmed starting XIs are not yet available from the provider or are not covered for this competition.");
@@ -966,25 +978,25 @@ export async function collectFootballEvidence({
       missingInputs.push("Starting-XI information is collected for display, but player-role impact mapping is not yet applied to the statistical model.");
     }
 
-    const ratingsAvailable = Boolean(home && away &&
-      home.matchesPlayed >= MIN_RATING_MATCHES &&
-      away.matchesPlayed >= MIN_RATING_MATCHES);
+    const ratingsAvailable = Boolean(fixtureHomeProfile && fixtureAwayProfile &&
+      fixtureHomeProfile.matchesPlayed >= MIN_RATING_MATCHES &&
+      fixtureAwayProfile.matchesPlayed >= MIN_RATING_MATCHES);
 
     return {
       provider: "API-Football v3",
       providerAvailable: true,
       providerConfigured: true,
       providerSampleCount: {
-        home: home?.matchesPlayed || 0,
-        away: away?.matchesPlayed || 0
+        home: fixtureHomeProfile?.matchesPlayed || 0,
+        away: fixtureAwayProfile?.matchesPlayed || 0
       },
-      home,
-      away,
+      home: fixtureHomeProfile,
+      away: fixtureAwayProfile,
       fixture,
       h2h,
       lineups,
       lineupsChecked,
-      sampleMatchesCount: Math.min(home?.matchesPlayed || 0, away?.matchesPlayed || 0),
+      sampleMatchesCount: Math.min(fixtureHomeProfile?.matchesPlayed || 0, fixtureAwayProfile?.matchesPlayed || 0),
       hasTeamRatings: ratingsAvailable,
       hasWebIntelligence: Boolean(fixture && injuriesChecked),
       injuries,

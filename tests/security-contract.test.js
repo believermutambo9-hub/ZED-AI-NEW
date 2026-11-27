@@ -672,9 +672,25 @@ test("chat API suppresses football source links and validates generic web-source
   const start = server.indexOf('app.post(\n  "/api/chat"');
   const end = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", start);
   const route = server.slice(start, end);
-  assert.match(route, /webSources:\s*!isFootballPrediction && Array\.isArray\(searchData\?\.results\)/);
+  assert.match(route, /webSources:\s*!isFootballRequest && Array\.isArray\(searchData\?\.results\)/);
+  assert.match(route, /const currentInformation = searchData && !isFootballRequest/);
+  assert.match(route, /const webEvidence = searchData && !isFootballRequest/);
+  assert.match(route, /For every football request, use retrieved web results only as internal evidence/);
+  assert.match(route, /const assistantAnswer = isFootballRequest/);
+  assert.ok(route.includes(".replace(/https?:\\/\\/"));
+  assert.match(route, /Keep the answer compact and results-focused/);
+  assert.match(route, /Prediction withheld/);
   assert.match(route, /\["http:", "https:"\]\.includes\(parsed\.protocol\)/);
   assert.match(route, /\.slice\(0, 12\)/);
+});
+
+test("football prediction responses require ACE numeric provenance and disclose data limitations", () => {
+  assert.match(server, /Only report numerical probabilities.*CURRENT ACE analysis payload/s);
+  assert.match(server, /never calculate, estimate, round, fill in or reconstruct missing numbers/i);
+  assert.match(server, /actual home\/away sample counts/);
+  assert.match(server, /recent-form proxies as proxies/);
+  assert.match(server, /Label ACE expected goals as model estimates/);
+  assert.match(server, /If required provenance is missing, say that the prediction cannot yet be verified/);
 });
 
 test("chat UI renders web sources as safe clickable links", () => {

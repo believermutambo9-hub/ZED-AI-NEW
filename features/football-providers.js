@@ -45,6 +45,15 @@ const PROVIDERS = Object.freeze({
     minuteSafetyBudget: Number(process.env.SPORTMONKS_PER_MINUTE_LIMIT) || 8,
     configured: Boolean(process.env.SPORTMONKS_API_TOKEN)
   },
+  soccerData: {
+    id: "soccer-data",
+    label: "Soccer Data",
+    baseUrl: "https://api.soccer-data.co/v1",
+    // Keep below the published Free allowance until a paid plan is confirmed.
+    dailySafetyBudget: Math.min(40, Number(process.env.SOCCER_DATA_DAILY_REQUEST_LIMIT) || 40),
+    minuteSafetyBudget: Math.min(8, Number(process.env.SOCCER_DATA_PER_MINUTE_LIMIT) || 8),
+    configured: Boolean(process.env.SOCCER_DATA_API_KEY)
+  },
   theSportsDb: {
     id: "thesportsdb",
     label: "TheSportsDB",
@@ -185,6 +194,7 @@ export async function providerGet(provider, path, {
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     const headers = { Accept: "application/json" };
     if (provider === "footballData") headers["X-Auth-Token"] = process.env.FOOTBALL_DATA_API_TOKEN;
+    if (provider === "soccerData") headers["X-Api-Key"] = process.env.SOCCER_DATA_API_KEY;
     try {
       const response = await fetchImpl(url, { headers, signal: controller.signal });
       if (!response?.ok) {
@@ -322,6 +332,67 @@ export async function getSportmonksFixtures({ dateFrom, dateTo, fetchImpl, cache
     fetchImpl, cache, ttlMs: 10 * 60 * 1000
   });
   return { ...result, matches: normalizeSportmonksFixtures(result.data) };
+}
+
+export function normalizeSoccerDataMatches(payload) {
+  const matches = Array.isArray(payload?.data) ? payload.data : [];
+  return matches.map(item => {
+    const homeName = String(item?.home_team?.name || "").trim();
+    const awayName = String(item?.away_team?.name || "").trim();
+    const date = item?.utc_date || null;
+    if (!homeName || !awayName || !date || !Number.isFinite(new Date(date).getTime())) return null;
+    const statusValue = String(item?.status || "").toLowerCase();
+    const status = statusValue === "scheduled" ? "NS" :
+      statusValue === "finished" ? "FT" :
+      statusValue === "live" ? "LIVE" : statusValue.toUpperCase() || "UNKNOWN";
+    const homeScore = item?.score?.home;
+    const awayScore = item?.score?.away;
+    return {
+      source: "soccer-data",
+      sourceId: String(item.id || ""),
+      date,
+      status,
+      competition: item.competition_name || item.competition?.name || null,
+      home: { id: String(item.home_team?.id || ""), name: homeName },
+      away: { id: String(item.away_team?.id || ""), name: awayName },
+      score: {
+        home: Number.isFinite(homeScore) ? homeScore : null,
+        away: Number.isFinite(awayScore) ? awayScore : null
+      },
+      availability: {
+        xg: item.xg_available === true,
+        odds: item.odds_available === true,
+        lineups: item.lineups_available === true
+      }
+    };
+  }).filter(item => item?.sourceId);
+}
+
+export async function getSoccerDataMatches({ dateFrom, dateTo, fetchImpl, cache = true } = {}) {
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateFrom || "")) ||
+      !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateTo || "")) ||
+      dateTo < dateFrom) {
+    throw new Error("A valid Soccer Data date range is required.");
+  }
+  const result = await providerGet("soccerData", "matches", {
+    params: { date_from: dateFrom, date_to: dateTo, utc_offset: "+02:00", sort: "utc_date", per_page: 100, page: 1 },
+    fetchImpl, cache, ttlMs: 5 * 60 * 1000
+  });
+  return { ...result, matches: normalizeSoccerDataMatches(result.data) };
+}
+
+export async function getSoccerDataMatchStats({ matchId, fetchImpl, cache = true } = {}) {
+  if (!/^match_[a-z0-9]+$/i.test(String(matchId || ""))) throw new Error("A valid Soccer Data match ID is required.");
+  return providerGet("soccerData", "matches/" + encodeURIComponent(matchId) + "/stats", {
+    fetchImpl, cache, ttlMs: 6 * 60 * 60 * 1000
+  });
+}
+
+export async function getSoccerDataMatchOdds({ matchId, fetchImpl, cache = true } = {}) {
+  if (!/^match_[a-z0-9]+$/i.test(String(matchId || ""))) throw new Error("A valid Soccer Data match ID is required.");
+  return providerGet("soccerData", "matches/" + encodeURIComponent(matchId) + "/odds", {
+    fetchImpl, cache, ttlMs: 15 * 60 * 1000
+  });
 }
 
 export function normalizeTheSportsDbEvents(payload) {

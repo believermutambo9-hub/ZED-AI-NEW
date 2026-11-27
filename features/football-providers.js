@@ -462,13 +462,20 @@ async function recordFootballdataIoUsage(payload) {
   if (!Number.isFinite(used) || used < 0 || !Number.isFinite(limit) || limit <= 0) return;
   try {
     const month = utcDay().slice(0, 7);
-    await getFirebaseDb().collection(USAGE).doc("footballdata.io_" + month).set({
-      provider: "footballdata.io",
-      month,
-      providerReportedUsed: used,
-      providerReportedLimit: limit,
-      providerReportedAt: new Date().toISOString()
-    }, { merge: true });
+    const ref = getFirebaseDb().collection(USAGE).doc("footballdata.io_" + month);
+    await getFirebaseDb().runTransaction(async transaction => {
+      const snapshot = await transaction.get(ref);
+      const current = snapshot.exists ? snapshot.data() : {};
+      const previousUsed = Number(current.providerReportedUsed) || 0;
+      const previousLimit = Number(current.providerReportedLimit) || 0;
+      transaction.set(ref, {
+        provider: "footballdata.io",
+        month,
+        providerReportedUsed: Math.max(previousUsed, used),
+        providerReportedLimit: previousLimit > 0 ? Math.min(previousLimit, limit) : limit,
+        providerReportedAt: new Date().toISOString()
+      }, { merge: true });
+    });
   } catch {
     // The next request remains protected by Zed's own durable reservation.
   }

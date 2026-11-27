@@ -57,7 +57,7 @@ export function getFootballIntelligenceStatus() {
     apiFootballConfigured: config.configured,
     apiFootballEnabled,
     apiFootballPaused: !apiFootballEnabled,
-    alternativeProviders: ["ESPN", "Football-data.org", "Sportmonks", "Soccer Data", "TheSportsDB"],
+    alternativeProviders: ["ESPN", "Football-data.org", "Sportmonks", "Soccer Data", "Footballdata.io", "TheSportsDB"],
     providerStatus: getFootballProviderStatus(),
     footballDataConfigured: Boolean(process.env.FOOTBALL_DATA_API_TOKEN),
     firestoreClientInitialized: firestoreAvailable,

@@ -2886,7 +2886,7 @@ app.post(
       // CURRENT INFORMATION INTELLIGENCE
       // ------------------------------------------------------
 
-      const currentInformation = searchData
+      const currentInformation = searchData && !isFootballPrediction
         ? buildCurrentInformationPrompt({
             currentDate,
             searchData,
@@ -2899,7 +2899,7 @@ app.post(
       // ------------------------------------------------------
 
       const newsIntelligence =
-        searchData
+        searchData && !isFootballPrediction
           ? buildNewsIntelligencePrompt({
               currentDate,
               searchData
@@ -2910,7 +2910,7 @@ app.post(
       // FORMATTED WEB EVIDENCE FOR AI
       // ------------------------------------------------------
 
-      const webEvidence = searchData
+      const webEvidence = searchData && !isFootballPrediction
         ? formatSearchEvidence(searchData)
         : "";
 
@@ -2954,7 +2954,9 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
           : "",
         newsIntelligence ? `Current-news guidance:\n${newsIntelligence}` : "",
         currentInformation ? `Current-information guidance:\n${currentInformation}` : "",
-        "Football accuracy: use verified football data for scores, results, fixtures, standings and match statistics. Use supplied web evidence for injuries, transfers and club news. Never invent players, scores, dates or outcomes.",
+        isFootballPrediction
+          ? "Football prediction accuracy is strict: never invent or infer a fixture date, kickoff, venue, team form, injury, odds, score or probability. If ACE says predictionAvailable=false, do not provide any numerical prediction; clearly say which verified data is missing. Treat web research as internal corroboration only. Do not show, list or send URLs, raw search results, or generic links to the user. State source/provider names and verified facts in the answer; if sources disagree, explain the conflict and withhold the prediction."
+          : "Football accuracy: use verified football data for scores, results, fixtures, standings and match statistics. Use supplied web evidence for injuries, transfers and club news. Never invent players, scores, dates or outcomes.",
         "Memory accuracy: use supplied long-term memory naturally for relevant personal context. Do not invent memories or claim to remember details that are not supplied.",
         `Latest user request:\n${userMessage}`,
         fileContext
@@ -3068,7 +3070,7 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
           0,
 
         webSources:
-          Array.isArray(searchData?.results)
+          !isFootballPrediction && Array.isArray(searchData?.results)
             ? searchData.results
                 .map(source => {
                   let url = "";

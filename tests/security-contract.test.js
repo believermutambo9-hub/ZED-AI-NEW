@@ -668,11 +668,11 @@ test("clear-all memory queries Firestore by owner before clearing local state", 
   assert.match(route, /firestoreDeleteUserRecordsAndWait\("zedProjects", normalizedUserId\)/);
 });
 
-test("chat API returns only validated HTTP web-source links", () => {
+test("chat API suppresses football source links and validates generic web-source links", () => {
   const start = server.indexOf('app.post(\n  "/api/chat"');
   const end = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", start);
   const route = server.slice(start, end);
-  assert.match(route, /webSources:\s*Array\.isArray\(searchData\?\.results\)/);
+  assert.match(route, /webSources:\s*!isFootballPrediction && Array\.isArray\(searchData\?\.results\)/);
   assert.match(route, /\["http:", "https:"\]\.includes\(parsed\.protocol\)/);
   assert.match(route, /\.slice\(0, 12\)/);
 });

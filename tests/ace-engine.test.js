@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getAcePredictionChatData } from "../features/ace-engine.js";
+import { extractMatchup, getAcePredictionChatData } from "../features/ace-engine.js";
 import { PredictionEngine, poissonPmf } from "../ace/models/engine.ts";
 import { MonteCarloSimulator } from "../ace/simulation/monteCarlo.ts";
 
@@ -26,6 +26,17 @@ test("ACE withholds probabilities when the fixture and recent team history are u
   assert.equal(result.dataQuality.rating, "INSUFFICIENT");
   assert.ok(result.missingInputs.some((item) => item.includes("verified future fixture")));
   assert.ok(result.missingInputs.some((item) => item.includes("five completed matches")));
+});
+
+test("ACE extracts teams from a natural-language automatic fixture request", () => {
+  assert.deepEqual(
+    extractMatchup("Analyse the next scheduled Arsenal vs Chelsea fixture. Identify the fixture automatically, retrieve verified data, and produce a full prediction."),
+    { homeTeam: "Arsenal", awayTeam: "Chelsea" }
+  );
+  assert.deepEqual(
+    extractMatchup("Who will win between Real Madrid and Barcelona?"),
+    { homeTeam: "Real Madrid", awayTeam: "Barcelona" }
+  );
 });
 
 test("ACE does not create a prediction without a clear matchup", async () => {

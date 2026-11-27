@@ -1,5 +1,5 @@
 import { PredictionEngine } from "../ace/models/engine.ts";
-import { collectFootballEvidence, persistPredictionEvidence } from "./football-intelligence.js";
+import { collectFootballEvidence, normalizeFootballName, persistPredictionEvidence } from "./football-intelligence.js";
 
 export function extractMatchup(message = "") {
   const input = String(message).replace(/\s+/g, " ").trim();
@@ -41,12 +41,23 @@ export async function getAcePredictionChatData(message = "", options = {}) {
   });
 
   const kickoffMs = new Date(evidence.fixture?.kickoffTime || "").getTime();
+  const requestedTeams = [normalizeFootballName(matchup.homeTeam), normalizeFootballName(matchup.awayTeam)].sort();
+  const returnedTeams = [
+    normalizeFootballName(evidence.fixture?.homeTeam || ""),
+    normalizeFootballName(evidence.fixture?.awayTeam || "")
+  ].sort();
+  const fixtureTeamsMatchRequested = Boolean(
+    requestedTeams[0] && requestedTeams[1] &&
+    requestedTeams[0] === returnedTeams[0] &&
+    requestedTeams[1] === returnedTeams[1]
+  );
   const fixtureVerifiedAndFuture = Boolean(
     evidence.fixture?.id &&
     Number.isFinite(kickoffMs) &&
     kickoffMs > Date.now() &&
     evidence.fixture?.homeTeam &&
-    evidence.fixture?.awayTeam
+    evidence.fixture?.awayTeam &&
+    fixtureTeamsMatchRequested
   );
   const homeSamples = Number(evidence.home?.matchesPlayed) || 0;
   const awaySamples = Number(evidence.away?.matchesPlayed) || 0;
@@ -58,7 +69,9 @@ export async function getAcePredictionChatData(message = "", options = {}) {
   const gateMissingInputs = [
     ...(evidence.missingInputs || []),
     ...(!fixtureVerifiedAndFuture
-      ? ["No verified future fixture with confirmed teams and kickoff time. No match prediction is issued."]
+      ? [fixtureTeamsMatchRequested
+          ? "No verified future fixture with confirmed teams and kickoff time. No match prediction is issued."
+          : "The provider did not verify a fixture between the two requested clubs. No match prediction is issued."]
       : []),
     ...(!teamHistoryVerified
       ? ["Insufficient verified recent team history (at least five completed matches per team required). No match prediction is issued."]

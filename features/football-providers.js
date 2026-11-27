@@ -403,7 +403,8 @@ export function normalizeTheStatsApiMatches(payload) {
       },
       availability: {
         stats: item.stats_available === true || item.statistics_available === true,
-        odds: item.odds_available === true,
+        odds: item.odds_available === true || item.pre_match_odds_available === true || item.live_odds_available === true,
+        liveOdds: item.live_odds_available === true,
         lineups: item.lineups_available === true,
         xg: item.xg_available === true
       }

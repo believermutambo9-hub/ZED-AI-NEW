@@ -4,6 +4,7 @@ import {
   getFootballProviderStatus,
   normalizeEspnEvents,
   normalizeFootballDataMatches,
+  normalizeFootballdataIoMatches,
   normalizeSportmonksFixtures,
   normalizeSoccerDataMatches,
   normalizeTheSportsDbEvents
@@ -134,4 +135,48 @@ test("normalizes Soccer Data fixtures without inventing scores or availability",
   assert.equal(matches[0].score.home, null);
   assert.equal(matches[0].availability.xg, true);
   assert.equal(matches[0].availability.odds, false);
+});
+
+test("Footballdata.io is key-gated and protected by daily, minute, and monthly Zed budgets", () => {
+  const provider = getFootballProviderStatus().find(item => item.id === "footballdata.io");
+  assert.equal(provider.configured, Boolean(process.env.FOOTBALLDATA_IO_API_KEY));
+  assert.equal(provider.dailySafetyBudget, 60);
+  assert.equal(provider.minuteSafetyBudget, 5);
+  assert.equal(provider.monthlySafetyBudget, 1900);
+  assert.equal(provider.attributionRequired, true);
+});
+
+test("normalizes Footballdata.io fixture records and leaves absent scores null", () => {
+  const matches = normalizeFootballdataIoMatches({ data: [{
+    match_id: 12345,
+    match_date: "2026-12-01T18:00:00Z",
+    status: "scheduled",
+    league: { name: "Premier League", competition_name: "Premier League" },
+    home_team: { team_id: 1119, team_name: "Arsenal" },
+    away_team: { team_id: 1121, team_name: "Chelsea" },
+    score: { home: null, away: null }
+  }] });
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].source, "footballdata.io");
+  assert.equal(matches[0].sourceId, "12345");
+  assert.equal(matches[0].status, "NS");
+  assert.equal(matches[0].home.name, "Arsenal");
+  assert.equal(matches[0].away.name, "Chelsea");
+  assert.equal(matches[0].score.home, null);
+  assert.equal(matches[0].score.away, null);
+});
+
+test("normalizes Footballdata.io unix kickoff timestamps", () => {
+  const matches = normalizeFootballdataIoMatches({ data: [{
+    match_id: 67890,
+    date_unix: 1796148000,
+    status: "complete",
+    home_team: { team_name: "Team A" },
+    away_team: { team_name: "Team B" },
+    score: { home: 2, away: 1 }
+  }] });
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].status, "FT");
+  assert.equal(matches[0].score.home, 2);
+  assert.equal(matches[0].score.away, 1);
 });

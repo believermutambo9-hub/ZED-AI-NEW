@@ -4,7 +4,8 @@ import { archiveHistoricalFixtures, getArchivedTeamMatches, getHistoricalImportS
 import {
   getEspnScoreboard,
   getFootballDataMatches,
-  getSportmonksFixtures,\n  getSoccerDataMatches,
+  getSportmonksFixtures,
+  getSoccerDataMatches,
   getTheSportsDbEvents,
   getFootballProviderStatus
 } from "./football-providers.js";

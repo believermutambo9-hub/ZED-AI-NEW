@@ -405,8 +405,13 @@ function findUpcomingFixture(records, homeId, awayId) {
     const date = new Date(fixture.date || "").getTime();
     const teams = item?.teams || {};
     const status = String(fixture.status?.short || "").toUpperCase();
-    return Number(teams.home?.id) === homeId &&
-      Number(teams.away?.id) === awayId &&
+    const fixtureHomeId = Number(teams.home?.id);
+    const fixtureAwayId = Number(teams.away?.id);
+    // H2H lookup order is not a guarantee of the next fixture's home/away order.
+    // Match the two clubs in either orientation; the fixture's actual venue order
+    // is retained from the provider response.
+    return ((fixtureHomeId === homeId && fixtureAwayId === awayId) ||
+      (fixtureHomeId === awayId && fixtureAwayId === homeId)) &&
       Number.isFinite(date) && date > now &&
       (status === "NS" || status === "TBD" || status === "PST");
   });

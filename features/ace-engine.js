@@ -10,13 +10,13 @@ export function extractMatchup(message = "") {
   const cleanTeam = (value, side) => {
     let result = String(value || "").trim();
     if (side === "home") {
-      result = result.replace(/^(?:(?:please|can you|could you|would you|predict|prediction for|forecast|analyse|analyze|analysis of|who will win|who wins|will|show me|give me|what about)\\s+)+/i, "");
-      result = result.replace(/^(?:(?:the\\s+)?(?:next|upcoming|scheduled)\\s+)+/i, "");
-      result = result.replace(/^(?:(?:football\\s+)?(?:match|game|fixture)\\s+(?:between\\s+)?)*/i, "");
+      result = result.replace(new RegExp("^(?:(?:please|can you|could you|would you|predict|prediction for|forecast|analyse|analyze|analysis of|who will win|who wins|will|show me|give me|what about)\\s+)+", "i"), "");
+      result = result.replace(new RegExp("^(?:(?:the\\s+)?(?:next|upcoming|scheduled)\\s+)+", "i"), "");
+      result = result.replace(new RegExp("^(?:(?:football\\s+)?(?:match|game|fixture)\\s+(?:between\\s+)?) *", "i"), "");
     } else {
-      result = result.replace(/\\b(?:fixture|match|game|prediction|predict|forecast|analysis|analyse|analyze|odds|today|tonight|tomorrow|please|kickoff|kick-off|who will win|who wins|which team|which side|what is your prediction|identify|automatically|retrieve|fetch|verified|available|current|live|data|statistics|stats|and produce|produce|provide|show|include|do not)\\b[\\s\\S]*$/i, "");
+      result = result.replace(new RegExp("\\b(?:fixture|match|game|prediction|predict|forecast|analysis|analyse|analyze|odds|today|tonight|tomorrow|please|kickoff|kick-off|who will win|who wins|which team|which side|what is your prediction|identify|automatically|retrieve|fetch|verified|available|current|live|data|statistics|stats|and produce|produce|provide|show|include|do not)\\b[\\s\\S]*$", "i"), "");
     }
-    return result.replace(/^[\\s,;:-]+|[\\s,;:-]+$/g, "").trim();
+    return result.replace(new RegExp("^[\\s,;:-]+|[\\s,;:-]+$", "g"), "").trim();
   };
   const homeTeam = cleanTeam(match[1], "home");
   const awayTeam = cleanTeam(match[2], "away");

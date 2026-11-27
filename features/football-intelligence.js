@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
 import { getFirebaseDb } from "../config/firebase-admin.js";
 import { archiveHistoricalFixtures, getArchivedTeamMatches, getHistoricalImportState, saveHistoricalImportState } from "./football-history.js";
-import { getEspnScoreboard, getFootballDataMatches } from "./football-providers.js";
+import {
+  getEspnScoreboard,
+  getFootballDataMatches,
+  getSportmonksFixtures,
+  getTheSportsDbEvents,
+  getFootballProviderStatus
+} from "./football-providers.js";
 
 const API_FOOTBALL_BASE = "https://v3.football.api-sports.io";
 const RAPIDAPI_FOOTBALL_BASE = "https://api-football-v1.p.rapidapi.com/v3";
@@ -50,7 +56,8 @@ export function getFootballIntelligenceStatus() {
     apiFootballConfigured: config.configured,
     apiFootballEnabled,
     apiFootballPaused: !apiFootballEnabled,
-    alternativeProviders: ["ESPN", "Football-data.org"],
+    alternativeProviders: ["ESPN", "Football-data.org", "Sportmonks", "TheSportsDB"],
+    providerStatus: getFootballProviderStatus(),
     footballDataConfigured: Boolean(process.env.FOOTBALL_DATA_API_TOKEN),
     firestoreClientInitialized: firestoreAvailable,
     fallback: "ACE baseline with explicit low-confidence disclosure"
@@ -809,14 +816,88 @@ export function mergeFootballProviderEvidence(candidates = []) {
   return result;
 }
 
+function createFixtureOnlyEvidence(provider, matches, available, homeTeam, awayTeam) {
+  const homeName = normalizeExternalTeamName(homeTeam);
+  const awayName = normalizeExternalTeamName(awayTeam);
+  const matching = (Array.isArray(matches) ? matches : []).filter(item => {
+    const home = normalizeExternalTeamName(item.home?.name);
+    const away = normalizeExternalTeamName(item.away?.name);
+    return home === homeName && away === awayName;
+  });
+  const now = Date.now();
+  const upcoming = matching.filter(item =>
+    Number.isFinite(new Date(item.date || "").getTime()) &&
+    new Date(item.date).getTime() > now &&
+    String(item.status || "").toUpperCase() === "NS"
+  ).sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+  return {
+    provider,
+    providerAvailable: Boolean(available),
+    providerConfigured: true,
+    fixture: upcoming ? {
+      id: provider.toLowerCase().replace(/[^a-z0-9]+/g, "-") + ":" + upcoming.sourceId,
+      kickoffTime: new Date(upcoming.date).toISOString(),
+      competition: upcoming.competition || "Competition not supplied",
+      country: "",
+      venue: "",
+      status: "NS",
+      homeTeam: upcoming.home.name,
+      awayTeam: upcoming.away.name,
+      source: provider
+    } : null,
+    home: null,
+    away: null,
+    h2h: null,
+    marketOdds: null,
+    injuries: [],
+    injuriesChecked: false,
+    lineups: [],
+    lineupsChecked: false,
+    sampleMatchesCount: 0,
+    hasTeamRatings: false,
+    hasWebIntelligence: false,
+    missingInputs: upcoming ? [] : [provider + " did not verify this exact upcoming fixture with a reliable kickoff timestamp."],
+    dataRetrievedAt: new Date().toISOString(),
+    sources: available ? [provider] : []
+  };
+}
+
+async function collectSportmonksEvidence(homeTeam, awayTeam, fetchImpl) {
+  if (!process.env.SPORTMONKS_API_TOKEN) return null;
+  const now = new Date();
+  const from = new Date(now.getTime() - 42 * 86400000).toISOString().slice(0, 10);
+  const to = new Date(now.getTime() + 14 * 86400000).toISOString().slice(0, 10);
+  const result = await getSportmonksFixtures({ dateFrom: from, dateTo: to, fetchImpl, cache: true });
+  return createFixtureOnlyEvidence("Sportmonks", result.matches, true, homeTeam, awayTeam);
+}
+
+async function collectTheSportsDbEvidence(homeTeam, awayTeam, fetchImpl) {
+  const now = new Date();
+  const dates = Array.from({ length: 8 }, (_, index) => {
+    const date = new Date(now);
+    date.setUTCDate(date.getUTCDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+  const settled = await settleWithConcurrency(dates, 2, date =>
+    getTheSportsDbEvents({ date, fetchImpl, cache: true })
+  );
+  const matches = settled.flatMap(item => item.status === "fulfilled" ? item.value.matches : []);
+  const available = settled.some(item => item.status === "fulfilled");
+  return createFixtureOnlyEvidence("TheSportsDB", matches, available, homeTeam, awayTeam);
+}
+
 async function collectAvailableProviderEvidence(homeTeam, awayTeam, fetchImpl) {
-  const [espnResult, footballDataResult] = await Promise.allSettled([
+  const [espnResult, footballDataResult, sportmonksResult, sportsDbResult] = await Promise.allSettled([
     collectEspnEvidence(homeTeam, awayTeam, fetchImpl),
-    collectFootballDataEvidence(homeTeam, awayTeam, fetchImpl)
+    collectFootballDataEvidence(homeTeam, awayTeam, fetchImpl),
+    collectSportmonksEvidence(homeTeam, awayTeam, fetchImpl),
+    collectTheSportsDbEvidence(homeTeam, awayTeam, fetchImpl)
   ]);
   const candidates = [
     espnResult.status === "fulfilled" ? espnResult.value : null,
-    footballDataResult.status === "fulfilled" ? footballDataResult.value : null
+    footballDataResult.status === "fulfilled" ? footballDataResult.value : null,
+    sportmonksResult.status === "fulfilled" ? sportmonksResult.value : null,
+    sportsDbResult.status === "fulfilled" ? sportsDbResult.value : null
   ].filter(Boolean);
   return mergeFootballProviderEvidence(candidates);
 }

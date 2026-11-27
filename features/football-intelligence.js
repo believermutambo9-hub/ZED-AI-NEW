@@ -5,6 +5,7 @@ import {
   getEspnScoreboard,
   getFootballDataMatches,
   getSportmonksFixtures,
+  getTheStatsApiMatches,
   getTheSportsDbEvents,
   getFootballProviderStatus
 } from "./football-providers.js";
@@ -56,7 +57,7 @@ export function getFootballIntelligenceStatus() {
     apiFootballConfigured: config.configured,
     apiFootballEnabled,
     apiFootballPaused: !apiFootballEnabled,
-    alternativeProviders: ["ESPN", "Football-data.org", "Sportmonks", "TheSportsDB"],
+    alternativeProviders: ["ESPN", "Football-data.org", "Sportmonks", "TheStatsAPI", "TheSportsDB"],
     providerStatus: getFootballProviderStatus(),
     footballDataConfigured: Boolean(process.env.FOOTBALL_DATA_API_TOKEN),
     firestoreClientInitialized: firestoreAvailable,
@@ -871,6 +872,16 @@ async function collectSportmonksEvidence(homeTeam, awayTeam, fetchImpl) {
   return createFixtureOnlyEvidence("Sportmonks", result.matches, true, homeTeam, awayTeam);
 }
 
+
+async function collectTheStatsApiEvidence(homeTeam, awayTeam, fetchImpl) {
+  if (!(process.env.THESTATSAPI_API_KEY || process.env.THESTATSAPI_KEY)) return null;
+  const now = new Date();
+  const from = new Date(now.getTime() - 42 * 86400000).toISOString().slice(0, 10);
+  const to = new Date(now.getTime() + 14 * 86400000).toISOString().slice(0, 10);
+  const result = await getTheStatsApiMatches({ dateFrom: from, dateTo: to, fetchImpl, cache: true });
+  return createFixtureOnlyEvidence("TheStatsAPI", result.matches, true, homeTeam, awayTeam);
+}
+
 async function collectTheSportsDbEvidence(homeTeam, awayTeam, fetchImpl) {
   const now = new Date();
   const dates = Array.from({ length: 8 }, (_, index) => {
@@ -887,16 +898,18 @@ async function collectTheSportsDbEvidence(homeTeam, awayTeam, fetchImpl) {
 }
 
 async function collectAvailableProviderEvidence(homeTeam, awayTeam, fetchImpl) {
-  const [espnResult, footballDataResult, sportmonksResult, sportsDbResult] = await Promise.allSettled([
+  const [espnResult, footballDataResult, sportmonksResult, theStatsApiResult, sportsDbResult] = await Promise.allSettled([
     collectEspnEvidence(homeTeam, awayTeam, fetchImpl),
     collectFootballDataEvidence(homeTeam, awayTeam, fetchImpl),
     collectSportmonksEvidence(homeTeam, awayTeam, fetchImpl),
+    collectTheStatsApiEvidence(homeTeam, awayTeam, fetchImpl),
     collectTheSportsDbEvidence(homeTeam, awayTeam, fetchImpl)
   ]);
   const candidates = [
     espnResult.status === "fulfilled" ? espnResult.value : null,
     footballDataResult.status === "fulfilled" ? footballDataResult.value : null,
     sportmonksResult.status === "fulfilled" ? sportmonksResult.value : null,
+    theStatsApiResult.status === "fulfilled" ? theStatsApiResult.value : null,
     sportsDbResult.status === "fulfilled" ? sportsDbResult.value : null
   ].filter(Boolean);
   return mergeFootballProviderEvidence(candidates);

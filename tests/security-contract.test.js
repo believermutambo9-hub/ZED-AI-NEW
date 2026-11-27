@@ -677,6 +677,15 @@ test("chat API suppresses football source links and validates generic web-source
   assert.match(route, /\.slice\(0, 12\)/);
 });
 
+test("football prediction responses require ACE numeric provenance and disclose data limitations", () => {
+  assert.match(server, /Only report numerical probabilities.*CURRENT ACE analysis payload/s);
+  assert.match(server, /never calculate, estimate, round, fill in or reconstruct missing numbers/i);
+  assert.match(server, /actual home\/away sample counts/);
+  assert.match(server, /recent-form proxies as proxies/);
+  assert.match(server, /Label ACE expected goals as model estimates/);
+  assert.match(server, /If required provenance is missing, say that the prediction cannot yet be verified/);
+});
+
 test("chat UI renders web sources as safe clickable links", () => {
   assert.match(app, /Array\.isArray\(message\.webSources\)/);
   assert.match(app, /link\.rel = "noopener noreferrer"/);

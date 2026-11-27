@@ -123,6 +123,14 @@ async function reserveQuota(provider) {
     const dailyUsed = Number(current.dailyUsed) || 0;
     const minuteUsed = current.minuteBucket === minute ? Number(current.minuteUsed) || 0 : 0;
     const monthlyUsed = Number(monthCurrent.monthlyUsed) || 0;
+    const providerReportedUsed = Number(monthCurrent.providerReportedUsed) || 0;
+    const providerReportedLimit = Number(monthCurrent.providerReportedLimit) > 0
+      ? Number(monthCurrent.providerReportedLimit)
+      : config.monthlySafetyBudget;
+    const effectiveMonthlyBudget = config.monthlySafetyBudget
+      ? Math.min(config.monthlySafetyBudget, providerReportedLimit)
+      : 0;
+    const effectiveMonthlyUsed = Math.max(monthlyUsed, providerReportedUsed);
     if (dailyUsed >= config.dailySafetyBudget) {
       const error = new Error(config.label + " daily safety budget reached.");
       error.code = "FOOTBALL_PROVIDER_DAILY_QUOTA";
@@ -133,7 +141,7 @@ async function reserveQuota(provider) {
       error.code = "FOOTBALL_PROVIDER_RATE_LIMIT";
       throw error;
     }
-    if (config.monthlySafetyBudget && monthlyUsed >= config.monthlySafetyBudget) {
+    if (config.monthlySafetyBudget && effectiveMonthlyUsed >= effectiveMonthlyBudget) {
       const error = new Error(config.label + " monthly safety budget reached.");
       error.code = "FOOTBALL_PROVIDER_MONTHLY_QUOTA";
       throw error;
@@ -412,7 +420,9 @@ export function normalizeFootballdataIoMatches(payload) {
     const homeName = String(item?.home_team?.team_name || item?.home_team?.name || "").trim();
     const awayName = String(item?.away_team?.team_name || item?.away_team?.name || "").trim();
     const unix = Number(item?.date_unix);
-    const date = item?.match_date || (Number.isFinite(unix) && unix > 0 ? new Date(unix * 1000).toISOString() : null);
+    const date = Number.isFinite(unix) && unix > 0
+      ? new Date(unix * 1000).toISOString()
+      : item?.match_date || null;
     if (!homeName || !awayName || !date || !Number.isFinite(new Date(date).getTime())) return null;
     const rawStatus = String(item?.status || "").toLowerCase();
     const status = /scheduled|not_started|fixture/.test(rawStatus) ? "NS" :
@@ -442,7 +452,26 @@ export async function getFootballdataIoMatches({ dateFrom, dateTo, fetchImpl, ca
     params: { from: dateFrom, to: dateTo, page: 1, limit: 100 },
     fetchImpl, cache, ttlMs: 30 * 60 * 1000
   });
+  await recordFootballdataIoUsage(result.data);
   return { ...result, matches: normalizeFootballdataIoMatches(result.data) };
+}
+
+async function recordFootballdataIoUsage(payload) {
+  const used = Number(payload?.meta?.requests_used);
+  const limit = Number(payload?.meta?.requests_limit);
+  if (!Number.isFinite(used) || used < 0 || !Number.isFinite(limit) || limit <= 0) return;
+  try {
+    const month = utcDay().slice(0, 7);
+    await getFirebaseDb().collection(USAGE).doc("footballdata.io_" + month).set({
+      provider: "footballdata.io",
+      month,
+      providerReportedUsed: used,
+      providerReportedLimit: limit,
+      providerReportedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch {
+    // The next request remains protected by Zed's own durable reservation.
+  }
 }
 
 export async function getFootballdataIoMatchStats({ matchId, fetchImpl, cache = true } = {}) {

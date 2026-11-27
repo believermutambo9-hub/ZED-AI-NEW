@@ -780,6 +780,23 @@ function normalizeExaResults(payload) {
   })).filter(item => item.title && item.url);
 }
 
+function normalizeGdeltResults(payload) {
+  return (Array.isArray(payload?.articles) ? payload.articles : []).map(item => {
+    const rawDate = String(item?.seendate || "");
+    const published = /^\\d{14}$/.test(rawDate)
+      ? `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}T${rawDate.slice(8, 10)}:${rawDate.slice(10, 12)}:${rawDate.slice(12, 14)}Z`
+      : "";
+    return {
+      title: cleanText(item?.title || ""),
+      url: item?.url || "",
+      snippet: cleanText(item?.description || ""),
+      published,
+      source: cleanText(item?.domain || item?.sourcecountry || ""),
+      provider: "GDELT"
+    };
+  }).filter(item => item.title && item.url);
+}
+
 function normalizeSerperResults(payload, provider = "Serper") {
   const items = [
     ...(Array.isArray(payload?.organic) ? payload.organic : []),
@@ -793,6 +810,24 @@ function normalizeSerperResults(payload, provider = "Serper") {
     source: cleanText(item?.source || extractDomain(item?.link || item?.url || "")),
     provider
   })).filter(item => item.title && item.url);
+}
+
+async function searchGdelt(query, recentRequest = false) {
+  const params = new URLSearchParams({
+    query,
+    mode: "ArtList",
+    format: "json",
+    maxrecords: "10",
+    sort: "HybridRel",
+    timespan: recentRequest ? "7d" : "30d"
+  });
+  try {
+    const payload = await fetchJson(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`);
+    return normalizeGdeltResults(payload);
+  } catch (error) {
+    console.warn("GDELT search unavailable:", error.message);
+    return [];
+  }
 }
 
 async function searchTavily(query, newsRequest = false) {
@@ -869,9 +904,10 @@ export function getSearchProviderStatus() {
     { id: "google-news-rss", label: "Google News RSS", enabled: true, free: true },
     { id: "bing-news-rss", label: "Bing News RSS", enabled: true, free: true },
     { id: "duckduckgo", label: "DuckDuckGo", enabled: true, free: true },
+    { id: "gdelt", label: "GDELT", enabled: true, free: true, allowance: "Free global news search; no API key" },
     { id: "tavily", label: "Tavily", enabled: Boolean(process.env.TAVILY_API_KEY), free: true, allowance: "1,000 credits/month; no card" },
     { id: "exa", label: "Exa", enabled: Boolean(process.env.EXA_API_KEY), free: true, allowance: "$10 monthly credits; no payment method" },
-    { id: "serper", label: "Serper", enabled: Boolean(process.env.SERPER_API_KEY), free: true, allowance: "2,500 free queries; no card" }
+    { id: "serper", label: "Serper", enabled: Boolean(process.env.SERPER_API_KEY), free: true, allowance: "2,500 starter queries; no card (one-time free credits)" }
   ];
 }
 
@@ -910,17 +946,25 @@ function deduplicateResults(
 async function runSearchVariant(
   query,
   recentRequest,
-  todayRequest = false
+  todayRequest = false,
+  includeKeyedProviders = false
 ) {
   const newsRequest = isNewsRequest(query);
   const searches = [
     searchGoogleNews(query, recentRequest, todayRequest),
     searchBingNews(query, recentRequest, todayRequest),
     searchDuckDuckGo(query),
-    searchTavily(query, newsRequest),
-    searchExa(query),
-    searchSerper(query, newsRequest)
+    searchGdelt(query, recentRequest)
   ];
+  // Keyed services use one request per user search, not one request per
+  // query rewrite. This protects small free quotas from variant fan-out.
+  if (includeKeyedProviders) {
+    searches.push(
+      searchTavily(query, newsRequest),
+      searchExa(query),
+      searchSerper(query, newsRequest)
+    );
+  }
 
   const results = await Promise.allSettled(searches);
   const values = results.map(result =>
@@ -979,11 +1023,12 @@ export async function searchWeb(
    */
   const variantResults =
     await Promise.all(
-      variants.map(variant =>
+      variants.map((variant, index) =>
         runSearchVariant(
           variant,
           recentRequest,
-          todayRequest
+          todayRequest,
+          index === 0
         )
       )
     );
@@ -1024,7 +1069,7 @@ export async function searchWeb(
 
     if (!allResults.some(isPublishedToday)) {
       const fallbackResults = await Promise.all(
-        variants.map(variant => runSearchVariant(variant, true, false))
+        variants.map(variant => runSearchVariant(variant, true, false, false))
       );
       allResults = deduplicateResults([
         ...allResults,
@@ -1246,12 +1291,14 @@ export {
   searchGoogleNews,
   searchBingNews,
   searchDuckDuckGo,
+  searchGdelt,
   searchTavily,
   searchExa,
   searchSerper,
   normalizeTavilyResults,
   normalizeExaResults,
   normalizeSerperResults,
+  normalizeGdeltResults,
   getSearchProviderStatus,
   deduplicateResults,
   diversifyResults

@@ -1299,7 +1299,6 @@ export {
   normalizeExaResults,
   normalizeSerperResults,
   normalizeGdeltResults,
-  getSearchProviderStatus,
   deduplicateResults,
   diversifyResults
 };

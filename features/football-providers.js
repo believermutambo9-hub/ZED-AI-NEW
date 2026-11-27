@@ -45,6 +45,15 @@ const PROVIDERS = Object.freeze({
     minuteSafetyBudget: Number(process.env.SPORTMONKS_PER_MINUTE_LIMIT) || 8,
     configured: Boolean(process.env.SPORTMONKS_API_TOKEN)
   },
+  theStatsApi: {
+    id: "thestatsapi",
+    label: "TheStatsAPI",
+    baseUrl: "https://api.thestatsapi.com/api",
+    // Conservative local guard until the account's exact plan quota is confirmed.
+    dailySafetyBudget: Math.min(100, Number(process.env.THESTATSAPI_DAILY_REQUEST_LIMIT) || 100),
+    minuteSafetyBudget: Math.min(8, Number(process.env.THESTATSAPI_PER_MINUTE_LIMIT) || 8),
+    configured: Boolean(process.env.THESTATSAPI_API_KEY || process.env.THESTATSAPI_KEY)
+  },
   theSportsDb: {
     id: "thesportsdb",
     label: "TheSportsDB",
@@ -185,6 +194,7 @@ export async function providerGet(provider, path, {
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     const headers = { Accept: "application/json" };
     if (provider === "footballData") headers["X-Auth-Token"] = process.env.FOOTBALL_DATA_API_TOKEN;
+    if (provider === "theStatsApi") headers.Authorization = "Bearer " + (process.env.THESTATSAPI_API_KEY || process.env.THESTATSAPI_KEY);
     try {
       const response = await fetchImpl(url, { headers, signal: controller.signal });
       if (!response?.ok) {
@@ -322,6 +332,67 @@ export async function getSportmonksFixtures({ dateFrom, dateTo, fetchImpl, cache
     fetchImpl, cache, ttlMs: 10 * 60 * 1000
   });
   return { ...result, matches: normalizeSportmonksFixtures(result.data) };
+}
+
+
+export function normalizeTheStatsApiMatches(payload) {
+  const matches = Array.isArray(payload?.data) ? payload.data : [];
+  return matches.map(item => {
+    const homeName = String(item?.home_team?.name || "").trim();
+    const awayName = String(item?.away_team?.name || "").trim();
+    const date = item?.utc_date || null;
+    if (!homeName || !awayName || !date || !Number.isFinite(new Date(date).getTime())) return null;
+    const rawStatus = String(item?.status || "").toLowerCase();
+    const status = /finished|full.?time|ft/.test(rawStatus) ? "FT" :
+      /live|in.?play|half.?time/.test(rawStatus) ? "LIVE" :
+      /scheduled|not.?started|upcoming/.test(rawStatus) ? "NS" : rawStatus.toUpperCase() || "UNKNOWN";
+    const homeScore = item?.home_team?.score;
+    const awayScore = item?.away_team?.score;
+    return {
+      source: "thestatsapi",
+      sourceId: String(item.id || ""),
+      date,
+      status,
+      competition: item.competition || item.competition_name || null,
+      home: { id: String(item.home_team?.id || ""), name: homeName },
+      away: { id: String(item.away_team?.id || ""), name: awayName },
+      score: {
+        home: Number.isFinite(homeScore) ? homeScore : null,
+        away: Number.isFinite(awayScore) ? awayScore : null
+      },
+      availability: {
+        stats: item.stats_available === true || item.statistics_available === true,
+        odds: item.odds_available === true,
+        lineups: item.lineups_available === true,
+        xg: item.xg_available === true
+      }
+    };
+  }).filter(item => item?.sourceId);
+}
+
+export async function getTheStatsApiMatches({ dateFrom, dateTo, teamId, competitionId, fetchImpl, cache = true } = {}) {
+  if (dateFrom && !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateFrom))) throw new Error("Invalid TheStatsAPI start date.");
+  if (dateTo && !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateTo))) throw new Error("Invalid TheStatsAPI end date.");
+  if (dateFrom && dateTo && dateTo < dateFrom) throw new Error("TheStatsAPI end date must not precede start date.");
+  const result = await providerGet("theStatsApi", "football/matches", {
+    params: { date_from: dateFrom, date_to: dateTo, team_id: teamId, competition_id: competitionId, per_page: 100, page: 1 },
+    fetchImpl, cache, ttlMs: 5 * 60 * 1000
+  });
+  return { ...result, matches: normalizeTheStatsApiMatches(result.data) };
+}
+
+export async function getTheStatsApiMatchStats({ matchId, fetchImpl, cache = true } = {}) {
+  if (!/^mt_[a-z0-9]+$/i.test(String(matchId || ""))) throw new Error("A valid TheStatsAPI match ID is required.");
+  return providerGet("theStatsApi", "football/matches/" + encodeURIComponent(matchId) + "/stats", {
+    fetchImpl, cache, ttlMs: 30 * 60 * 1000
+  });
+}
+
+export async function getTheStatsApiMatchOdds({ matchId, fetchImpl, cache = true } = {}) {
+  if (!/^mt_[a-z0-9]+$/i.test(String(matchId || ""))) throw new Error("A valid TheStatsAPI match ID is required.");
+  return providerGet("theStatsApi", "football/matches/" + encodeURIComponent(matchId) + "/odds", {
+    fetchImpl, cache, ttlMs: 10 * 60 * 1000
+  });
 }
 
 export function normalizeTheSportsDbEvents(payload) {

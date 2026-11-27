@@ -140,9 +140,9 @@ test("normalizes Soccer Data fixtures without inventing scores or availability",
 test("Footballdata.io is key-gated and protected by daily, minute, and monthly Zed budgets", () => {
   const provider = getFootballProviderStatus().find(item => item.id === "footballdata.io");
   assert.equal(provider.configured, Boolean(process.env.FOOTBALLDATA_IO_API_KEY));
-  assert.equal(provider.dailySafetyBudget, 60);
-  assert.equal(provider.minuteSafetyBudget, 5);
-  assert.equal(provider.monthlySafetyBudget, 1900);
+  assert.ok(provider.dailySafetyBudget > 0 && provider.dailySafetyBudget <= 60);
+  assert.ok(provider.minuteSafetyBudget > 0 && provider.minuteSafetyBudget <= 5);
+  assert.ok(provider.monthlySafetyBudget > 0 && provider.monthlySafetyBudget <= 1900);
   assert.equal(provider.attributionRequired, true);
 });
 

@@ -672,7 +672,10 @@ test("chat API suppresses football source links and validates generic web-source
   const start = server.indexOf('app.post(\n  "/api/chat"');
   const end = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", start);
   const route = server.slice(start, end);
-  assert.match(route, /webSources:\s*!isFootballPrediction && Array\.isArray\(searchData\?\.results\)/);
+  assert.match(route, /webSources:\s*!isFootballRequest && Array\.isArray\(searchData\?\.results\)/);
+  assert.match(route, /const currentInformation = searchData && !isFootballRequest/);
+  assert.match(route, /const webEvidence = searchData && !isFootballRequest/);
+  assert.match(route, /For every football request, use retrieved web results only as internal evidence/);
   assert.match(route, /\["http:", "https:"\]\.includes\(parsed\.protocol\)/);
   assert.match(route, /\.slice\(0, 12\)/);
 });

@@ -620,7 +620,7 @@ async function collectFootballDataEvidence(homeTeam, awayTeam, fetchImpl) {
     normalizeExternalTeamName(item.away.name) === awayName);
   const nowMs = now.getTime();
   const upcoming = matching.filter(item => new Date(item.date).getTime() > nowMs &&
-    /SCHEDULED|TIMED|POSTPONED/i.test(item.status))
+    /SCHEDULED|TIMED/i.test(item.status))
     .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
   const sample = upcoming || matching[0];
   const homeId = Number(sample?.home.id);
@@ -758,8 +758,10 @@ export function mergeFootballProviderEvidence(candidates = []) {
     }
   }
   result.hasTeamRatings = Boolean(
-    valid.some(item => item.hasTeamRatings) &&
-    result.home && result.away
+    result.home &&
+    result.away &&
+    (Number(result.home.matchesPlayed) || 0) >= MIN_RATING_MATCHES &&
+    (Number(result.away.matchesPlayed) || 0) >= MIN_RATING_MATCHES
   );
   result.sampleMatchesCount = Math.min(
     Number(result.home?.matchesPlayed) || 0,

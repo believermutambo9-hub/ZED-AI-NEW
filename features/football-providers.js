@@ -312,8 +312,8 @@ export function normalizeSportmonksFixtures(payload) {
 }
 
 export async function getSportmonksFixtures({ dateFrom, dateTo, fetchImpl, cache = true } = {}) {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateFrom || "")) ||
-      !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateTo || ""))) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateFrom || "")) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(dateTo || ""))) {
     throw new Error("Valid Sportmonks date range is required.");
   }
   const result = await providerGet("sportmonks", "fixtures/between/" +
@@ -353,7 +353,7 @@ export function normalizeTheSportsDbEvents(payload) {
 }
 
 export async function getTheSportsDbEvents({ date, fetchImpl, cache = true } = {}) {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(date || ""))) throw new Error("A valid TheSportsDB event date is required.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) throw new Error("A valid TheSportsDB event date is required.");
   const result = await providerGet("theSportsDb", "eventsday.php", {
     params: { d: date, s: "Soccer" }, fetchImpl, cache, ttlMs: 10 * 60 * 1000
   });

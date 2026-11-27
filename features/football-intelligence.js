@@ -881,6 +881,15 @@ async function collectSoccerDataEvidence(homeTeam, awayTeam, fetchImpl) {
   return createFixtureOnlyEvidence("Soccer Data", result.matches, true, homeTeam, awayTeam);
 }
 
+async function collectFootballdataIoEvidence(homeTeam, awayTeam, fetchImpl) {
+  if (!process.env.FOOTBALLDATA_IO_API_KEY) return null;
+  const now = new Date();
+  const from = new Date(now.getTime() - 42 * 86400000).toISOString().slice(0, 10);
+  const to = new Date(now.getTime() + 14 * 86400000).toISOString().slice(0, 10);
+  const result = await getFootballdataIoMatches({ dateFrom: from, dateTo: to, fetchImpl, cache: true });
+  return createFixtureOnlyEvidence("Footballdata.io", result.matches, true, homeTeam, awayTeam);
+}
+
 async function collectTheSportsDbEvidence(homeTeam, awayTeam, fetchImpl) {
   const now = new Date();
   const dates = Array.from({ length: 8 }, (_, index) => {
@@ -897,11 +906,12 @@ async function collectTheSportsDbEvidence(homeTeam, awayTeam, fetchImpl) {
 }
 
 async function collectAvailableProviderEvidence(homeTeam, awayTeam, fetchImpl) {
-  const [espnResult, footballDataResult, sportmonksResult, soccerDataResult, sportsDbResult] = await Promise.allSettled([
+  const [espnResult, footballDataResult, sportmonksResult, soccerDataResult, footballdataIoResult, sportsDbResult] = await Promise.allSettled([
     collectEspnEvidence(homeTeam, awayTeam, fetchImpl),
     collectFootballDataEvidence(homeTeam, awayTeam, fetchImpl),
     collectSportmonksEvidence(homeTeam, awayTeam, fetchImpl),
     collectSoccerDataEvidence(homeTeam, awayTeam, fetchImpl),
+    collectFootballdataIoEvidence(homeTeam, awayTeam, fetchImpl),
     collectTheSportsDbEvidence(homeTeam, awayTeam, fetchImpl)
   ]);
   const candidates = [
@@ -909,6 +919,7 @@ async function collectAvailableProviderEvidence(homeTeam, awayTeam, fetchImpl) {
     footballDataResult.status === "fulfilled" ? footballDataResult.value : null,
     sportmonksResult.status === "fulfilled" ? sportmonksResult.value : null,
     soccerDataResult.status === "fulfilled" ? soccerDataResult.value : null,
+    footballdataIoResult.status === "fulfilled" ? footballdataIoResult.value : null,
     sportsDbResult.status === "fulfilled" ? sportsDbResult.value : null
   ].filter(Boolean);
   return mergeFootballProviderEvidence(candidates);

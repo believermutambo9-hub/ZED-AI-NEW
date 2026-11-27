@@ -783,7 +783,7 @@ function normalizeExaResults(payload) {
 function normalizeGdeltResults(payload) {
   return (Array.isArray(payload?.articles) ? payload.articles : []).map(item => {
     const rawDate = String(item?.seendate || "");
-    const published = /^\\d{14}$/.test(rawDate)
+    const published = /^\d{14}$/.test(rawDate)
       ? `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}T${rawDate.slice(8, 10)}:${rawDate.slice(10, 12)}:${rawDate.slice(12, 14)}Z`
       : "";
     return {

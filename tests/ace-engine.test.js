@@ -39,6 +39,28 @@ test("ACE extracts teams from a natural-language automatic fixture request", () 
   );
 });
 
+test("ACE rejects a future fixture whose teams do not match the requested clubs", async () => {
+  const result = await getAcePredictionChatData("Predict Arsenal vs Chelsea", {
+    evidence: {
+      provider: "API-Football v3",
+      providerAvailable: true,
+      fixture: {
+        id: 456,
+        kickoffTime: new Date(Date.now() + 86400000).toISOString(),
+        homeTeam: "Liverpool",
+        awayTeam: "Manchester City"
+      },
+      home: { matchesPlayed: 8 },
+      away: { matchesPlayed: 8 },
+      hasTeamRatings: true,
+      missingInputs: []
+    }
+  });
+  assert.equal(result.predictionAvailable, false);
+  assert.equal(result.probabilities, null);
+  assert.ok(result.missingInputs.some(item => item.includes("between the two requested clubs")));
+});
+
 test("ACE does not create a prediction without a clear matchup", async () => {
   assert.equal(await getAcePredictionChatData("Show me today's football fixtures"), null);
 });

@@ -5,6 +5,7 @@ import {
   normalizeEspnEvents,
   normalizeFootballDataMatches,
   normalizeSportmonksFixtures,
+  normalizeTheStatsApiMatches,
   normalizeTheSportsDbEvents
 } from "../features/football-providers.js";
 
@@ -105,4 +106,30 @@ test("normalizes TheSportsDB events only when a reliable UTC timestamp exists", 
   assert.equal(matches[0].date, "2026-12-01T18:30:00Z");
   assert.equal(matches[0].score.home, null);
   assert.equal(matches[0].score.away, null);
+});
+
+test("TheStatsAPI is configured only when either supported server key is present", () => {
+  const provider = getFootballProviderStatus().find(item => item.id === "thestatsapi");
+  assert.equal(provider.configured, Boolean(process.env.THESTATSAPI_API_KEY || process.env.THESTATSAPI_KEY));
+  assert.ok(provider.dailySafetyBudget <= 100);
+  assert.ok(provider.minuteSafetyBudget <= 8);
+});
+
+test("normalizes TheStatsAPI matches without inventing missing scores", () => {
+  const matches = normalizeTheStatsApiMatches({ data: [{
+    id: "mt_010249745",
+    competition: "Premier League",
+    status: "scheduled",
+    utc_date: "2026-12-01T18:00:00Z",
+    home_team: { id: "tm_50", name: "Arsenal", score: null },
+    away_team: { id: "tm_42", name: "Chelsea", score: null },
+    odds_available: true,
+    xg_available: false
+  }] });
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].source, "thestatsapi");
+  assert.equal(matches[0].status, "NS");
+  assert.equal(matches[0].score.home, null);
+  assert.equal(matches[0].availability.odds, true);
+  assert.equal(matches[0].availability.xg, false);
 });

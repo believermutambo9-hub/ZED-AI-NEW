@@ -413,7 +413,7 @@ function findUpcomingFixture(records, homeId, awayId) {
     return ((fixtureHomeId === homeId && fixtureAwayId === awayId) ||
       (fixtureHomeId === awayId && fixtureAwayId === homeId)) &&
       Number.isFinite(date) && date > now &&
-      (status === "NS" || status === "TBD" || status === "PST");
+      (status === "NS" || status === "TBD");
   });
   candidates.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
   return candidates[0] || null;

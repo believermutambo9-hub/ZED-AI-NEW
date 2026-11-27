@@ -97,7 +97,13 @@ export async function getAcePredictionChatData(message = "", options = {}) {
         fixtureVerified: Boolean(evidence.fixture),
         fixture: evidence.fixture,
         teamSamples: evidence.providerSampleCount || { home: homeSamples, away: awaySamples },
-        sources: evidence.sources || []
+        sources: evidence.sources || [],
+        crossSource: {
+          zedFootballDataAvailable: Boolean(options.zedFootballData),
+          webSearchUsed: Boolean(options.webSearchUsed),
+          webResearch: [],
+          webNewsAppliedToNumericProbabilities: false
+        }
       },
       persistence: { saved: false, settlementTracked: false }
     };

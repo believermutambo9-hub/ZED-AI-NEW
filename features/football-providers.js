@@ -103,7 +103,7 @@ async function readCache(key, ttlMs) {
   if (!snapshot.exists) return null;
   const value = snapshot.data() || {};
   if (!value.payload || !Number.isFinite(value.savedAt) || Date.now() - value.savedAt > ttlMs) return null;
-  return value.payload;
+  return { payload: value.payload, savedAt: value.savedAt };
 }
 
 async function writeCache(key, provider, payload) {
@@ -148,8 +148,8 @@ export async function providerGet(provider, path, {
     try {
       const cached = await readCache(cacheKey, ttlMs);
       if (cached) {
-        rememberCache(cacheKey, cached);
-        return { ...cached, cached: true };
+        rememberCache(cacheKey, cached.payload, cached.savedAt);
+        return { ...cached.payload, cached: true };
       }
     } catch {
       // A cache outage does not prevent a quota-controlled live request.

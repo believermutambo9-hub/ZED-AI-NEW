@@ -49,8 +49,11 @@ const PROVIDERS = Object.freeze({
     id: "thestatsapi",
     label: "TheStatsAPI",
     baseUrl: "https://api.thestatsapi.com/api",
-    // Conservative local guard until the account's exact plan quota is confirmed.
-    dailySafetyBudget: Math.min(100, Number(process.env.THESTATSAPI_DAILY_REQUEST_LIMIT) || 100),
+    // Conservative caps stay below the published free allowance (500/day)
+    // and paid Starter monthly allowance (100,000/month). They are Zed-side
+    // safety limits, not a claim about the user's subscribed plan.
+    dailySafetyBudget: Math.min(400, Number(process.env.THESTATSAPI_DAILY_REQUEST_LIMIT) || 400),
+    monthlySafetyBudget: Math.min(12000, Number(process.env.THESTATSAPI_MONTHLY_REQUEST_LIMIT) || 12000),
     minuteSafetyBudget: Math.min(8, Number(process.env.THESTATSAPI_PER_MINUTE_LIMIT) || 8),
     configured: Boolean(process.env.THESTATSAPI_API_KEY || process.env.THESTATSAPI_KEY)
   },
@@ -75,8 +78,9 @@ function providerRecord(provider) {
 }
 
 export function getFootballProviderStatus() {
-  return Object.values(PROVIDERS).map(({ id, label, dailySafetyBudget, minuteSafetyBudget, configured }) => ({
-    id, label, dailySafetyBudget, minuteSafetyBudget, configured,
+  return Object.values(PROVIDERS).map(({ id, label, dailySafetyBudget, monthlySafetyBudget, minuteSafetyBudget, configured }) => ({
+    id, label, dailySafetyBudget, ...(monthlySafetyBudget ? { monthlySafetyBudget } : {}),
+    minuteSafetyBudget, configured,
     quotaType: "zed_safety_budget_not_provider_published_quota"
   }));
 }
@@ -94,16 +98,33 @@ async function reserveQuota(provider) {
   }
   const db = getFirebaseDb();
   const day = utcDay();
+  const month = day.slice(0, 7);
   const minute = minuteBucket();
   const ref = db.collection(USAGE).doc(config.id + "_" + day);
+  const monthRef = config.monthlySafetyBudget
+    ? db.collection(USAGE).doc(config.id + "_" + month)
+    : null;
   await db.runTransaction(async transaction => {
     const snapshot = await transaction.get(ref);
+    const monthSnapshot = monthRef ? await transaction.get(monthRef) : null;
     const current = snapshot.exists ? snapshot.data() : {};
+    const monthCurrent = monthSnapshot?.exists ? monthSnapshot.data() : {};
     const dailyUsed = Number(current.dailyUsed) || 0;
+    const monthlyUsed = Number(monthCurrent.monthlyUsed) || 0;
     const minuteUsed = current.minuteBucket === minute ? Number(current.minuteUsed) || 0 : 0;
+    if (Number(current.blockedUntilMs) > Date.now()) {
+      const error = new Error(config.label + " is temporarily paused after an upstream rate-limit response.");
+      error.code = "FOOTBALL_PROVIDER_RATE_LIMIT";
+      throw error;
+    }
     if (dailyUsed >= config.dailySafetyBudget) {
       const error = new Error(config.label + " daily request budget reached.");
       error.code = "FOOTBALL_PROVIDER_DAILY_QUOTA";
+      throw error;
+    }
+    if (config.monthlySafetyBudget && monthlyUsed >= config.monthlySafetyBudget) {
+      const error = new Error(config.label + " monthly request budget reached.");
+      error.code = "FOOTBALL_PROVIDER_MONTHLY_QUOTA";
       throw error;
     }
     if (minuteUsed >= config.minuteSafetyBudget) {
@@ -119,7 +140,22 @@ async function reserveQuota(provider) {
       minuteUsed: minuteUsed + 1,
       updatedAt: new Date().toISOString()
     }, { merge: true });
+    if (monthRef) transaction.set(monthRef, {
+      provider: config.id,
+      month,
+      monthlyUsed: monthlyUsed + 1,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
   });
+}
+
+async function applyRateLimitCooldown(provider, retryAfterMs = 60000) {
+  const db = getFirebaseDb();
+  const ref = db.collection(USAGE).doc(providerRecord(provider).id + "_" + utcDay());
+  await ref.set({
+    blockedUntilMs: Date.now() + Math.min(Math.max(retryAfterMs, 1000), 15 * 60 * 1000),
+    updatedAt: new Date().toISOString()
+  }, { merge: true });
 }
 
 async function readCache(key, ttlMs) {
@@ -201,6 +237,11 @@ export async function providerGet(provider, path, {
         const error = new Error(config.label + " returned HTTP " + Number(response?.status || 0) + ".");
         error.status = Number(response?.status || 0);
         error.code = error.status === 429 ? "FOOTBALL_PROVIDER_RATE_LIMIT" : "FOOTBALL_PROVIDER_HTTP_ERROR";
+        if (error.status === 429) {
+          const retryAfter = Number(response.headers?.get?.("retry-after"));
+          error.retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 60000;
+          try { await applyRateLimitCooldown(provider, error.retryAfterMs); } catch { /* retain the upstream 429; no retry is attempted */ }
+        }
         throw error;
       }
       const payload = await response.json();

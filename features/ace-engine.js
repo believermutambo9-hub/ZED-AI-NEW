@@ -38,14 +38,72 @@ export async function getAcePredictionChatData(message = "", options = {}) {
   const matchup = extractMatchup(message);
   if (!matchup) return null;
 
-  const evidence = await collectFootballEvidence({
+  const evidence = options.evidence || await collectFootballEvidence({
     ...matchup,
     fetchImpl: options.fetchImpl,
     apiKey: options.apiKey,
     cache: options.cache
   });
 
-  const kickoffTime = evidence.fixture?.kickoffTime || undefined;
+  const kickoffMs = new Date(evidence.fixture?.kickoffTime || "").getTime();
+  const fixtureVerifiedAndFuture = Boolean(
+    evidence.fixture?.id &&
+    Number.isFinite(kickoffMs) &&
+    kickoffMs > Date.now() &&
+    evidence.fixture?.homeTeam &&
+    evidence.fixture?.awayTeam
+  );
+  const homeSamples = Number(evidence.home?.matchesPlayed) || 0;
+  const awaySamples = Number(evidence.away?.matchesPlayed) || 0;
+  const teamHistoryVerified = Boolean(
+    evidence.hasTeamRatings &&
+    homeSamples >= 5 &&
+    awaySamples >= 5
+  );
+  const gateMissingInputs = [
+    ...(evidence.missingInputs || []),
+    ...(!fixtureVerifiedAndFuture
+      ? ["No verified future fixture with confirmed teams and kickoff time. No match prediction is issued."]
+      : []),
+    ...(!teamHistoryVerified
+      ? ["Insufficient verified recent team history (at least five completed matches per team required). No match prediction is issued."]
+      : [])
+  ];
+
+  if (!fixtureVerifiedAndFuture || !teamHistoryVerified) {
+    return {
+      source: "ACE statistical engine",
+      predictionAvailable: false,
+      mode: "insufficient_verified_evidence",
+      match: {
+        homeTeam: evidence.fixture?.homeTeam || matchup.homeTeam,
+        awayTeam: evidence.fixture?.awayTeam || matchup.awayTeam,
+        competition: evidence.fixture?.competition || "Not verified",
+        kickoffTime: evidence.fixture?.kickoffTime || "Not verified"
+      },
+      probabilities: null,
+      expectedGoals: null,
+      fairOdds: null,
+      markets: null,
+      mostLikelyScores: [],
+      modelBreakdown: null,
+      dataQuality: { rating: "INSUFFICIENT", missingInputs: gateMissingInputs },
+      confidence: null,
+      missingInputs: gateMissingInputs,
+      modelVersion: null,
+      evidence: {
+        provider: evidence.provider,
+        providerAvailable: evidence.providerAvailable,
+        fixtureVerified: Boolean(evidence.fixture),
+        fixture: evidence.fixture,
+        teamSamples: evidence.providerSampleCount || { home: homeSamples, away: awaySamples },
+        sources: evidence.sources || []
+      },
+      persistence: { saved: false, settlementTracked: false }
+    };
+  }
+
+  const kickoffTime = evidence.fixture.kickoffTime;
   const homeContext = evidence.home?.daysRest !== undefined
     ? { daysRest: evidence.home.daysRest }
     : undefined;
@@ -88,6 +146,13 @@ export async function getAcePredictionChatData(message = "", options = {}) {
   });
 
   const webResearch = (Array.isArray(options.webSearchResults) ? options.webSearchResults : [])
+    .filter(item => {
+      const text = String(item?.title || "") + " " + String(item?.snippet || item?.summary || "");
+      const normalized = text.toLowerCase();
+      const hasHome = normalized.includes(matchup.homeTeam.toLowerCase());
+      const hasAway = normalized.includes(matchup.awayTeam.toLowerCase());
+      return hasHome && hasAway;
+    })
     .slice(0, 8)
     .map(item => {
       const url = String(item?.url || "").slice(0, 1000);
@@ -100,7 +165,6 @@ export async function getAcePredictionChatData(message = "", options = {}) {
         sourceDomain: sourceDomain.slice(0, 160),
         publishedAt: String(item?.published || item?.pubDate || item?.date || "").slice(0, 80) || null,
         retrievedAt: new Date().toISOString(),
-        url,
         snippet: String(item?.snippet || item?.summary || item?.description || "").slice(0, 1200)
       };
     })

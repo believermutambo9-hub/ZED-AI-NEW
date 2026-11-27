@@ -54,6 +54,18 @@ const PROVIDERS = Object.freeze({
     minuteSafetyBudget: Math.min(8, Number(process.env.SOCCER_DATA_PER_MINUTE_LIMIT) || 8),
     configured: Boolean(process.env.SOCCER_DATA_API_KEY)
   },
+  footballdataIo: {
+    id: "footballdata.io",
+    label: "Footballdata.io",
+    baseUrl: "https://footballdata.io/api/v1",
+    // Free plan currently advertises 2,000 requests/month. Zed keeps a
+    // 1,900/month ceiling and 60/day, 5/minute safety limits.
+    monthlySafetyBudget: Math.min(1900, Number(process.env.FOOTBALLDATA_IO_MONTHLY_REQUEST_LIMIT) || 1900),
+    dailySafetyBudget: Math.min(60, Number(process.env.FOOTBALLDATA_IO_DAILY_REQUEST_LIMIT) || 60),
+    minuteSafetyBudget: Math.min(5, Number(process.env.FOOTBALLDATA_IO_PER_MINUTE_LIMIT) || 5),
+    attributionRequired: true,
+    configured: Boolean(process.env.FOOTBALLDATA_IO_API_KEY)
+  },
   theSportsDb: {
     id: "thesportsdb",
     label: "TheSportsDB",
@@ -75,8 +87,11 @@ function providerRecord(provider) {
 }
 
 export function getFootballProviderStatus() {
-  return Object.values(PROVIDERS).map(({ id, label, dailySafetyBudget, minuteSafetyBudget, configured }) => ({
-    id, label, dailySafetyBudget, minuteSafetyBudget, configured,
+  return Object.values(PROVIDERS).map(({ id, label, dailySafetyBudget, minuteSafetyBudget, monthlySafetyBudget, attributionRequired, configured }) => ({
+    id, label, dailySafetyBudget, minuteSafetyBudget,
+    ...(monthlySafetyBudget ? { monthlySafetyBudget } : {}),
+    ...(attributionRequired ? { attributionRequired } : {}),
+    configured,
     quotaType: "zed_safety_budget_not_provider_published_quota"
   }));
 }
@@ -94,21 +109,33 @@ async function reserveQuota(provider) {
   }
   const db = getFirebaseDb();
   const day = utcDay();
+  const month = day.slice(0, 7);
   const minute = minuteBucket();
   const ref = db.collection(USAGE).doc(config.id + "_" + day);
+  const monthRef = config.monthlySafetyBudget
+    ? db.collection(USAGE).doc(config.id + "_" + month)
+    : null;
   await db.runTransaction(async transaction => {
     const snapshot = await transaction.get(ref);
+    const monthSnapshot = monthRef ? await transaction.get(monthRef) : null;
     const current = snapshot.exists ? snapshot.data() : {};
+    const monthCurrent = monthSnapshot?.exists ? monthSnapshot.data() : {};
     const dailyUsed = Number(current.dailyUsed) || 0;
     const minuteUsed = current.minuteBucket === minute ? Number(current.minuteUsed) || 0 : 0;
+    const monthlyUsed = Number(monthCurrent.monthlyUsed) || 0;
     if (dailyUsed >= config.dailySafetyBudget) {
-      const error = new Error(config.label + " daily request budget reached.");
+      const error = new Error(config.label + " daily safety budget reached.");
       error.code = "FOOTBALL_PROVIDER_DAILY_QUOTA";
       throw error;
     }
     if (minuteUsed >= config.minuteSafetyBudget) {
-      const error = new Error(config.label + " per-minute request budget reached.");
+      const error = new Error(config.label + " per-minute safety budget reached.");
       error.code = "FOOTBALL_PROVIDER_RATE_LIMIT";
+      throw error;
+    }
+    if (config.monthlySafetyBudget && monthlyUsed >= config.monthlySafetyBudget) {
+      const error = new Error(config.label + " monthly safety budget reached.");
+      error.code = "FOOTBALL_PROVIDER_MONTHLY_QUOTA";
       throw error;
     }
     transaction.set(ref, {
@@ -117,6 +144,13 @@ async function reserveQuota(provider) {
       dailyUsed: dailyUsed + 1,
       minuteBucket: minute,
       minuteUsed: minuteUsed + 1,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    if (monthRef) transaction.set(monthRef, {
+      provider: config.id,
+      month,
+      monthlyUsed: monthlyUsed + 1,
+      monthlySafetyBudget: config.monthlySafetyBudget,
       updatedAt: new Date().toISOString()
     }, { merge: true });
   });
@@ -195,6 +229,7 @@ export async function providerGet(provider, path, {
     const headers = { Accept: "application/json" };
     if (provider === "footballData") headers["X-Auth-Token"] = process.env.FOOTBALL_DATA_API_TOKEN;
     if (provider === "soccerData") headers["X-Api-Key"] = process.env.SOCCER_DATA_API_KEY;
+    if (provider === "footballdataIo") headers.Authorization = "Bearer " + process.env.FOOTBALLDATA_IO_API_KEY;
     try {
       const response = await fetchImpl(url, { headers, signal: controller.signal });
       if (!response?.ok) {
@@ -366,6 +401,55 @@ export function normalizeSoccerDataMatches(payload) {
       }
     };
   }).filter(item => item?.sourceId);
+}
+
+export function normalizeFootballdataIoMatches(payload) {
+  const source = payload?.data;
+  const matches = Array.isArray(source) ? source :
+    Array.isArray(source?.matches) ? source.matches :
+    Array.isArray(payload?.matches) ? payload.matches : [];
+  return matches.map(item => {
+    const homeName = String(item?.home_team?.team_name || item?.home_team?.name || "").trim();
+    const awayName = String(item?.away_team?.team_name || item?.away_team?.name || "").trim();
+    const unix = Number(item?.date_unix);
+    const date = item?.match_date || (Number.isFinite(unix) && unix > 0 ? new Date(unix * 1000).toISOString() : null);
+    if (!homeName || !awayName || !date || !Number.isFinite(new Date(date).getTime())) return null;
+    const rawStatus = String(item?.status || "").toLowerCase();
+    const status = /scheduled|not_started|fixture/.test(rawStatus) ? "NS" :
+      /complete|finished|full_time|ft/.test(rawStatus) ? "FT" :
+      /live|in_play|in progress|half_time/.test(rawStatus) ? "LIVE" : rawStatus.toUpperCase() || "UNKNOWN";
+    const scoreValue = value => value === null || value === undefined || value === "" ? null :
+      Number.isFinite(Number(value)) ? Number(value) : null;
+    return {
+      source: "footballdata.io",
+      sourceId: String(item.match_id ?? item.id ?? ""),
+      date,
+      status,
+      competition: item?.league?.competition_name || item?.league?.name || item?.competition_name || null,
+      home: { id: String(item?.home_team?.team_id ?? item?.home_team?.id ?? ""), name: homeName },
+      away: { id: String(item?.away_team?.team_id ?? item?.away_team?.id ?? ""), name: awayName },
+      score: { home: scoreValue(item?.score?.home), away: scoreValue(item?.score?.away) }
+    };
+  }).filter(item => item?.sourceId);
+}
+
+export async function getFootballdataIoMatches({ dateFrom, dateTo, fetchImpl, cache = true } = {}) {
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateFrom || "")) ||
+      !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateTo || "")) || dateTo < dateFrom) {
+    throw new Error("A valid Footballdata.io date range is required.");
+  }
+  const result = await providerGet("footballdataIo", "matches", {
+    params: { from: dateFrom, to: dateTo, page: 1, limit: 100 },
+    fetchImpl, cache, ttlMs: 30 * 60 * 1000
+  });
+  return { ...result, matches: normalizeFootballdataIoMatches(result.data) };
+}
+
+export async function getFootballdataIoMatchStats({ matchId, fetchImpl, cache = true } = {}) {
+  if (!/^\\d+$/.test(String(matchId || ""))) throw new Error("A valid Footballdata.io match ID is required.");
+  return providerGet("footballdataIo", "matches/" + encodeURIComponent(matchId) + "/stats", {
+    fetchImpl, cache, ttlMs: 6 * 60 * 60 * 1000
+  });
 }
 
 export async function getSoccerDataMatches({ dateFrom, dateTo, fetchImpl, cache = true } = {}) {

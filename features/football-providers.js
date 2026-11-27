@@ -36,6 +36,22 @@ const PROVIDERS = Object.freeze({
     dailySafetyBudget: Number(process.env.FOOTBALL_DATA_DAILY_REQUEST_LIMIT) || 100,
     minuteSafetyBudget: Number(process.env.FOOTBALL_DATA_PER_MINUTE_LIMIT) || 10,
     configured: Boolean(process.env.FOOTBALL_DATA_API_TOKEN)
+  },
+  sportmonks: {
+    id: "sportmonks",
+    label: "Sportmonks",
+    baseUrl: "https://api.sportmonks.com/v3/football",
+    dailySafetyBudget: Number(process.env.SPORTMONKS_DAILY_REQUEST_LIMIT) || 100,
+    minuteSafetyBudget: Number(process.env.SPORTMONKS_PER_MINUTE_LIMIT) || 8,
+    configured: Boolean(process.env.SPORTMONKS_API_TOKEN)
+  },
+  theSportsDb: {
+    id: "thesportsdb",
+    label: "TheSportsDB",
+    baseUrl: "https://www.thesportsdb.com/api/v1/json/" + (process.env.THESPORTSDB_API_KEY || "123"),
+    dailySafetyBudget: Number(process.env.THESPORTSDB_DAILY_REQUEST_LIMIT) || 300,
+    minuteSafetyBudget: Number(process.env.THESPORTSDB_PER_MINUTE_LIMIT) || 8,
+    configured: true
   }
 });
 
@@ -123,8 +139,8 @@ export async function providerGet(provider, path, {
   cache = true
 } = {}) {
   const config = providerRecord(provider);
-  if (provider === "footballData" && !config.configured) {
-    const error = new Error("FOOTBALL_DATA_API_TOKEN is not configured.");
+  if (!config.configured) {
+    const error = new Error(config.label + " is not configured on this service.");
     error.code = "FOOTBALL_PROVIDER_NOT_CONFIGURED";
     throw error;
   }
@@ -168,6 +184,7 @@ export async function providerGet(provider, path, {
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     const headers = { Accept: "application/json" };
     if (provider === "footballData") headers["X-Auth-Token"] = process.env.FOOTBALL_DATA_API_TOKEN;
+    if (provider === "sportmonks") query.set("api_token", process.env.SPORTMONKS_API_TOKEN);
     try {
       const response = await fetchImpl(url, { headers, signal: controller.signal });
       if (!response?.ok) {
@@ -258,4 +275,87 @@ export async function getFootballDataMatches({ competitionCode, dateFrom, dateTo
     params, fetchImpl, cache, ttlMs: 30 * 60 * 1000
   });
   return { ...result, matches: normalizeFootballDataMatches(result.data) };
+}
+
+function sportmonksStatus(item) {
+  const raw = String(item?.state?.short_name || item?.state?.name || "").toUpperCase();
+  if (/FT|FULL.?TIME|FINISHED|AFTER.?EXTRA|PENALT/.test(raw)) return "FT";
+  if (/NS|NOT.?STARTED|SCHEDULED|TBD/.test(raw)) return "NS";
+  return raw || "UNKNOWN";
+}
+
+export function normalizeSportmonksFixtures(payload) {
+  const fixtures = Array.isArray(payload?.data) ? payload.data : [];
+  return fixtures.map(item => {
+    const participants = Array.isArray(item?.participants) ? item.participants : [];
+    const home = participants.find(team => String(team?.meta?.location || "").toLowerCase() === "home");
+    const away = participants.find(team => String(team?.meta?.location || "").toLowerCase() === "away");
+    if (!home?.name || !away?.name) return null;
+    const scoreFor = participantId => {
+      const entries = Array.isArray(item?.scores) ? item.scores : [];
+      const selected = entries.filter(score => Number(score?.participant_id) === Number(participantId));
+      const current = selected.find(score => /CURRENT|2ND.?HALF|1ST.?HALF|EXTRA|PENALTY/i.test(String(score?.description || ""))) || selected[selected.length - 1];
+      const value = Number(current?.score?.goals);
+      return Number.isFinite(value) ? value : null;
+    };
+    return {
+      source: "sportmonks",
+      sourceId: String(item.id || ""),
+      date: item.starting_at || null,
+      status: sportmonksStatus(item),
+      competition: item?.league?.name || null,
+      home: { id: String(home.id || ""), name: String(home.name) },
+      away: { id: String(away.id || ""), name: String(away.name) },
+      score: { home: scoreFor(home.id), away: scoreFor(away.id) }
+    };
+  }).filter(item => item?.sourceId && item.date);
+}
+
+export async function getSportmonksFixtures({ dateFrom, dateTo, fetchImpl, cache = true } = {}) {
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateFrom || "")) ||
+      !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateTo || ""))) {
+    throw new Error("Valid Sportmonks date range is required.");
+  }
+  const result = await providerGet("sportmonks", "fixtures/between/" +
+    encodeURIComponent(dateFrom) + "/" + encodeURIComponent(dateTo), {
+    params: { include: "participants;scores;league;state" },
+    fetchImpl, cache, ttlMs: 10 * 60 * 1000
+  });
+  return { ...result, matches: normalizeSportmonksFixtures(result.data) };
+}
+
+export function normalizeTheSportsDbEvents(payload) {
+  const events = Array.isArray(payload?.events) ? payload.events : [];
+  return events.map(item => {
+    const homeName = String(item?.strHomeTeam || "").trim();
+    const awayName = String(item?.strAwayTeam || "").trim();
+    if (!homeName || !awayName) return null;
+    const rawDate = item.dateEvent || "";
+    const rawTime = item.strTime || "00:00:00";
+    const date = item.dateTimeUTC || (rawDate ? rawDate + "T" + rawTime + "Z" : null);
+    const rawStatus = String(item.strStatus || "").toUpperCase();
+    const status = /FINISHED|FT|MATCH FINISHED/.test(rawStatus) ? "FT" :
+      /POSTPONED|CANCELLED|ABANDONED/.test(rawStatus) ? rawStatus :
+      date && new Date(date).getTime() > Date.now() ? "NS" : rawStatus || "UNKNOWN";
+    const homeScore = item.intHomeScore === null || item.intHomeScore === "" ? null : Number(item.intHomeScore);
+    const awayScore = item.intAwayScore === null || item.intAwayScore === "" ? null : Number(item.intAwayScore);
+    return {
+      source: "thesportsdb",
+      sourceId: String(item.idEvent || ""),
+      date,
+      status,
+      competition: item.strLeague || null,
+      home: { id: String(item.idHomeTeam || ""), name: homeName },
+      away: { id: String(item.idAwayTeam || ""), name: awayName },
+      score: { home: Number.isFinite(homeScore) ? homeScore : null, away: Number.isFinite(awayScore) ? awayScore : null }
+    };
+  }).filter(item => item?.sourceId && item.date);
+}
+
+export async function getTheSportsDbEvents({ date, fetchImpl, cache = true } = {}) {
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(date || ""))) throw new Error("A valid TheSportsDB event date is required.");
+  const result = await providerGet("theSportsDb", "eventsday.php", {
+    params: { d: date, s: "Soccer" }, fetchImpl, cache, ttlMs: 10 * 60 * 1000
+  });
+  return { ...result, matches: normalizeTheSportsDbEvents(result.data) };
 }

@@ -111,8 +111,9 @@ test("normalizes TheSportsDB events only when a reliable UTC timestamp exists", 
 test("TheStatsAPI is configured only when either supported server key is present", () => {
   const provider = getFootballProviderStatus().find(item => item.id === "thestatsapi");
   assert.equal(provider.configured, Boolean(process.env.THESTATSAPI_API_KEY || process.env.THESTATSAPI_KEY));
-  assert.ok(provider.dailySafetyBudget <= 100);
-  assert.ok(provider.minuteSafetyBudget <= 8);
+  assert.ok(provider.dailySafetyBudget > 0 && provider.dailySafetyBudget <= 400);
+  assert.ok(provider.monthlySafetyBudget > 0 && provider.monthlySafetyBudget <= 12000);
+  assert.ok(provider.minuteSafetyBudget > 0 && provider.minuteSafetyBudget <= 8);
 });
 
 test("normalizes TheStatsAPI matches without inventing missing scores", () => {

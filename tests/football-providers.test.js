@@ -4,7 +4,8 @@ import {
   getFootballProviderStatus,
   normalizeEspnEvents,
   normalizeFootballDataMatches,
-  normalizeSportmonksFixtures,\n  normalizeSoccerDataMatches,
+  normalizeSportmonksFixtures,
+  normalizeSoccerDataMatches,
   normalizeTheSportsDbEvents
 } from "../features/football-providers.js";
 

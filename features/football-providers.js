@@ -371,8 +371,8 @@ export function normalizeTheStatsApiMatches(payload) {
 }
 
 export async function getTheStatsApiMatches({ dateFrom, dateTo, teamId, competitionId, fetchImpl, cache = true } = {}) {
-  if (dateFrom && !/^\d{4}-\\d{2}-\\d{2}$/.test(String(dateFrom))) throw new Error("Invalid TheStatsAPI start date.");
-  if (dateTo && !/^\d{4}-\\d{2}-\\d{2}$/.test(String(dateTo))) throw new Error("Invalid TheStatsAPI end date.");
+  if (dateFrom && !/^\d{4}-\d{2}-\d{2}$/.test(String(dateFrom))) throw new Error("Invalid TheStatsAPI start date.");
+  if (dateTo && !/^\d{4}-\d{2}-\d{2}$/.test(String(dateTo))) throw new Error("Invalid TheStatsAPI end date.");
   if (dateFrom && dateTo && dateTo < dateFrom) throw new Error("TheStatsAPI end date must not precede start date.");
   const result = await providerGet("theStatsApi", "football/matches", {
     params: { date_from: dateFrom, date_to: dateTo, team_id: teamId, competition_id: competitionId, per_page: 100, page: 1 },

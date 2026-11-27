@@ -2886,7 +2886,7 @@ app.post(
       // CURRENT INFORMATION INTELLIGENCE
       // ------------------------------------------------------
 
-      const currentInformation = searchData && !isFootballPrediction
+      const currentInformation = searchData && !isFootballRequest
         ? buildCurrentInformationPrompt({
             currentDate,
             searchData,
@@ -2899,7 +2899,7 @@ app.post(
       // ------------------------------------------------------
 
       const newsIntelligence =
-        searchData && !isFootballPrediction
+        searchData && !isFootballRequest
           ? buildNewsIntelligencePrompt({
               currentDate,
               searchData
@@ -2910,7 +2910,7 @@ app.post(
       // FORMATTED WEB EVIDENCE FOR AI
       // ------------------------------------------------------
 
-      const webEvidence = searchData && !isFootballPrediction
+      const webEvidence = searchData && !isFootballRequest
         ? formatSearchEvidence(searchData)
         : "";
 
@@ -2954,6 +2954,9 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
           : "",
         newsIntelligence ? `Current-news guidance:\n${newsIntelligence}` : "",
         currentInformation ? `Current-information guidance:\n${currentInformation}` : "",
+        isFootballRequest
+          ? "For every football request, use retrieved web results only as internal evidence. Never include raw URLs, generic article links, search-result lists or link panels in the answer. Summarize verified findings directly and name the provider or publication in plain text when relevant. If evidence cannot be verified, say so without sending the user away to links."
+          : "",
         isFootballPrediction
           ? "Football prediction accuracy is strict. Never invent or infer a fixture date, kickoff, venue, team form, injury, odds, score or probability. Only report numerical probabilities, expected-goal estimates, score probabilities, odds, market percentages or statistics that are explicitly present in the CURRENT ACE analysis payload; copy the values exactly and never calculate, estimate, round, fill in or reconstruct missing numbers yourself. If ACE says predictionAvailable=false, provide no numerical prediction and explain the missing verified evidence. If ACE says predictionAvailable=true, still withhold numerical predictions unless the payload identifies a verified fixture, the provider name, provider availability, the actual home/away sample counts, and source records. Clearly label team ratings derived from recent-form proxies as proxies, not independent ratings. Label ACE expected goals as model estimates, not measured xG, unless the payload explicitly identifies a measured xG source. List the provider/source names, sample counts, retrieval time when available, injury-check status and odds availability; explicitly say when each category was not checked or unavailable. Only state likely scores that appear in ACE mostLikelyScores, with their exact supplied probabilities. Do not turn generic web commentary or tactical speculation into factual team-form claims or numerical adjustments. Treat previous assistant predictions and fixture dates in conversation history as unverified unless current ACE evidence independently confirms them. Treat web research as qualitative corroboration only. Do not show raw URLs or generic search-result links. If required provenance is missing, say that the prediction cannot yet be verified rather than presenting confident numbers. If sources disagree, explain the conflict and withhold the affected claim."
           : "Football accuracy: use verified football data for scores, results, fixtures, standings and match statistics. Use supplied web evidence for injuries, transfers and club news. Never invent players, scores, dates or outcomes.",
@@ -3070,7 +3073,7 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
           0,
 
         webSources:
-          !isFootballPrediction && Array.isArray(searchData?.results)
+          !isFootballRequest && Array.isArray(searchData?.results)
             ? searchData.results
                 .map(source => {
                   let url = "";

@@ -47,6 +47,7 @@ export async function getAcePredictionChatData(message = "", options = {}) {
     normalizeFootballName(evidence.fixture?.awayTeam || "")
   ].sort();
   const fixtureTeamsMatchRequested = Boolean(
+    evidence.fixture?.homeTeam && evidence.fixture?.awayTeam &&
     requestedTeams[0] && requestedTeams[1] &&
     requestedTeams[0] === returnedTeams[0] &&
     requestedTeams[1] === returnedTeams[1]
@@ -69,9 +70,11 @@ export async function getAcePredictionChatData(message = "", options = {}) {
   const gateMissingInputs = [
     ...(evidence.missingInputs || []),
     ...(!fixtureVerifiedAndFuture
-      ? [fixtureTeamsMatchRequested
+      ? [!evidence.fixture
           ? "No verified future fixture with confirmed teams and kickoff time. No match prediction is issued."
-          : "The provider did not verify a fixture between the two requested clubs. No match prediction is issued."]
+          : !fixtureTeamsMatchRequested
+            ? "The provider did not verify a fixture between the two requested clubs. No match prediction is issued."
+            : "The fixture kickoff is missing, invalid or no longer in the future. No match prediction is issued."]
       : []),
     ...(!teamHistoryVerified
       ? ["Insufficient verified recent team history (at least five completed matches per team required). No match prediction is issued."]

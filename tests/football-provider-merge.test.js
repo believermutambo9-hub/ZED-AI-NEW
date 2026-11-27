@@ -51,3 +51,35 @@ test("withholds a fixture when providers disagree on teams or kickoff", () => {
 test("returns null when no provider returned usable evidence", () => {
   assert.equal(mergeFootballProviderEvidence([]), null);
 });
+
+
+test("does not treat reversed home and away teams as the same fixture", () => {
+  const merged = mergeFootballProviderEvidence([
+    { provider: "ESPN", providerAvailable: true, fixture: fixture(), sources: ["ESPN"] },
+    { provider: "Football-data.org", providerAvailable: true,
+      fixture: fixture("Chelsea", "Arsenal"), sources: ["Football-data.org"] }
+  ]);
+
+  assert.equal(merged.fixture, null);
+  assert.equal(merged.fixtureConflict, true);
+});
+
+test("requires each selected team's sample to meet the minimum before marking ratings available", () => {
+  const merged = mergeFootballProviderEvidence([
+    {
+      provider: "ESPN", providerAvailable: true,
+      home: { matchesPlayed: 8, rating: 1510 },
+      away: { matchesPlayed: 3, rating: 1480 },
+      hasTeamRatings: true, sampleMatchesCount: 3, sources: ["ESPN"]
+    },
+    {
+      provider: "Football-data.org", providerAvailable: true,
+      home: { matchesPlayed: 6, rating: 1490 },
+      hasTeamRatings: true, sampleMatchesCount: 6, sources: ["Football-data.org"]
+    }
+  ]);
+
+  assert.equal(merged.home.matchesPlayed, 8);
+  assert.equal(merged.away.matchesPlayed, 3);
+  assert.equal(merged.hasTeamRatings, false);
+});

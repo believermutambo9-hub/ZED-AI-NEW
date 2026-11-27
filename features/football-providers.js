@@ -5,6 +5,20 @@ const CACHE = "zedFootballProviderCache";
 const USAGE = "zedFootballProviderUsage";
 const DEFAULT_TIMEOUT_MS = 9000;
 
+// Bounded process-local cache and request coalescing reduce repeated upstream
+// calls while Firestore remains the shared cache across service instances.
+const MEMORY_CACHE = new Map();
+const IN_FLIGHT = new Map();
+const MEMORY_CACHE_LIMIT = 500;
+
+function rememberCache(key, payload, savedAt = Date.now()) {
+  if (!MEMORY_CACHE.has(key) && MEMORY_CACHE.size >= MEMORY_CACHE_LIMIT) {
+    const oldestKey = MEMORY_CACHE.keys().next().value;
+    if (oldestKey !== undefined) MEMORY_CACHE.delete(oldestKey);
+  }
+  MEMORY_CACHE.set(key, { payload, savedAt });
+}
+
 const PROVIDERS = Object.freeze({
   espn: {
     id: "espn",
@@ -122,41 +136,68 @@ export async function providerGet(provider, path, {
     (query.size ? "?" + query.toString() : "");
   const cacheKey = provider + ":" + url;
 
+  // Reuse fresh process-local responses before touching Firestore or reserving
+  // another provider request. This complements the durable shared cache.
   if (cache) {
+    const memoryRecord = MEMORY_CACHE.get(cacheKey);
+    if (memoryRecord && Date.now() - memoryRecord.savedAt < ttlMs) {
+      return { ...memoryRecord.payload, cached: true };
+    }
+    if (memoryRecord) MEMORY_CACHE.delete(cacheKey);
+
     try {
       const cached = await readCache(cacheKey, ttlMs);
-      if (cached) return { ...cached, cached: true };
+      if (cached) {
+        rememberCache(cacheKey, cached);
+        return { ...cached, cached: true };
+      }
     } catch {
       // A cache outage does not prevent a quota-controlled live request.
     }
   }
 
-  await reserveQuota(provider);
-  if (typeof fetchImpl !== "function") throw new Error("Football provider fetch is unavailable.");
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  const headers = { Accept: "application/json" };
-  if (provider === "footballData") headers["X-Auth-Token"] = process.env.FOOTBALL_DATA_API_TOKEN;
+  // Collapse simultaneous identical misses into one quota reservation and
+  // one upstream request. This prevents bursts of users from duplicating work.
+  const pending = IN_FLIGHT.get(cacheKey);
+  if (pending) return pending;
+
+  const request = (async () => {
+    await reserveQuota(provider);
+    if (typeof fetchImpl !== "function") throw new Error("Football provider fetch is unavailable.");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const headers = { Accept: "application/json" };
+    if (provider === "footballData") headers["X-Auth-Token"] = process.env.FOOTBALL_DATA_API_TOKEN;
+    try {
+      const response = await fetchImpl(url, { headers, signal: controller.signal });
+      if (!response?.ok) {
+        const error = new Error(config.label + " returned HTTP " + Number(response?.status || 0) + ".");
+        error.status = Number(response?.status || 0);
+        error.code = error.status === 429 ? "FOOTBALL_PROVIDER_RATE_LIMIT" : "FOOTBALL_PROVIDER_HTTP_ERROR";
+        throw error;
+      }
+      const payload = await response.json();
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+        throw new Error(config.label + " returned invalid JSON data.");
+      }
+      const result = { provider: config.id, retrievedAt: new Date().toISOString(), data: payload, cached: false };
+      if (cache) {
+        rememberCache(cacheKey, result);
+        try { await writeCache(cacheKey, config.id, result); } catch { /* persistent cache is best-effort */ }
+      }
+      return result;
+    } finally {
+      clearTimeout(timeout);
+    }
+  })();
+
+  IN_FLIGHT.set(cacheKey, request);
   try {
-    const response = await fetchImpl(url, { headers, signal: controller.signal });
-    if (!response?.ok) {
-      const error = new Error(config.label + " returned HTTP " + Number(response?.status || 0) + ".");
-      error.status = Number(response?.status || 0);
-      error.code = error.status === 429 ? "FOOTBALL_PROVIDER_RATE_LIMIT" : "FOOTBALL_PROVIDER_HTTP_ERROR";
-      throw error;
-    }
-    const payload = await response.json();
-    if (!payload || typeof payload !== "object") throw new Error(config.label + " returned invalid JSON data.");
-    const result = { provider: config.id, retrievedAt: new Date().toISOString(), data: payload, cached: false };
-    if (cache) {
-      try { await writeCache(cacheKey, config.id, result); } catch { /* cache is best-effort */ }
-    }
-    return result;
+    return await request;
   } finally {
-    clearTimeout(timeout);
+    if (IN_FLIGHT.get(cacheKey) === request) IN_FLIGHT.delete(cacheKey);
   }
 }
-
 function parseEspnEvent(event) {
   const competition = event?.competitions?.[0];
   const competitors = competition?.competitors || [];

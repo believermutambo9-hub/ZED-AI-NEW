@@ -2,27 +2,22 @@ import { PredictionEngine } from "../ace/models/engine.ts";
 import { collectFootballEvidence, persistPredictionEvidence } from "./football-intelligence.js";
 
 export function extractMatchup(message = "") {
-  const input = String(message)
-    .replace(/[?!.]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  let match = input.match(/\bbetween\s+(.{2,100}?)\s+and\s+(.{2,100}?)(?=\s+(?:prediction|predict|forecast|analysis|odds|today|tonight|tomorrow|please)\b|$)/i);
-  if (!match) {
-    match = input.match(/(.{2,100}?)\s+(?:vs?\.?|versus|against)\s+(.{2,100}?)(?=\s+(?:prediction|predict|forecast|analysis|odds|today|tonight|tomorrow|please|kickoff|kick-off)\b|$)/i);
-  }
+  const input = String(message).replace(/\s+/g, " ").trim();
+  const stopWords = "(?=\\s+(?:fixture|match|game|prediction|predict|forecast|analysis|analyse|analyze|odds|today|tonight|tomorrow|please|kickoff|kick-off|identify|automatically|retrieve|fetch|verified|available|current|live|data|statistics|stats|and\\s+produce|produce|provide|show|include|do\\s+not)\\b|[.!?,;]|$)";
+  let match = input.match(new RegExp("\\bbetween\\s+(.{2,100}?)\\s+and\\s+(.{2,100}?)" + stopWords, "i"));
+  if (!match) match = input.match(new RegExp("(.{2,100}?)\\s+(?:vs?\\.?|versus|against)\\s+(.{2,100}?)" + stopWords, "i"));
   if (!match) return null;
-
   const cleanTeam = (value, side) => {
     let result = String(value || "").trim();
     if (side === "home") {
-      result = result.replace(/^(?:(?:please|can you|could you|would you|predict|prediction for|forecast|analyse|analyze|analysis of|who will win|who wins|will|show me|give me|what about)\s+)+/i, "");
-      result = result.replace(/^(?:(?:the\s+)?(?:football\s+)?(?:match|game)\s+(?:between\s+)?)*/i, "");
+      result = result.replace(/^(?:(?:please|can you|could you|would you|predict|prediction for|forecast|analyse|analyze|analysis of|who will win|who wins|will|show me|give me|what about)\\s+)+/i, "");
+      result = result.replace(/^(?:(?:the\\s+)?(?:next|upcoming|scheduled)\\s+)+/i, "");
+      result = result.replace(/^(?:(?:football\\s+)?(?:match|game|fixture)\\s+(?:between\\s+)?)*/i, "");
     } else {
-      result = result.replace(/\b(?:prediction|predict|forecast|analysis|analyse|analyze|odds|today|tonight|tomorrow|please|kickoff|kick-off|who will win|who wins|which team|which side|what is your prediction)\b[\s\S]*$/i, "");
+      result = result.replace(/\\b(?:fixture|match|game|prediction|predict|forecast|analysis|analyse|analyze|odds|today|tonight|tomorrow|please|kickoff|kick-off|who will win|who wins|which team|which side|what is your prediction|identify|automatically|retrieve|fetch|verified|available|current|live|data|statistics|stats|and produce|produce|provide|show|include|do not)\\b[\\s\\S]*$/i, "");
     }
-    return result.replace(/^[\s,;:-]+|[\s,;:-]+$/g, "").trim();
+    return result.replace(/^[\\s,;:-]+|[\\s,;:-]+$/g, "").trim();
   };
-
   const homeTeam = cleanTeam(match[1], "home");
   const awayTeam = cleanTeam(match[2], "away");
   if (!homeTeam || !awayTeam || homeTeam.length > 100 || awayTeam.length > 100) return null;
@@ -181,6 +176,7 @@ export async function getAcePredictionChatData(message = "", options = {}) {
     : (dataEnriched ? "recent_form_enriched_fixture_unverified" : "baseline_or_limited_evidence");
   return {
     source: "ACE statistical engine",
+    predictionAvailable: true,
     mode,
     match: prediction.match,
     probabilities: {

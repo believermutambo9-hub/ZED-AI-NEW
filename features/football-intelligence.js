@@ -899,13 +899,15 @@ async function collectAvailableProviderEvidence(homeTeam, awayTeam, fetchImpl) {
   const [espnResult, footballDataResult, sportmonksResult, soccerDataResult, sportsDbResult] = await Promise.allSettled([
     collectEspnEvidence(homeTeam, awayTeam, fetchImpl),
     collectFootballDataEvidence(homeTeam, awayTeam, fetchImpl),
-    collectSportmonksEvidence(homeTeam, awayTeam, fetchImpl),\n    collectSoccerDataEvidence(homeTeam, awayTeam, fetchImpl),
+    collectSportmonksEvidence(homeTeam, awayTeam, fetchImpl),
+    collectSoccerDataEvidence(homeTeam, awayTeam, fetchImpl),
     collectTheSportsDbEvidence(homeTeam, awayTeam, fetchImpl)
   ]);
   const candidates = [
     espnResult.status === "fulfilled" ? espnResult.value : null,
     footballDataResult.status === "fulfilled" ? footballDataResult.value : null,
-    sportmonksResult.status === "fulfilled" ? sportmonksResult.value : null,\n    soccerDataResult.status === "fulfilled" ? soccerDataResult.value : null,
+    sportmonksResult.status === "fulfilled" ? sportmonksResult.value : null,
+    soccerDataResult.status === "fulfilled" ? soccerDataResult.value : null,
     sportsDbResult.status === "fulfilled" ? sportsDbResult.value : null
   ].filter(Boolean);
   return mergeFootballProviderEvidence(candidates);

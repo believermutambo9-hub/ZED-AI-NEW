@@ -902,6 +902,8 @@ export async function collectFootballEvidence({
     }
     const upcoming = findUpcomingFixture(h2hRecords, homeId, awayId);
     const kickoffTime = upcoming?.fixture?.date || null;
+    const fixtureHomeId = upcoming ? Number(upcoming.teams?.home?.id) : homeId;
+    const fixtureAwayId = upcoming ? Number(upcoming.teams?.away?.id) : awayId;
 
     const [homeMatches, awayMatches] = await Promise.all([
       getRecentTeamMatches(homeId, kickoffTime, options),
@@ -910,11 +912,9 @@ export async function collectFootballEvidence({
 
     const home = deriveTeamStrength(homeMatches, homeId, kickoffTime);
     const away = deriveTeamStrength(awayMatches, awayId, kickoffTime);
-    const h2h = summarizeHeadToHead(h2hRecords, fixtureHomeId, kickoffTime);
-    const fixtureHomeId = upcoming ? Number(upcoming.teams?.home?.id) : homeId;
-    const fixtureAwayId = upcoming ? Number(upcoming.teams?.away?.id) : awayId;
     const fixtureHomeProfile = fixtureHomeId === homeId ? home : away;
     const fixtureAwayProfile = fixtureAwayId === awayId ? away : home;
+    const h2h = summarizeHeadToHead(h2hRecords, fixtureHomeId, kickoffTime);
     const fixture = upcoming ? {
       id: Number(upcoming.fixture.id),
       kickoffTime: new Date(upcoming.fixture.date).toISOString(),

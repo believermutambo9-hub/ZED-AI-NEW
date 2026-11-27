@@ -1496,7 +1496,7 @@ app.get(
       res.json({
         ok: true,
         answer:
-          assistantAnswer,
+          result.answer,
         provider:
           result.provider
       });
@@ -3031,7 +3031,7 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
         ok: true,
 
         answer:
-          result.answer,
+          assistantAnswer,
 
         provider:
           result.provider,

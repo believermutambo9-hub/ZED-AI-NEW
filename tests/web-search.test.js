@@ -4,6 +4,7 @@ import {
   normalizeTavilyResults,
   normalizeExaResults,
   normalizeSerperResults,
+  normalizeGdeltResults,
   getSearchProviderStatus,
   deduplicateResults
 } from "../web-search.js";
@@ -40,6 +41,18 @@ test("normalizes Serper organic and news results", () => {
   assert.equal(results.length, 2);
   assert.equal(results[1].provider, "Serper");
   assert.equal(results[1].source, "Example News");
+});
+
+test("normalizes free GDELT global news results and timestamps", () => {
+  const results = normalizeGdeltResults({ articles: [{
+    title: "Global football report",
+    url: "https://example.com/report",
+    seendate: "20261128124530",
+    domain: "example.com"
+  }] });
+  assert.equal(results.length, 1);
+  assert.equal(results[0].provider, "GDELT");
+  assert.equal(results[0].published, "2026-11-28T12:45:30Z");
 });
 
 test("deduplicates results returned by multiple search providers", () => {

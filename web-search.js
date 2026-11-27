@@ -737,6 +737,144 @@ async function searchDuckDuckGo(
   }
 }
 
+
+async function fetchJson(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "application/json",
+        ...(options.headers || {})
+      }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function normalizeTavilyResults(payload) {
+  return (Array.isArray(payload?.results) ? payload.results : []).map(item => ({
+    title: cleanText(item?.title || ""),
+    url: item?.url || "",
+    snippet: cleanText(item?.content || item?.raw_content || ""),
+    published: item?.published_date || "",
+    source: extractDomain(item?.url || ""),
+    provider: "Tavily"
+  })).filter(item => item.title && item.url);
+}
+
+function normalizeExaResults(payload) {
+  return (Array.isArray(payload?.results) ? payload.results : []).map(item => ({
+    title: cleanText(item?.title || ""),
+    url: item?.url || "",
+    snippet: cleanText(item?.text || item?.highlights?.join(" ") || item?.summary || ""),
+    published: item?.publishedDate || item?.published_date || "",
+    source: extractDomain(item?.url || ""),
+    provider: "Exa"
+  })).filter(item => item.title && item.url);
+}
+
+function normalizeSerperResults(payload, provider = "Serper") {
+  const items = [
+    ...(Array.isArray(payload?.organic) ? payload.organic : []),
+    ...(Array.isArray(payload?.news) ? payload.news : [])
+  ];
+  return items.map(item => ({
+    title: cleanText(item?.title || ""),
+    url: item?.link || item?.url || "",
+    snippet: cleanText(item?.snippet || item?.description || ""),
+    published: item?.date || item?.datePublished || "",
+    source: cleanText(item?.source || extractDomain(item?.link || item?.url || "")),
+    provider
+  })).filter(item => item.title && item.url);
+}
+
+async function searchTavily(query, newsRequest = false) {
+  const key = process.env.TAVILY_API_KEY;
+  if (!key) return [];
+  try {
+    const payload = await fetchJson("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: key,
+        query,
+        topic: newsRequest ? "news" : "general",
+        search_depth: "basic",
+        max_results: 8,
+        include_answer: false
+      })
+    });
+    return normalizeTavilyResults(payload);
+  } catch (error) {
+    console.warn("Tavily search unavailable:", error.message);
+    return [];
+  }
+}
+
+async function searchExa(query) {
+  const key = process.env.EXA_API_KEY;
+  if (!key) return [];
+  try {
+    const payload = await fetchJson("https://api.exa.ai/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": key
+      },
+      body: JSON.stringify({
+        query,
+        type: "fast",
+        numResults: 8,
+        contents: { text: { maxCharacters: 1200 } }
+      })
+    });
+    return normalizeExaResults(payload);
+  } catch (error) {
+    console.warn("Exa search unavailable:", error.message);
+    return [];
+  }
+}
+
+async function searchSerper(query, newsRequest = false) {
+  const key = process.env.SERPER_API_KEY;
+  if (!key) return [];
+  try {
+    const endpoint = newsRequest
+      ? "https://google.serper.dev/news"
+      : "https://google.serper.dev/search";
+    const payload = await fetchJson(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": key
+      },
+      body: JSON.stringify({ q: query, num: 10, gl: "us", hl: "en" })
+    });
+    return normalizeSerperResults(payload);
+  } catch (error) {
+    console.warn("Serper search unavailable:", error.message);
+    return [];
+  }
+}
+
+export function getSearchProviderStatus() {
+  return [
+    { id: "google-news-rss", label: "Google News RSS", enabled: true, free: true },
+    { id: "bing-news-rss", label: "Bing News RSS", enabled: true, free: true },
+    { id: "duckduckgo", label: "DuckDuckGo", enabled: true, free: true },
+    { id: "tavily", label: "Tavily", enabled: Boolean(process.env.TAVILY_API_KEY), free: true, allowance: "1,000 credits/month; no card" },
+    { id: "exa", label: "Exa", enabled: Boolean(process.env.EXA_API_KEY), free: true, allowance: "$10 monthly credits; no payment method" },
+    { id: "serper", label: "Serper", enabled: Boolean(process.env.SERPER_API_KEY), free: true, allowance: "2,500 free queries; no card" }
+  ];
+}
+
 function deduplicateResults(
   results
 ) {
@@ -774,10 +912,14 @@ async function runSearchVariant(
   recentRequest,
   todayRequest = false
 ) {
+  const newsRequest = isNewsRequest(query);
   const searches = [
     searchGoogleNews(query, recentRequest, todayRequest),
     searchBingNews(query, recentRequest, todayRequest),
-    searchDuckDuckGo(query)
+    searchDuckDuckGo(query),
+    searchTavily(query, newsRequest),
+    searchExa(query),
+    searchSerper(query, newsRequest)
   ];
 
   const results = await Promise.allSettled(searches);
@@ -945,6 +1087,8 @@ export async function searchWeb(
     broadNews,
     searchVariants:
       variants,
+    providersAvailable: getSearchProviderStatus().filter(item => item.enabled).map(item => item.label),
+    providersUsed: [...new Set(finalResults.map(item => item.provider).filter(Boolean))],
     resultCount:
       finalResults.length,
     results:
@@ -1102,6 +1246,13 @@ export {
   searchGoogleNews,
   searchBingNews,
   searchDuckDuckGo,
+  searchTavily,
+  searchExa,
+  searchSerper,
+  normalizeTavilyResults,
+  normalizeExaResults,
+  normalizeSerperResults,
+  getSearchProviderStatus,
   deduplicateResults,
   diversifyResults
 };
@@ -1113,5 +1264,6 @@ export default {
   formatWebResults,
   getWebSearchContext,
   buildWebSearchContext,
-  getSearchDateInfo
+  getSearchDateInfo,
+  getSearchProviderStatus
 };

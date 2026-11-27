@@ -184,7 +184,6 @@ export async function providerGet(provider, path, {
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     const headers = { Accept: "application/json" };
     if (provider === "footballData") headers["X-Auth-Token"] = process.env.FOOTBALL_DATA_API_TOKEN;
-    if (provider === "sportmonks") query.set("api_token", process.env.SPORTMONKS_API_TOKEN);
     try {
       const response = await fetchImpl(url, { headers, signal: controller.signal });
       if (!response?.ok) {
@@ -332,7 +331,7 @@ export function normalizeTheSportsDbEvents(payload) {
     if (!homeName || !awayName) return null;
     const rawDate = item.dateEvent || "";
     const rawTime = item.strTime || "00:00:00";
-    const date = item.dateTimeUTC || (rawDate ? rawDate + "T" + rawTime + "Z" : null);
+    const date = item.dateTimeUTC || item.strTimestamp || null;
     const rawStatus = String(item.strStatus || "").toUpperCase();
     const status = /FINISHED|FT|MATCH FINISHED/.test(rawStatus) ? "FT" :
       /POSTPONED|CANCELLED|ABANDONED/.test(rawStatus) ? rawStatus :

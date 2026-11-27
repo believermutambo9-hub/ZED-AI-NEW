@@ -369,8 +369,8 @@ export function normalizeSoccerDataMatches(payload) {
 }
 
 export async function getSoccerDataMatches({ dateFrom, dateTo, fetchImpl, cache = true } = {}) {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateFrom || "")) ||
-      !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateTo || "")) ||
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateFrom || "")) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(dateTo || "")) ||
       dateTo < dateFrom) {
     throw new Error("A valid Soccer Data date range is required.");
   }

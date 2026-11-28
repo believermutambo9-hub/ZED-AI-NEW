@@ -342,11 +342,10 @@ function buildNewsSearchVariants(userQuery = "") {
   const variants = [userQuery, topic];
   if (isFootballNewsTopic(userQuery)) {
     const focusedTopic = topic.replace(/\b(football|soccer)\b/gi, " ").replace(/\s+/g, " ").trim();
-    const focus = focusedTopic || "association football soccer";
     variants.push(
-      focus + " association football soccer news",
-      "global soccer football headlines match reports",
-      "Premier League club football news",
+      focusedTopic ? focusedTopic + " football soccer news" : "association football soccer news today",
+      "world football soccer headlines match reports today",
+      "Premier League club football news today",
       "UEFA Champions League Europa League football news",
       "CAF AFCON African football news",
       "international soccer national team news"
@@ -1176,12 +1175,9 @@ export async function searchWeb(
     allResults = allResults.filter(result => isDirectArticleUrl(result.url));
   }
 
-  // Apply article-link and topic relevance checks before the exact-date
-  // decision. Otherwise an unrelated same-day item (for example, NCAA football)
-  // can suppress the seven-day fallback even when relevant soccer stories exist.
-  if (newsRequest) {
-    allResults = allResults.filter(result => isDirectArticleUrl(result.url));
-  }
+  // Apply topic relevance checks before the exact-date decision. Otherwise an
+  // unrelated same-day item (for example, NCAA football) can suppress the
+  // seven-day fallback even when relevant soccer stories exist.
   const retainRelevantResult = result => !isLikelyIrrelevant(result, intentQuery);
   allResults = allResults.filter(retainRelevantResult);
 

@@ -1162,9 +1162,13 @@ export async function searchWeb(
       const fallbackResults = await Promise.all(
         variants.map(variant => runSearchVariant(variant, true, false))
       );
+      const flattenedFallbackResults = fallbackResults.flat();
+      const resolvedFallbackResults = newsRequest
+        ? await resolveNewsAggregatorResults(flattenedFallbackResults)
+        : flattenedFallbackResults;
       allResults = deduplicateResults([
         ...allResults,
-        ...fallbackResults.flat()
+        ...resolvedFallbackResults.filter(result => result.url)
       ]);
     }
 

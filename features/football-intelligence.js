@@ -912,6 +912,83 @@ function mapInjuries(records, homeId, awayId) {
   })).filter(item => item.team !== "UNKNOWN");
 }
 
+/**
+ * Resolve a single club's next scheduled fixture before asking ACE to analyse
+ * it. The opponent is always taken from a provider response, never guessed.
+ */
+export async function getUpcomingTeamFixture(teamName, options = {}) {
+  const wanted = normalizeFootballName(teamName);
+  if (!wanted) return null;
+
+  if (process.env.API_FOOTBALL_ENABLED === "true" &&
+      (options.apiKey || process.env.API_FOOTBALL_KEY || process.env.RAPIDAPI_KEY)) {
+    try {
+      const team = await findTeam(teamName, options);
+      if (team?.team?.id) {
+        const payload = await apiGet("fixtures", { team: team.team.id, next: 10 }, {
+          ...options,
+          ttlMs: 10 * 60 * 1000
+        });
+        const now = Date.now();
+        const upcoming = payload.response
+          .filter(item => {
+            const date = new Date(item?.fixture?.date || "").getTime();
+            const status = String(item?.fixture?.status?.short || "").toUpperCase();
+            return Number.isFinite(date) && date > now &&
+              (status === "NS" || status === "TBD") &&
+              item?.teams?.home?.name && item?.teams?.away?.name;
+          })
+          .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date))[0];
+        if (upcoming) return {
+          id: upcoming.fixture.id,
+          kickoffTime: new Date(upcoming.fixture.date).toISOString(),
+          competition: upcoming.league?.name || "Competition not supplied",
+          homeTeam: upcoming.teams.home.name,
+          awayTeam: upcoming.teams.away.name,
+          source: "API-Football v3"
+        };
+      }
+    } catch (error) {
+      console.warn("API-Football next-fixture lookup unavailable:", error.message);
+    }
+  }
+
+  // Public ESPN fixture feeds remain a fallback source when API-Football is
+  // paused or unavailable. Query all configured leagues in a bounded window.
+  try {
+    const now = new Date();
+    const end = new Date(now.getTime() + 120 * 86400000);
+    const dateRange = now.toISOString().slice(0, 10).replace(/-/g, "") + "-" +
+      end.toISOString().slice(0, 10).replace(/-/g, "");
+    const settled = await settleWithConcurrency(ESPN_LEAGUES, 2, league =>
+      getEspnScoreboard({ league, date: dateRange, fetchImpl: options.fetchImpl, cache: options.cache !== false })
+    );
+    const matches = settled.flatMap(item => item.status === "fulfilled" ? item.value.matches : []);
+    const fixture = matches
+      .filter(item => {
+        const date = new Date(item.date || "").getTime();
+        const status = String(item.status || "").toUpperCase();
+        const home = normalizeExternalTeamName(item.home?.name || "");
+        const away = normalizeExternalTeamName(item.away?.name || "");
+        return Number.isFinite(date) && date > Date.now() &&
+          (home === wanted || away === wanted) &&
+          /SCHEDULED|PRE.?GAME|STATUS_SCHEDULED|UNKNOWN/i.test(status);
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+    if (fixture) return {
+      id: fixture.sourceId,
+      kickoffTime: new Date(fixture.date).toISOString(),
+      competition: fixture.competition || "Competition not supplied",
+      homeTeam: fixture.home.name,
+      awayTeam: fixture.away.name,
+      source: "ESPN public fixtures"
+    };
+  } catch (error) {
+    console.warn("Fallback next-fixture lookup unavailable:", error.message);
+  }
+  return null;
+}
+
 export async function collectFootballEvidence({
   homeTeam,
   awayTeam,

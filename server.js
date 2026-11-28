@@ -2778,11 +2778,13 @@ app.post(
         try {
           let aceRequest = userMessage;
           let requestedMatchup = extractMatchup(userMessage);
+          let verifiedFixture = null;
           if (!requestedMatchup) {
             const requestedTeam = getDetectedFootballTeam(userMessage);
             if (requestedTeam && /\b(next|upcoming|scheduled|fixture|match|game)\b/i.test(userMessage)) {
               const nextFixture = await getUpcomingTeamFixture(requestedTeam.name);
               if (nextFixture?.homeTeam && nextFixture?.awayTeam) {
+                verifiedFixture = nextFixture;
                 aceRequest = `${nextFixture.homeTeam} vs ${nextFixture.awayTeam}. Analyse this verified upcoming fixture and produce an evidence-gated prediction.`;
                 footballData += "\n\nVerified next fixture resolved from " + nextFixture.source + ": " + JSON.stringify(nextFixture);
                 requestedMatchup = extractMatchup(aceRequest);
@@ -2794,7 +2796,8 @@ app.post(
           const acePrediction = requestedMatchup ? await getAcePredictionChatData(aceRequest, {
             webSearchResults: searchData?.results || [],
             webSearchUsed: searchUsed,
-            zedFootballData: footballData
+            zedFootballData: footballData,
+            verifiedFixture
           }) : null;
           if (acePrediction) {
             footballData += "\n\nUNIFIED ACE FOOTBALL ANALYSIS (API-Football + Zed football data + web research):\n" + JSON.stringify(acePrediction, null, 2);

@@ -37,7 +37,8 @@ export async function getAcePredictionChatData(message = "", options = {}) {
     ...matchup,
     fetchImpl: options.fetchImpl,
     apiKey: options.apiKey,
-    cache: options.cache
+    cache: options.cache,
+    verifiedFixture: options.verifiedFixture
   });
 
   const kickoffMs = new Date(evidence.fixture?.kickoffTime || "").getTime();

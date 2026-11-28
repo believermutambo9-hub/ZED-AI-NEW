@@ -310,3 +310,85 @@ test("single-team fixture lookup uses configured Football-data.org before ESPN",
     else process.env.API_FOOTBALL_ENABLED = previousEnabled;
   }
 });
+
+
+test("API-Football free-plan fixture lookup uses a from/to window instead of the paid-only next parameter", async () => {
+  const calls = [];
+  const futureKickoff = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  const upcoming = makeFixture(99009, futureKickoff, 101, 202, null, null, "NS");
+  const fetchImpl = async (url) => {
+    const parsed = new URL(url);
+    calls.push(parsed);
+    let response = [];
+    if (parsed.pathname.endsWith("/teams")) {
+      response = [{ team: { id: 101, name: "Arsenal FC" } }];
+    } else if (parsed.pathname.endsWith("/fixtures")) {
+      response = [upcoming];
+    }
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: async () => ({ errors: [], results: response.length, response })
+    };
+  };
+
+  const fixture = await getUpcomingTeamFixture("Arsenal", {
+    apiKey: "test-key",
+    fetchImpl,
+    cache: false
+  });
+
+  assert.equal(fixture?.id, 99009);
+  assert.equal(fixture?.homeTeam, "Arsenal FC");
+  assert.equal(fixture?.awayTeam, "Chelsea FC");
+  assert.equal(fixture?.source, "API-Football v3");
+  const fixtureRequest = calls.find(call => call.pathname.endsWith("/fixtures"));
+  assert.ok(fixtureRequest);
+  assert.equal(fixtureRequest.searchParams.has("next"), false);
+  assert.equal(fixtureRequest.searchParams.get("team"), "101");
+  assert.ok(fixtureRequest.searchParams.get("from"));
+  assert.ok(fixtureRequest.searchParams.get("to"));
+  assert.equal(fixtureRequest.searchParams.get("timezone"), "Africa/Lusaka");
+});
+
+test("ACE evidence accepts a separately verified API-Football fixture without H2H next parameter", async () => {
+  const requests = [];
+  const baseFetch = providerFetch();
+  const fetchImpl = async (url, options) => {
+    const parsed = new URL(url);
+    requests.push(parsed);
+    const response = await baseFetch(url, options);
+    const payload = await response.json();
+    if (parsed.pathname.endsWith("/fixtures/headtohead")) {
+      payload.response = payload.response.filter(item => item?.fixture?.status?.short !== "NS");
+    }
+    return { ...response, json: async () => payload };
+  };
+  const verifiedFixture = {
+    id: 9009,
+    homeId: 101,
+    awayId: 202,
+    kickoffTime: "2030-01-10T15:00:00.000Z",
+    competition: "Test League",
+    homeTeam: "Arsenal FC",
+    awayTeam: "Chelsea FC",
+    status: "NS",
+    source: "API-Football v3"
+  };
+
+  const evidence = await collectFootballEvidence({
+    homeTeam: "Arsenal",
+    awayTeam: "Chelsea",
+    apiKey: "test-key",
+    verifiedFixture,
+    fetchImpl,
+    cache: false
+  });
+
+  assert.equal(evidence.fixture?.id, 9009);
+  assert.equal(evidence.fixture?.homeTeam, "Arsenal FC");
+  assert.equal(evidence.fixture?.awayTeam, "Chelsea FC");
+  assert.ok(requests.every(request => !request.searchParams.has("next")));
+  assert.ok(requests.some(request => request.pathname.endsWith("/fixtures/headtohead")));
+});

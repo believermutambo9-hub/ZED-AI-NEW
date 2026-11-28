@@ -738,6 +738,12 @@ function shouldUseFootballData(
   return hasFootballContext && (analysisIntent || fixtureIntent);
 }
 
+function isFootballNewsRequest(message = "") {
+  const text = String(message).toLowerCase();
+  const hasFootballContext = shouldUseFootball(message) || /\b(football|soccer)\b/i.test(text);
+  const hasNewsIntent = /\b(news|updates?|headlines?|breaking)\b/i.test(text);
+  return hasFootballContext && hasNewsIntent;
+}
 // ============================================================
 // UPLOADED FILE ANALYSIS
 import { prepareUploadedFile } from "./features/file-analysis.js";
@@ -2635,97 +2641,53 @@ app.post(
       // HISTORY
       // ------------------------------------------------------
 
+      const historyDependsOnPriorTurn =
+        /\b(this|that|it|these|those|same|above|previous|earlier|again|continue|also|what about)\b/i.test(userMessage);
+      const standaloneCurrentSearch =
+        !historyDependsOnPriorTurn &&
+        (isExplicitWebSearchRequest(userMessage) || isCurrentInformationQuestion(userMessage));
       const conversationHistory =
-        formatHistory(
-          conversation,
-          { excludeLatestUserMessage: true, limit: LOCAL_AI_MODE ? 10 : 12 }
-        );
+        standaloneCurrentSearch
+          ? ""
+          : formatHistory(
+              conversation,
+              { excludeLatestUserMessage: true, limit: LOCAL_AI_MODE ? 10 : 12 }
+            );
 
       // ------------------------------------------------------
       // FOOTBALL DATA
       // ------------------------------------------------------
 
-      let footballUsed =
-        false;
+      const footballDataRequest = shouldUseFootballData(userMessage);
+      const footballNewsRequest = isFootballNewsRequest(userMessage);
+      const footballPredictionIntent = footballDataRequest &&
+        /\b(analy[sz]e|analysis|predict|prediction|forecast)\b/i.test(userMessage) &&
+        /\b(next|upcoming|scheduled|fixture|match|game)\b/i.test(userMessage);
 
-      let footballMode =
-        null;
+      let footballUsed = footballDataRequest || footballNewsRequest;
+      let footballMode = footballDataRequest ? getFootballRequestType(userMessage) : null;
+      let footballData = "";
 
-      let footballData =
-        "";
-
-      if (
-        shouldUseFootballData(
-          userMessage
-        )
-      ) {
+      // Unified ACE handles next-fixture predictions. Do not call the older
+      // ESPN-only team endpoint first; that endpoint currently returns 403 on staging.
+      // Football headlines are web-research requests, not scoreboard requests.
+      if (footballDataRequest && !footballPredictionIntent && !footballNewsRequest) {
         try {
-          footballUsed =
-            true;
-
-          footballMode =
-            getFootballRequestType(
-              userMessage
-            );
-
-          const team =
-            detectFootballTeam(
-              userMessage
-            );
-
-          const league =
-            detectFootballLeague(
-              userMessage
-            );
-
+          const team = detectFootballTeam(userMessage);
+          const league = detectFootballLeague(userMessage);
           if (team) {
-            const result =
-              await footballTeamFeature(
-                userMessage
-              );
-
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
+            const result = await footballTeamFeature(userMessage);
+            footballData = typeof result === "string" ? result : JSON.stringify(result);
           } else if (league) {
-            const result =
-              await footballLeagueFeature(
-                userMessage
-              );
-
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
+            const result = await footballLeagueFeature(userMessage);
+            footballData = typeof result === "string" ? result : JSON.stringify(result);
           } else {
-            const result =
-              await footballFeature(
-                userMessage
-              );
-
-            footballData =
-              typeof result ===
-              "string"
-                ? result
-                : JSON.stringify(
-                    result
-                  );
+            const result = await footballFeature(userMessage);
+            footballData = typeof result === "string" ? result : JSON.stringify(result);
           }
         } catch (error) {
-          console.error(
-            "Football feature error:",
-            error
-          );
-
-          footballData =
-            "No verified football data was available for this request.";
+          console.error("Football feature error:", error);
+          footballData = "No verified football data was available for this request.";
         }
       }
 
@@ -2756,8 +2718,9 @@ app.post(
       const explicitWebSearch =
         isExplicitWebSearchRequest(userMessage);
       const liveDataIntent = detectLiveDataIntent(userMessage);
-      const isFootballRequest = shouldUseFootballData(userMessage);
-      const isFootballPrediction = footballMode === "prediction" || (isFootballRequest && /\b(analy[sz]e|analysis|predict|prediction|forecast)\b/i.test(userMessage) && /\b(next|upcoming|scheduled|fixture|match|game)\b/i.test(userMessage));
+      const isFootballNews = footballNewsRequest;
+      const isFootballRequest = footballDataRequest || isFootballNews;
+      const isFootballPrediction = footballPredictionIntent || footballMode === "prediction";
 
       if (
         (
@@ -2901,7 +2864,7 @@ app.post(
       // FORMATTED WEB EVIDENCE FOR AI
       // ------------------------------------------------------
 
-      const webEvidence = searchData && !isFootballRequest
+      const webEvidence = searchData && (!isFootballRequest || isFootballNews)
         ? formatSearchEvidence(searchData)
         : "";
 
@@ -2945,9 +2908,14 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
           : "",
         newsIntelligence ? `Current-news guidance:\n${newsIntelligence}` : "",
         currentInformation ? `Current-information guidance:\n${currentInformation}` : "",
-        isFootballRequest
-          ? "For every football request, use retrieved web results only as internal evidence. Never include raw URLs, generic article links, search-result lists or link panels in the answer. Summarize verified findings directly and name the provider or publication in plain text when relevant. If evidence cannot be verified, say so without sending the user away to links."
+        isFootballNews && searchData?.recentFallbackUsed
+          ? "No search result was date-matched to today in Zambia. The supplied dated articles are fallback results from the last seven days; state their actual dates and do not call them today\'s stories."
           : "",
+        isFootballNews
+          ? "Football news: use only the current dated search results supplied below. Give a concise selection of distinct football headlines, naming the publisher and the actual publication date for each. If the search has no articles dated today in Zambia, say so and label older dated results as recent coverage, not today\'s stories. Do not invent scores, fixtures, injuries, transfers or match outcomes. The interface provides clickable source links separately; do not print raw URLs."
+          : isFootballRequest
+            ? "For football data and prediction requests, use retrieved web results as supporting evidence. Never include raw URLs or generic search-result lists. Summarize verified findings directly and name the provider or publication when relevant. Do not invent missing evidence."
+            : "",
         isFootballPrediction
           ? "Football prediction accuracy is strict. Never invent or infer a fixture date, kickoff, venue, team form, injury, odds, score or probability. Only report numerical probabilities, expected-goal estimates, score probabilities, odds, market percentages or statistics that are explicitly present in the CURRENT ACE analysis payload; copy the values exactly and never calculate, estimate, round, fill in or reconstruct missing numbers yourself. If ACE says predictionAvailable=false, provide no numerical prediction and explain the missing verified evidence. If ACE says predictionAvailable=true, still withhold numerical predictions unless the payload identifies a verified fixture, the provider name, provider availability, the actual home/away sample counts, and source records. Clearly label team ratings derived from recent-form proxies as proxies, not independent ratings. Label ACE expected goals as model estimates, not measured xG, unless the payload explicitly identifies a measured xG source. List the provider/source names, sample counts, retrieval time when available, injury-check status and odds availability; explicitly say when each category was not checked or unavailable. Only state likely scores that appear in ACE mostLikelyScores, with their exact supplied probabilities. Do not turn generic web commentary or tactical speculation into factual team-form claims or numerical adjustments. Treat previous assistant predictions and fixture dates in conversation history as unverified unless current ACE evidence independently confirms them. Treat web research as qualitative corroboration only. Do not show raw URLs or generic search-result links. If required provenance is missing, say that the prediction cannot yet be verified rather than presenting confident numbers. If sources disagree, explain the conflict and withhold the affected claim. Keep the answer compact and results-focused: no opening story, generic tactical essay, long explanation, or conversational filler. If predictionAvailable=false, reply with a short 'Prediction withheld' status and the specific missing evidence. If predictionAvailable=true, use only available ACE fields in this order: Fixture; 1X2 probabilities; expected goals (clearly labelled model estimates); likely scorelines; confidence; evidence gaps. Omit any unavailable field rather than filling it in. Use short labels and values, not paragraphs."
           : "Football accuracy: use verified football data for scores, results, fixtures, standings and match statistics. Use supplied web evidence for injuries, transfers and club news. Never invent players, scores, dates or outcomes.",
@@ -2988,7 +2956,7 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
 
       // Football answers are concise and must never send users to raw URLs.
       // Strip URL targets even if the language model ignores the prompt rule.
-      const assistantAnswer = isFootballRequest
+      const assistantAnswer = isFootballRequest && !isFootballNews
         ? String(result.answer || "")
             .replace(/\[([^\]]+)\]\((?:https?:\/\/)[^)]+\)/gi, "$1")
             .replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, "$1")
@@ -3076,7 +3044,7 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
           0,
 
         webSources:
-          !isFootballRequest && Array.isArray(searchData?.results)
+          (!isFootballRequest || isFootballNews) && Array.isArray(searchData?.results)
             ? searchData.results
                 .map(source => {
                   let url = "";

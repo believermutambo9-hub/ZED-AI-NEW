@@ -876,3 +876,24 @@ test("legacy chat migration queries only the authenticated user's records", () =
   assert.match(history, /where\("metadata\.userId", "==", safeUserId\)/);
   assert.doesNotMatch(history, /db\.collection\(LEGACY_COLLECTION\)\.get\(\)/);
 });
+
+
+test("single-team football analysis resolves the actual team record before fixture lookup", async () => {
+  const football = await import("../features/football.js");
+  const team = football.getDetectedFootballTeam("Analyse Arsenal's next scheduled match");
+  assert.equal(team?.name, "Arsenal");
+  assert.match(server, /getDetectedFootballTeam\(userMessage\)/);
+  assert.match(server, /getUpcomingTeamFixture\(requestedTeam\.name\)/);
+});
+
+test("today-news fallback resolves provider redirect URLs before applying the publisher-link filter", () => {
+  assert.match(webSearchModule, /const resolvedFallbackResults = newsRequest\s*\? await resolveNewsAggregatorResults\(flattenedFallbackResults\)/);
+  assert.match(webSearchModule, /resolvedFallbackResults\.filter\(result => result\.url\)/);
+  assert.match(webSearchModule, /allResults = allResults\.filter\(result => isDirectArticleUrl\(result\.url\)\)/);
+});
+
+test("ACE is only given a verified matchup and never guesses a single-team opponent", () => {
+  assert.match(server, /if \(requestedMatchup\)\s*\? await getAcePredictionChatData/);
+  assert.match(server, /No verified upcoming fixture could be resolved/);
+  assert.match(server, /Do not invent an opponent or issue a match prediction/);
+});

@@ -1,5 +1,6 @@
 import { PredictionEngine } from "../ace/models/engine.ts";
 import { collectFootballEvidence, normalizeFootballName, persistPredictionEvidence } from "./football-intelligence.js";
+import { saveAcePrediction } from "./ace-prediction-tracker.js";
 
 export function extractMatchup(message = "") {
   const input = String(message).replace(/\s+/g, " ").trim();
@@ -162,6 +163,11 @@ export async function getAcePredictionChatData(message = "", options = {}) {
     evidence,
     missingInputs
   });
+  const trackerPersistence = await saveAcePrediction({
+    userId: options.userId,
+    prediction,
+    evidence
+  });
 
   const webResearch = (Array.isArray(options.webSearchResults) ? options.webSearchResults : [])
     .filter(item => {
@@ -247,6 +253,9 @@ export async function getAcePredictionChatData(message = "", options = {}) {
         note: "Zed/ESPN and web results are cross-checking context. Only validated structured provider inputs are passed into the numerical model; qualitative reports are not converted into invented probability adjustments."
       }
     },
-    persistence
+    persistence: {
+      ...persistence,
+      tracker: trackerPersistence
+    }
   };
 }

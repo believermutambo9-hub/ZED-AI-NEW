@@ -314,7 +314,11 @@ test("single-team fixture lookup uses configured Football-data.org before ESPN",
 
 test("single-team next fixture lookup falls back to the public TheSportsDB date feed", async () => {
   const previousEnabled = process.env.API_FOOTBALL_ENABLED;
+  const previousFootballDataToken = process.env.FOOTBALL_DATA_API_TOKEN;
+  const previousSportmonksToken = process.env.SPORTMONKS_API_TOKEN;
   delete process.env.API_FOOTBALL_ENABLED;
+  delete process.env.FOOTBALL_DATA_API_TOKEN;
+  delete process.env.SPORTMONKS_API_TOKEN;
   const futureKickoff = new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString();
   const dateParts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Africa/Lusaka",
@@ -354,6 +358,10 @@ test("single-team next fixture lookup falls back to the public TheSportsDB date 
   } finally {
     if (previousEnabled === undefined) delete process.env.API_FOOTBALL_ENABLED;
     else process.env.API_FOOTBALL_ENABLED = previousEnabled;
+    if (previousFootballDataToken === undefined) delete process.env.FOOTBALL_DATA_API_TOKEN;
+    else process.env.FOOTBALL_DATA_API_TOKEN = previousFootballDataToken;
+    if (previousSportmonksToken === undefined) delete process.env.SPORTMONKS_API_TOKEN;
+    else process.env.SPORTMONKS_API_TOKEN = previousSportmonksToken;
   }
 });
 

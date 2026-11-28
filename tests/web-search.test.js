@@ -52,7 +52,9 @@ test("normalizes free GDELT global news results and timestamps", () => {
   }] });
   assert.equal(results.length, 1);
   assert.equal(results[0].provider, "GDELT");
-  assert.equal(results[0].published, "2026-11-28T12:45:30Z");
+  assert.equal(results[0].published, "");
+  assert.equal(results[0].indexedAt, "2026-11-28T12:45:30Z");
+  assert.equal(results[0].dateType, "indexed_or_seen");
 });
 
 test("deduplicates results returned by multiple search providers", () => {

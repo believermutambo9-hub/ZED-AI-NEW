@@ -6,6 +6,8 @@ import {
   normalizeSerperResults,
   normalizeGdeltResults,
   buildNewsSearchVariants,
+  isLikelyIrrelevant,
+  isClearlyAmericanFootballResult,
   getSearchProviderStatus,
   deduplicateResults
 } from "../web-search.js";
@@ -92,4 +94,27 @@ test("club-specific football news variants retain the club name", () => {
   const variants = buildNewsSearchVariants("Arsenal news today");
   assert.ok(variants.some(value => /Arsenal/i.test(value)));
   assert.ok(variants.some(value => /football soccer news/i.test(value)));
+});
+
+
+test("football news relevance keeps association-football stories and drops US gridiron stories", () => {
+  assert.equal(isLikelyIrrelevant({
+    title: "Nottingham Forest staring down barrel of new Premier League fine",
+    snippet: "Premier League football club update."
+  }, "today's football news"), false);
+
+  assert.equal(isLikelyIrrelevant({
+    title: "High school football scores: regional playoff results",
+    snippet: "American high school football playoff results."
+  }, "today's football news"), true);
+
+  assert.equal(isClearlyAmericanFootballResult({
+    title: "College Football Today: Rivalry Week Games"
+  }), true);
+});
+
+test("global football news variants include African and international association football", () => {
+  const variants = buildNewsSearchVariants("today's football news");
+  assert.ok(variants.some(value => /CAF AFCON African football/i.test(value)));
+  assert.ok(variants.some(value => /international soccer national team/i.test(value)));
 });

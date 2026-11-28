@@ -319,7 +319,19 @@ function extractMainTopic(query = "") {
 }
 
 function isFootballNewsTopic(query = "") {
-  return /\b(football|soccer|premier league|champions league|europa league|conference league|la liga|serie a|bundesliga|ligue 1|arsenal|chelsea|liverpool|manchester united|manchester city|tottenham|newcastle|barcelona|real madrid|bayern|psg|juventus|inter milan|ac milan)\b/i.test(cleanText(query));
+  return /\b(football|soccer|premier league|champions league|europa league|conference league|la liga|serie a|bundesliga|ligue 1|afcon|caf|arsenal|chelsea|liverpool|manchester united|manchester city|tottenham|newcastle|barcelona|real madrid|bayern|psg|juventus|inter milan|ac milan|zesco united|power dynamos|red arrows|nkana)\b/i.test(cleanText(query));
+}
+
+function isClearlyAmericanFootballResult(result = {}) {
+  const text = [
+    result.title,
+    result.snippet,
+    result.summary,
+    result.description
+  ].map(value => cleanText(value || "")).join(" ").toLowerCase();
+  const AmericanFootball = /\b(nfl|ncaa|college football|high school football|american football|super bowl|touchdowns?|quarterbacks?|gridiron|rivalry week|cfb|bowl game)\b/i;
+  const associationFootball = /\b(soccer|premier league|champions league|europa league|conference league|uefa|fifa|afcon|caf|la liga|serie a|bundesliga|ligue 1|fa cup|world cup|national team|football club|football association|arsenal|chelsea|liverpool|manchester|tottenham|newcastle|barcelona|real madrid|bayern|psg|juventus|inter milan|ac milan|nottingham forest|zesco united|power dynamos|red arrows|nkana|striker|goalkeeper|transfer|manager|match report)\b/i;
+  return AmericanFootball.test(text) && !associationFootball.test(text);
 }
 
 function buildNewsSearchVariants(userQuery = "") {
@@ -329,12 +341,14 @@ function buildNewsSearchVariants(userQuery = "") {
   if (!topic) return [cleanText(userQuery)];
   const variants = [userQuery, topic];
   if (isFootballNewsTopic(userQuery)) {
+    const focusedTopic = topic.replace(/\b(football|soccer)\b/gi, " ").replace(/\s+/g, " ").trim();
     variants.push(
-      topic + " football soccer news today",
+      focusedTopic ? focusedTopic + " football soccer news" : "association football soccer news today",
       "world football soccer headlines match reports today",
-      "Premier League football news today",
-      "UEFA Champions League football news today",
-      "international football news today"
+      "Premier League club football news today",
+      "UEFA Champions League Europa League football news",
+      "CAF AFCON African football news",
+      "international soccer national team news"
     );
   } else if (isNewsRequest(userQuery)) {
     variants.push(topic + " latest developments", topic + " news today", "latest " + topic + " news");
@@ -426,6 +440,15 @@ function isLikelyIrrelevant(result, query) {
 
   const combined =
     `${title} ${snippet}`;
+
+  // "Football" means association football in this product's global-news
+  // context. Reject clear US gridiron stories, but accept soccer coverage even
+  // when the headline does not literally contain the word "football".
+  if (isFootballNewsTopic(query)) {
+    if (isClearlyAmericanFootballResult(result)) return true;
+    const associationSignals = /\b(football|soccer|premier league|championship|league one|league two|fa cup|carabao cup|champions league|europa league|conference league|uefa|fifa|afcon|caf|la liga|serie a|bundesliga|ligue 1|world cup|national team|football club|arsenal|chelsea|liverpool|manchester|tottenham|newcastle|barcelona|real madrid|bayern|psg|juventus|inter milan|ac milan|nottingham forest|zesco united|power dynamos|red arrows|nkana|striker|goalkeeper|transfer|match report)\b/i;
+    return !associationSignals.test(combined);
+  }
 
   const words =
     extractImportantQueryWords(query);
@@ -1152,25 +1175,40 @@ export async function searchWeb(
     allResults = allResults.filter(result => isDirectArticleUrl(result.url));
   }
 
-  // Exact-date searches can occasionally miss items because Google News'
-  // 24-hour filter is narrower than its indexed publication-date metadata.
-  // If the first pass has no dated stories for the Zambia calendar date,
-  // retry the same topic against the last seven days, then keep only results
-  // whose provider-supplied publication date matches today. Never use
-  // undated DuckDuckGo results to satisfy an exact-date request.
+  // Apply topic relevance checks before the exact-date decision. Otherwise an
+  // unrelated same-day item (for example, NCAA football) can suppress the
+  // seven-day fallback even when relevant soccer stories exist.
+  const retainRelevantResult = result => !isLikelyIrrelevant(result, intentQuery);
+  allResults = allResults.filter(retainRelevantResult);
+
+  // Exact-date searches occasionally need a wider retrieval pass. Only
+  // publication dates are used here; provider indexed/seen timestamps are not
+  // publication dates and never satisfy today's-news requests.
   let recentFallbackUsed = false;
   let exactTodayResultCount = null;
   if (todayRequest) {
     const todayInZambia = formatDateForZambia(new Date());
+    const getPublicationDate = result => parsePublishedDate(
+      result.published || result.pubDate || result.date || ""
+    );
     const isPublishedToday = result => {
-      const date = parsePublishedDate(result.published || result.pubDate || "");
+      const date = getPublicationDate(result);
       return date && formatDateForZambia(date) === todayInZambia;
     };
     if (!allResults.some(isPublishedToday)) {
-      const fallbackResults = await Promise.all(variants.map(variant => runSearchVariant(variant, true, false)));
+      const fallbackResults = await Promise.all(
+        variants.map(variant => runSearchVariant(variant, true, false))
+      );
       const flattenedFallbackResults = fallbackResults.flat();
-      const resolvedFallbackResults = newsRequest ? await resolveNewsAggregatorResults(flattenedFallbackResults) : flattenedFallbackResults;
-      allResults = deduplicateResults([...allResults, ...resolvedFallbackResults.filter(result => result.url)]);
+      const resolvedFallbackResults = newsRequest
+        ? await resolveNewsAggregatorResults(flattenedFallbackResults)
+        : flattenedFallbackResults;
+      const validFallbackResults = resolvedFallbackResults.filter(result =>
+        result.url &&
+        (!newsRequest || isDirectArticleUrl(result.url)) &&
+        retainRelevantResult(result)
+      );
+      allResults = deduplicateResults([...allResults, ...validFallbackResults]);
     }
     const exactTodayResults = allResults.filter(isPublishedToday);
     exactTodayResultCount = exactTodayResults.length;
@@ -1179,24 +1217,13 @@ export async function searchWeb(
     } else {
       // Dated last-seven-day stories are an explicit fallback, never labelled as today.
       allResults = allResults.filter(result => {
-        const date = parsePublishedDate(result.published || result.pubDate || "");
+        const date = getPublicationDate(result);
         const ageDays = daysSince(date);
         return date && ageDays >= 0 && ageDays <= 7;
       });
       recentFallbackUsed = allResults.length > 0;
     }
   }
-
-  // Fallback results must pass the same article-link gate as the first pass.
-  if (newsRequest) {
-    allResults = allResults.filter(result => isDirectArticleUrl(result.url));
-  }
-
-  // Apply relevance filtering after all retries so fallback results
-  // cannot bypass the same quality checks as the initial search.
-  allResults = allResults.filter(
-    result => !isLikelyIrrelevant(result, intentQuery)
-  );
 
   allResults =
     allResults.map(
@@ -1407,6 +1434,7 @@ export {
   buildNewsSearchVariants,
   cleanText,
   isLikelyIrrelevant,
+  isClearlyAmericanFootballResult,
   cleanSearchIntent,
   formatDateForZambia,
   getZambiaDateTime,

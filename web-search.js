@@ -1069,7 +1069,7 @@ export async function searchWeb(
 
     if (!allResults.some(isPublishedToday)) {
       const fallbackResults = await Promise.all(
-        variants.map(variant => runSearchVariant(variant, true, false, false))
+        variants.map(variant => runSearchVariant(variant, true, false))
       );
       allResults = deduplicateResults([
         ...allResults,

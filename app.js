@@ -2568,6 +2568,240 @@ function openExploreView() {
   openFeaturePanel("Explore Zed", content);
 }
 
+async function openAcePredictionTrackerView() {
+  const content = document.createElement("div");
+  const intro = document.createElement("p");
+  intro.textContent = "Review your ACE prediction history, see recorded accuracy by competition and compare goal-market performance. Only predictions that pass ACE's evidence checks are saved.";
+  intro.style.cssText = "color:#777;line-height:1.55;margin-bottom:14px;";
+  const actions = document.createElement("div");
+  actions.className = "zed-library-actions";
+  const refreshButton = document.createElement("button");
+  refreshButton.type = "button";
+  refreshButton.className = "zed-feature-action";
+  refreshButton.textContent = "Refresh";
+  const analyseButton = document.createElement("button");
+  analyseButton.type = "button";
+  analyseButton.className = "zed-feature-action";
+  analyseButton.textContent = "Analyse a match";
+  analyseButton.addEventListener("click", () => {
+    closeFeaturePanel();
+    messageInput.value = "Analyse this football match using ACE and verified available evidence: ";
+    messageInput.focus();
+  });
+  actions.append(refreshButton, analyseButton);
+  const notice = document.createElement("p");
+  notice.className = "zed-library-status";
+  notice.textContent = "Loading prediction history…";
+  const stats = document.createElement("div");
+  stats.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px;margin:14px 0;";
+  const competitionHeading = document.createElement("h3");
+  competitionHeading.textContent = "Performance by competition";
+  competitionHeading.style.cssText = "font-size:15px;margin:18px 0 8px;";
+  const competitions = document.createElement("div");
+  competitions.className = "zed-library-list";
+  const marketHeading = document.createElement("h3");
+  marketHeading.textContent = "Goal-market performance";
+  marketHeading.style.cssText = "font-size:15px;margin:18px 0 8px;";
+  const markets = document.createElement("div");
+  markets.className = "zed-library-list";
+  const historyHeading = document.createElement("h3");
+  historyHeading.textContent = "Prediction history";
+  historyHeading.style.cssText = "font-size:15px;margin:18px 0 8px;";
+  const filter = document.createElement("select");
+  filter.setAttribute("aria-label", "Filter prediction history");
+  filter.style.cssText = "width:100%;max-width:240px;padding:10px;border:1px solid var(--border-color,#d4d8df);border-radius:10px;background:var(--surface,#fff);color:inherit;margin-bottom:10px;";
+  for (const [value, label] of [["all","All predictions"],["pending","Awaiting result"],["settled","Results recorded"]]) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    filter.append(option);
+  }
+  const list = document.createElement("div");
+  list.className = "zed-library-list";
+  content.append(intro, actions, notice, stats, competitionHeading, competitions, marketHeading, markets, historyHeading, filter, list);
+  openFeaturePanel("ACE Prediction Tracker", content);
+  let records = [];
+  let loading = false;
+
+  function stat(label, value, detail) {
+    const card = document.createElement("article");
+    card.className = "zed-feature-card";
+    card.style.cssText = "padding:14px;min-width:0;";
+    const name = document.createElement("p");
+    name.textContent = label;
+    name.style.cssText = "font-size:12px;color:#777;margin-bottom:8px;";
+    const metric = document.createElement("strong");
+    metric.textContent = value;
+    metric.style.cssText = "display:block;font-size:24px;line-height:1.2;overflow-wrap:anywhere;";
+    const caption = document.createElement("p");
+    caption.textContent = detail;
+    caption.style.cssText = "font-size:11px;color:#888;margin-top:6px;line-height:1.4;";
+    card.append(name, metric, caption);
+    return card;
+  }
+
+  function renderHistory() {
+    list.replaceChildren();
+    const visible = records.filter(record =>
+      filter.value === "all" ||
+      (filter.value === "pending" && record.status === "PENDING_RESULT") ||
+      (filter.value === "settled" && record.status === "SETTLED_MANUAL")
+    );
+    if (!visible.length) {
+      const empty = document.createElement("p");
+      empty.className = "zed-library-status";
+      empty.textContent = records.length ? "There are no predictions in this filter." :
+        "No eligible ACE predictions have been saved yet. Evidence-backed predictions will appear here automatically.";
+      list.append(empty);
+      return;
+    }
+    for (const record of visible) {
+      const card = document.createElement("article");
+      card.className = "zed-feature-card zed-library-row";
+      const heading = document.createElement("h3");
+      heading.textContent = (record.match?.homeTeam || "Home") + " vs " + (record.match?.awayTeam || "Away");
+      const kickoff = new Date(record.match?.kickoffTime || "");
+      const meta = document.createElement("p");
+      meta.textContent = (record.match?.competition || "Competition not supplied") +
+        (Number.isFinite(kickoff.getTime()) ? " · " + kickoff.toLocaleString() : "");
+      const pick = document.createElement("p");
+      const probability = Number(record.pick?.probability);
+      pick.textContent = "Most-likely 1X2 pick: " + (record.pick?.label || "Not available") +
+        (Number.isFinite(probability) ? " (" + probability.toFixed(1) + "%)" : "");
+      const resultLabel = document.createElement("p");
+      resultLabel.style.cssText = "font-size:12px;color:#777;margin-top:5px;";
+      if (record.status === "SETTLED_MANUAL" && record.result) {
+        resultLabel.textContent = "Final score: " + record.result.homeGoals + "–" + record.result.awayGoals +
+          " · " + (record.result.correct ? "Correct pick" : "Incorrect pick") +
+          " · Manually entered, not provider-verified";
+      } else {
+        resultLabel.textContent = "Awaiting final result";
+      }
+      card.append(heading, meta, pick, resultLabel);
+      if (record.status === "PENDING_RESULT") {
+        const unlockAt = kickoff.getTime() + 150 * 60 * 1000;
+        if (Number.isFinite(unlockAt) && Date.now() >= unlockAt) {
+          const form = document.createElement("form");
+          form.style.cssText = "display:flex;flex-wrap:wrap;align-items:end;gap:8px;margin-top:14px;";
+          const makeScoreField = (labelText, name) => {
+            const wrap = document.createElement("label");
+            wrap.style.cssText = "display:grid;gap:5px;font-size:12px;color:#777;";
+            wrap.textContent = labelText;
+            const input = document.createElement("input");
+            input.type = "number";
+            input.name = name;
+            input.min = "0";
+            input.max = "30";
+            input.step = "1";
+            input.required = true;
+            input.inputMode = "numeric";
+            input.setAttribute("aria-label", labelText);
+            input.style.cssText = "width:88px;padding:10px;border:1px solid var(--border-color,#d4d8df);border-radius:9px;background:var(--surface,#fff);color:inherit;";
+            wrap.append(input);
+            return input;
+          };
+          const home = makeScoreField(record.match?.homeTeam || "Home", "homeGoals");
+          const away = makeScoreField(record.match?.awayTeam || "Away", "awayGoals");
+          const save = document.createElement("button");
+          save.type = "submit";
+          save.className = "zed-feature-action";
+          save.textContent = "Record final score";
+          form.append(home.parentElement, away.parentElement, save);
+          form.addEventListener("submit", async event => {
+            event.preventDefault();
+            save.disabled = true;
+            save.textContent = "Saving…";
+            try {
+              const response = await apiFetch("/api/ace/predictions/" + encodeURIComponent(record.id) + "/result", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ homeGoals: home.value, awayGoals: away.value })
+              });
+              const data = await parseResponse(response);
+              if (!response.ok || !data.ok) throw new Error(data.error || "The score could not be saved.");
+              await refresh();
+              notice.textContent = "Final score saved. This result is marked as manually entered.";
+            } catch (error) {
+              notice.textContent = error.message || "The final score could not be saved.";
+              save.disabled = false;
+              save.textContent = "Record final score";
+            }
+          });
+          card.append(form);
+        } else {
+          const waiting = document.createElement("p");
+          waiting.style.cssText = "font-size:12px;color:#888;margin-top:10px;";
+          waiting.textContent = "Final-score entry opens 150 minutes after scheduled kickoff.";
+          card.append(waiting);
+        }
+      }
+      list.append(card);
+    }
+  }
+
+  async function refresh() {
+    if (loading) return;
+    loading = true;
+    notice.textContent = "Loading prediction history…";
+    refreshButton.disabled = true;
+    try {
+      const response = await apiFetch("/api/ace/predictions");
+      const data = await parseResponse(response);
+      if (!response.ok || !data.ok) throw new Error(data.error || "Prediction history is unavailable.");
+      records = Array.isArray(data.predictions) ? data.predictions : [];
+      const summary = data.summary || {};
+      stats.replaceChildren(
+        stat("Predictions", String(summary.total ?? records.length), "Evidence-backed predictions saved"),
+        stat("Awaiting results", String(summary.pending ?? 0), "Not yet settled"),
+        stat("Correct / incorrect", String(summary.correct ?? 0) + " / " + String(summary.incorrect ?? 0), "From recorded scores"),
+        stat("Recorded accuracy", summary.accuracyPercent == null ? "—" : Number(summary.accuracyPercent).toFixed(1) + "%", "Manual results; not independently verified")
+      );
+      competitions.replaceChildren();
+      const leagueRows = Array.isArray(summary.byCompetition) ? summary.byCompetition : [];
+      if (!leagueRows.length) {
+        const empty = document.createElement("p");
+        empty.className = "zed-library-status";
+        empty.textContent = "Competition accuracy appears after scores have been recorded.";
+        competitions.append(empty);
+      } else {
+        for (const row of leagueRows) {
+          const item = document.createElement("div");
+          item.className = "zed-feature-card";
+          const name = document.createElement("strong");
+          name.textContent = row.competition;
+          const value = document.createElement("p");
+          value.textContent = row.accuracyPercent.toFixed(1) + "% · " + row.correct + " correct from " + row.settled;
+          item.append(name, value);
+          competitions.append(item);
+        }
+      }
+      markets.replaceChildren();
+      for (const [key, label] of [["total15","Over / under 1.5 goals"],["total25","Over / under 2.5 goals"],["total35","Over / under 3.5 goals"],["btts","Both teams to score"]]) {
+        const item = document.createElement("div");
+        item.className = "zed-feature-card";
+        const name = document.createElement("strong");
+        name.textContent = label;
+        const metric = summary.markets?.[key] || { settled: 0, correct: 0, accuracyPercent: null };
+        const value = document.createElement("p");
+        value.textContent = metric.accuracyPercent == null ? "No settled records yet" :
+          metric.accuracyPercent.toFixed(1) + "% · " + metric.correct + " correct from " + metric.settled;
+        item.append(name, value);
+        markets.append(item);
+      }
+      notice.textContent = records.length + " saved prediction(s). Results entered here are user-reported, not independently verified.";
+      renderHistory();
+    } catch (error) {
+      notice.textContent = error.message || "Your prediction tracker could not be loaded.";
+    } finally {
+      loading = false;
+      refreshButton.disabled = false;
+    }
+  }
+  refreshButton.addEventListener("click", refresh);
+  filter.addEventListener("change", renderHistory);
+  await refresh();
+}
+
 function toLocalDateTimeInput(date) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 16);
@@ -2761,6 +2995,7 @@ document.querySelectorAll("[data-zed-view]").forEach(button => {
       openFeaturePanel("Projects", content);
       loadProjects();
     } else if (view === "scheduled") openScheduledView();
+    else if (view === "ace-tracker") openAcePredictionTrackerView();
     else if (view === "explore") openExploreView();
   });
 });

@@ -172,7 +172,10 @@ export async function saveAcePrediction({ userId, prediction, evidence, db } = {
       predictedAt: timestamp,
       updatedAt: timestamp
     };
-    const saved = await firestore.collection(ACE_PREDICTIONS_COLLECTION).add(record);
+    const saved = await firestore.collection(ACE_PREDICTIONS_COLLECTION)
+      .doc(owner)
+      .collection("predictions")
+      .add(record);
     return { saved: true, id: saved.id, status: record.status };
   } catch (error) {
     console.warn("ACE user prediction tracker save failed:", error.message);
@@ -186,7 +189,10 @@ export async function listAcePredictions(userId, { db, limit = 200 } = {}) {
   const firestore = db || getFirebaseDb();
   const safeLimit = Math.max(1, Math.min(300, Math.floor(Number(limit) || 200)));
   const snapshot = await firestore.collection(ACE_PREDICTIONS_COLLECTION)
-    .where("userId", "==", owner)
+    .doc(owner)
+    .collection("predictions")
+    .orderBy("predictedAt", "desc")
+    .limit(safeLimit)
     .get();
   const predictions = snapshot.docs
     .map(doc => ({ id: doc.id, ...doc.data() }))
@@ -202,6 +208,12 @@ export async function listAcePredictions(userId, { db, limit = 200 } = {}) {
 export async function recordAcePredictionResult(userId, predictionId, score = {}, { db } = {}) {
   const owner = text(userId, 160);
   const id = text(predictionId, 180);
+  if (!/^[A-Za-z0-9_-]{1,180}$/.test(id)) {
+    return { ok: false, status: 400, error: "A valid prediction is required." };
+  }
+  if (String(score.homeGoals ?? "").trim() === "" || String(score.awayGoals ?? "").trim() === "") {
+    return { ok: false, status: 400, error: "Enter both teams' final scores." };
+  }
   const homeGoals = Number(score.homeGoals);
   const awayGoals = Number(score.awayGoals);
   if (!owner || !id) return { ok: false, status: 400, error: "A valid prediction is required." };
@@ -212,7 +224,10 @@ export async function recordAcePredictionResult(userId, predictionId, score = {}
 
   try {
     const firestore = db || getFirebaseDb();
-    const reference = firestore.collection(ACE_PREDICTIONS_COLLECTION).doc(id);
+    const reference = firestore.collection(ACE_PREDICTIONS_COLLECTION)
+      .doc(owner)
+      .collection("predictions")
+      .doc(id);
     const snapshot = await reference.get();
     if (!snapshot.exists || snapshot.data()?.userId !== owner) {
       return { ok: false, status: 404, error: "Prediction not found." };

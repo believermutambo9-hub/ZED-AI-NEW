@@ -299,7 +299,8 @@ export async function importHistoricalFootballSeason({
   maxPages = 5,
   fetchImpl = globalThis.fetch,
   apiKey,
-  cache = true
+  cache = true,
+  verifiedFixture = null
 } = {}) {
   const league = Number(leagueId);
   const year = Number(season);
@@ -980,6 +981,101 @@ async function getConfiguredProviderTeamFixture(teamName, options = {}) {
  * Resolve one club\'s next scheduled fixture using configured structured feeds.
  * The opposing club is always taken from a provider response.
  */
+function apiFootballDateInZambia(date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Lusaka",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return values.year + "-" + values.month + "-" + values.day;
+}
+
+/**
+ * API-Football's free plan rejects the paid-only `next` query parameter.
+ * Use its supported date-window filters instead, then select the earliest
+ * verified NS/TBD fixture in the requested team pairing.
+ */
+async function fetchUpcomingApiFixture(teamId, options = {}, opponentId = null) {
+  const now = Date.now();
+  const from = apiFootballDateInZambia(new Date(now));
+  const to = apiFootballDateInZambia(new Date(now + 120 * 86400000));
+  const payload = await apiGet("fixtures", {
+    team: teamId,
+    from,
+    to,
+    timezone: "Africa/Lusaka"
+  }, { ...options, ttlMs: 10 * 60 * 1000 });
+
+  const requestedTeamId = Number(teamId);
+  const requestedOpponentId = opponentId === null ? null : Number(opponentId);
+  return payload.response
+    .filter(item => {
+      const date = new Date(item?.fixture?.date || "").getTime();
+      const status = String(item?.fixture?.status?.short || "").toUpperCase();
+      const homeId = Number(item?.teams?.home?.id);
+      const awayId = Number(item?.teams?.away?.id);
+      const includesTeam = homeId === requestedTeamId || awayId === requestedTeamId;
+      const includesOpponent = requestedOpponentId === null ||
+        (homeId === requestedTeamId && awayId === requestedOpponentId) ||
+        (awayId === requestedTeamId && homeId === requestedOpponentId);
+      return Number.isFinite(date) && date > now &&
+        (status === "NS" || status === "TBD") &&
+        includesTeam && includesOpponent &&
+        item?.teams?.home?.name && item?.teams?.away?.name &&
+        Number.isInteger(homeId) && Number.isInteger(awayId);
+    })
+    .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date))[0] || null;
+}
+
+function normalizeVerifiedApiFixture(verifiedFixture, homeId, awayId, homeTeam, awayTeam) {
+  if (!verifiedFixture || verifiedFixture.source !== "API-Football v3") return null;
+
+  const fixtureId = Number(verifiedFixture.id);
+  const fixtureHomeId = Number(verifiedFixture.homeId);
+  const fixtureAwayId = Number(verifiedFixture.awayId);
+  const kickoffTime = new Date(verifiedFixture.kickoffTime || "").getTime();
+  const status = String(verifiedFixture.status || "NS").toUpperCase();
+  const requestedNames = [normalizeFootballName(homeTeam), normalizeFootballName(awayTeam)].sort();
+  const fixtureNames = [
+    normalizeFootballName(verifiedFixture.homeTeam || ""),
+    normalizeFootballName(verifiedFixture.awayTeam || "")
+  ].sort();
+  const idsMatch = (fixtureHomeId === homeId && fixtureAwayId === awayId) ||
+    (fixtureHomeId === awayId && fixtureAwayId === homeId);
+
+  if (!Number.isSafeInteger(fixtureId) || fixtureId <= 0 ||
+      !Number.isInteger(fixtureHomeId) || !Number.isInteger(fixtureAwayId) ||
+      !idsMatch || !Number.isFinite(kickoffTime) || kickoffTime <= Date.now() ||
+      !["NS", "TBD"].includes(status) ||
+      !requestedNames[0] || !requestedNames[1] ||
+      requestedNames[0] !== fixtureNames[0] || requestedNames[1] !== fixtureNames[1]) {
+    return null;
+  }
+
+  return {
+    fixture: {
+      id: fixtureId,
+      date: new Date(kickoffTime).toISOString(),
+      status: { short: status },
+      venue: { name: String(verifiedFixture.venue || "") }
+    },
+    league: {
+      name: String(verifiedFixture.competition || "Competition not supplied"),
+      country: String(verifiedFixture.country || "")
+    },
+    teams: {
+      home: { id: fixtureHomeId, name: String(verifiedFixture.homeTeam) },
+      away: { id: fixtureAwayId, name: String(verifiedFixture.awayTeam) }
+    }
+  };
+}
+
+/**
+ * Resolve one club's next scheduled fixture using configured structured feeds.
+ * The opposing club is always taken from a provider response.
+ */
 export async function getUpcomingTeamFixture(teamName, options = {}) {
   const wanted = normalizeFootballName(teamName);
   if (!wanted) return null;
@@ -989,25 +1085,25 @@ export async function getUpcomingTeamFixture(teamName, options = {}) {
     try {
       const team = await findTeam(teamName, options);
       if (team?.team?.id) {
-        const payload = await apiGet("fixtures", { team: team.team.id, next: 10 }, { ...options, ttlMs: 10 * 60 * 1000 });
-        const now = Date.now();
-        const upcoming = payload.response.filter(item => {
-          const date = new Date(item?.fixture?.date || "").getTime();
-          const status = String(item?.fixture?.status?.short || "").toUpperCase();
-          return Number.isFinite(date) && date > now && (status === "NS" || status === "TBD") &&
-            item?.teams?.home?.name && item?.teams?.away?.name;
-        }).sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date))[0];
+        const upcoming = await fetchUpcomingApiFixture(team.team.id, options);
         if (upcoming) return {
-          id: upcoming.fixture.id,
+          id: Number(upcoming.fixture.id),
+          homeId: Number(upcoming.teams.home.id),
+          awayId: Number(upcoming.teams.away.id),
           kickoffTime: new Date(upcoming.fixture.date).toISOString(),
           competition: upcoming.league?.name || "Competition not supplied",
+          country: upcoming.league?.country || "",
+          venue: upcoming.fixture?.venue?.name || "",
+          status: String(upcoming.fixture?.status?.short || "NS").toUpperCase(),
           homeTeam: upcoming.teams.home.name,
           awayTeam: upcoming.teams.away.name,
           source: "API-Football v3"
         };
+      } else {
+        console.warn("API-Football could not resolve a unique team record for:", teamName);
       }
     } catch (error) {
-      console.warn("API-Football next-fixture lookup unavailable:", error.message);
+      console.warn("API-Football date-window next-fixture lookup unavailable:", error.message);
     }
   }
 
@@ -1107,7 +1203,9 @@ export async function collectFootballEvidence({
     let h2hRecords = [];
     let h2hAvailable = false;
     try {
-      const h2hResponse = await apiGet("fixtures/headtohead", { h2h: homeId + "-" + awayId, last: 5, next: 1 }, {
+      // Keep H2H on the last-five path. The free API-Football plan blocks
+      // the `next` parameter, so upcoming fixtures are resolved separately.
+      const h2hResponse = await apiGet("fixtures/headtohead", { h2h: homeId + "-" + awayId, last: 5 }, {
         ...options,
         ttlMs: 20 * 60 * 1000
       });
@@ -1116,7 +1214,18 @@ export async function collectFootballEvidence({
     } catch {
       // H2H is supplemental: do not discard valid team-form data if this endpoint is unavailable.
     }
-    const upcoming = findUpcomingFixture(h2hRecords, homeId, awayId);
+
+    let upcoming = findUpcomingFixture(h2hRecords, homeId, awayId);
+    if (!upcoming) {
+      upcoming = normalizeVerifiedApiFixture(verifiedFixture, homeId, awayId, homeTeam, awayTeam);
+    }
+    if (!upcoming) {
+      try {
+        upcoming = await fetchUpcomingApiFixture(homeId, options, awayId);
+      } catch (error) {
+        console.warn("API-Football exact-pair date-window lookup unavailable:", error.message);
+      }
+    }
     const kickoffTime = upcoming?.fixture?.date || null;
     const fixtureHomeId = upcoming ? Number(upcoming.teams?.home?.id) : homeId;
     const fixtureAwayId = upcoming ? Number(upcoming.teams?.away?.id) : awayId;

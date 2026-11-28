@@ -13,6 +13,7 @@ import {
 } from "./storage/scheduled-tasks.js";
 
 import { getAcePredictionChatData, extractMatchup } from "./features/ace-engine.js";
+import { listAcePredictions, recordAcePredictionResult } from "./features/ace-prediction-tracker.js";
 import { importHistoricalFootballSeason, getUpcomingTeamFixture } from "./features/football-intelligence.js";
 import { askLocalBrain, getLocalBrainStatus } from "./features/local-brain.js";
 
@@ -1723,6 +1724,41 @@ app.get(
 );
 
 // ============================================================
+// ACE PREDICTION TRACKER
+// ============================================================
+
+app.get("/api/ace/predictions", async (req, res) => {
+  try {
+    const tracker = await listAcePredictions(req.user.uid);
+    return res.json({ ok: true, ...tracker });
+  } catch (error) {
+    console.error("ACE prediction tracker load failed:", error.message);
+    return res.status(503).json({
+      ok: false,
+      error: "Your prediction tracker is temporarily unavailable. Please try again."
+    });
+  }
+});
+
+app.post("/api/ace/predictions/:predictionId/result", async (req, res) => {
+  const result = await recordAcePredictionResult(
+    req.user.uid,
+    req.params.predictionId,
+    {
+      homeGoals: req.body?.homeGoals,
+      awayGoals: req.body?.awayGoals
+    }
+  );
+  if (!result.ok) {
+    return res.status(result.status || 400).json({
+      ok: false,
+      error: result.error || "The final score could not be saved."
+    });
+  }
+  return res.json({ ok: true, prediction: result.prediction });
+});
+
+// ============================================================
 // USER MEMORY API
 // ============================================================
 
@@ -2794,6 +2830,7 @@ app.post(
             }
           }
           const acePrediction = requestedMatchup ? await getAcePredictionChatData(aceRequest, {
+            userId,
             webSearchResults: searchData?.results || [],
             webSearchUsed: searchUsed,
             zedFootballData: footballData,

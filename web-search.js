@@ -121,6 +121,50 @@ function isDirectArticleUrl(url = "") {
   }
 }
 
+async function resolveNewsAggregatorUrl(url = "") {
+  let parsed;
+  try { parsed = new URL(url); } catch { return ""; }
+  const host = parsed.hostname.toLowerCase().replace(/^www\\./, "");
+  if (host === "bing.com") {
+    const destination = parsed.searchParams.get("url") || parsed.searchParams.get("u");
+    if (destination) {
+      const resolved = normalizeUrl(destination);
+      return isDirectArticleUrl(resolved) ? resolved : "";
+    }
+  }
+  if (host !== "news.google.com" && host !== "bing.com") return normalizeUrl(url);
+
+  // Follow only known search-provider wrappers; accept the final publisher
+  // URL only when the redirect chain actually reaches an article-level host.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6500);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      signal: controller.signal,
+      headers: { "User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml" }
+    });
+    const finalUrl = normalizeUrl(response.url || "");
+    try { await response.body?.cancel(); } catch { /* response body is not needed */ }
+    return isDirectArticleUrl(finalUrl) ? finalUrl : "";
+  } catch {
+    return "";
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function resolveNewsAggregatorResults(results = []) {
+  return Promise.all(results.map(async result => {
+    const url = normalizeUrl(result?.url || "");
+    if (!url) return { ...result, url: "" };
+    if (isDirectArticleUrl(url)) return { ...result, url };
+    const resolved = await resolveNewsAggregatorUrl(url);
+    return { ...result, url: resolved };
+  }));
+}
+
 function isAbsolutePublicationDate(value = "") {
   const text = String(value || "").trim();
   if (!text || /\b\d+\s+(second|minute|hour|day|week)s?\s+ago\b/i.test(text) || /^yesterday$/i.test(text)) return false;
@@ -1084,9 +1128,16 @@ export async function searchWeb(
     );
   }
 
+  // Resolve Google/Bing RSS redirect wrappers to their real publisher URLs
+  // before applying the strict article-link policy. Unresolved wrappers remain
+  // excluded rather than being presented as direct article links.
+  if (newsRequest) {
+    allResults = await resolveNewsAggregatorResults(allResults);
+  }
+
   allResults =
     deduplicateResults(
-      allResults
+      allResults.filter(result => result.url)
     );
 
   // News answers require article-level links, not provider homepages or aggregators.

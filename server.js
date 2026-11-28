@@ -25,7 +25,7 @@ import {
   getFootballRequestType
 } from "./features/football.js";
 
-import { webSearch } from "./web-search.js";
+import { webSearch, isDirectArticleUrl, extractDomain } from "./web-search.js";
 import { detectLiveDataIntent, getLiveDataForMessage, formatLiveDataEvidence } from "./features/live-data.js";
 
 import {
@@ -338,73 +338,42 @@ function formatHistory(
  * The original search object is still passed
  * separately to the intelligence modules.
  */
-function formatSearchEvidence(
-  searchData
-) {
-  if (
-    !searchData ||
-    !Array.isArray(
-      searchData.results
-    )
-  ) {
+function formatSearchEvidence(searchData) {
+  if (!searchData || !Array.isArray(searchData.results)) {
     return "No web search results were found.";
   }
-
-  if (
-    !searchData.results.length
-  ) {
+  if (!searchData.results.length) {
     return "No reliable web search results were found.";
   }
 
-  return searchData.results
-    .map(
-      (result, index) => {
-        const title =
-          cleanText(
-            result.title ||
-              "Untitled"
-          );
+  return searchData.results.map((result, index) => {
+    const title = cleanText(result.title || "Untitled");
+    const linkedDomain = extractDomain(result.url || "") || "Unknown domain";
+    const providerLabel = cleanText(result.provider || "Unknown provider");
+    const providerSourceLabel = cleanText(result.source || "");
+    const published = cleanText(result.published || result.pubDate || "");
+    const dateLabel = cleanText(result.dateLabel || "");
+    const indexedAt = cleanText(result.indexedAt || "");
+    const url = cleanText(result.url || "");
+    const snippet = cleanText(result.snippet || result.summary || result.description || "");
+    const linkAssessment = isDirectArticleUrl(url)
+      ? "Article-level URL candidate; page content has not been independently opened by this search pipeline"
+      : "Not an article-level publisher URL";
 
-        const source =
-          cleanText(
-            result.source ||
-              result.domain ||
-              "Unknown source"
-          );
-
-        const published =
-          cleanText(
-            result.published ||
-              result.pubDate ||
-              result.date ||
-              "Date not provided"
-          );
-
-        const url =
-          cleanText(
-            result.url ||
-              ""
-          );
-
-        const snippet =
-          cleanText(
-            result.snippet ||
-              result.summary ||
-              result.description ||
-              ""
-          );
-
-        return [
-          `RESULT ${index + 1}`,
-          `Title: ${title}`,
-          `Source: ${source}`,
-          `Published: ${published}`,
-          `URL: ${url}`,
-          `Snippet: ${snippet}`
-        ].join("\n");
-      }
-    )
-    .join("\n\n");
+    return [
+      `RESULT ${index + 1}`,
+      `Title: ${title}`,
+      `Linked domain: ${linkedDomain}`,
+      providerSourceLabel ? `Provider source label (not independently confirmed): ${providerSourceLabel}` : "",
+      `Search provider: ${providerLabel}`,
+      `Publication date: ${published || "Not provided or not verified"}`,
+      dateLabel ? `Provider date label (not an absolute publication date): ${dateLabel}` : "",
+      indexedAt ? `Provider indexed/seen time (not publication time): ${indexedAt}` : "",
+      `Link assessment: ${linkAssessment}`,
+      `URL: ${url}`,
+      `Search snippet (not full article text): ${snippet}`
+    ].filter(Boolean).join("\n");
+  }).join("\n\n");
 }
 
 // ============================================================

@@ -110,11 +110,11 @@ const NON_PUBLISHER_HOSTS = new Set([
 export function isDirectArticleUrl(url = "") {
   try {
     const parsed = new URL(url);
-    const host = parsed.hostname.toLowerCase().replace(/^www\\./, "");
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
     if (!["http:", "https:"].includes(parsed.protocol)) return false;
     if (NON_PUBLISHER_HOSTS.has(host)) return false;
     if (!parsed.pathname || parsed.pathname === "/") return false;
-    if (/^\\/(search|tag|category)(?:\\/|$)/i.test(parsed.pathname)) return false;
+    if (/^\/(search|tag|category)(?:\/|$)/i.test(parsed.pathname)) return false;
     return true;
   } catch {
     return false;
@@ -123,9 +123,9 @@ export function isDirectArticleUrl(url = "") {
 
 function isAbsolutePublicationDate(value = "") {
   const text = String(value || "").trim();
-  if (!text || /\\b\\d+\\s+(second|minute|hour|day|week)s?\\s+ago\\b/i.test(text) || /^yesterday$/i.test(text)) return false;
-  return /^\\d{4}-\\d{2}-\\d{2}(?:[Tt ][0-9:.+-]+Z?)?$/.test(text) ||
-    /^[A-Z][a-z]{2},?\\s+\\d{1,2}\\s+[A-Z][a-z]{2}\\s+\\d{4}/.test(text);
+  if (!text || /\b\d+\s+(second|minute|hour|day|week)s?\s+ago\b/i.test(text) || /^yesterday$/i.test(text)) return false;
+  return /^\d{4}-\d{2}-\d{2}(?:[Tt ][0-9:.+-]+Z?)?$/.test(text) ||
+    /^[A-Z][a-z]{2},?\s+\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4}/.test(text);
 }
 
 function extractImportantQueryWords(query = "") {
@@ -1247,7 +1247,7 @@ export function formatWebResults(
           `Link assessment: ${linkStatus}`,
           `URL: ${url}`,
           `Snippet: ${snippet}`
-        ].join("\n");
+        ].filter(Boolean).join("\n");
       }
     )
     .join("\n\n");
@@ -1347,6 +1347,8 @@ export {
   searchTavily,
   searchExa,
   searchSerper,
+  isDirectArticleUrl,
+  isAbsolutePublicationDate,
   normalizeTavilyResults,
   normalizeExaResults,
   normalizeSerperResults,

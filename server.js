@@ -732,8 +732,8 @@ function shouldUseFootballData(
   // one of the legacy trigger phrases (for example, "analyse Arsenal's next
   // scheduled match"). Route those requests to the football evidence path.
   const hasFootballContext = shouldUseFootball(message);
-  const analysisIntent = /\\b(analy[sz]e|analysis|analysing|analyzing|predict|prediction|forecast|form|head[- ]to[- ]head|injur(?:y|ies)|odds|probabilit(?:y|ies)|lineup|line-ups?)\\b/i.test(text);
-  const fixtureIntent = /\\b(next|upcoming|scheduled|fixture|fixtures|match|game|today|tomorrow)\\b/i.test(text);
+  const analysisIntent = /\b(analy[sz]e|analysis|analysing|analyzing|predict|prediction|forecast|form|head[- ]to[- ]head|injur(?:y|ies)|odds|probabilit(?:y|ies)|lineup|line-ups?)\b/i.test(text);
+  const fixtureIntent = /\b(next|upcoming|scheduled|fixture|fixtures|match|game|today|tomorrow)\b/i.test(text);
   return hasFootballContext && (analysisIntent || fixtureIntent);
 }
 
@@ -2756,7 +2756,7 @@ app.post(
         isExplicitWebSearchRequest(userMessage);
       const liveDataIntent = detectLiveDataIntent(userMessage);
       const isFootballRequest = shouldUseFootballData(userMessage);
-      const isFootballPrediction = footballMode === "prediction" || (isFootballRequest && /\\b(analy[sz]e|analysis|predict|prediction|forecast)\\b/i.test(userMessage) && /\\b(next|upcoming|scheduled|fixture|match|game)\\b/i.test(userMessage));
+      const isFootballPrediction = footballMode === "prediction" || (isFootballRequest && /\b(analy[sz]e|analysis|predict|prediction|forecast)\b/i.test(userMessage) && /\b(next|upcoming|scheduled|fixture|match|game)\b/i.test(userMessage));
 
       if (
         (
@@ -2816,7 +2816,7 @@ app.post(
           let requestedMatchup = extractMatchup(userMessage);
           if (!requestedMatchup) {
             const requestedTeam = detectFootballTeam(userMessage);
-            if (requestedTeam && /\\b(next|upcoming|scheduled|fixture|match|game)\\b/i.test(userMessage)) {
+            if (requestedTeam && /\b(next|upcoming|scheduled|fixture|match|game)\b/i.test(userMessage)) {
               const nextFixture = await getUpcomingTeamFixture(requestedTeam.name);
               if (nextFixture?.homeTeam && nextFixture?.awayTeam) {
                 aceRequest = `${nextFixture.homeTeam} vs ${nextFixture.awayTeam}. Analyse this verified upcoming fixture and produce an evidence-gated prediction.`;

@@ -571,6 +571,11 @@ function detectFootballTeam(
   );
 }
 
+// Return the matched team record for downstream fixture resolution.
+function getDetectedFootballTeam(message = "") {
+  return findTeam(message);
+}
+
 /* -------------------------------------------------------
    REQUEST TYPE
 ------------------------------------------------------- */
@@ -2413,6 +2418,7 @@ export {
   searchFootballTeams,
   getFootballForDate,
   detectFootballTeam,
+  getDetectedFootballTeam,
   detectFootballLeague,
   getFootballRequestType
 };

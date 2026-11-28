@@ -13,7 +13,7 @@ import {
 } from "./storage/scheduled-tasks.js";
 
 import { getAcePredictionChatData, extractMatchup } from "./features/ace-engine.js";
-import { importHistoricalFootballSeason } from "./features/football-intelligence.js";
+import { importHistoricalFootballSeason, getUpcomingTeamFixture } from "./features/football-intelligence.js";
 import { askLocalBrain, getLocalBrainStatus } from "./features/local-brain.js";
 
 import {
@@ -725,10 +725,16 @@ function shouldUseFootballData(
     "match stats"
   ];
 
-  return dataWords.some(
-    word =>
-      text.includes(word)
-  );
+  const hasStructuredDataIntent = dataWords.some(word => text.includes(word));
+  if (hasStructuredDataIntent) return true;
+
+  // Natural football-analysis requests often describe the task without using
+  // one of the legacy trigger phrases (for example, "analyse Arsenal's next
+  // scheduled match"). Route those requests to the football evidence path.
+  const hasFootballContext = shouldUseFootball(message);
+  const analysisIntent = /\\b(analy[sz]e|analysis|analysing|analyzing|predict|prediction|forecast|form|head[- ]to[- ]head|injur(?:y|ies)|odds|probabilit(?:y|ies)|lineup|line-ups?)\\b/i.test(text);
+  const fixtureIntent = /\\b(next|upcoming|scheduled|fixture|fixtures|match|game|today|tomorrow)\\b/i.test(text);
+  return hasFootballContext && (analysisIntent || fixtureIntent);
 }
 
 // ============================================================
@@ -2750,7 +2756,7 @@ app.post(
         isExplicitWebSearchRequest(userMessage);
       const liveDataIntent = detectLiveDataIntent(userMessage);
       const isFootballRequest = shouldUseFootballData(userMessage);
-      const isFootballPrediction = footballMode === "prediction" && Boolean(extractMatchup(userMessage));
+      const isFootballPrediction = footballMode === "prediction" || (isFootballRequest && /\\b(analy[sz]e|analysis|predict|prediction|forecast)\\b/i.test(userMessage) && /\\b(next|upcoming|scheduled|fixture|match|game)\\b/i.test(userMessage));
 
       if (
         (
@@ -2806,11 +2812,26 @@ app.post(
 
       if (isFootballPrediction) {
         try {
-          const acePrediction = await getAcePredictionChatData(userMessage, {
+          let aceRequest = userMessage;
+          let requestedMatchup = extractMatchup(userMessage);
+          if (!requestedMatchup) {
+            const requestedTeam = detectFootballTeam(userMessage);
+            if (requestedTeam && /\\b(next|upcoming|scheduled|fixture|match|game)\\b/i.test(userMessage)) {
+              const nextFixture = await getUpcomingTeamFixture(requestedTeam.name);
+              if (nextFixture?.homeTeam && nextFixture?.awayTeam) {
+                aceRequest = `${nextFixture.homeTeam} vs ${nextFixture.awayTeam}. Analyse this verified upcoming fixture and produce an evidence-gated prediction.`;
+                footballData += "\\n\\nVerified next fixture resolved from " + nextFixture.source + ": " + JSON.stringify(nextFixture);
+                requestedMatchup = extractMatchup(aceRequest);
+              } else {
+                footballData += "\\n\\nNo verified upcoming fixture could be resolved for " + requestedTeam.name + ". Do not invent an opponent or issue a match prediction.";
+              }
+            }
+          }
+          const acePrediction = requestedMatchup ? await getAcePredictionChatData(aceRequest, {
             webSearchResults: searchData?.results || [],
             webSearchUsed: searchUsed,
             zedFootballData: footballData
-          });
+          }) : null;
           if (acePrediction) {
             footballData += "\n\nUNIFIED ACE FOOTBALL ANALYSIS (API-Football + Zed football data + web research):\n" + JSON.stringify(acePrediction, null, 2);
           } else {

@@ -1119,6 +1119,11 @@ export async function searchWeb(
     allResults = allResults.filter(isPublishedToday);
   }
 
+  // Fallback results must pass the same article-link gate as the first pass.
+  if (newsRequest) {
+    allResults = allResults.filter(result => isDirectArticleUrl(result.url));
+  }
+
   // Apply relevance filtering after all retries so fallback results
   // cannot bypass the same quality checks as the initial search.
   allResults = allResults.filter(

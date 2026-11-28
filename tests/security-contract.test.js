@@ -897,3 +897,40 @@ test("ACE is only given a verified matchup and never guesses a single-team oppon
   assert.match(server, /No verified upcoming fixture could be resolved/);
   assert.match(server, /Do not invent an opponent or issue a match prediction/);
 });
+
+
+test("next scheduled fixture lookup uses provider-returned teams and kickoff time", async () => {
+  const originalEnabled = process.env.API_FOOTBALL_ENABLED;
+  process.env.API_FOOTBALL_ENABLED = "true";
+  try {
+    const calls = [];
+    const fetchImpl = async url => {
+      calls.push(String(url));
+      if (String(url).includes("/teams?search=Arsenal")) {
+        return { ok: true, json: async () => ({ response: [{ team: { id: 42, name: "Arsenal" } }] }) };
+      }
+      if (String(url).includes("/fixtures?team=42&next=10")) {
+        return {
+          ok: true,
+          json: async () => ({
+            response: [{
+              fixture: { id: 9876, date: "2099-08-01T15:00:00+00:00", status: { short: "NS" } },
+              league: { name: "Premier League" },
+              teams: { home: { name: "Arsenal" }, away: { name: "Leeds United" } }
+            }]
+          })
+        };
+      }
+      throw new Error("Unexpected provider request");
+    };
+    const { getUpcomingTeamFixture } = await import("../features/football-intelligence.js");
+    const fixture = await getUpcomingTeamFixture("Arsenal", { apiKey: "test-key", fetchImpl, cache: false });
+    assert.equal(fixture?.homeTeam, "Arsenal");
+    assert.equal(fixture?.awayTeam, "Leeds United");
+    assert.equal(fixture?.source, "API-Football v3");
+    assert.equal(calls.length, 2);
+  } finally {
+    if (originalEnabled === undefined) delete process.env.API_FOOTBALL_ENABLED;
+    else process.env.API_FOOTBALL_ENABLED = originalEnabled;
+  }
+});

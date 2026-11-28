@@ -124,7 +124,7 @@ function isDirectArticleUrl(url = "") {
 async function resolveNewsAggregatorUrl(url = "") {
   let parsed;
   try { parsed = new URL(url); } catch { return ""; }
-  const host = parsed.hostname.toLowerCase().replace(/^www\\./, "");
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
   if (host === "bing.com") {
     const destination = parsed.searchParams.get("url") || parsed.searchParams.get("u");
     if (destination) {

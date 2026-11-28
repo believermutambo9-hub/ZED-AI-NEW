@@ -299,8 +299,7 @@ export async function importHistoricalFootballSeason({
   maxPages = 5,
   fetchImpl = globalThis.fetch,
   apiKey,
-  cache = true,
-  verifiedFixture = null
+  cache = true
 } = {}) {
   const league = Number(leagueId);
   const year = Number(season);
@@ -1148,7 +1147,8 @@ export async function collectFootballEvidence({
   awayTeam,
   fetchImpl = globalThis.fetch,
   apiKey,
-  cache = true
+  cache = true,
+  verifiedFixture = null
 } = {}) {
   const empty = {
     provider: "API-Football v3",

@@ -571,6 +571,11 @@ function detectFootballTeam(
   );
 }
 
+// Return the matched team record for downstream fixture resolution.
+function getDetectedFootballTeam(message = "") {
+  return findTeam(message);
+}
+
 /* -------------------------------------------------------
    REQUEST TYPE
 ------------------------------------------------------- */
@@ -582,9 +587,9 @@ function getFootballRequestType(
     clean(message);
 
   if (
-    /predict|prediction|predictive|who will win|winner|forecast|odds|chance|probability|likely to win|likely winner|score prediction|correct score/.test(
+    /predict|prediction|predictive|who will win|winner|forecast|odds|chance|probability|likely to win|likely winner|score prediction|correct score|\b(analy[sz]e|analysis|analysing|analyzing)\b/.test(
       q
-    )
+    ) && /next|upcoming|scheduled|fixture|match|game|predict|prediction|forecast|odds|winner|who will win|analysis|analy[sz]e/.test(q)
   ) {
     return "prediction";
   }
@@ -598,7 +603,7 @@ function getFootballRequestType(
   }
 
   if (
-    /next match|next game|upcoming|fixture|fixtures|schedule|when.*play|play.*when/.test(
+    /next (?:scheduled |confirmed |available )?(?:match|game|fixture)|upcoming|scheduled (?:match|game|fixture)|fixture|fixtures|schedule|when.*play|play.*when/.test(
       q
     )
   ) {
@@ -2413,6 +2418,7 @@ export {
   searchFootballTeams,
   getFootballForDate,
   detectFootballTeam,
+  getDetectedFootballTeam,
   detectFootballLeague,
   getFootballRequestType
 };

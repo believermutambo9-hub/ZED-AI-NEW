@@ -676,7 +676,7 @@ test("chat API suppresses football source links and validates generic web-source
   assert.match(route, /webSources:\s*\(!isFootballRequest \|\| isFootballNews\) && Array\.isArray\(searchData\?\.results\)/);
   assert.match(route, /const currentInformation = searchData && !isFootballRequest/);
   assert.match(route, /const webEvidence = searchData && \(!isFootballRequest \|\| isFootballNews\)/);
-  assert.match(route, /For every football request, use retrieved web results only as internal evidence/);
+  assert.match(route, /For football data and prediction requests, use retrieved web results as supporting evidence/);
   assert.match(route, /const assistantAnswer = isFootballRequest/);
   assert.ok(route.includes(".replace(/https?:\\/\\/"));
   assert.match(route, /Keep the answer compact and results-focused/);

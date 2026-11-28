@@ -653,7 +653,8 @@ test("exact-today web searches retry and retain only dated results from Zambia's
   assert.match(webSearchModule, /if \(todayRequest\)/);
   assert.match(webSearchModule, /formatDateForZambia\(date\) === todayInZambia/);
   assert.match(webSearchModule, /runSearchVariant\(variant, true, false\)/);
-  assert.match(webSearchModule, /allResults = allResults\.filter\(isPublishedToday\)/);
+  assert.match(webSearchModule, /const exactTodayResults = allResults\.filter\(isPublishedToday\)/);
+  assert.match(webSearchModule, /allResults = exactTodayResults/);
 });
 
 
@@ -672,7 +673,7 @@ test("chat API suppresses football source links and validates generic web-source
   const start = server.indexOf('app.post(\n  "/api/chat"');
   const end = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", start);
   const route = server.slice(start, end);
-  assert.match(route, /webSources:\s*!isFootballRequest && Array\.isArray\(searchData\?\.results\)/);
+  assert.match(route, /webSources:\s*\(!isFootballRequest \|\| isFootballNews\) && Array\.isArray\(searchData\?\.results\)/);
   assert.match(route, /const currentInformation = searchData && !isFootballRequest/);
   assert.match(route, /const webEvidence = searchData && !isFootballRequest/);
   assert.match(route, /For every football request, use retrieved web results only as internal evidence/);
@@ -888,7 +889,9 @@ test("single-team football analysis resolves the actual team record before fixtu
 
 test("today-news fallback resolves provider redirect URLs before applying the publisher-link filter", () => {
   assert.match(webSearchModule, /const resolvedFallbackResults = newsRequest\s*\? await resolveNewsAggregatorResults\(flattenedFallbackResults\)/);
-  assert.match(webSearchModule, /resolvedFallbackResults\.filter\(result => result\.url\)/);
+  assert.match(webSearchModule, /const validFallbackResults = resolvedFallbackResults\.filter\(result =>/);
+  assert.match(webSearchModule, /result\.url &&/);
+  assert.match(webSearchModule, /!newsRequest \|\| isDirectArticleUrl\(result\.url\)/);
   assert.match(webSearchModule, /allResults = allResults\.filter\(result => isDirectArticleUrl\(result\.url\)\)/);
 });
 
@@ -909,14 +912,17 @@ test("next scheduled fixture lookup uses provider-returned teams and kickoff tim
       if (String(url).includes("/teams?search=Arsenal")) {
         return { ok: true, json: async () => ({ response: [{ team: { id: 42, name: "Arsenal" } }] }) };
       }
-      if (String(url).includes("/fixtures?team=42&next=10")) {
+      if (String(url).includes("/fixtures?team=42&from=")) {
         return {
           ok: true,
           json: async () => ({
             response: [{
               fixture: { id: 9876, date: "2099-08-01T15:00:00+00:00", status: { short: "NS" } },
               league: { name: "Premier League" },
-              teams: { home: { name: "Arsenal" }, away: { name: "Leeds United" } }
+              teams: {
+                home: { id: 42, name: "Arsenal" },
+                away: { id: 43, name: "Leeds United" }
+              }
             }]
           })
         };
@@ -929,6 +935,11 @@ test("next scheduled fixture lookup uses provider-returned teams and kickoff tim
     assert.equal(fixture?.awayTeam, "Leeds United");
     assert.equal(fixture?.source, "API-Football v3");
     assert.equal(calls.length, 2);
+    const fixtureCall = new URL(calls.find(call => call.includes("/fixtures?")));
+    assert.equal(fixtureCall.searchParams.has("next"), false);
+    assert.ok(fixtureCall.searchParams.get("from"));
+    assert.ok(fixtureCall.searchParams.get("to"));
+    assert.equal(fixtureCall.searchParams.get("timezone"), "Africa/Lusaka");
   } finally {
     if (originalEnabled === undefined) delete process.env.API_FOOTBALL_ENABLED;
     else process.env.API_FOOTBALL_ENABLED = originalEnabled;

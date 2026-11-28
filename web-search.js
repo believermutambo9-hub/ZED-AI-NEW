@@ -318,20 +318,27 @@ function extractMainTopic(query = "") {
     .trim();
 }
 
+function isFootballNewsTopic(query = "") {
+  return /\b(football|soccer|premier league|champions league|europa league|conference league|la liga|serie a|bundesliga|ligue 1|arsenal|chelsea|liverpool|manchester united|manchester city|tottenham|newcastle|barcelona|real madrid|bayern|psg|juventus|inter milan|ac milan)\b/i.test(cleanText(query));
+}
+
 function buildNewsSearchVariants(userQuery = "") {
-  const topic = extractMainTopic(userQuery);
+  const topic = extractMainTopic(userQuery)
+    .replace(/^['’]s\s+/i, "")
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
   if (!topic) return [cleanText(userQuery)];
-
   const variants = [userQuery, topic];
-  if (isNewsRequest(userQuery)) {
+  if (isFootballNewsTopic(userQuery)) {
     variants.push(
-      `${topic} technology news`,
-      `${topic} latest developments`,
-      `${topic} news today`,
-      `latest ${topic} news`
+      topic + " football soccer news today",
+      "world football soccer headlines match reports today",
+      "Premier League football news today",
+      "UEFA Champions League football news today",
+      "international football news today"
     );
+  } else if (isNewsRequest(userQuery)) {
+    variants.push(topic + " latest developments", topic + " news today", "latest " + topic + " news");
   }
-
   return [...new Set(variants.map(cleanText).filter(Boolean))];
 }
 
@@ -1151,28 +1158,33 @@ export async function searchWeb(
   // retry the same topic against the last seven days, then keep only results
   // whose provider-supplied publication date matches today. Never use
   // undated DuckDuckGo results to satisfy an exact-date request.
+  let recentFallbackUsed = false;
+  let exactTodayResultCount = null;
   if (todayRequest) {
     const todayInZambia = formatDateForZambia(new Date());
     const isPublishedToday = result => {
       const date = parsePublishedDate(result.published || result.pubDate || "");
       return date && formatDateForZambia(date) === todayInZambia;
     };
-
     if (!allResults.some(isPublishedToday)) {
-      const fallbackResults = await Promise.all(
-        variants.map(variant => runSearchVariant(variant, true, false))
-      );
+      const fallbackResults = await Promise.all(variants.map(variant => runSearchVariant(variant, true, false)));
       const flattenedFallbackResults = fallbackResults.flat();
-      const resolvedFallbackResults = newsRequest
-        ? await resolveNewsAggregatorResults(flattenedFallbackResults)
-        : flattenedFallbackResults;
-      allResults = deduplicateResults([
-        ...allResults,
-        ...resolvedFallbackResults.filter(result => result.url)
-      ]);
+      const resolvedFallbackResults = newsRequest ? await resolveNewsAggregatorResults(flattenedFallbackResults) : flattenedFallbackResults;
+      allResults = deduplicateResults([...allResults, ...resolvedFallbackResults.filter(result => result.url)]);
     }
-
-    allResults = allResults.filter(isPublishedToday);
+    const exactTodayResults = allResults.filter(isPublishedToday);
+    exactTodayResultCount = exactTodayResults.length;
+    if (exactTodayResults.length) {
+      allResults = exactTodayResults;
+    } else {
+      // Dated last-seven-day stories are an explicit fallback, never labelled as today.
+      allResults = allResults.filter(result => {
+        const date = parsePublishedDate(result.published || result.pubDate || "");
+        const ageDays = daysSince(date);
+        return date && ageDays >= 0 && ageDays <= 7;
+      });
+      recentFallbackUsed = allResults.length > 0;
+    }
   }
 
   // Fallback results must pass the same article-link gate as the first pass.
@@ -1236,6 +1248,8 @@ export async function searchWeb(
     providersUsed: [...new Set(finalResults.map(item => item.provider).filter(Boolean))],
     resultCount:
       finalResults.length,
+    exactTodayResultCount,
+    recentFallbackUsed,
     results:
       finalResults
   };
@@ -1390,6 +1404,7 @@ export const buildWebSearchContext =
   getWebSearchContext;
 
 export {
+  buildNewsSearchVariants,
   cleanText,
   isLikelyIrrelevant,
   cleanSearchIntent,

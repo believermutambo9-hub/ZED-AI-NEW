@@ -5,6 +5,7 @@ import {
   normalizeExaResults,
   normalizeSerperResults,
   normalizeGdeltResults,
+  buildNewsSearchVariants,
   getSearchProviderStatus,
   deduplicateResults
 } from "../web-search.js";
@@ -77,4 +78,18 @@ test("reports the new providers as free and only enabled when their keys exist",
       serper: process.env.SERPER_API_KEY
     }[id]));
   }
+});
+
+test("football news variants target football sources and avoid technology queries", () => {
+  const variants = buildNewsSearchVariants("today's football news");
+  assert.ok(variants.some(value => /Premier League/i.test(value)));
+  assert.ok(variants.some(value => /Champions League/i.test(value)));
+  assert.ok(variants.some(value => /world football soccer/i.test(value)));
+  assert.ok(!variants.some(value => /technology news/i.test(value)));
+});
+
+test("club-specific football news variants retain the club name", () => {
+  const variants = buildNewsSearchVariants("Arsenal news today");
+  assert.ok(variants.some(value => /Arsenal/i.test(value)));
+  assert.ok(variants.some(value => /football soccer news/i.test(value)));
 });

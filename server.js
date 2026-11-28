@@ -2665,7 +2665,7 @@ app.post(
         /\b(next|upcoming|scheduled|fixture|match|game)\b/i.test(userMessage);
 
       let footballUsed = footballDataRequest || footballNewsRequest;
-      let footballMode = footballDataRequest ? getFootballRequestType(userMessage) : null;
+      let footballMode = footballDataRequest && !footballNewsRequest ? getFootballRequestType(userMessage) : null;
       let footballData = "";
 
       // Unified ACE handles next-fixture predictions. Do not call the older

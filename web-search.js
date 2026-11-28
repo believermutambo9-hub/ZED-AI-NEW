@@ -323,7 +323,9 @@ function isFootballNewsTopic(query = "") {
 }
 
 function buildNewsSearchVariants(userQuery = "") {
-  const topic = extractMainTopic(userQuery).replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+  const topic = extractMainTopic(userQuery)
+    .replace(/^['’]s\s+/i, "")
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
   if (!topic) return [cleanText(userQuery)];
   const variants = [userQuery, topic];
   if (isFootballNewsTopic(userQuery)) {

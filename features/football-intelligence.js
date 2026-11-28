@@ -916,6 +916,70 @@ function mapInjuries(records, homeId, awayId) {
  * Resolve a single club's next scheduled fixture before asking ACE to analyse
  * it. The opponent is always taken from a provider response, never guessed.
  */
+function normalizeUpcomingProviderFixture(match, teamName, source, nowMs = Date.now()) {
+  const homeTeam = String(match?.home?.name || "").trim();
+  const awayTeam = String(match?.away?.name || "").trim();
+  const kickoff = new Date(match?.date || "").getTime();
+  const status = String(match?.status || "").toUpperCase();
+  const scheduled = /^(NS|TBD|SCHEDULED|TIMED|NOT.?STARTED|PRE.?GAME|PRE.?EVENT|STATUS_SCHEDULED)$/.test(status);
+  const wanted = normalizeFootballName(teamName);
+  if (!homeTeam || !awayTeam || !scheduled || !Number.isFinite(kickoff) || kickoff <= nowMs) return null;
+  if (normalizeFootballName(homeTeam) !== wanted && normalizeFootballName(awayTeam) !== wanted) return null;
+  return {
+    id: String(match?.sourceId || match?.id || ""),
+    kickoffTime: new Date(kickoff).toISOString(),
+    competition: String(match?.competition || "Competition not supplied"),
+    homeTeam,
+    awayTeam,
+    source
+  };
+}
+
+async function getConfiguredProviderTeamFixture(teamName, options = {}) {
+  const now = new Date();
+  const dateFrom = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
+  const dateTo = new Date(now.getTime() + 120 * 86400000).toISOString().slice(0, 10);
+  const candidates = [];
+
+  const footballDataLoader = options.getFootballDataMatches || getFootballDataMatches;
+  const footballDataConfigured = Boolean(options.footballDataConfigured || options.getFootballDataMatches || process.env.FOOTBALL_DATA_API_TOKEN);
+  if (footballDataConfigured) {
+    const competitions = Array.isArray(options.footballDataCompetitions) && options.footballDataCompetitions.length
+      ? options.footballDataCompetitions
+      : FOOTBALL_DATA_COMPETITIONS;
+    const settled = await settleWithConcurrency(competitions, 2, competitionCode => footballDataLoader({
+      competitionCode, dateFrom, dateTo, fetchImpl: options.fetchImpl, cache: options.cache !== false
+    }));
+    for (const item of settled) {
+      if (item.status !== "fulfilled") continue;
+      for (const match of Array.isArray(item.value?.matches) ? item.value.matches : []) {
+        const fixture = normalizeUpcomingProviderFixture(match, teamName, "Football-data.org");
+        if (fixture) candidates.push(fixture);
+      }
+    }
+  }
+
+  const sportmonksLoader = options.getSportmonksFixtures || getSportmonksFixtures;
+  const sportmonksConfigured = Boolean(options.sportmonksConfigured || options.getSportmonksFixtures || process.env.SPORTMONKS_API_TOKEN);
+  if (sportmonksConfigured) {
+    try {
+      const result = await sportmonksLoader({ dateFrom, dateTo, fetchImpl: options.fetchImpl, cache: options.cache !== false });
+      for (const match of Array.isArray(result?.matches) ? result.matches : []) {
+        const fixture = normalizeUpcomingProviderFixture(match, teamName, "Sportmonks");
+        if (fixture) candidates.push(fixture);
+      }
+    } catch (error) {
+      console.warn("Sportmonks next-fixture lookup unavailable:", error.message);
+    }
+  }
+
+  return candidates.sort((a, b) => new Date(a.kickoffTime) - new Date(b.kickoffTime))[0] || null;
+}
+
+/**
+ * Resolve one club\'s next scheduled fixture using configured structured feeds.
+ * The opposing club is always taken from a provider response.
+ */
 export async function getUpcomingTeamFixture(teamName, options = {}) {
   const wanted = normalizeFootballName(teamName);
   if (!wanted) return null;
@@ -925,20 +989,14 @@ export async function getUpcomingTeamFixture(teamName, options = {}) {
     try {
       const team = await findTeam(teamName, options);
       if (team?.team?.id) {
-        const payload = await apiGet("fixtures", { team: team.team.id, next: 10 }, {
-          ...options,
-          ttlMs: 10 * 60 * 1000
-        });
+        const payload = await apiGet("fixtures", { team: team.team.id, next: 10 }, { ...options, ttlMs: 10 * 60 * 1000 });
         const now = Date.now();
-        const upcoming = payload.response
-          .filter(item => {
-            const date = new Date(item?.fixture?.date || "").getTime();
-            const status = String(item?.fixture?.status?.short || "").toUpperCase();
-            return Number.isFinite(date) && date > now &&
-              (status === "NS" || status === "TBD") &&
-              item?.teams?.home?.name && item?.teams?.away?.name;
-          })
-          .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date))[0];
+        const upcoming = payload.response.filter(item => {
+          const date = new Date(item?.fixture?.date || "").getTime();
+          const status = String(item?.fixture?.status?.short || "").toUpperCase();
+          return Number.isFinite(date) && date > now && (status === "NS" || status === "TBD") &&
+            item?.teams?.home?.name && item?.teams?.away?.name;
+        }).sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date))[0];
         if (upcoming) return {
           id: upcoming.fixture.id,
           kickoffTime: new Date(upcoming.fixture.date).toISOString(),
@@ -953,35 +1011,35 @@ export async function getUpcomingTeamFixture(teamName, options = {}) {
     }
   }
 
-  // Public ESPN fixture feeds remain a fallback source when API-Football is
-  // paused or unavailable. Query all configured leagues in a bounded window.
+  // Prefer configured structured alternatives before ESPN. The ESPN endpoint
+  // has returned HTTP 403 to staging and must not block other fixture providers.
+  try {
+    const alternativeFixture = await getConfiguredProviderTeamFixture(teamName, options);
+    if (alternativeFixture) return alternativeFixture;
+  } catch (error) {
+    console.warn("Alternative next-fixture lookup unavailable:", error.message);
+  }
+
   try {
     const now = new Date();
     const end = new Date(now.getTime() + 120 * 86400000);
-    const dateRange = now.toISOString().slice(0, 10).replace(/-/g, "") + "-" +
-      end.toISOString().slice(0, 10).replace(/-/g, "");
+    const dateRange = now.toISOString().slice(0, 10).replace(/-/g, "") + "-" + end.toISOString().slice(0, 10).replace(/-/g, "");
     const settled = await settleWithConcurrency(ESPN_LEAGUES, 2, league =>
       getEspnScoreboard({ league, date: dateRange, fetchImpl: options.fetchImpl, cache: options.cache !== false })
     );
     const matches = settled.flatMap(item => item.status === "fulfilled" ? item.value.matches : []);
-    const fixture = matches
-      .filter(item => {
-        const date = new Date(item.date || "").getTime();
-        const status = String(item.status || "").toUpperCase();
-        const home = normalizeExternalTeamName(item.home?.name || "");
-        const away = normalizeExternalTeamName(item.away?.name || "");
-        return Number.isFinite(date) && date > Date.now() &&
-          (home === wanted || away === wanted) &&
-          /SCHEDULED|PRE.?GAME|STATUS_SCHEDULED|PRE.?EVENT/i.test(status);
-      })
-      .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+    const fixture = matches.filter(item => {
+      const date = new Date(item.date || "").getTime();
+      const status = String(item.status || "").toUpperCase();
+      const home = normalizeExternalTeamName(item.home?.name || "");
+      const away = normalizeExternalTeamName(item.away?.name || "");
+      return Number.isFinite(date) && date > Date.now() && (home === wanted || away === wanted) &&
+        /SCHEDULED|PRE.?GAME|STATUS_SCHEDULED|PRE.?EVENT/i.test(status);
+    }).sort((a, b) => new Date(a.date) - new Date(b.date))[0];
     if (fixture) return {
-      id: fixture.sourceId,
-      kickoffTime: new Date(fixture.date).toISOString(),
+      id: fixture.sourceId, kickoffTime: new Date(fixture.date).toISOString(),
       competition: fixture.competition || "Competition not supplied",
-      homeTeam: fixture.home.name,
-      awayTeam: fixture.away.name,
-      source: "ESPN public fixtures"
+      homeTeam: fixture.home.name, awayTeam: fixture.away.name, source: "ESPN public fixtures"
     };
   } catch (error) {
     console.warn("Fallback next-fixture lookup unavailable:", error.message);

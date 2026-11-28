@@ -1072,6 +1072,35 @@ function normalizeVerifiedApiFixture(verifiedFixture, homeId, awayId, homeTeam, 
 }
 
 /**
+ * Check TheSportsDB's public date-based soccer feed for the next eight
+ * Zambia-calendar days. The event, teams, date and ID must all come from
+ * the provider response; this is a fixture resolver, not a prediction source.
+ */
+async function getTheSportsDbUpcomingTeamFixture(teamName, options = {}) {
+  const today = apiFootballDateInZambia(new Date());
+  const [year, month, day] = today.split("-").map(Number);
+  const start = new Date(Date.UTC(year, month - 1, day));
+  const dates = Array.from({ length: 8 }, (_, index) => {
+    const date = new Date(start);
+    date.setUTCDate(date.getUTCDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+  const loader = options.getTheSportsDbEvents || getTheSportsDbEvents;
+  const settled = await settleWithConcurrency(dates, 2, date =>
+    loader({ date, fetchImpl: options.fetchImpl, cache: options.cache !== false })
+  );
+  const matches = settled.flatMap(item =>
+    item.status === "fulfilled" && Array.isArray(item.value?.matches)
+      ? item.value.matches
+      : []
+  );
+  return matches
+    .map(match => normalizeUpcomingProviderFixture(match, teamName, "TheSportsDB"))
+    .filter(Boolean)
+    .sort((a, b) => new Date(a.kickoffTime) - new Date(b.kickoffTime))[0] || null;
+}
+
+/**
  * Resolve one club's next scheduled fixture using configured structured feeds.
  * The opposing club is always taken from a provider response.
  */
@@ -1113,6 +1142,15 @@ export async function getUpcomingTeamFixture(teamName, options = {}) {
     if (alternativeFixture) return alternativeFixture;
   } catch (error) {
     console.warn("Alternative next-fixture lookup unavailable:", error.message);
+  }
+
+  // TheSportsDB's date-based public feed is available without an additional
+  // paid credential. Use it before the ESPN endpoints that have returned 403.
+  try {
+    const sportsDbFixture = await getTheSportsDbUpcomingTeamFixture(teamName, options);
+    if (sportsDbFixture) return sportsDbFixture;
+  } catch (error) {
+    console.warn("TheSportsDB next-fixture lookup unavailable:", error.message);
   }
 
   try {

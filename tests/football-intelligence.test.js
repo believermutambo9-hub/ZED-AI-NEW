@@ -312,6 +312,59 @@ test("single-team fixture lookup uses configured Football-data.org before ESPN",
 });
 
 
+test("single-team next fixture lookup falls back to the public TheSportsDB date feed", async () => {
+  const previousEnabled = process.env.API_FOOTBALL_ENABLED;
+  const previousFootballDataToken = process.env.FOOTBALL_DATA_API_TOKEN;
+  const previousSportmonksToken = process.env.SPORTMONKS_API_TOKEN;
+  delete process.env.API_FOOTBALL_ENABLED;
+  delete process.env.FOOTBALL_DATA_API_TOKEN;
+  delete process.env.SPORTMONKS_API_TOKEN;
+  const futureKickoff = new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString();
+  const dateParts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Lusaka",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date(futureKickoff));
+  const dateValues = Object.fromEntries(dateParts.map(part => [part.type, part.value]));
+  const fixtureDate = dateValues.year + "-" + dateValues.month + "-" + dateValues.day;
+  const requestedDates = [];
+
+  try {
+    const fixture = await getUpcomingTeamFixture("Arsenal", {
+      getTheSportsDbEvents: async ({ date }) => {
+        requestedDates.push(date);
+        return {
+          matches: date === fixtureDate ? [{
+            sourceId: "thesportsdb-arsenal-city-test",
+            date: futureKickoff,
+            status: "NS",
+            competition: "Premier League",
+            home: { id: "arsenal-test", name: "Arsenal FC" },
+            away: { id: "city-test", name: "Manchester City" }
+          }] : []
+        };
+      },
+      cache: false
+    });
+
+    assert.equal(fixture?.id, "thesportsdb-arsenal-city-test");
+    assert.equal(fixture?.homeTeam, "Arsenal FC");
+    assert.equal(fixture?.awayTeam, "Manchester City");
+    assert.equal(fixture?.source, "TheSportsDB");
+    assert.equal(fixture?.kickoffTime, new Date(futureKickoff).toISOString());
+    assert.equal(requestedDates.length, 8);
+    assert.equal(new Set(requestedDates).size, 8);
+  } finally {
+    if (previousEnabled === undefined) delete process.env.API_FOOTBALL_ENABLED;
+    else process.env.API_FOOTBALL_ENABLED = previousEnabled;
+    if (previousFootballDataToken === undefined) delete process.env.FOOTBALL_DATA_API_TOKEN;
+    else process.env.FOOTBALL_DATA_API_TOKEN = previousFootballDataToken;
+    if (previousSportmonksToken === undefined) delete process.env.SPORTMONKS_API_TOKEN;
+    else process.env.SPORTMONKS_API_TOKEN = previousSportmonksToken;
+  }
+});
+
 test("API-Football free-plan fixture lookup uses a from/to window instead of the paid-only next parameter", async () => {
   const calls = [];
   const futureKickoff = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();

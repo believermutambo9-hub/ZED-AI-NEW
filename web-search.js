@@ -764,9 +764,9 @@ async function searchDuckDuckGo(
 }
 
 
-async function fetchJson(url, options = {}) {
+async function fetchJson(url, options = {}, timeoutMs = FETCH_TIMEOUT) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
       ...options,
@@ -856,7 +856,7 @@ async function searchGdelt(query, recentRequest = false) {
     timespan: recentRequest ? "7d" : "30d"
   });
   try {
-    const payload = await fetchJson(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`);
+    const payload = await fetchJson(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`, {}, 4500);
     return normalizeGdeltResults(payload);
   } catch (error) {
     console.warn("GDELT search unavailable:", error.message);
@@ -987,13 +987,14 @@ async function runSearchVariant(
   const searches = [
     searchGoogleNews(query, recentRequest, todayRequest),
     searchBingNews(query, recentRequest, todayRequest),
-    searchDuckDuckGo(query),
-    searchGdelt(query, recentRequest)
+    searchDuckDuckGo(query)
   ];
-  // Keyed services use one request per user search, not one request per
-  // query rewrite. This protects small free quotas from variant fan-out.
+  // Auxiliary providers run only for the primary query variant. This avoids
+  // repeating the same GDELT request for every news-query rewrite and keeps
+  // slow free endpoints from dominating overall response latency.
   if (includeKeyedProviders) {
     searches.push(
+      searchGdelt(query, recentRequest),
       searchTavily(query, newsRequest),
       searchExa(query),
       searchSerper(query, newsRequest)

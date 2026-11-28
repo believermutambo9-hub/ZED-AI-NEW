@@ -5,10 +5,12 @@ on:
     branches:
       - zed-chatgpt-inspired-refinement
       - football-hub-hardening-20261127
+      - zed-reliability-fixes-20261128
   push:
     branches:
       - zed-online-brain-staging
       - 'fix/**'
+      - 'feature/**'
 
 permissions:
   contents: read

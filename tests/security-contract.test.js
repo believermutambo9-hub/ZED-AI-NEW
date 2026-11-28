@@ -893,7 +893,7 @@ test("today-news fallback resolves provider redirect URLs before applying the pu
 });
 
 test("ACE is only given a verified matchup and never guesses a single-team opponent", () => {
-  assert.match(server, /if \(requestedMatchup\)\s*\? await getAcePredictionChatData/);
+  assert.match(server, /const acePrediction = requestedMatchup \? await getAcePredictionChatData/);
   assert.match(server, /No verified upcoming fixture could be resolved/);
   assert.match(server, /Do not invent an opponent or issue a match prediction/);
 });

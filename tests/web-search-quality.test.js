@@ -89,3 +89,19 @@ test("relative dates are not absolute publication dates", () => {
   assert.equal(isAbsolutePublicationDate("2 hours ago"), false);
   assert.equal(isAbsolutePublicationDate("2026-11-28"), true);
 });
+
+test("formatted search evidence labels missing dates and indexed times honestly", () => {
+  const formatted = formatWebResults({ results: [{
+    title: "Example",
+    url: "https://publisher.example/story",
+    source: "Bloomberg",
+    provider: "Serper",
+    published: "",
+    dateLabel: "2 hours ago",
+    indexedAt: "2026-11-28T12:00:00Z"
+  }] });
+  assert.match(formatted, /Publication date: Publication date not verified/);
+  assert.match(formatted, /Provider date label \(not an absolute date\): 2 hours ago/);
+  assert.match(formatted, /Provider indexed\/seen time \(not publication time\)/);
+  assert.match(formatted, /Article-level URL candidate/);
+});

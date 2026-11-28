@@ -107,7 +107,7 @@ const NON_PUBLISHER_HOSTS = new Set([
   "duckduckgo.com", "html.duckduckgo.com"
 ]);
 
-export function isDirectArticleUrl(url = "") {
+function isDirectArticleUrl(url = "") {
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.toLowerCase().replace(/^www\./, "");

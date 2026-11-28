@@ -934,3 +934,20 @@ test("next scheduled fixture lookup uses provider-returned teams and kickoff tim
     else process.env.API_FOOTBALL_ENABLED = originalEnabled;
   }
 });
+
+
+test("chat history survives temporary persistence outages without being replaced by an empty list", () => {
+  assert.match(app, /if \(data\.persistent === false\) \{[\s\S]*?state\.chatHistoryUnavailable = true;[\s\S]*?renderRecentChats\(\);[\s\S]*?return;/);
+  assert.match(app, /Preserve the last known list on transient network\/provider failures/);
+});
+
+test("chat message pane supports touch scrolling on mobile browsers", () => {
+  const start = css.indexOf(".chat-area {");
+  const end = css.indexOf("}", start);
+  const rule = css.slice(start, end);
+  assert.notEqual(start, -1);
+  assert.match(rule, /overflow-y:\s*auto/);
+  assert.match(rule, /min-height:\s*0/);
+  assert.match(rule, /-webkit-overflow-scrolling:\s*touch/);
+  assert.match(rule, /overscroll-behavior-y:\s*contain/);
+});

@@ -2815,7 +2815,7 @@ app.post(
           let aceRequest = userMessage;
           let requestedMatchup = extractMatchup(userMessage);
           if (!requestedMatchup) {
-            const requestedTeam = detectFootballTeam(userMessage);
+            const requestedTeam = getDetectedFootballTeam(userMessage);
             if (requestedTeam && /\b(next|upcoming|scheduled|fixture|match|game)\b/i.test(userMessage)) {
               const nextFixture = await getUpcomingTeamFixture(requestedTeam.name);
               if (nextFixture?.homeTeam && nextFixture?.awayTeam) {

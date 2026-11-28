@@ -4,6 +4,7 @@ import {
   collectFootballEvidence,
   extractMatchWinnerOdds,
   getFootballIntelligenceStatus,
+  getUpcomingTeamFixture,
   normalizeFootballName
 } from "../features/football-intelligence.js";
 
@@ -278,3 +279,34 @@ test("API-Football remains explicitly paused unless an operator enables it", () 
   }
 });
 
+
+
+test("single-team fixture lookup uses configured Football-data.org before ESPN", async () => {
+  const previousEnabled = process.env.API_FOOTBALL_ENABLED;
+  delete process.env.API_FOOTBALL_ENABLED;
+  try {
+    const fixture = await getUpcomingTeamFixture("Arsenal", {
+      footballDataConfigured: true,
+      footballDataCompetitions: ["PL"],
+      getFootballDataMatches: async () => ({
+        matches: [{
+          sourceId: "pl-arsenal-city-2099",
+          date: "2099-11-29T16:30:00Z",
+          status: "TIMED",
+          competition: "Premier League",
+          home: { id: "1", name: "Arsenal FC" },
+          away: { id: "2", name: "Manchester City FC" }
+        }]
+      }),
+      getSportmonksFixtures: async () => ({ matches: [] }),
+      cache: false
+    });
+    assert.equal(fixture?.homeTeam, "Arsenal FC");
+    assert.equal(fixture?.awayTeam, "Manchester City FC");
+    assert.equal(fixture?.source, "Football-data.org");
+    assert.equal(fixture?.kickoffTime, "2099-11-29T16:30:00.000Z");
+  } finally {
+    if (previousEnabled === undefined) delete process.env.API_FOOTBALL_ENABLED;
+    else process.env.API_FOOTBALL_ENABLED = previousEnabled;
+  }
+});

@@ -140,7 +140,6 @@ timezone. Do not substitute the date an event happened or a date a
 provider indexed the story.
 
 ============================================================
-============================================================
 FACTS VS REPORTS VS RUMOURS
 ============================================================
 

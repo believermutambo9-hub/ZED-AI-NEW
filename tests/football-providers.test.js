@@ -4,7 +4,9 @@ import {
   getFootballProviderStatus,
   normalizeEspnEvents,
   normalizeFootballDataMatches,
+  normalizeFootballdataIoMatches,
   normalizeSportmonksFixtures,
+  normalizeSoccerDataMatches,
   normalizeTheSportsDbEvents
 } from "../features/football-providers.js";
 
@@ -105,4 +107,76 @@ test("normalizes TheSportsDB events only when a reliable UTC timestamp exists", 
   assert.equal(matches[0].date, "2026-12-01T18:30:00Z");
   assert.equal(matches[0].score.home, null);
   assert.equal(matches[0].score.away, null);
+});
+
+test("Soccer Data is safely token-gated and included in provider budgets", () => {
+  const status = getFootballProviderStatus();
+  const provider = status.find(item => item.id === "soccer-data");
+  assert.equal(provider.configured, Boolean(process.env.SOCCER_DATA_API_KEY));
+  assert.ok(provider.dailySafetyBudget <= 40);
+  assert.ok(provider.minuteSafetyBudget <= 8);
+});
+
+test("normalizes Soccer Data fixtures without inventing scores or availability", () => {
+  const matches = normalizeSoccerDataMatches({ data: [{
+    id: "match_9pd0ck6g2m9i",
+    utc_date: "2026-12-01T18:00:00.000Z",
+    status: "scheduled",
+    competition_name: "Premier League",
+    home_team: { id: "team_home123456", name: "Arsenal" },
+    away_team: { id: "team_away123456", name: "Chelsea" },
+    score: { home: null, away: null },
+    xg_available: true,
+    odds_available: false
+  }] });
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].source, "soccer-data");
+  assert.equal(matches[0].status, "NS");
+  assert.equal(matches[0].score.home, null);
+  assert.equal(matches[0].availability.xg, true);
+  assert.equal(matches[0].availability.odds, false);
+});
+
+test("Footballdata.io is key-gated and protected by daily, minute, and monthly Zed budgets", () => {
+  const provider = getFootballProviderStatus().find(item => item.id === "footballdata.io");
+  assert.equal(provider.configured, Boolean(process.env.FOOTBALLDATA_IO_API_KEY));
+  assert.ok(provider.dailySafetyBudget > 0 && provider.dailySafetyBudget <= 60);
+  assert.ok(provider.minuteSafetyBudget > 0 && provider.minuteSafetyBudget <= 5);
+  assert.ok(provider.monthlySafetyBudget > 0 && provider.monthlySafetyBudget <= 1900);
+  assert.equal(provider.attributionRequired, true);
+});
+
+test("normalizes Footballdata.io fixture records and leaves absent scores null", () => {
+  const matches = normalizeFootballdataIoMatches({ data: [{
+    match_id: 12345,
+    match_date: "2026-12-01T18:00:00Z",
+    status: "scheduled",
+    league: { name: "Premier League", competition_name: "Premier League" },
+    home_team: { team_id: 1119, team_name: "Arsenal" },
+    away_team: { team_id: 1121, team_name: "Chelsea" },
+    score: { home: null, away: null }
+  }] });
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].source, "footballdata.io");
+  assert.equal(matches[0].sourceId, "12345");
+  assert.equal(matches[0].status, "NS");
+  assert.equal(matches[0].home.name, "Arsenal");
+  assert.equal(matches[0].away.name, "Chelsea");
+  assert.equal(matches[0].score.home, null);
+  assert.equal(matches[0].score.away, null);
+});
+
+test("normalizes Footballdata.io unix kickoff timestamps", () => {
+  const matches = normalizeFootballdataIoMatches({ data: [{
+    match_id: 67890,
+    date_unix: 1796148000,
+    status: "complete",
+    home_team: { team_name: "Team A" },
+    away_team: { team_name: "Team B" },
+    score: { home: 2, away: 1 }
+  }] });
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].status, "FT");
+  assert.equal(matches[0].score.home, 2);
+  assert.equal(matches[0].score.away, 1);
 });

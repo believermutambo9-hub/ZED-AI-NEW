@@ -23,7 +23,7 @@ const OUTCOMES = [
 export function getPickFromProbabilities(probabilities = {}) {
   const available = OUTCOMES
     .map(item => ({ ...item, probability: percent(probabilities[item.key]) }))
-    .filter(item => item.probability !== null);
+    .filter(item => item.probability !== null && item.probability > 0);
   if (!available.length) return null;
   available.sort((a, b) => b.probability - a.probability);
   const { outcome, label, probability } = available[0];

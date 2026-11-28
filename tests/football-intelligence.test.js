@@ -3,8 +3,12 @@ import assert from "node:assert/strict";
 import {
   collectFootballEvidence,
   extractMatchWinnerOdds,
+  getFootballIntelligenceStatus,
   normalizeFootballName
 } from "../features/football-intelligence.js";
+
+// These tests explicitly exercise the retained API-Football adapter; production keeps it paused by default.
+process.env.API_FOOTBALL_ENABLED = "true";
 
 function makeFixture(id, date, homeId, awayId, homeGoals, awayGoals, status = "FT") {
   return {
@@ -169,6 +173,39 @@ test("ACE evidence adapter uses pre-kickoff history and retrieves fixture-specif
 });
 
 
+test("reversed upcoming fixture is resolved and team profiles follow the real home/away order", async () => {
+  const baseFetch = providerFetch();
+  const reversedFetch = async (url, options) => {
+    const response = await baseFetch(url, options);
+    const payload = await response.json();
+    if (new URL(url).pathname.endsWith("/fixtures/headtohead")) {
+      payload.response = payload.response.map(item => {
+        if (item?.fixture?.status?.short !== "NS") return item;
+        return {
+          ...item,
+          teams: { home: item.teams.away, away: item.teams.home }
+        };
+      });
+    }
+    return { ...response, json: async () => payload };
+  };
+
+  const evidence = await collectFootballEvidence({
+    homeTeam: "Arsenal",
+    awayTeam: "Chelsea",
+    apiKey: "test-key",
+    fetchImpl: reversedFetch,
+    cache: false
+  });
+
+  assert.equal(evidence.fixture.homeTeam, "Chelsea FC");
+  assert.equal(evidence.fixture.awayTeam, "Arsenal FC");
+  // The returned model profiles must match the fixture's actual home/away order.
+  assert.ok(evidence.home.goalsForPerMatch < evidence.away.goalsForPerMatch);
+  assert.equal(evidence.providerSampleCount.home, evidence.home.matchesPlayed);
+  assert.equal(evidence.providerSampleCount.away, evidence.away.matchesPlayed);
+});
+
 test("missing upcoming fixture stays unverified and never receives a synthetic kickoff", async () => {
   const baseFetch = providerFetch();
   const fetchWithoutUpcoming = async (url, options) => {
@@ -193,3 +230,51 @@ test("missing upcoming fixture stays unverified and never receives a synthetic k
   assert.equal(evidence.away?.daysRest, undefined);
   assert.ok(evidence.missingInputs.some(item => item.includes("No verified upcoming fixture")));
 });
+
+
+test("postponed fixtures are not treated as upcoming prediction targets", async () => {
+  const baseFetch = providerFetch();
+  const postponedFetch = async (url, options) => {
+    const response = await baseFetch(url, options);
+    const payload = await response.json();
+    if (new URL(url).pathname.endsWith("/fixtures/headtohead")) {
+      payload.response = payload.response.map(item => item?.fixture?.status?.short === "NS"
+        ? { ...item, fixture: { ...item.fixture, status: { short: "PST" } } }
+        : item);
+    }
+    return { ...response, json: async () => payload };
+  };
+
+  const evidence = await collectFootballEvidence({
+    homeTeam: "Arsenal",
+    awayTeam: "Chelsea",
+    apiKey: "test-key",
+    fetchImpl: postponedFetch,
+    cache: false
+  });
+
+  assert.equal(evidence.fixture, null);
+  assert.ok(evidence.missingInputs.some(item => item.includes("No verified upcoming fixture")));
+});
+
+test("API-Football remains explicitly paused unless an operator enables it", () => {
+  const originalEnabled = process.env.API_FOOTBALL_ENABLED;
+  const originalKey = process.env.API_FOOTBALL_KEY;
+  process.env.API_FOOTBALL_KEY = "configured-but-paused-test-key";
+  delete process.env.API_FOOTBALL_ENABLED;
+  try {
+    const status = getFootballIntelligenceStatus();
+    assert.equal(status.apiFootballConfigured, true);
+    assert.equal(status.apiFootballEnabled, false);
+    assert.equal(status.apiFootballPaused, true);
+    assert.equal(status.footballDataConfigured, Boolean(process.env.FOOTBALL_DATA_API_TOKEN));
+    assert.ok(status.alternativeProviders.includes("ESPN"));
+    assert.ok(status.alternativeProviders.includes("Football-data.org"));
+  } finally {
+    if (originalEnabled === undefined) delete process.env.API_FOOTBALL_ENABLED;
+    else process.env.API_FOOTBALL_ENABLED = originalEnabled;
+    if (originalKey === undefined) delete process.env.API_FOOTBALL_KEY;
+    else process.env.API_FOOTBALL_KEY = originalKey;
+  }
+});
+

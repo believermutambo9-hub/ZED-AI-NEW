@@ -13,7 +13,7 @@ import {
 } from "./storage/scheduled-tasks.js";
 
 import { getAcePredictionChatData, extractMatchup } from "./features/ace-engine.js";
-import { importHistoricalFootballSeason } from "./features/football-intelligence.js";
+import { importHistoricalFootballSeason, getUpcomingTeamFixture } from "./features/football-intelligence.js";
 import { askLocalBrain, getLocalBrainStatus } from "./features/local-brain.js";
 
 import {
@@ -21,11 +21,12 @@ import {
   footballTeamFeature,
   footballLeagueFeature,
   detectFootballTeam,
+  getDetectedFootballTeam,
   detectFootballLeague,
   getFootballRequestType
 } from "./features/football.js";
 
-import { webSearch } from "./web-search.js";
+import { webSearch, isDirectArticleUrl, extractDomain } from "./web-search.js";
 import { detectLiveDataIntent, getLiveDataForMessage, formatLiveDataEvidence } from "./features/live-data.js";
 
 import {
@@ -338,73 +339,42 @@ function formatHistory(
  * The original search object is still passed
  * separately to the intelligence modules.
  */
-function formatSearchEvidence(
-  searchData
-) {
-  if (
-    !searchData ||
-    !Array.isArray(
-      searchData.results
-    )
-  ) {
+function formatSearchEvidence(searchData) {
+  if (!searchData || !Array.isArray(searchData.results)) {
     return "No web search results were found.";
   }
-
-  if (
-    !searchData.results.length
-  ) {
+  if (!searchData.results.length) {
     return "No reliable web search results were found.";
   }
 
-  return searchData.results
-    .map(
-      (result, index) => {
-        const title =
-          cleanText(
-            result.title ||
-              "Untitled"
-          );
+  return searchData.results.map((result, index) => {
+    const title = cleanText(result.title || "Untitled");
+    const linkedDomain = extractDomain(result.url || "") || "Unknown domain";
+    const providerLabel = cleanText(result.provider || "Unknown provider");
+    const providerSourceLabel = cleanText(result.source || "");
+    const published = cleanText(result.published || result.pubDate || "");
+    const dateLabel = cleanText(result.dateLabel || "");
+    const indexedAt = cleanText(result.indexedAt || "");
+    const url = cleanText(result.url || "");
+    const snippet = cleanText(result.snippet || result.summary || result.description || "");
+    const linkAssessment = isDirectArticleUrl(url)
+      ? "Article-level URL candidate; page content has not been independently opened by this search pipeline"
+      : "Not an article-level publisher URL";
 
-        const source =
-          cleanText(
-            result.source ||
-              result.domain ||
-              "Unknown source"
-          );
-
-        const published =
-          cleanText(
-            result.published ||
-              result.pubDate ||
-              result.date ||
-              "Date not provided"
-          );
-
-        const url =
-          cleanText(
-            result.url ||
-              ""
-          );
-
-        const snippet =
-          cleanText(
-            result.snippet ||
-              result.summary ||
-              result.description ||
-              ""
-          );
-
-        return [
-          `RESULT ${index + 1}`,
-          `Title: ${title}`,
-          `Source: ${source}`,
-          `Published: ${published}`,
-          `URL: ${url}`,
-          `Snippet: ${snippet}`
-        ].join("\n");
-      }
-    )
-    .join("\n\n");
+    return [
+      `RESULT ${index + 1}`,
+      `Title: ${title}`,
+      `Linked domain: ${linkedDomain}`,
+      providerSourceLabel ? `Provider source label (not independently confirmed): ${providerSourceLabel}` : "",
+      `Search provider: ${providerLabel}`,
+      `Publication date: ${published || "Not provided or not verified"}`,
+      dateLabel ? `Provider date label (not an absolute publication date): ${dateLabel}` : "",
+      indexedAt ? `Provider indexed/seen time (not publication time): ${indexedAt}` : "",
+      `Link assessment: ${linkAssessment}`,
+      `URL: ${url}`,
+      `Search snippet (not full article text): ${snippet}`
+    ].filter(Boolean).join("\n");
+  }).join("\n\n");
 }
 
 // ============================================================
@@ -756,10 +726,16 @@ function shouldUseFootballData(
     "match stats"
   ];
 
-  return dataWords.some(
-    word =>
-      text.includes(word)
-  );
+  const hasStructuredDataIntent = dataWords.some(word => text.includes(word));
+  if (hasStructuredDataIntent) return true;
+
+  // Natural football-analysis requests often describe the task without using
+  // one of the legacy trigger phrases (for example, "analyse Arsenal's next
+  // scheduled match"). Route those requests to the football evidence path.
+  const hasFootballContext = shouldUseFootball(message);
+  const analysisIntent = /\b(analy[sz]e|analysis|analysing|analyzing|predict|prediction|forecast|form|head[- ]to[- ]head|injur(?:y|ies)|odds|probabilit(?:y|ies)|lineup|line-ups?)\b/i.test(text);
+  const fixtureIntent = /\b(next|upcoming|scheduled|fixture|fixtures|match|game|today|tomorrow)\b/i.test(text);
+  return hasFootballContext && (analysisIntent || fixtureIntent);
 }
 
 // ============================================================
@@ -782,7 +758,7 @@ const IMAGE_ANALYSIS_INSTRUCTIONS = [
   "Start with a one-sentence description, then show the extracted table, then add only useful observations. Avoid repeating the same information in prose.",
   "Use enough detail to finish the visible content. Never stop mid-row or mid-sentence. If the image contains too much information for one response, state exactly what portion was transcribed and what remains.",
   "Do not claim that the transcription is complete if any part is cut off or unreadable."
-].join("\\n");
+].join("\n");
 
 const MEDIA_ANALYSIS_INSTRUCTIONS = [
   "You are Zed, a careful audio and video analysis assistant.",
@@ -2781,7 +2757,7 @@ app.post(
         isExplicitWebSearchRequest(userMessage);
       const liveDataIntent = detectLiveDataIntent(userMessage);
       const isFootballRequest = shouldUseFootballData(userMessage);
-      const isFootballPrediction = footballMode === "prediction" && Boolean(extractMatchup(userMessage));
+      const isFootballPrediction = footballMode === "prediction" || (isFootballRequest && /\b(analy[sz]e|analysis|predict|prediction|forecast)\b/i.test(userMessage) && /\b(next|upcoming|scheduled|fixture|match|game)\b/i.test(userMessage));
 
       if (
         (
@@ -2837,11 +2813,26 @@ app.post(
 
       if (isFootballPrediction) {
         try {
-          const acePrediction = await getAcePredictionChatData(userMessage, {
+          let aceRequest = userMessage;
+          let requestedMatchup = extractMatchup(userMessage);
+          if (!requestedMatchup) {
+            const requestedTeam = getDetectedFootballTeam(userMessage);
+            if (requestedTeam && /\b(next|upcoming|scheduled|fixture|match|game)\b/i.test(userMessage)) {
+              const nextFixture = await getUpcomingTeamFixture(requestedTeam.name);
+              if (nextFixture?.homeTeam && nextFixture?.awayTeam) {
+                aceRequest = `${nextFixture.homeTeam} vs ${nextFixture.awayTeam}. Analyse this verified upcoming fixture and produce an evidence-gated prediction.`;
+                footballData += "\n\nVerified next fixture resolved from " + nextFixture.source + ": " + JSON.stringify(nextFixture);
+                requestedMatchup = extractMatchup(aceRequest);
+              } else {
+                footballData += "\n\nNo verified upcoming fixture could be resolved for " + requestedTeam.name + ". Do not invent an opponent or issue a match prediction.";
+              }
+            }
+          }
+          const acePrediction = requestedMatchup ? await getAcePredictionChatData(aceRequest, {
             webSearchResults: searchData?.results || [],
             webSearchUsed: searchUsed,
             zedFootballData: footballData
-          });
+          }) : null;
           if (acePrediction) {
             footballData += "\n\nUNIFIED ACE FOOTBALL ANALYSIS (API-Football + Zed football data + web research):\n" + JSON.stringify(acePrediction, null, 2);
           } else {
@@ -2886,7 +2877,7 @@ app.post(
       // CURRENT INFORMATION INTELLIGENCE
       // ------------------------------------------------------
 
-      const currentInformation = searchData
+      const currentInformation = searchData && !isFootballRequest
         ? buildCurrentInformationPrompt({
             currentDate,
             searchData,
@@ -2899,7 +2890,7 @@ app.post(
       // ------------------------------------------------------
 
       const newsIntelligence =
-        searchData
+        searchData && !isFootballRequest
           ? buildNewsIntelligencePrompt({
               currentDate,
               searchData
@@ -2910,7 +2901,7 @@ app.post(
       // FORMATTED WEB EVIDENCE FOR AI
       // ------------------------------------------------------
 
-      const webEvidence = searchData
+      const webEvidence = searchData && !isFootballRequest
         ? formatSearchEvidence(searchData)
         : "";
 
@@ -2954,7 +2945,12 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
           : "",
         newsIntelligence ? `Current-news guidance:\n${newsIntelligence}` : "",
         currentInformation ? `Current-information guidance:\n${currentInformation}` : "",
-        "Football accuracy: use verified football data for scores, results, fixtures, standings and match statistics. Use supplied web evidence for injuries, transfers and club news. Never invent players, scores, dates or outcomes.",
+        isFootballRequest
+          ? "For every football request, use retrieved web results only as internal evidence. Never include raw URLs, generic article links, search-result lists or link panels in the answer. Summarize verified findings directly and name the provider or publication in plain text when relevant. If evidence cannot be verified, say so without sending the user away to links."
+          : "",
+        isFootballPrediction
+          ? "Football prediction accuracy is strict. Never invent or infer a fixture date, kickoff, venue, team form, injury, odds, score or probability. Only report numerical probabilities, expected-goal estimates, score probabilities, odds, market percentages or statistics that are explicitly present in the CURRENT ACE analysis payload; copy the values exactly and never calculate, estimate, round, fill in or reconstruct missing numbers yourself. If ACE says predictionAvailable=false, provide no numerical prediction and explain the missing verified evidence. If ACE says predictionAvailable=true, still withhold numerical predictions unless the payload identifies a verified fixture, the provider name, provider availability, the actual home/away sample counts, and source records. Clearly label team ratings derived from recent-form proxies as proxies, not independent ratings. Label ACE expected goals as model estimates, not measured xG, unless the payload explicitly identifies a measured xG source. List the provider/source names, sample counts, retrieval time when available, injury-check status and odds availability; explicitly say when each category was not checked or unavailable. Only state likely scores that appear in ACE mostLikelyScores, with their exact supplied probabilities. Do not turn generic web commentary or tactical speculation into factual team-form claims or numerical adjustments. Treat previous assistant predictions and fixture dates in conversation history as unverified unless current ACE evidence independently confirms them. Treat web research as qualitative corroboration only. Do not show raw URLs or generic search-result links. If required provenance is missing, say that the prediction cannot yet be verified rather than presenting confident numbers. If sources disagree, explain the conflict and withhold the affected claim. Keep the answer compact and results-focused: no opening story, generic tactical essay, long explanation, or conversational filler. If predictionAvailable=false, reply with a short 'Prediction withheld' status and the specific missing evidence. If predictionAvailable=true, use only available ACE fields in this order: Fixture; 1X2 probabilities; expected goals (clearly labelled model estimates); likely scorelines; confidence; evidence gaps. Omit any unavailable field rather than filling it in. Use short labels and values, not paragraphs."
+          : "Football accuracy: use verified football data for scores, results, fixtures, standings and match statistics. Use supplied web evidence for injuries, transfers and club news. Never invent players, scores, dates or outcomes.",
         "Memory accuracy: use supplied long-term memory naturally for relevant personal context. Do not invent memories or claim to remember details that are not supplied.",
         `Latest user request:\n${userMessage}`,
         fileContext
@@ -2990,6 +2986,18 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
           : 0
       }));
 
+      // Football answers are concise and must never send users to raw URLs.
+      // Strip URL targets even if the language model ignores the prompt rule.
+      const assistantAnswer = isFootballRequest
+        ? String(result.answer || "")
+            .replace(/\[([^\]]+)\]\((?:https?:\/\/)[^)]+\)/gi, "$1")
+            .replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, "$1")
+            .replace(/https?:\/\/[^\s<>()]+/gi, "")
+            .replace(/[ \t]{2,}/g, " ")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim()
+        : result.answer;
+
       // ------------------------------------------------------
       // SAVE ASSISTANT MESSAGE
       // ------------------------------------------------------
@@ -2997,7 +3005,7 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
       addMessage(
         conversation,
         "assistant",
-        result.answer
+        assistantAnswer
       );
 
       const chatPersistence =
@@ -3014,7 +3022,7 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
         ok: true,
 
         answer:
-          result.answer,
+          assistantAnswer,
 
         provider:
           result.provider,
@@ -3068,7 +3076,7 @@ The user attached "${uploadedFile.fileName}" (${uploadedFile.mimeType}). Inspect
           0,
 
         webSources:
-          Array.isArray(searchData?.results)
+          !isFootballRequest && Array.isArray(searchData?.results)
             ? searchData.results
                 .map(source => {
                   let url = "";

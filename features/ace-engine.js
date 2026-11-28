@@ -1,28 +1,23 @@
 import { PredictionEngine } from "../ace/models/engine.ts";
-import { collectFootballEvidence, persistPredictionEvidence } from "./football-intelligence.js";
+import { collectFootballEvidence, normalizeFootballName, persistPredictionEvidence } from "./football-intelligence.js";
 
 export function extractMatchup(message = "") {
-  const input = String(message)
-    .replace(/[?!.]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  let match = input.match(/\bbetween\s+(.{2,100}?)\s+and\s+(.{2,100}?)(?=\s+(?:prediction|predict|forecast|analysis|odds|today|tonight|tomorrow|please)\b|$)/i);
-  if (!match) {
-    match = input.match(/(.{2,100}?)\s+(?:vs?\.?|versus|against)\s+(.{2,100}?)(?=\s+(?:prediction|predict|forecast|analysis|odds|today|tonight|tomorrow|please|kickoff|kick-off)\b|$)/i);
-  }
+  const input = String(message).replace(/\s+/g, " ").trim();
+  const stopWords = "(?=\\s+(?:fixture|match|game|prediction|predict|forecast|analysis|analyse|analyze|odds|today|tonight|tomorrow|please|kickoff|kick-off|identify|automatically|retrieve|fetch|verified|available|current|live|data|statistics|stats|and\\s+produce|produce|provide|show|include|do\\s+not)\\b|[.!?,;]|$)";
+  let match = input.match(new RegExp("\\bbetween\\s+(.{2,100}?)\\s+and\\s+(.{2,100}?)" + stopWords, "i"));
+  if (!match) match = input.match(new RegExp("(.{2,100}?)\\s+(?:vs?\\.?|versus|against)\\s+(.{2,100}?)" + stopWords, "i"));
   if (!match) return null;
-
   const cleanTeam = (value, side) => {
     let result = String(value || "").trim();
     if (side === "home") {
-      result = result.replace(/^(?:(?:please|can you|could you|would you|predict|prediction for|forecast|analyse|analyze|analysis of|who will win|who wins|will|show me|give me|what about)\s+)+/i, "");
-      result = result.replace(/^(?:(?:the\s+)?(?:football\s+)?(?:match|game)\s+(?:between\s+)?)*/i, "");
+      result = result.replace(new RegExp("^(?:(?:please|can you|could you|would you|predict|prediction for|forecast|analyse|analyze|analysis of|who will win|who wins|will|show me|give me|what about)\\s+)+", "i"), "");
+      result = result.replace(new RegExp("^(?:(?:the\\s+)?(?:next|upcoming|scheduled)\\s+)+", "i"), "");
+      result = result.replace(new RegExp("^(?:(?:football\\s+)?(?:match|game|fixture)\\s+(?:between\\s+)?) *", "i"), "");
     } else {
-      result = result.replace(/\b(?:prediction|predict|forecast|analysis|analyse|analyze|odds|today|tonight|tomorrow|please|kickoff|kick-off|who will win|who wins|which team|which side|what is your prediction)\b[\s\S]*$/i, "");
+      result = result.replace(new RegExp("\\b(?:fixture|match|game|prediction|predict|forecast|analysis|analyse|analyze|odds|today|tonight|tomorrow|please|kickoff|kick-off|who will win|who wins|which team|which side|what is your prediction|identify|automatically|retrieve|fetch|verified|available|current|live|data|statistics|stats|and produce|produce|provide|show|include|do not)\\b[\\s\\S]*$", "i"), "");
     }
-    return result.replace(/^[\s,;:-]+|[\s,;:-]+$/g, "").trim();
+    return result.replace(new RegExp("^[\\s,;:-]+|[\\s,;:-]+$", "g"), "").trim();
   };
-
   const homeTeam = cleanTeam(match[1], "home");
   const awayTeam = cleanTeam(match[2], "away");
   if (!homeTeam || !awayTeam || homeTeam.length > 100 || awayTeam.length > 100) return null;
@@ -38,14 +33,94 @@ export async function getAcePredictionChatData(message = "", options = {}) {
   const matchup = extractMatchup(message);
   if (!matchup) return null;
 
-  const evidence = await collectFootballEvidence({
+  const evidence = options.evidence || await collectFootballEvidence({
     ...matchup,
     fetchImpl: options.fetchImpl,
     apiKey: options.apiKey,
     cache: options.cache
   });
 
-  const kickoffTime = evidence.fixture?.kickoffTime || undefined;
+  const kickoffMs = new Date(evidence.fixture?.kickoffTime || "").getTime();
+  const requestedTeams = [normalizeFootballName(matchup.homeTeam), normalizeFootballName(matchup.awayTeam)].sort();
+  const returnedTeams = [
+    normalizeFootballName(evidence.fixture?.homeTeam || ""),
+    normalizeFootballName(evidence.fixture?.awayTeam || "")
+  ].sort();
+  const fixtureTeamsMatchRequested = Boolean(
+    evidence.fixture?.homeTeam && evidence.fixture?.awayTeam &&
+    requestedTeams[0] && requestedTeams[1] &&
+    requestedTeams[0] === returnedTeams[0] &&
+    requestedTeams[1] === returnedTeams[1]
+  );
+  const fixtureVerifiedAndFuture = Boolean(
+    evidence.fixture?.id &&
+    Number.isFinite(kickoffMs) &&
+    kickoffMs > Date.now() &&
+    evidence.fixture?.homeTeam &&
+    evidence.fixture?.awayTeam &&
+    fixtureTeamsMatchRequested
+  );
+  const homeSamples = Number(evidence.home?.matchesPlayed) || 0;
+  const awaySamples = Number(evidence.away?.matchesPlayed) || 0;
+  const teamHistoryVerified = Boolean(
+    evidence.hasTeamRatings &&
+    homeSamples >= 5 &&
+    awaySamples >= 5
+  );
+  const gateMissingInputs = [
+    ...(evidence.missingInputs || []),
+    ...(!fixtureVerifiedAndFuture
+      ? [!evidence.fixture
+          ? "No verified future fixture with confirmed teams and kickoff time. No match prediction is issued."
+          : !fixtureTeamsMatchRequested
+            ? "The provider did not verify a fixture between the two requested clubs. No match prediction is issued."
+            : "The fixture kickoff is missing, invalid or no longer in the future. No match prediction is issued."]
+      : []),
+    ...(!teamHistoryVerified
+      ? ["Insufficient verified recent team history (at least five completed matches per team required). No match prediction is issued."]
+      : [])
+  ];
+
+  if (!fixtureVerifiedAndFuture || !teamHistoryVerified) {
+    return {
+      source: "ACE statistical engine",
+      predictionAvailable: false,
+      mode: "insufficient_verified_evidence",
+      match: {
+        homeTeam: evidence.fixture?.homeTeam || matchup.homeTeam,
+        awayTeam: evidence.fixture?.awayTeam || matchup.awayTeam,
+        competition: evidence.fixture?.competition || "Not verified",
+        kickoffTime: evidence.fixture?.kickoffTime || "Not verified"
+      },
+      probabilities: null,
+      expectedGoals: null,
+      fairOdds: null,
+      markets: null,
+      mostLikelyScores: [],
+      modelBreakdown: null,
+      dataQuality: { rating: "INSUFFICIENT", missingInputs: gateMissingInputs },
+      confidence: null,
+      missingInputs: gateMissingInputs,
+      modelVersion: null,
+      evidence: {
+        provider: evidence.provider,
+        providerAvailable: evidence.providerAvailable,
+        fixtureVerified: Boolean(evidence.fixture),
+        fixture: evidence.fixture,
+        teamSamples: evidence.providerSampleCount || { home: homeSamples, away: awaySamples },
+        sources: evidence.sources || [],
+        crossSource: {
+          zedFootballDataAvailable: Boolean(options.zedFootballData),
+          webSearchUsed: Boolean(options.webSearchUsed),
+          webResearch: [],
+          webNewsAppliedToNumericProbabilities: false
+        }
+      },
+      persistence: { saved: false, settlementTracked: false }
+    };
+  }
+
+  const kickoffTime = evidence.fixture.kickoffTime;
   const homeContext = evidence.home?.daysRest !== undefined
     ? { daysRest: evidence.home.daysRest }
     : undefined;
@@ -88,14 +163,28 @@ export async function getAcePredictionChatData(message = "", options = {}) {
   });
 
   const webResearch = (Array.isArray(options.webSearchResults) ? options.webSearchResults : [])
+    .filter(item => {
+      const text = String(item?.title || "") + " " + String(item?.snippet || item?.summary || "");
+      const normalized = text.toLowerCase();
+      const hasHome = normalized.includes(matchup.homeTeam.toLowerCase());
+      const hasAway = normalized.includes(matchup.awayTeam.toLowerCase());
+      return hasHome && hasAway;
+    })
     .slice(0, 8)
-    .map(item => ({
-      title: String(item?.title || "Untitled").slice(0, 240),
-      source: String(item?.source || item?.domain || "Unknown source").slice(0, 120),
-      published: String(item?.published || item?.pubDate || item?.date || "Date not supplied").slice(0, 80),
-      url: String(item?.url || "").slice(0, 1000),
-      snippet: String(item?.snippet || item?.summary || item?.description || "").slice(0, 1200)
-    }))
+    .map(item => {
+      const url = String(item?.url || "").slice(0, 1000);
+      let sourceDomain = String(item?.domain || "");
+      try { if (url) sourceDomain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* retain supplied domain */ }
+      return {
+        title: String(item?.title || "Untitled").slice(0, 240),
+        source: String(item?.source || sourceDomain || "Unknown source").slice(0, 120),
+        provider: String(item?.provider || "Zed web search").slice(0, 80),
+        sourceDomain: sourceDomain.slice(0, 160),
+        publishedAt: String(item?.published || item?.pubDate || item?.date || "").slice(0, 80) || null,
+        retrievedAt: new Date().toISOString(),
+        snippet: String(item?.snippet || item?.summary || item?.description || "").slice(0, 1200)
+      };
+    })
     .filter(item => item.url || item.snippet);
   const dataEnriched = Boolean(evidence.hasTeamRatings);
   const mode = evidence.fixture
@@ -103,6 +192,7 @@ export async function getAcePredictionChatData(message = "", options = {}) {
     : (dataEnriched ? "recent_form_enriched_fixture_unverified" : "baseline_or_limited_evidence");
   return {
     source: "ACE statistical engine",
+    predictionAvailable: true,
     mode,
     match: prediction.match,
     probabilities: {

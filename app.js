@@ -1418,12 +1418,20 @@ async function loadChats() {
     const data = await parseResponse(response);
     if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
     if (!response.ok || !data.ok) throw new Error(data.error || "Unable to load chats.");
+    if (data.persistent === false) {
+      // A temporary Firestore outage is not an empty history. Keep any
+      // already-rendered conversations visible and mark the list unavailable.
+      state.chatHistoryUnavailable = true;
+      renderRecentChats();
+      return;
+    }
     state.chats = Array.isArray(data.chats) ? data.chats : [];
-    state.chatHistoryUnavailable = data.persistent === false;
+    state.chatHistoryUnavailable = false;
     renderRecentChats();
   } catch (error) {
     if (state.authGeneration !== requestGeneration || state.userId !== requestUid) return;
     console.error("Load chats error:", error);
+    // Preserve the last known list on transient network/provider failures.
     state.chatHistoryUnavailable = true;
     renderRecentChats();
   }

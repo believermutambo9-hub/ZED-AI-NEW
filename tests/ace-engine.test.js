@@ -1,20 +1,64 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getAcePredictionChatData } from "../features/ace-engine.js";
+import { extractMatchup, getAcePredictionChatData } from "../features/ace-engine.js";
 import { PredictionEngine, poissonPmf } from "../ace/models/engine.ts";
 import { MonteCarloSimulator } from "../ace/simulation/monteCarlo.ts";
 
-test("ACE produces a transparent baseline prediction for an explicit matchup", async () => {
-  const result = await getAcePredictionChatData("Predict Arsenal vs Chelsea");
+test("ACE withholds probabilities when the fixture and recent team history are unverified", async () => {
+  const result = await getAcePredictionChatData("Predict Arsenal vs Chelsea", {
+    evidence: {
+      provider: "API-Football v3",
+      providerConfigured: false,
+      providerAvailable: false,
+      fixture: null,
+      home: null,
+      away: null,
+      hasTeamRatings: false,
+      missingInputs: ["No provider data available."]
+    }
+  });
   assert.ok(result);
   assert.equal(result.source, "ACE statistical engine");
-  const total = result.probabilities.homeWin + result.probabilities.draw + result.probabilities.awayWin;
-  assert.ok(Math.abs(total - 100) < 0.3);
-  assert.equal(result.dataQuality.rating, "LIMITED");
-  assert.equal(result.confidence.level, "LOW");
-  assert.ok(result.missingInputs.some((item) => item.includes("historical Elo")));
-  assert.equal(result.modelBreakdown.monteCarlo.simulationsCount, 5000);
-  assert.equal(result.match.kickoffTime, "Not provided");
+  assert.equal(result.predictionAvailable, false);
+  assert.equal(result.mode, "insufficient_verified_evidence");
+  assert.equal(result.probabilities, null);
+  assert.equal(result.expectedGoals, null);
+  assert.equal(result.dataQuality.rating, "INSUFFICIENT");
+  assert.ok(result.missingInputs.some((item) => item.includes("verified future fixture")));
+  assert.ok(result.missingInputs.some((item) => item.includes("five completed matches")));
+});
+
+test("ACE extracts teams from a natural-language automatic fixture request", () => {
+  assert.deepEqual(
+    extractMatchup("Analyse the next scheduled Arsenal vs Chelsea fixture. Identify the fixture automatically, retrieve verified data, and produce a full prediction."),
+    { homeTeam: "Arsenal", awayTeam: "Chelsea" }
+  );
+  assert.deepEqual(
+    extractMatchup("Who will win between Real Madrid and Barcelona?"),
+    { homeTeam: "Real Madrid", awayTeam: "Barcelona" }
+  );
+});
+
+test("ACE rejects a future fixture whose teams do not match the requested clubs", async () => {
+  const result = await getAcePredictionChatData("Predict Arsenal vs Chelsea", {
+    evidence: {
+      provider: "API-Football v3",
+      providerAvailable: true,
+      fixture: {
+        id: 456,
+        kickoffTime: new Date(Date.now() + 86400000).toISOString(),
+        homeTeam: "Liverpool",
+        awayTeam: "Manchester City"
+      },
+      home: { matchesPlayed: 8 },
+      away: { matchesPlayed: 8 },
+      hasTeamRatings: true,
+      missingInputs: []
+    }
+  });
+  assert.equal(result.predictionAvailable, false);
+  assert.equal(result.probabilities, null);
+  assert.ok(result.missingInputs.some(item => item.includes("between the two requested clubs")));
 });
 
 test("ACE does not create a prediction without a clear matchup", async () => {
@@ -61,8 +105,26 @@ test("ACE attaches web and Zed evidence without silently changing numerical prob
   const result = await getAcePredictionChatData("Predict Arsenal vs Chelsea", {
     webSearchUsed: true,
     zedFootballData: "ESPN fixture evidence",
+    evidence: {
+      provider: "API-Football v3",
+      providerConfigured: true,
+      providerAvailable: true,
+      fixture: {
+        id: 123,
+        kickoffTime: new Date(Date.now() + 86400000).toISOString(),
+        competition: "Premier League",
+        homeTeam: "Arsenal",
+        awayTeam: "Chelsea"
+      },
+      home: { matchesPlayed: 5, rating: 1520, attack: 105, defense: 101, form: "WWDLW" },
+      away: { matchesPlayed: 5, rating: 1490, attack: 99, defense: 103, form: "WDLWL" },
+      hasTeamRatings: true,
+      sampleMatchesCount: 5,
+      missingInputs: [],
+      sources: ["API-Football v3"]
+    },
     webSearchResults: [{
-      title: "Team news",
+      title: "Arsenal vs Chelsea team news",
       source: "Example source",
       published: "Today",
       url: "https://example.com/team-news",
@@ -72,5 +134,6 @@ test("ACE attaches web and Zed evidence without silently changing numerical prob
   assert.equal(result.evidence.crossSource.zedFootballDataAvailable, true);
   assert.equal(result.evidence.crossSource.webSearchUsed, true);
   assert.equal(result.evidence.crossSource.webResearch.length, 1);
+  assert.equal("url" in result.evidence.crossSource.webResearch[0], false);
   assert.equal(result.evidence.crossSource.webNewsAppliedToNumericProbabilities, false);
 });

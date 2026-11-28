@@ -102,6 +102,76 @@ function extractDomain(url = "") {
   }
 }
 
+const NON_PUBLISHER_HOSTS = new Set([
+  "news.google.com", "google.com", "bing.com", "www.bing.com",
+  "duckduckgo.com", "html.duckduckgo.com"
+]);
+
+function isDirectArticleUrl(url = "") {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    if (!["http:", "https:"].includes(parsed.protocol)) return false;
+    if (NON_PUBLISHER_HOSTS.has(host)) return false;
+    if (!parsed.pathname || parsed.pathname === "/") return false;
+    if (/^\/(search|tag|category)(?:\/|$)/i.test(parsed.pathname)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function resolveNewsAggregatorUrl(url = "") {
+  let parsed;
+  try { parsed = new URL(url); } catch { return ""; }
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+  if (host === "bing.com") {
+    const destination = parsed.searchParams.get("url") || parsed.searchParams.get("u");
+    if (destination) {
+      const resolved = normalizeUrl(destination);
+      return isDirectArticleUrl(resolved) ? resolved : "";
+    }
+  }
+  if (host !== "news.google.com" && host !== "bing.com") return normalizeUrl(url);
+
+  // Follow only known search-provider wrappers; accept the final publisher
+  // URL only when the redirect chain actually reaches an article-level host.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6500);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      signal: controller.signal,
+      headers: { "User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml" }
+    });
+    const finalUrl = normalizeUrl(response.url || "");
+    try { await response.body?.cancel(); } catch { /* response body is not needed */ }
+    return isDirectArticleUrl(finalUrl) ? finalUrl : "";
+  } catch {
+    return "";
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function resolveNewsAggregatorResults(results = []) {
+  return Promise.all(results.map(async result => {
+    const url = normalizeUrl(result?.url || "");
+    if (!url) return { ...result, url: "" };
+    if (isDirectArticleUrl(url)) return { ...result, url };
+    const resolved = await resolveNewsAggregatorUrl(url);
+    return { ...result, url: resolved };
+  }));
+}
+
+function isAbsolutePublicationDate(value = "") {
+  const text = String(value || "").trim();
+  if (!text || /\b\d+\s+(second|minute|hour|day|week)s?\s+ago\b/i.test(text) || /^yesterday$/i.test(text)) return false;
+  return /^\d{4}-\d{2}-\d{2}(?:[Tt ][0-9:.+-]+Z?)?$/.test(text) ||
+    /^[A-Z][a-z]{2},?\s+\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4}/.test(text);
+}
+
 function extractImportantQueryWords(query = "") {
   const stopWords = new Set([
     "the",
@@ -737,6 +807,188 @@ async function searchDuckDuckGo(
   }
 }
 
+
+async function fetchJson(url, options = {}, timeoutMs = FETCH_TIMEOUT) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "application/json",
+        ...(options.headers || {})
+      }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function normalizeTavilyResults(payload) {
+  return (Array.isArray(payload?.results) ? payload.results : []).map(item => ({
+    title: cleanText(item?.title || ""),
+    url: item?.url || "",
+    snippet: cleanText(item?.content || item?.raw_content || ""),
+    published: item?.published_date || "",
+    source: extractDomain(item?.url || ""),
+    provider: "Tavily"
+  })).filter(item => item.title && item.url);
+}
+
+function normalizeExaResults(payload) {
+  return (Array.isArray(payload?.results) ? payload.results : []).map(item => ({
+    title: cleanText(item?.title || ""),
+    url: item?.url || "",
+    snippet: cleanText(item?.text || (Array.isArray(item?.highlights) ? item.highlights.join(" ") : "") || item?.summary || ""),
+    published: item?.publishedDate || item?.published_date || "",
+    source: extractDomain(item?.url || ""),
+    provider: "Exa"
+  })).filter(item => item.title && item.url);
+}
+
+function normalizeGdeltResults(payload) {
+  return (Array.isArray(payload?.articles) ? payload.articles : []).map(item => {
+    const rawDate = String(item?.seendate || "");
+    const indexedAt = /^\d{14}$/.test(rawDate)
+      ? rawDate.slice(0, 4) + "-" + rawDate.slice(4, 6) + "-" + rawDate.slice(6, 8) + "T" + rawDate.slice(8, 10) + ":" + rawDate.slice(10, 12) + ":" + rawDate.slice(12, 14) + "Z"
+      : "";
+    return {
+      title: cleanText(item?.title || ""),
+      url: item?.url || "",
+      snippet: cleanText(item?.description || ""),
+      published: "",
+      indexedAt,
+      dateType: "indexed_or_seen",
+      source: cleanText(item?.domain || item?.sourcecountry || ""),
+      provider: "GDELT"
+    };
+  }).filter(item => item.title && item.url);
+}
+
+function normalizeSerperResults(payload, provider = "Serper") {
+  const items = [
+    ...(Array.isArray(payload?.organic) ? payload.organic : []),
+    ...(Array.isArray(payload?.news) ? payload.news : [])
+  ];
+  return items.map(item => {
+    const rawDate = String(item?.datePublished || item?.date || "").trim();
+    const published = isAbsolutePublicationDate(rawDate) ? rawDate : "";
+    return {
+      title: cleanText(item?.title || ""),
+      url: item?.link || item?.url || "",
+      snippet: cleanText(item?.snippet || item?.description || ""),
+      published,
+      dateLabel: published ? "" : rawDate,
+      dateType: published ? "provider_publication_date" : rawDate ? "relative_or_unverified" : "missing",
+      source: cleanText(item?.source || extractDomain(item?.link || item?.url || "")),
+      provider
+    };
+  }).filter(item => item.title && item.url);
+}
+
+async function searchGdelt(query, recentRequest = false) {
+  const params = new URLSearchParams({
+    query,
+    mode: "ArtList",
+    format: "json",
+    maxrecords: "10",
+    sort: "HybridRel",
+    timespan: recentRequest ? "7d" : "30d"
+  });
+  try {
+    const payload = await fetchJson(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`, {}, 4500);
+    return normalizeGdeltResults(payload);
+  } catch (error) {
+    console.warn("GDELT search unavailable:", error.message);
+    return [];
+  }
+}
+
+async function searchTavily(query, newsRequest = false) {
+  const key = process.env.TAVILY_API_KEY;
+  if (!key) return [];
+  try {
+    const payload = await fetchJson("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: key,
+        query,
+        topic: newsRequest ? "news" : "general",
+        search_depth: "basic",
+        max_results: 8,
+        include_answer: false
+      })
+    });
+    return normalizeTavilyResults(payload);
+  } catch (error) {
+    console.warn("Tavily search unavailable:", error.message);
+    return [];
+  }
+}
+
+async function searchExa(query) {
+  const key = process.env.EXA_API_KEY;
+  if (!key) return [];
+  try {
+    const payload = await fetchJson("https://api.exa.ai/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": key
+      },
+      body: JSON.stringify({
+        query,
+        type: "fast",
+        numResults: 8,
+        contents: { text: { maxCharacters: 1200 } }
+      })
+    });
+    return normalizeExaResults(payload);
+  } catch (error) {
+    console.warn("Exa search unavailable:", error.message);
+    return [];
+  }
+}
+
+async function searchSerper(query, newsRequest = false) {
+  const key = process.env.SERPER_API_KEY;
+  if (!key) return [];
+  try {
+    const endpoint = newsRequest
+      ? "https://google.serper.dev/news"
+      : "https://google.serper.dev/search";
+    const payload = await fetchJson(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": key
+      },
+      body: JSON.stringify({ q: query, num: 10, gl: "us", hl: "en" })
+    });
+    return normalizeSerperResults(payload);
+  } catch (error) {
+    console.warn("Serper search unavailable:", error.message);
+    return [];
+  }
+}
+
+export function getSearchProviderStatus() {
+  return [
+    { id: "google-news-rss", label: "Google News RSS", enabled: true, free: true },
+    { id: "bing-news-rss", label: "Bing News RSS", enabled: true, free: true },
+    { id: "duckduckgo", label: "DuckDuckGo", enabled: true, free: true },
+    { id: "gdelt", label: "GDELT", enabled: true, free: true, allowance: "Free global news search; no API key" },
+    { id: "tavily", label: "Tavily", enabled: Boolean(process.env.TAVILY_API_KEY), free: true, allowance: "1,000 credits/month; no card" },
+    { id: "exa", label: "Exa", enabled: Boolean(process.env.EXA_API_KEY), free: true, allowance: "$10 monthly credits; no payment method" },
+    { id: "serper", label: "Serper", enabled: Boolean(process.env.SERPER_API_KEY), free: true, allowance: "2,500 starter queries; no card (one-time free credits)" }
+  ];
+}
+
 function deduplicateResults(
   results
 ) {
@@ -772,13 +1024,26 @@ function deduplicateResults(
 async function runSearchVariant(
   query,
   recentRequest,
-  todayRequest = false
+  todayRequest = false,
+  includeKeyedProviders = false
 ) {
+  const newsRequest = isNewsRequest(query);
   const searches = [
     searchGoogleNews(query, recentRequest, todayRequest),
     searchBingNews(query, recentRequest, todayRequest),
     searchDuckDuckGo(query)
   ];
+  // Auxiliary providers run only for the primary query variant. This avoids
+  // repeating the same GDELT request for every news-query rewrite and keeps
+  // slow free endpoints from dominating overall response latency.
+  if (includeKeyedProviders) {
+    searches.push(
+      searchGdelt(query, recentRequest),
+      searchTavily(query, newsRequest),
+      searchExa(query),
+      searchSerper(query, newsRequest)
+    );
+  }
 
   const results = await Promise.allSettled(searches);
   const values = results.map(result =>
@@ -837,11 +1102,12 @@ export async function searchWeb(
    */
   const variantResults =
     await Promise.all(
-      variants.map(variant =>
+      variants.map((variant, index) =>
         runSearchVariant(
           variant,
           recentRequest,
-          todayRequest
+          todayRequest,
+          index === 0
         )
       )
     );
@@ -862,10 +1128,22 @@ export async function searchWeb(
     );
   }
 
+  // Resolve Google/Bing RSS redirect wrappers to their real publisher URLs
+  // before applying the strict article-link policy. Unresolved wrappers remain
+  // excluded rather than being presented as direct article links.
+  if (newsRequest) {
+    allResults = await resolveNewsAggregatorResults(allResults);
+  }
+
   allResults =
     deduplicateResults(
-      allResults
+      allResults.filter(result => result.url)
     );
+
+  // News answers require article-level links, not provider homepages or aggregators.
+  if (newsRequest) {
+    allResults = allResults.filter(result => isDirectArticleUrl(result.url));
+  }
 
   // Exact-date searches can occasionally miss items because Google News'
   // 24-hour filter is narrower than its indexed publication-date metadata.
@@ -876,7 +1154,7 @@ export async function searchWeb(
   if (todayRequest) {
     const todayInZambia = formatDateForZambia(new Date());
     const isPublishedToday = result => {
-      const date = parsePublishedDate(result.published || result.pubDate || result.date || "");
+      const date = parsePublishedDate(result.published || result.pubDate || "");
       return date && formatDateForZambia(date) === todayInZambia;
     };
 
@@ -884,13 +1162,22 @@ export async function searchWeb(
       const fallbackResults = await Promise.all(
         variants.map(variant => runSearchVariant(variant, true, false))
       );
+      const flattenedFallbackResults = fallbackResults.flat();
+      const resolvedFallbackResults = newsRequest
+        ? await resolveNewsAggregatorResults(flattenedFallbackResults)
+        : flattenedFallbackResults;
       allResults = deduplicateResults([
         ...allResults,
-        ...fallbackResults.flat()
+        ...resolvedFallbackResults.filter(result => result.url)
       ]);
     }
 
     allResults = allResults.filter(isPublishedToday);
+  }
+
+  // Fallback results must pass the same article-link gate as the first pass.
+  if (newsRequest) {
+    allResults = allResults.filter(result => isDirectArticleUrl(result.url));
   }
 
   // Apply relevance filtering after all retries so fallback results
@@ -945,6 +1232,8 @@ export async function searchWeb(
     broadNews,
     searchVariants:
       variants,
+    providersAvailable: getSearchProviderStatus().filter(item => item.enabled).map(item => item.label),
+    providersUsed: [...new Set(finalResults.map(item => item.provider).filter(Boolean))],
     resultCount:
       finalResults.length,
     results:
@@ -992,10 +1281,13 @@ export function formatWebResults(
           );
 
         const published =
-          cleanText(
-            result.published ||
-              ""
-          );
+          cleanText(result.published || "Publication date not verified");
+        const dateLabel = cleanText(result.dateLabel || "");
+        const indexedAt = cleanText(result.indexedAt || "");
+        const provider = cleanText(result.provider || "Unknown provider");
+        const linkStatus = isDirectArticleUrl(url)
+          ? "Article-level URL candidate; page content not independently verified"
+          : "Not a verified direct article URL";
 
         const snippet =
           cleanText(
@@ -1009,10 +1301,14 @@ export function formatWebResults(
           `RESULT ${index + 1}`,
           `Title: ${title}`,
           `Source: ${source}`,
-          `Published: ${published}`,
+          `Publication date: ${published}`,
+          dateLabel ? `Provider date label (not an absolute date): ${dateLabel}` : "",
+          indexedAt ? `Provider indexed/seen time (not publication time): ${indexedAt}` : "",
+          `Provider: ${provider}`,
+          `Link assessment: ${linkStatus}`,
           `URL: ${url}`,
           `Snippet: ${snippet}`
-        ].join("\n");
+        ].filter(Boolean).join("\n");
       }
     )
     .join("\n\n");
@@ -1046,13 +1342,19 @@ ${formatWebResults(
   searchData
 )}
 
-IMPORTANT:
-- Use the supplied search results as evidence.
-- Do not invent news, names, injuries, transfers, scores, dates, or events.
-- For latest/current questions, prefer the newest available evidence.
-- Distinguish confirmed information from reports, speculation, and rumours.
-- If sources disagree, clearly explain the disagreement.
-- Do not claim that a search result proves something that it does not actually say.
+IMPORTANT EVIDENCE RULES:
+- Search-result snippets are leads, not proof that an article was opened or its claims verified.
+- Never call a story or URL verified unless the article page was actually retrieved and its content supports the claim.
+- A provider indexed/seen timestamp is NOT an article publication date. Never convert GDELT seendate into publication time.
+- Relative labels such as "2 hours ago" are not absolute publication dates. State them only as provider labels, not confirmed dates.
+- If publication date is missing or unverified, say so rather than guessing.
+- A provider source label does not prove the linked domain belongs to that publisher. Attribute the actual linked domain; do not credit Bloomberg, Reuters or another publisher unless the URL/page supports it.
+- Never use a homepage, search page or aggregator homepage as a direct article link.
+- Distinguish the article publication date from the date an event happened.
+- Multiple search providers are not automatically independent corroboration. Count distinct publisher domains, not provider names.
+- Distinguish confirmed facts, reports, allegations and speculation.
+- If sources disagree or evidence is thin, explain the limitation and lower confidence.
+- Never invent facts, dates, sources or links, or claim that evidence proves more than it says.
 `;
 }
 
@@ -1102,6 +1404,16 @@ export {
   searchGoogleNews,
   searchBingNews,
   searchDuckDuckGo,
+  searchGdelt,
+  searchTavily,
+  searchExa,
+  searchSerper,
+  isDirectArticleUrl,
+  isAbsolutePublicationDate,
+  normalizeTavilyResults,
+  normalizeExaResults,
+  normalizeSerperResults,
+  normalizeGdeltResults,
   deduplicateResults,
   diversifyResults
 };
@@ -1113,5 +1425,6 @@ export default {
   formatWebResults,
   getWebSearchContext,
   buildWebSearchContext,
-  getSearchDateInfo
+  getSearchDateInfo,
+  getSearchProviderStatus
 };

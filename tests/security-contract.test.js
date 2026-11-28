@@ -668,13 +668,29 @@ test("clear-all memory queries Firestore by owner before clearing local state", 
   assert.match(route, /firestoreDeleteUserRecordsAndWait\("zedProjects", normalizedUserId\)/);
 });
 
-test("chat API returns only validated HTTP web-source links", () => {
+test("chat API suppresses football source links and validates generic web-source links", () => {
   const start = server.indexOf('app.post(\n  "/api/chat"');
   const end = server.indexOf("// ============================================================\n// FRONTEND FALLBACK", start);
   const route = server.slice(start, end);
-  assert.match(route, /webSources:\s*Array\.isArray\(searchData\?\.results\)/);
+  assert.match(route, /webSources:\s*!isFootballRequest && Array\.isArray\(searchData\?\.results\)/);
+  assert.match(route, /const currentInformation = searchData && !isFootballRequest/);
+  assert.match(route, /const webEvidence = searchData && !isFootballRequest/);
+  assert.match(route, /For every football request, use retrieved web results only as internal evidence/);
+  assert.match(route, /const assistantAnswer = isFootballRequest/);
+  assert.ok(route.includes(".replace(/https?:\\/\\/"));
+  assert.match(route, /Keep the answer compact and results-focused/);
+  assert.match(route, /Prediction withheld/);
   assert.match(route, /\["http:", "https:"\]\.includes\(parsed\.protocol\)/);
   assert.match(route, /\.slice\(0, 12\)/);
+});
+
+test("football prediction responses require ACE numeric provenance and disclose data limitations", () => {
+  assert.match(server, /Only report numerical probabilities.*CURRENT ACE analysis payload/s);
+  assert.match(server, /never calculate, estimate, round, fill in or reconstruct missing numbers/i);
+  assert.match(server, /actual home\/away sample counts/);
+  assert.match(server, /recent-form proxies as proxies/);
+  assert.match(server, /Label ACE expected goals as model estimates/);
+  assert.match(server, /If required provenance is missing, say that the prediction cannot yet be verified/);
 });
 
 test("chat UI renders web sources as safe clickable links", () => {
@@ -859,4 +875,79 @@ test("legacy chat migration queries only the authenticated user's records", () =
   assert.match(history, /where\("userId", "==", safeUserId\)/);
   assert.match(history, /where\("metadata\.userId", "==", safeUserId\)/);
   assert.doesNotMatch(history, /db\.collection\(LEGACY_COLLECTION\)\.get\(\)/);
+});
+
+
+test("single-team football analysis resolves the actual team record before fixture lookup", async () => {
+  const football = await import("../features/football.js");
+  const team = football.getDetectedFootballTeam("Analyse Arsenal's next scheduled match");
+  assert.equal(team?.name, "Arsenal");
+  assert.match(server, /getDetectedFootballTeam\(userMessage\)/);
+  assert.match(server, /getUpcomingTeamFixture\(requestedTeam\.name\)/);
+});
+
+test("today-news fallback resolves provider redirect URLs before applying the publisher-link filter", () => {
+  assert.match(webSearchModule, /const resolvedFallbackResults = newsRequest\s*\? await resolveNewsAggregatorResults\(flattenedFallbackResults\)/);
+  assert.match(webSearchModule, /resolvedFallbackResults\.filter\(result => result\.url\)/);
+  assert.match(webSearchModule, /allResults = allResults\.filter\(result => isDirectArticleUrl\(result\.url\)\)/);
+});
+
+test("ACE is only given a verified matchup and never guesses a single-team opponent", () => {
+  assert.match(server, /const acePrediction = requestedMatchup \? await getAcePredictionChatData/);
+  assert.match(server, /No verified upcoming fixture could be resolved/);
+  assert.match(server, /Do not invent an opponent or issue a match prediction/);
+});
+
+
+test("next scheduled fixture lookup uses provider-returned teams and kickoff time", async () => {
+  const originalEnabled = process.env.API_FOOTBALL_ENABLED;
+  process.env.API_FOOTBALL_ENABLED = "true";
+  try {
+    const calls = [];
+    const fetchImpl = async url => {
+      calls.push(String(url));
+      if (String(url).includes("/teams?search=Arsenal")) {
+        return { ok: true, json: async () => ({ response: [{ team: { id: 42, name: "Arsenal" } }] }) };
+      }
+      if (String(url).includes("/fixtures?team=42&next=10")) {
+        return {
+          ok: true,
+          json: async () => ({
+            response: [{
+              fixture: { id: 9876, date: "2099-08-01T15:00:00+00:00", status: { short: "NS" } },
+              league: { name: "Premier League" },
+              teams: { home: { name: "Arsenal" }, away: { name: "Leeds United" } }
+            }]
+          })
+        };
+      }
+      throw new Error("Unexpected provider request");
+    };
+    const { getUpcomingTeamFixture } = await import("../features/football-intelligence.js");
+    const fixture = await getUpcomingTeamFixture("Arsenal", { apiKey: "test-key", fetchImpl, cache: false });
+    assert.equal(fixture?.homeTeam, "Arsenal");
+    assert.equal(fixture?.awayTeam, "Leeds United");
+    assert.equal(fixture?.source, "API-Football v3");
+    assert.equal(calls.length, 2);
+  } finally {
+    if (originalEnabled === undefined) delete process.env.API_FOOTBALL_ENABLED;
+    else process.env.API_FOOTBALL_ENABLED = originalEnabled;
+  }
+});
+
+
+test("chat history survives temporary persistence outages without being replaced by an empty list", () => {
+  assert.match(app, /if \(data\.persistent === false\) \{[\s\S]*?state\.chatHistoryUnavailable = true;[\s\S]*?renderRecentChats\(\);[\s\S]*?return;/);
+  assert.match(app, /Preserve the last known list on transient network\/provider failures/);
+});
+
+test("chat message pane supports touch scrolling on mobile browsers", () => {
+  const start = css.indexOf(".chat-area {");
+  const end = css.indexOf("}", start);
+  const rule = css.slice(start, end);
+  assert.notEqual(start, -1);
+  assert.match(rule, /overflow-y:\s*auto/);
+  assert.match(rule, /min-height:\s*0/);
+  assert.match(rule, /-webkit-overflow-scrolling:\s*touch/);
+  assert.match(rule, /overscroll-behavior-y:\s*contain/);
 });

@@ -21,6 +21,7 @@ import {
   footballTeamFeature,
   footballLeagueFeature,
   detectFootballTeam,
+  getDetectedFootballTeam,
   detectFootballLeague,
   getFootballRequestType
 } from "./features/football.js";
@@ -757,7 +758,7 @@ const IMAGE_ANALYSIS_INSTRUCTIONS = [
   "Start with a one-sentence description, then show the extracted table, then add only useful observations. Avoid repeating the same information in prose.",
   "Use enough detail to finish the visible content. Never stop mid-row or mid-sentence. If the image contains too much information for one response, state exactly what portion was transcribed and what remains.",
   "Do not claim that the transcription is complete if any part is cut off or unreadable."
-].join("\\n");
+].join("\n");
 
 const MEDIA_ANALYSIS_INSTRUCTIONS = [
   "You are Zed, a careful audio and video analysis assistant.",
@@ -2820,10 +2821,10 @@ app.post(
               const nextFixture = await getUpcomingTeamFixture(requestedTeam.name);
               if (nextFixture?.homeTeam && nextFixture?.awayTeam) {
                 aceRequest = `${nextFixture.homeTeam} vs ${nextFixture.awayTeam}. Analyse this verified upcoming fixture and produce an evidence-gated prediction.`;
-                footballData += "\\n\\nVerified next fixture resolved from " + nextFixture.source + ": " + JSON.stringify(nextFixture);
+                footballData += "\n\nVerified next fixture resolved from " + nextFixture.source + ": " + JSON.stringify(nextFixture);
                 requestedMatchup = extractMatchup(aceRequest);
               } else {
-                footballData += "\\n\\nNo verified upcoming fixture could be resolved for " + requestedTeam.name + ". Do not invent an opponent or issue a match prediction.";
+                footballData += "\n\nNo verified upcoming fixture could be resolved for " + requestedTeam.name + ". Do not invent an opponent or issue a match prediction.";
               }
             }
           }

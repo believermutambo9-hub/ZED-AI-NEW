@@ -102,6 +102,32 @@ function extractDomain(url = "") {
   }
 }
 
+const NON_PUBLISHER_HOSTS = new Set([
+  "news.google.com", "google.com", "bing.com", "www.bing.com",
+  "duckduckgo.com", "html.duckduckgo.com"
+]);
+
+function isDirectArticleUrl(url = "") {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    if (!["http:", "https:"].includes(parsed.protocol)) return false;
+    if (NON_PUBLISHER_HOSTS.has(host)) return false;
+    if (!parsed.pathname || parsed.pathname === "/") return false;
+    if (/^\/(search|tag|category)(?:\/|$)/i.test(parsed.pathname)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isAbsolutePublicationDate(value = "") {
+  const text = String(value || "").trim();
+  if (!text || /\b\d+\s+(second|minute|hour|day|week)s?\s+ago\b/i.test(text) || /^yesterday$/i.test(text)) return false;
+  return /^\d{4}-\d{2}-\d{2}(?:[Tt ][0-9:.+-]+Z?)?$/.test(text) ||
+    /^[A-Z][a-z]{2},?\s+\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4}/.test(text);
+}
+
 function extractImportantQueryWords(query = "") {
   const stopWords = new Set([
     "the",
@@ -738,9 +764,9 @@ async function searchDuckDuckGo(
 }
 
 
-async function fetchJson(url, options = {}) {
+async function fetchJson(url, options = {}, timeoutMs = FETCH_TIMEOUT) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
       ...options,
@@ -783,14 +809,16 @@ function normalizeExaResults(payload) {
 function normalizeGdeltResults(payload) {
   return (Array.isArray(payload?.articles) ? payload.articles : []).map(item => {
     const rawDate = String(item?.seendate || "");
-    const published = /^\d{14}$/.test(rawDate)
-      ? `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}T${rawDate.slice(8, 10)}:${rawDate.slice(10, 12)}:${rawDate.slice(12, 14)}Z`
+    const indexedAt = /^\d{14}$/.test(rawDate)
+      ? rawDate.slice(0, 4) + "-" + rawDate.slice(4, 6) + "-" + rawDate.slice(6, 8) + "T" + rawDate.slice(8, 10) + ":" + rawDate.slice(10, 12) + ":" + rawDate.slice(12, 14) + "Z"
       : "";
     return {
       title: cleanText(item?.title || ""),
       url: item?.url || "",
       snippet: cleanText(item?.description || ""),
-      published,
+      published: "",
+      indexedAt,
+      dateType: "indexed_or_seen",
       source: cleanText(item?.domain || item?.sourcecountry || ""),
       provider: "GDELT"
     };
@@ -802,14 +830,20 @@ function normalizeSerperResults(payload, provider = "Serper") {
     ...(Array.isArray(payload?.organic) ? payload.organic : []),
     ...(Array.isArray(payload?.news) ? payload.news : [])
   ];
-  return items.map(item => ({
-    title: cleanText(item?.title || ""),
-    url: item?.link || item?.url || "",
-    snippet: cleanText(item?.snippet || item?.description || ""),
-    published: item?.date || item?.datePublished || "",
-    source: cleanText(item?.source || extractDomain(item?.link || item?.url || "")),
-    provider
-  })).filter(item => item.title && item.url);
+  return items.map(item => {
+    const rawDate = String(item?.datePublished || item?.date || "").trim();
+    const published = isAbsolutePublicationDate(rawDate) ? rawDate : "";
+    return {
+      title: cleanText(item?.title || ""),
+      url: item?.link || item?.url || "",
+      snippet: cleanText(item?.snippet || item?.description || ""),
+      published,
+      dateLabel: published ? "" : rawDate,
+      dateType: published ? "provider_publication_date" : rawDate ? "relative_or_unverified" : "missing",
+      source: cleanText(item?.source || extractDomain(item?.link || item?.url || "")),
+      provider
+    };
+  }).filter(item => item.title && item.url);
 }
 
 async function searchGdelt(query, recentRequest = false) {
@@ -822,7 +856,7 @@ async function searchGdelt(query, recentRequest = false) {
     timespan: recentRequest ? "7d" : "30d"
   });
   try {
-    const payload = await fetchJson(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`);
+    const payload = await fetchJson(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`, {}, 4500);
     return normalizeGdeltResults(payload);
   } catch (error) {
     console.warn("GDELT search unavailable:", error.message);
@@ -953,13 +987,14 @@ async function runSearchVariant(
   const searches = [
     searchGoogleNews(query, recentRequest, todayRequest),
     searchBingNews(query, recentRequest, todayRequest),
-    searchDuckDuckGo(query),
-    searchGdelt(query, recentRequest)
+    searchDuckDuckGo(query)
   ];
-  // Keyed services use one request per user search, not one request per
-  // query rewrite. This protects small free quotas from variant fan-out.
+  // Auxiliary providers run only for the primary query variant. This avoids
+  // repeating the same GDELT request for every news-query rewrite and keeps
+  // slow free endpoints from dominating overall response latency.
   if (includeKeyedProviders) {
     searches.push(
+      searchGdelt(query, recentRequest),
       searchTavily(query, newsRequest),
       searchExa(query),
       searchSerper(query, newsRequest)
@@ -1054,6 +1089,11 @@ export async function searchWeb(
       allResults
     );
 
+  // News answers require article-level links, not provider homepages or aggregators.
+  if (newsRequest) {
+    allResults = allResults.filter(result => isDirectArticleUrl(result.url));
+  }
+
   // Exact-date searches can occasionally miss items because Google News'
   // 24-hour filter is narrower than its indexed publication-date metadata.
   // If the first pass has no dated stories for the Zambia calendar date,
@@ -1063,7 +1103,7 @@ export async function searchWeb(
   if (todayRequest) {
     const todayInZambia = formatDateForZambia(new Date());
     const isPublishedToday = result => {
-      const date = parsePublishedDate(result.published || result.pubDate || result.date || "");
+      const date = parsePublishedDate(result.published || result.pubDate || "");
       return date && formatDateForZambia(date) === todayInZambia;
     };
 
@@ -1078,6 +1118,11 @@ export async function searchWeb(
     }
 
     allResults = allResults.filter(isPublishedToday);
+  }
+
+  // Fallback results must pass the same article-link gate as the first pass.
+  if (newsRequest) {
+    allResults = allResults.filter(result => isDirectArticleUrl(result.url));
   }
 
   // Apply relevance filtering after all retries so fallback results
@@ -1181,10 +1226,13 @@ export function formatWebResults(
           );
 
         const published =
-          cleanText(
-            result.published ||
-              ""
-          );
+          cleanText(result.published || "Publication date not verified");
+        const dateLabel = cleanText(result.dateLabel || "");
+        const indexedAt = cleanText(result.indexedAt || "");
+        const provider = cleanText(result.provider || "Unknown provider");
+        const linkStatus = isDirectArticleUrl(url)
+          ? "Article-level URL candidate; page content not independently verified"
+          : "Not a verified direct article URL";
 
         const snippet =
           cleanText(
@@ -1198,10 +1246,14 @@ export function formatWebResults(
           `RESULT ${index + 1}`,
           `Title: ${title}`,
           `Source: ${source}`,
-          `Published: ${published}`,
+          `Publication date: ${published}`,
+          dateLabel ? `Provider date label (not an absolute date): ${dateLabel}` : "",
+          indexedAt ? `Provider indexed/seen time (not publication time): ${indexedAt}` : "",
+          `Provider: ${provider}`,
+          `Link assessment: ${linkStatus}`,
           `URL: ${url}`,
           `Snippet: ${snippet}`
-        ].join("\n");
+        ].filter(Boolean).join("\n");
       }
     )
     .join("\n\n");
@@ -1235,13 +1287,19 @@ ${formatWebResults(
   searchData
 )}
 
-IMPORTANT:
-- Use the supplied search results as evidence.
-- Do not invent news, names, injuries, transfers, scores, dates, or events.
-- For latest/current questions, prefer the newest available evidence.
-- Distinguish confirmed information from reports, speculation, and rumours.
-- If sources disagree, clearly explain the disagreement.
-- Do not claim that a search result proves something that it does not actually say.
+IMPORTANT EVIDENCE RULES:
+- Search-result snippets are leads, not proof that an article was opened or its claims verified.
+- Never call a story or URL verified unless the article page was actually retrieved and its content supports the claim.
+- A provider indexed/seen timestamp is NOT an article publication date. Never convert GDELT seendate into publication time.
+- Relative labels such as "2 hours ago" are not absolute publication dates. State them only as provider labels, not confirmed dates.
+- If publication date is missing or unverified, say so rather than guessing.
+- A provider source label does not prove the linked domain belongs to that publisher. Attribute the actual linked domain; do not credit Bloomberg, Reuters or another publisher unless the URL/page supports it.
+- Never use a homepage, search page or aggregator homepage as a direct article link.
+- Distinguish the article publication date from the date an event happened.
+- Multiple search providers are not automatically independent corroboration. Count distinct publisher domains, not provider names.
+- Distinguish confirmed facts, reports, allegations and speculation.
+- If sources disagree or evidence is thin, explain the limitation and lower confidence.
+- Never invent facts, dates, sources or links, or claim that evidence proves more than it says.
 `;
 }
 
@@ -1295,6 +1353,8 @@ export {
   searchTavily,
   searchExa,
   searchSerper,
+  isDirectArticleUrl,
+  isAbsolutePublicationDate,
   normalizeTavilyResults,
   normalizeExaResults,
   normalizeSerperResults,

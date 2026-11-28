@@ -555,7 +555,7 @@ async function collectEspnEvidence(homeTeam, awayTeam, fetchImpl) {
   if (!ESPN_LEAGUES.length) return null;
   const now = new Date();
   const from = new Date(now.getTime() - 42 * 86400000);
-  const to = new Date(now.getTime() + 14 * 86400000);
+  const to = new Date(now.getTime() + 120 * 86400000);
   const fmt = date => date.toISOString().slice(0, 10).replace(/-/g, "");
   const dateRange = fmt(from) + "-" + fmt(to);
   const settled = await settleWithConcurrency(ESPN_LEAGUES, 2, league =>
@@ -972,7 +972,7 @@ export async function getUpcomingTeamFixture(teamName, options = {}) {
         const away = normalizeExternalTeamName(item.away?.name || "");
         return Number.isFinite(date) && date > Date.now() &&
           (home === wanted || away === wanted) &&
-          /SCHEDULED|PRE.?GAME|STATUS_SCHEDULED|UNKNOWN/i.test(status);
+          /SCHEDULED|PRE.?GAME|STATUS_SCHEDULED|PRE.?EVENT/i.test(status);
       })
       .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
     if (fixture) return {

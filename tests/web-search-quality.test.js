@@ -3,7 +3,12 @@ import assert from "node:assert/strict";
 import {
   cleanText,
   isLikelyIrrelevant,
-  normalizeUrl
+  normalizeUrl,
+  normalizeGdeltResults,
+  normalizeSerperResults,
+  isDirectArticleUrl,
+  isAbsolutePublicationDate,
+  formatWebResults
 } from "../web-search.js";
 
 test("RSS text decoding handles CDATA and hexadecimal numeric entities", () => {
